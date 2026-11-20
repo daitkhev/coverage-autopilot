@@ -39,12 +39,14 @@ and where the two disagree the files win.
 
 ## The harness folder
 
-```
+```text
 harness/
 ├── bin/
 │   ├── check.ts
 │   ├── ratchet.ts
 │   ├── types.ts
+│   ├── coverage.ts
+│   ├── documents.ts
 │   ├── mutation.ts
 │   └── guard.ts
 ├── policy/
@@ -62,16 +64,28 @@ harness/
 │   ├── patterns.ts
 │   ├── edges.ts
 │   ├── graph.ts
+│   ├── import-rule.ts
 │   ├── rules.ts
 │   ├── rules/
 │   ├── lists.ts
 │   ├── baseline.ts
 │   ├── limit-changes.ts
 │   ├── git.ts
-│   └── commands.ts
+│   ├── commands.ts
+│   └── ratchet-command.ts
 ├── gate/
 │   ├── steps.ts
-│   └── type-projects.ts
+│   ├── tools.ts
+│   ├── host.ts
+│   ├── exit-code.ts
+│   ├── run-gate.ts
+│   ├── run-types.ts
+│   ├── type-projects.ts
+│   ├── run-coverage.ts
+│   ├── coverage-files.ts
+│   └── run-documents.ts
+├── documents/
+│   └── links.ts
 ├── eslint/
 │   ├── config.ts
 │   └── rules/
@@ -90,11 +104,12 @@ harness/
 
 | Part | Holds |
 | --- | --- |
-| `bin/` | What a person, a hook or CI starts. `check.ts` is the gate. `ratchet.ts` is the architecture linter. `types.ts` runs the compiler on the root and on every workspace that has source. `mutation.ts` reads the report of a mutation run and gives the verdict. `guard.ts` sorts the files of a change into policy and the rest |
+| `bin/` | What a person, a hook or CI starts. `check.ts` is the gate. `ratchet.ts` is the architecture linter. `types.ts` runs the compiler on the root and on every workspace that has source. `coverage.ts` measures coverage and checks the report. `documents.ts` lints the documents and checks their links. Each of these files is one line that calls a function, so the code behind it is tested in the same process. `mutation.ts` reads the report of a mutation run and gives the verdict. `guard.ts` sorts the files of a change into policy and the rest |
 | `policy/` | The rules as data, written by hand. `structure.json` has the modules, the layers, who may import whom and which folder a file suffix belongs to. `packages.json` has every outside package and where it may be imported. `limits.json` has every number |
 | `baseline.json` | The lists the ratchet recorded last. Written by the ratchet and never by hand |
 | `architecture/` | The code of the ratchet. `rules.ts` is the list of rules, and a rule that is not in it does not run. `commands.ts` holds check, write and compare |
-| `gate/` | The steps of the gate and its profiles, as data that a test can read |
+| `gate/` | The steps of the gate and its profiles, as data that a test can read. `tools.ts` has the path of every tool. `host.ts` is what a command needs from the machine: a tree, a way to start a program, a way to print. A test gives a stand-in |
+| `documents/` | The link check of the documents |
 | `shared/` | Reading the files of `policy/`, and the one error class of the harness |
 | `eslint/` | The lint configuration and the project's own lint rules |
 | `configs/` | The configuration of every other tool: TypeScript base, Prettier, Knip, Jest, StrykerJS, jscpd, commitlint, lefthook, markdownlint |
@@ -142,8 +157,9 @@ The gate has three profiles. Each one holds the one before it.
 | Compare | The ratchet, `--compare` | A recorded migration changed, or a limit got looser than the base has it | `full` |
 | Unused code | Knip | A file, an export or a dependency is unused, or a dependency is not declared | `full` |
 | Copy and paste | jscpd | Duplication is above its ceiling | `full` |
-| Unit tests | Jest | A test fails, or coverage is below a floor | `full` |
+| Unit tests | Jest | A test fails | `full` |
 | Integration tests | Jest | A test fails | `full` |
+| Coverage | Jest over the unit and the integration tests, then a check of the report | A counter is below its floor, or a source file is not in the report | `full` |
 | Build | `tsc` | The build fails | `full` |
 | Documents | markdownlint, a link check that stays offline | A rule is broken, or a link or an anchor points nowhere | `full` |
 | Secrets | gitleaks | Something that looks like a credential is in the diff | `full` |
@@ -181,6 +197,9 @@ One tool holds one concern. A second tool for the same concern is not added.
 | Tests and coverage | Jest, with `@swc/jest` | 30.5.2 |
 | Rendering the client in a test | `ink-testing-library` | 4.0.0, with Ink 8.0.0 |
 | Mutation tests | StrykerJS as the engine | 10.1.1, in an earlier run |
+| Copy and paste | jscpd | 5.4.3 |
+| Documents | markdownlint-cli2, and the harness's own link check | 0.24.2 |
+| Focused and skipped tests | `eslint-plugin-jest` | 29.17.1 |
 | Commit messages | commitlint | Not tried yet |
 | Git hooks | lefthook | Not tried yet |
 
@@ -374,14 +393,14 @@ yet.
 
 | Rule added on top | Held by | Tried |
 | --- | --- | --- |
-| Exported functions and public methods state their parameter and return types | `explicit-module-boundary-types` |✓ |
+| Exported functions and public methods state their parameter and return types | `explicit-module-boundary-types` | ✓ |
 | A cast with `as` is allowed in `infrastructure` and `presentation` only | `no-restricted-syntax` | ✓ |
-| A condition is a boolean, not a value that happens to be truthy | `strict-boolean-expressions` |✓ |
-| `interface` for an object, `type` for a union | `consistent-type-definitions` |✓ |
-| A type is imported with `import type` | `consistent-type-imports` |✓ |
-| Every class member says `public` or `private` | `explicit-member-accessibility` |✓ |
-| One class in a file | `max-classes-per-file` |✓ |
-| No default export | `no-restricted-exports` |✓ |
+| A condition is a boolean, not a value that happens to be truthy | `strict-boolean-expressions` | ✓ |
+| `interface` for an object, `type` for a union | `consistent-type-definitions` | ✓ |
+| A type is imported with `import type` | `consistent-type-imports` | ✓ |
+| Every class member says `public` or `private` | `explicit-member-accessibility` | ✓ |
+| One class in a file | `max-classes-per-file` | ✓ |
+| No default export | `no-restricted-exports` | ✓ |
 
 ### Errors and outcomes
 
@@ -406,23 +425,23 @@ the imports. These calls need no import, so ESLint holds them:
 | --- | --- | --- | --- |
 | `new Date()`, `Date.now()` | The system clock adapter | `no-restricted-syntax` | ✓ |
 | `randomUUID()` | The id generator adapter | `no-restricted-syntax` | |
-| `process.env` | The configuration loader | `no-restricted-properties` |✓ |
-| `console` | Nowhere in the service. The commands of the client print through one writer | `no-console` |✓ |
+| `process.env` | The configuration loader | `no-restricted-properties` | ✓ |
+| `console` | Nowhere in the service. The commands of the client print through one writer | `no-console` | ✓ |
 | `setTimeout` as a pause, a retry loop | The shared retry and sleep code | `no-restricted-syntax` | |
 
 ### Size and shape
 
 | Rule | Limit | Held by | Tried |
 | --- | --- | --- | --- |
-| Lines in a function, blank lines and comments not counted | 50 | `max-lines-per-function` |✓ |
-| Branches in a function | 8 | `complexity` |✓ |
-| Nesting | 3 | `max-depth` |✓ |
+| Lines in a function, blank lines and comments not counted | 50 | `max-lines-per-function` | ✓ |
+| Branches in a function | 8 | `complexity` | ✓ |
+| Nesting | 3 | `max-depth` | ✓ |
 | Parameters. A constructor is exempt, because it lists dependencies | 3 | `no-restricted-syntax` | ✓ |
-| Lines in a file | 300 | `max-lines` |✓ |
+| Lines in a file | 300 | `max-lines` | ✓ |
 | A boolean parameter | None | `no-restricted-syntax` | ✓ |
 | `.then(` | None | `no-restricted-syntax` | ✓ |
-| A ternary inside a ternary | None | `no-nested-ternary` |✓ |
-| A number in the middle of logic, other than 0, 1 and -1 | None | `no-magic-numbers` |✓ |
+| A ternary inside a ternary | None | `no-nested-ternary` | ✓ |
+| A number in the middle of logic, other than 0, 1 and -1 | None | `no-magic-numbers` | ✓ |
 
 ### Naming
 
@@ -431,7 +450,7 @@ the imports. These calls need no import, so ESLint holds them:
 | A class is not called `Manager`, `Helper`, `Processor`, `Provider` or `Util` | `no-restricted-syntax` | ✓ |
 | An interface has no `I` prefix | `naming-convention` | |
 | The outer `describe` names the unit, a nested one a method or a `when`, and every `it` starts with `should` | `jest/valid-title` | |
-| Imports are sorted in groups: Node, packages, the contracts workspace, aliases | `simple-import-sort` |✓ |
+| Imports are sorted in groups: Node, packages, the contracts workspace, aliases | `simple-import-sort` | ✓ |
 
 ### The client
 
@@ -446,8 +465,8 @@ the imports. These calls need no import, so ESLint holds them:
 | Rule | Held by |
 | --- | --- |
 | Width 80, single quotes, trailing commas, two spaces, semicolons, LF | Prettier, `.editorconfig` |
-| A line of a document is at most 80 characters, tables and code aside | markdownlint |
-| A link to a file or a heading leads somewhere | A link check that reads local files only |
+| A line of a document is at most 80 characters, tables and code aside | markdownlint. Built, and tried on a planted line |
+| A link to a file or a heading leads somewhere | A link check that reads local files only. Built, and tried on two planted links |
 | No `TODO`, `FIXME` or `HACK` | `no-warning-comments` |
 | No tool is turned off by a comment: lint, types, formatting, coverage or mutation | Inline configuration is disabled in ESLint. A lint rule bans the comments of the other tools |
 
@@ -472,8 +491,8 @@ are in [Project structure](project-structure.md#tests).
 | Rule | Held by | Tried |
 | --- | --- | --- |
 | Coverage of each workspace and of the harness is at least 95% of statements, branches, functions and lines | The coverage floors of Jest | ✓ |
-| Every source file is in the coverage report, imported by a test or not | A check that compares the report with the files the ratchet measures | |
-| No `.only` and no `.skip` | `jest/no-focused-tests`, `jest/no-disabled-tests` | |
+| Every source file is in the coverage report, imported by a test or not | A check that compares the report with the files the ratchet measures. A file of types alone has nothing to run and may be absent | ✓ |
+| No `.only` and no `.skip` | `jest/no-focused-tests`, `jest/no-disabled-tests` | ✓ |
 | A unit test touches memory only | The ratchet, `unit-test-reach` | |
 | A test does not read the real time or make a real id | The same bans as in the source, with the fixed clock and the id sequence from `tests/support/` | |
 | A test that fails is not run again | Retries are off | |
@@ -571,7 +590,9 @@ score that StrykerJS prints counts a mutant that timed out as detected.
 `harness/bin/mutation.ts` reads the report and computes the kill rate:
 
 $$
-\text{kill rate} = \frac{\text{Killed}}{\text{Killed} + \text{Survived} + \text{NoCoverage} + \text{Timeout}}
+\text{kill rate} =
+\frac{\text{Killed}}
+{\text{Killed} + \text{Survived} + \text{NoCoverage} + \text{Timeout}}
 $$
 
 - A timeout is not a kill. A test that hangs on a mutant proves nothing.
@@ -618,7 +639,7 @@ read their limits from it, so a number is written once.
 | --- | --- | --- |
 | Coverage floor, four counters | 95 | Up |
 | Kill rate floor per area | Set by the owner after the first full run | Up |
-| Duplication ceiling | The first measured share | Down |
+| Duplication ceiling | 0.9% of lines. The first measured share was 0.89% | Down |
 | Lines in a function | 50 | Down |
 | Branches in a function | 8 | Down |
 | Nesting | 3 | Down |
@@ -811,7 +832,7 @@ owner can. The point that blocks is the merge into `main`.
 All runs used small projects with the planned layout and the aliases, on
 Node 25. Tools and versions are in the table under [The gate](#the-gate).
 
-### The ratchet
+### The small ratchet
 
 I wrote a small version of the ratchet, about 400 lines, with nine rules
 and two lists.
@@ -894,7 +915,7 @@ a resize.
 ### Not tried and not claimed
 
 Jest for the service, StrykerJS on this project's own code and
-`mutation.ts`, jscpd, commitlint, lefthook, the document checks,
+`mutation.ts`, commitlint, lefthook,
 actionlint, zizmor, gitleaks, the workflows, the frozen files check and
 the policy that allows its event, `guard.ts`, every row of the table of
 ways around except the install scripts, running the script of one named
@@ -937,7 +958,8 @@ repository can hold them. They are set by hand, once:
 The harness is built by priority. A small gate runs in CI from the first
 stage, and the last stage only makes CI strict.
 
-The first two stages are built. What the harness holds today:
+The first three stages are built, the third as far as it goes without
+product code. What the harness holds today:
 
 - The ratchet with 13 of its 18 rules. Stage one gave `file-name`,
   `relative-import`, `unresolved-import` and `import-cycle`. Stage two
@@ -961,16 +983,25 @@ The first two stages are built. What the harness holds today:
 - The lint policy with the rules that need no layers. Each of the 26 rules
   it adds has a wrong file and a right file in `harness/fixtures/lint/`,
   and a test fails when a rule has none.
-- `check.ts` with `fast`, and with `full` as far as it goes: compare and
-  the unit and integration tests of the harness. Formatting and lint look
-  at the whole tree, not at staged files, and no passed tree is remembered.
+- `check.ts` with `fast`, and with `full` but two of its steps: compare,
+  unused code, copy and paste, the unit and integration tests, coverage
+  and the documents. The build waits for something to build, and the
+  search for secrets for the stage that makes CI strict. Formatting and
+  lint look at the whole tree, not at staged files, and no passed tree is
+  remembered.
+- Coverage of the harness is held at the floor of 95 for all four
+  counters. It stands at 99% of statements, 97% of branches and 100% of
+  functions. The floors go to Jest from `limits.json`, and the Jest
+  configuration holds no number.
+- Knip with one configuration for the root and the three workspaces.
+  jscpd with the ceiling from `limits.json`. markdownlint and the link
+  check over the documents git sees.
+- Two lint rules for tests: no focused test and no skipped test.
 - Things were switched off on purpose, one at a time. In stage one: a lint
   rule, type-aware lint, a rule of the ratchet, and the pattern of a banned
   shape. In stage two: a rule taken out of the list, `domain` allowed to
   import `infrastructure`, an ORM added to `packages.json`, and the
   baseline removed. Each time a test of the harness or the gate went red.
-- Coverage of the harness is not held yet. The commands in `bin/` run as
-  separate processes and are not counted.
 - CI runs on Node 26.13.1. The harness was written and run on 25.2.1, so
   `engines` allows both lines until the workflow has passed.
 
@@ -991,6 +1022,48 @@ What stage two showed and changed:
 - Five rules are not built: `client-direction`, `test-placement` and
   `unit-test-reach` wait for the code they judge, `lockfile-source` and
   `unknown-file` for the stage that makes CI strict.
+
+What stage three showed and changed:
+
+- Coverage is its own step and counts the unit and the integration tests
+  together. The unit tests alone never touch a disk or git, so they
+  cannot cover the code that does, and the service will be the same. The
+  price is that `full` runs the tests twice.
+- A command in `bin/` runs as a separate process, and coverage does not
+  count it. Each command became one line, and its code moved to a
+  function that takes the machine as an argument. Five statements stay
+  uncovered: those five lines.
+- A file of types alone is not in the report of Jest at all. The check of
+  the report reads the file with the parser and lets it be absent only
+  when nothing in it runs.
+- Knip found an export that nothing used on its first run, and it was
+  removed. It counts a tool as unused when the gate starts it by a path,
+  so four tools are named as used in its configuration. A test allows
+  only tools from `tools.ts` in that list.
+- Knip reports an alias of a workspace that nothing imports yet. The
+  alias table belongs to the ratchet, so this one kind of finding is
+  switched off for Knip, and a test holds that it is the only one. Its
+  hints about patterns that match nothing are hidden while the workspaces
+  are empty. They should become errors when the workspaces have code.
+- jscpd 5 is one compiled program with its own options, not the earlier
+  JavaScript tool. It found six copies, 0.89% of the lines: three rules
+  with the same loop, two rules with the same start, and one helper
+  written in four tests. All six were removed, so the tree stands at 0%
+  under a ceiling of 0.9%. The ceiling is a share, so a single small copy
+  still passes. Lowering it to 0 is the owner's call, and it cannot be
+  raised afterwards.
+- markdownlint found 25 things in the documents: table cells without a
+  space, code blocks without a language, three formulas longer than 80
+  characters and one heading used twice. All are fixed.
+- The documents are taken from git, not from a pattern. A document that
+  exists on one machine only is not judged, so a desk and CI give the
+  same verdict.
+- Prettier rewrites a `.jsonc` file with trailing commas, and then a test
+  cannot read it as JSON. The configurations in `configs/` are plain
+  `.json`.
+- The invariant tests of the queue, the requests, the improvement, the
+  recovery and the migrations are not written: they come with the code
+  they guard.
 
 1. **A gate that runs.** The root `package.json` with exact versions,
    Prettier, the TypeScript configuration, ESLint, the ratchet with its
