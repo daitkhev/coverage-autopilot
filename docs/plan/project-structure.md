@@ -30,6 +30,7 @@ coverage-autopilot/
 │   │   ├── unit/
 │   │   ├── integration/
 │   │   ├── e2e/
+│   │   ├── stress/
 │   │   └── support/
 │   ├── package.json
 │   └── tsconfig.json
@@ -47,13 +48,30 @@ coverage-autopilot/
 │   │   ├── theme/
 │   │   ├── hooks/
 │   │   └── api/
+│   ├── tests/
+│   │   ├── unit/
+│   │   ├── integration/
+│   │   ├── e2e/
+│   │   └── support/
 │   ├── package.json
 │   └── tsconfig.json
 │
 ├── api-contracts/
 │   ├── src/
+│   ├── tests/
+│   │   └── unit/
 │   ├── package.json
 │   └── tsconfig.json
+│
+├── harness/
+│   ├── bin/
+│   ├── policy/
+│   ├── architecture/
+│   ├── eslint/
+│   ├── configs/
+│   ├── agents/
+│   ├── fixtures/
+│   └── tests/
 │
 ├── docs/
 │   └── plan/
@@ -75,7 +93,12 @@ coverage-autopilot/
 - `api-contracts/` holds the Zod schemas of the HTTP API. The backend validates
   requests with them and the frontend validates responses with them, so each
   DTO is described once and its type is inferred from the schema.
-- The root `package.json` declares the three folders as workspaces.
+- `harness/` holds the checks that decide whether a change may land: the
+  tools, their configuration, the policy as data and the settings of the AI
+  agent. It is not a workspace. It belongs to the root package and no
+  product code imports it. It is described in [Harness](harness.md).
+- The root `package.json` declares `backend`, `frontend` and
+  `api-contracts` as workspaces.
 
 ## Backend modules
 
@@ -234,9 +257,44 @@ deterministic in tests.
 
 There is no `utils/` folder. A helper belongs to the module that needs it.
 
+## Frontend folders
+
+The client has no layers of a domain. Its folders still import one way.
+
+| Folder | May import |
+| --- | --- |
+| `index.tsx` | `app/`, `commands/` |
+| `app/` | `screens/`, `components/`, `hooks/`, `theme/`, `api/` |
+| `screens/<name>/` | Its own folder, `components/`, `hooks/`, `theme/`, `api/` |
+| `commands/` | `api/`, `theme/` |
+| `components/` | `components/`, `hooks/`, `theme/` |
+| `hooks/` | `hooks/`, `theme/` |
+| `api/` | `api/` |
+| `theme/` | `theme/` |
+
+- The table lists what is allowed. Anything it does not list is refused,
+  whether or not it makes a cycle.
+- A screen never imports another screen. Moving between screens is the job
+  of `app/`.
+- `commands/` imports no screen, no component and no hook. Ink and React
+  are imported in `app/`, `screens/`, `components/` and `hooks/` only, so a
+  command, the client in `api/` and `theme/` work without the interactive
+  view.
+- `hooks/` holds hooks of the interface only: the keys, the focus, the
+  selection, the size of the terminal, a timer. None of them imports
+  `api/`. The hook that repeats a request takes the request as an
+  argument, and the screen passes it in. A hook that knows one request of
+  the service lives in the folder of its screen.
+- A component gets what it draws as props. No chain of imports leads from
+  `components/` or `hooks/` to `api/`. A part of one screen that knows an
+  improvement lives in the folder of that screen.
+- Any folder may import a type from `api-contracts`. Only `api/` imports
+  its schemas, and only `api/` opens the socket.
+
 ## Dependency rules
 
-These rules are checked by a tool, not by review:
+These rules are checked by a tool, not by review. The tool behind each one
+is named in [Harness](harness.md).
 
 1. `domain` imports only its own module's `domain` and `shared/kernel`.
 2. `application` imports its own `domain`, `shared/kernel`,
@@ -258,6 +316,8 @@ These rules are checked by a tool, not by review:
 9. SQL is written only in `infrastructure/persistence` of a module, in
    `shared/infrastructure` and in `migrations/`. There is no ORM and no query
    builder.
+10. A folder of `frontend` imports only what its row in
+    [Frontend folders](#frontend-folders) allows.
 
 ## Imports
 
@@ -271,8 +331,9 @@ does not change when the importing file moves.
 | `#kernel/*` | `backend/src/shared/kernel/*` |
 | `#ports/*` | `backend/src/shared/application/ports/*` |
 | `#infrastructure/*` | `backend/src/shared/infrastructure/*` |
-| `#tests/*` | `backend/tests/*` |
+| `#tests/*` | `tests/*` of the workspace the file is in |
 | `#app/*`, `#screens/*`, `#commands/*`, `#components/*`, `#theme/*`, `#hooks/*`, `#api/*` | `frontend/src/<folder>/*` |
+| `#harness/*` | `harness/*` |
 | `@coverage-autopilot/api-contracts` | The `api-contracts` workspace |
 
 ```ts
@@ -319,6 +380,7 @@ one subfolder per kind of test:
 | `tests/unit/` | One class or function on its own | Memory only: no database, file system, network or child process |
 | `tests/integration/` | An adapter against the real thing it wraps: SQLite, `git`, a test runner on a fixture project | Local resources, no network |
 | `tests/e2e/` | The running service through its HTTP API and the client | Everything a real run uses, with external services faked |
+| `tests/stress/` | A guarantee of the design under load: real processes that share one database and are stopped at random | The same as `tests/e2e/`. Only the backend has this folder |
 
 - The path under `tests/unit/` repeats the path under `src/`:
   `src/modules/coverage/domain/value-objects/coverage-percentage.vo.ts` is
@@ -326,6 +388,11 @@ one subfolder per kind of test:
   `tests/unit/modules/coverage/domain/value-objects/coverage-percentage.vo.test.ts`.
 - `tests/support/` holds test doubles and builders, such as a fixed clock and a
   sequential id generator. It contains no tests.
+- A screen of the client rendered to text in memory is a unit test. A test
+  of `api/` against a socket is an integration test.
+- A stress test passes when the guarantee holds, whatever the order of
+  events was. It runs before a merge only. Which guarantees are tested this
+  way is listed in [Harness](harness.md#invariant-tests).
 - The outer `describe` names the class or function under test. A nested
   `describe` names a method or a context that starts with `when`. Every `it`
   starts with `should`.

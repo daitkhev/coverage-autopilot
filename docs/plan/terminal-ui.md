@@ -486,7 +486,7 @@ in `api/`, which validates every answer with the schemas of `api-contracts`.
 | `screens/` | One folder per screen of this document |
 | `components/` | The parts listed below |
 | `theme/` | Colour roles, symbols with their ASCII replacements, the status tables, the three widths |
-| `hooks/` | Asking the service again on a timer, the keys, the size of the terminal, the one timer of the spinner |
+| `hooks/` | Repeating a request it is given on a timer, the keys, the focus, the size of the terminal, the one timer of the spinner. No hook here knows the service |
 | `commands/` | One file per command of the table above |
 | `api/` | The client for the socket, and starting the service |
 
