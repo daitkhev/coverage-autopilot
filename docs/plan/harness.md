@@ -866,8 +866,9 @@ What stays outside the repository is listed under
 | On the commit message | commitlint | lefthook |
 | Before a push | `full` | lefthook |
 | When an agent says it is done | `full` | The hook in the agent settings |
-| On a pull request | `ci`, one job per step, and the frozen files check | GitHub Actions |
-| On a push to `dev` or `main` | `ci` | GitHub Actions |
+| On a pull request | `ci` but the mutation tests, one job per step, and the frozen files check | GitHub Actions |
+| On a push to `dev` or `main` | `ci` but the mutation tests | GitHub Actions |
+| On a pull request into `main`, or when a person starts the workflow | The mutation tests as well | GitHub Actions |
 
 These are three different things, and only the last one forbids:
 
@@ -1220,6 +1221,11 @@ What stage four showed and changed:
   not go down. CI runs the mutation step as a job of its own, with a
   time limit of 30 minutes, beside the other jobs and not before them.
   Four runs gave rates from 90.24% to 90.36%.
+- The mutation job runs on a pull request into `main` and when a person
+  starts the workflow, not on every push. On a push it took 15 minutes
+  for a change of one document, while every other job takes half a
+  minute. So a rate below its floor is seen when the pull request is
+  opened, and `main` is still not reached without it.
 - A test runner under Vitest that reaches the limit of its heap ends the
   run: with 48 MB and with 96 MB the engine stopped with an error, and
   with 200 MB it finished. So the memory that is allowed decides how
