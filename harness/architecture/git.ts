@@ -28,3 +28,26 @@ export function showFile(
   });
   return result.status === 0 ? result.stdout : undefined;
 }
+
+/** Whether the first commit is in the history of the second. */
+export function isAncestor(
+  root: string,
+  older: string,
+  newer: string,
+): boolean {
+  const result = spawnSync(
+    'git',
+    ['merge-base', '--is-ancestor', older, newer],
+    { cwd: root },
+  );
+  return result.status === 0;
+}
+
+/** The branch a tree is on, or nothing when it is on no branch. */
+export function currentBranch(root: string): string {
+  const result = spawnSync('git', ['symbolic-ref', '--short', 'HEAD'], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  return result.status === 0 ? result.stdout.trim() : '';
+}

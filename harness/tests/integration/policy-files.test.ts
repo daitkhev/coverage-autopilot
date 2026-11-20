@@ -182,7 +182,11 @@ describe('readMutationRuns', () => {
           {
             name: 'harness',
             places: ['harness/'],
-            excluded: ['harness/bin/', 'harness/tests/'],
+            excluded: [
+              'harness/bin/',
+              'harness/agents/hooks/',
+              'harness/tests/',
+            ],
           },
         ],
       },

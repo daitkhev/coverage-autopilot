@@ -1,7 +1,11 @@
 {
   "workspaces": {
     ".": {
-      "entry": ["harness/bin/*.ts", "harness/tests/**/*.test.ts"],
+      "entry": [
+        "harness/bin/*.ts",
+        "harness/agents/hooks/*.ts",
+        "harness/tests/**/*.test.ts"
+      ],
       "project": ["harness/**/*.ts"],
       "ignore": ["harness/fixtures/**"],
       "ignoreDependencies": [

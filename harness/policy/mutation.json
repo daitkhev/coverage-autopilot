@@ -7,7 +7,7 @@
       "areas": {
         "harness": {
           "in": ["harness/"],
-          "out": ["harness/bin/", "harness/tests/"]
+          "out": ["harness/bin/", "harness/agents/hooks/", "harness/tests/"]
         }
       }
     }

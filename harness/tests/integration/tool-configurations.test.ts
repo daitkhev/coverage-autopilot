@@ -144,10 +144,11 @@ describe('markdownlint.json', () => {
 describe('stryker.json', () => {
   const stryker = (): Record<string, unknown> => config('stryker.json');
 
-  it('should mutate the whole harness but its commands, fixtures and tests', () => {
+  it('should mutate the whole harness but its commands, hooks, fixtures and tests', () => {
     expect(stryker()['mutate']).toEqual([
       'harness/**/*.ts',
       '!harness/bin/**',
+      '!harness/agents/hooks/**',
       '!harness/fixtures/**',
       '!harness/tests/**',
     ]);
