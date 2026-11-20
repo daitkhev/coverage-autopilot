@@ -44,6 +44,7 @@ harness/
 ├── bin/
 │   ├── check.ts
 │   ├── ratchet.ts
+│   ├── types.ts
 │   ├── mutation.ts
 │   └── guard.ts
 ├── policy/
@@ -55,14 +56,22 @@ harness/
 │   ├── files.ts
 │   ├── load-project.ts
 │   ├── imports.ts
+│   ├── exports.ts
 │   ├── aliases.ts
+│   ├── places.ts
+│   ├── patterns.ts
+│   ├── edges.ts
 │   ├── graph.ts
 │   ├── rules.ts
 │   ├── rules/
 │   ├── lists.ts
-│   └── baseline.ts
+│   ├── baseline.ts
+│   ├── limit-changes.ts
+│   ├── git.ts
+│   └── commands.ts
 ├── gate/
-│   └── steps.ts
+│   ├── steps.ts
+│   └── type-projects.ts
 ├── eslint/
 │   ├── config.ts
 │   └── rules/
@@ -81,10 +90,10 @@ harness/
 
 | Part | Holds |
 | --- | --- |
-| `bin/` | What a person, a hook or CI starts. `check.ts` is the gate. `ratchet.ts` is the architecture linter. `mutation.ts` reads the report of a mutation run and gives the verdict. `guard.ts` sorts the files of a change into policy and the rest |
+| `bin/` | What a person, a hook or CI starts. `check.ts` is the gate. `ratchet.ts` is the architecture linter. `types.ts` runs the compiler on the root and on every workspace that has source. `mutation.ts` reads the report of a mutation run and gives the verdict. `guard.ts` sorts the files of a change into policy and the rest |
 | `policy/` | The rules as data, written by hand. `structure.json` has the modules, the layers, who may import whom and which folder a file suffix belongs to. `packages.json` has every outside package and where it may be imported. `limits.json` has every number |
 | `baseline.json` | The lists the ratchet recorded last. Written by the ratchet and never by hand |
-| `architecture/` | The code of the ratchet. `rules.ts` is the list of rules, and a rule that is not in it does not run |
+| `architecture/` | The code of the ratchet. `rules.ts` is the list of rules, and a rule that is not in it does not run. `commands.ts` holds check, write and compare |
 | `gate/` | The steps of the gate and its profiles, as data that a test can read |
 | `shared/` | Reading the files of `policy/`, and the one error class of the harness |
 | `eslint/` | The lint configuration and the project's own lint rules |
@@ -128,8 +137,9 @@ The gate has three profiles. Each one holds the one before it.
 | --- | --- | --- | --- |
 | Format | Prettier | A file differs from its formatted form | `fast` |
 | Lint | ESLint with typescript-eslint | There is any finding | `fast` |
-| Types | `tsc --noEmit` | There is any error | `fast` |
+| Types | `tsc --noEmit`, once for the root and once for each workspace | There is any error | `fast` |
 | Architecture | The ratchet | A rule has a finding, or the lists differ from the baseline | `fast` |
+| Compare | The ratchet, `--compare` | A recorded migration changed, or a limit got looser than the base has it | `full` |
 | Unused code | Knip | A file, an export or a dependency is unused, or a dependency is not declared | `full` |
 | Copy and paste | jscpd | Duplication is above its ceiling | `full` |
 | Unit tests | Jest | A test fails, or coverage is below a floor | `full` |
@@ -224,19 +234,19 @@ it, in the trial run or in a fixture of the repository.
 | Rule | Fails when | Graph | Tried |
 | --- | --- | --- | --- |
 | `unknown-module` | A folder under `modules/` is not one of the four modules | | ✓ |
-| `unknown-layer` | A module has a folder that is not one of the five layers | | |
-| `misplaced-file` | A suffix is outside its folder: `.entity.ts` outside `domain/entities/`, `.adapter.ts` outside `infrastructure/` | | |
+| `unknown-layer` | A module has a folder that is not one of the five layers. Or the shared code has a folder the policy does not list. Or a file of the service is in none of its places: a module, a shared folder, the root of the source | | ✓ |
+| `misplaced-file` | A suffix is outside its folder: `.entity.ts` outside `domain/entities/`, `.adapter.ts` outside `infrastructure/`. Or the root of a module holds a file other than its `<module>.module.ts` | | ✓ |
 | `file-name` | A name is not kebab-case, or it is `index.ts`, `utils`, `helpers`, `common` or `misc` | | ✓ |
 | `relative-import` | An import starts with a dot, `./` included | Design | ✓ |
 | `unresolved-import` | An alias leads to no file | Design | ✓ |
-| `layer-direction` | A layer imports a layer or a shared folder it may not: `domain` imports `infrastructure`, `application` imports `presentation` | Design | ✓ |
-| `module-boundary` | A module imports another module outside its `contracts/` | Design | ✓ |
+| `layer-direction` | A layer imports a layer or a shared folder it may not: `domain` imports `infrastructure`, `application` imports `presentation`. Or the shared code imports a module, or a shared folder imports one above it | Design | ✓ |
+| `module-boundary` | A module imports another module outside its `contracts/`, or from a layer other than `application` and `contracts`. Or a module file or a root file of the service imports inside a module instead of its module file | Design | ✓ |
 | `module-direction` | A module uses a module it is not allowed to use, such as `repositories` using `coverage` | Design | ✓ |
 | `package-placement` | A package or a `node:` module is imported where `packages.json` does not allow it, or a `package.json` declares a package that is not in `packages.json` | Design | ✓ |
 | `import-cycle` | Files import each other in a circle | Design | ✓ |
-| `workspace-boundary` | `frontend` and `backend` import each other, or `api-contracts` imports either | Design | |
+| `workspace-boundary` | An alias leads from one workspace into another, or between a workspace and the root. As a package only `api-contracts` is listed, so `package-placement` refuses the other ways across | Design | ✓ |
 | `client-direction` | A folder of the client imports one that the table in [Project structure](project-structure.md#frontend-folders) does not allow: a command imports a screen, `api/` imports a component, a screen imports another screen. Or a component reaches `api/` through a chain of imports | Design | |
-| `package-manifest` | The `package.json` of a workspace has a field the policy does not list, such as `scripts` or `overrides`. Or its aliases differ from the alias table, or a version is not one exact number | | |
+| `package-manifest` | The `package.json` of a workspace has a field the policy does not list, such as `scripts` or `overrides`. Or its aliases differ from the alias table, or a version is not one exact number. Or a workspace has a second `package.json` below its root | | ✓ |
 | `lockfile-source` | An entry of the lockfile does not come from the npm registry under its own name and version, or has no checksum. A `file:` path, a `git` address and a bare archive address are refused | | |
 | `unknown-file` | A workspace holds a file of a kind that `structure.json` does not list for that place, such as a second configuration of a tool. Or the repository holds a symbolic link that the policy does not list with its target | | |
 | `test-placement` | A `.test.ts` file is outside `tests/`, a file under `tests/unit/` has no source file on the same path, or `tests/support/` holds a test | | |
@@ -320,12 +330,25 @@ the same tree write the same bytes.
 | A new migration, or the surface of a module changed | Fails: the baseline is stale | Records it |
 | The baseline is missing or cannot be read | Fails | Writes it |
 
+A file that is not there counts for the lists. A module with no `contracts/`
+yet is recorded with an empty list, so the first export is a change of the
+baseline like any other.
+
 - A change of a list is always a change of `baseline.json`, so it is in the
   diff where a reviewer sees it.
 - `ratchet:compare` reads the baseline of the base, which is the target
   branch in a pull request and the commit before the push otherwise. It
   fails when a recorded migration changed, a ceiling in `limits.json` went
-  up or a floor went down. A baseline edited by hand does not get past it.
+  up or a floor went down. A baseline edited by hand does not get past it:
+  the migrations of the base are compared with the files of the tree, not
+  with the baseline of the tree.
+- On a desk the `full` profile compares with `HEAD`. A new branch has no
+  commit before its first push, and then there is nothing to compare. A
+  base that git does not have is an error and not a pass. That is the case
+  after history was rewritten, and the job stays red until the next push.
+- A number in `limits.json` is a ceiling or a floor by its group. A number
+  of a group that `compare` does not know fails, so a new kind of limit
+  cannot arrive without a direction.
 - A new rule is not added over code that breaks it. The code is fixed
   first, and the rule lands after it, with nothing to forgive.
 
@@ -618,8 +641,8 @@ both kinds in `harness/fixtures/`:
 | Wrong on purpose | Exactly the expected rule fires, on the expected line, and nothing else |
 | Right | No finding. It guards against a rule that fires on allowed code |
 
-For `module-boundary` that is four cases: an import of the domain of
-another module fails, an `import type` of it fails too, an import of its
+For `module-boundary` that is at least four cases: an import of the domain
+of another module fails, an `import type` of it fails too, an import of its
 `contracts/` passes, and an import inside one module passes. For
 `unit-test-reach` a type from `infrastructure` passes and a value fails.
 For `client-direction` a command that imports a screen fails, and so does
@@ -816,8 +839,8 @@ and two lists.
   two, and neither needed it.
 
 The small version had one graph and its `write` recorded anything. The
-runtime graph, the refusal to write and `ratchet:compare` are designed
-here and not tried.
+refusal to write and `ratchet:compare` are built since then and tested on
+a temporary repository. The runtime graph is designed here and not tried.
 
 ### ESLint and Knip
 
@@ -914,24 +937,60 @@ repository can hold them. They are set by hand, once:
 The harness is built by priority. A small gate runs in CI from the first
 stage, and the last stage only makes CI strict.
 
-The first stage is built. What it holds today:
+The first two stages are built. What the harness holds today:
 
-- The ratchet with four rules: `file-name`, `relative-import`,
-  `unresolved-import` and `import-cycle`. There are no lists and no
-  baseline yet, so there is nothing to write or to compare.
+- The ratchet with 13 of its 18 rules. Stage one gave `file-name`,
+  `relative-import`, `unresolved-import` and `import-cycle`. Stage two
+  gave `unknown-module`, `unknown-layer`, `misplaced-file`,
+  `layer-direction`, `module-boundary`, `module-direction`,
+  `package-placement`, `workspace-boundary` and `package-manifest`. Each
+  has fixtures of both kinds, 56 small repositories in all, and they are
+  judged by the real policy.
+- `structure.json` with the four modules, the five layers, the shared
+  folders, the role suffixes and the alias table of each workspace.
+  `packages.json` with every allowed package and its places. No ORM and
+  no query builder is in it, and a test names the ones that must stay out.
+- The lists, the first `baseline.json`, and the three commands: check,
+  write and compare. Write refuses while a rule has a finding and never
+  accepts a recorded migration that changed. Compare is a step of `full`
+  and a job of CI.
+- The three workspaces as shells: a `package.json` with the aliases and a
+  `tsconfig.json`, and no source. The compiler refuses a project with no
+  file, so `types.ts` names such a workspace and runs it from its first
+  source file on.
 - The lint policy with the rules that need no layers. Each of the 26 rules
   it adds has a wrong file and a right file in `harness/fixtures/lint/`,
   and a test fails when a rule has none.
-- `check.ts` with `fast`, and with `full` as far as it goes: the unit and
-  integration tests of the harness. Formatting and lint look at the whole
-  tree, not at staged files, and no passed tree is remembered.
-- Four things were switched off on purpose, one at a time: a lint rule,
-  type-aware lint, a rule of the ratchet, and the pattern of a banned
-  shape. Each time a test of the harness went red.
-- Coverage of the harness is measured at 89% and not held yet. The two
-  commands in `bin/` run as separate processes and are not counted.
+- `check.ts` with `fast`, and with `full` as far as it goes: compare and
+  the unit and integration tests of the harness. Formatting and lint look
+  at the whole tree, not at staged files, and no passed tree is remembered.
+- Things were switched off on purpose, one at a time. In stage one: a lint
+  rule, type-aware lint, a rule of the ratchet, and the pattern of a banned
+  shape. In stage two: a rule taken out of the list, `domain` allowed to
+  import `infrastructure`, an ORM added to `packages.json`, and the
+  baseline removed. Each time a test of the harness or the gate went red.
+- Coverage of the harness is not held yet. The commands in `bin/` run as
+  separate processes and are not counted.
 - CI runs on Node 26.13.1. The harness was written and run on 25.2.1, so
   `engines` allows both lines until the workflow has passed.
+
+What stage two showed and changed:
+
+- The ignore pattern `coverage/` hid the module `coverage` from git, and
+  so from the ratchet: every fixture of that module came back empty. The
+  pattern now names the report folders only, `/coverage/` and
+  `/*/coverage/`.
+- The entry file of the client is `main.tsx`. `index` is a banned name
+  with no exception, and the service already starts from `main.ts`.
+- An alias of the client ends in `.tsx` for `app/`, `screens/` and
+  `components/`, and in `.ts` for the other folders. An alias has one
+  ending, so a file with the other ending is not reached through it, and
+  `unresolved-import` reports the try.
+- Tests are outside the source of the service, and the rules of layers and
+  modules do not judge them. `test-placement` and `unit-test-reach` will.
+- Five rules are not built: `client-direction`, `test-placement` and
+  `unit-test-reach` wait for the code they judge, `lockfile-source` and
+  `unknown-file` for the stage that makes CI strict.
 
 1. **A gate that runs.** The root `package.json` with exact versions,
    Prettier, the TypeScript configuration, ESLint, the ratchet with its

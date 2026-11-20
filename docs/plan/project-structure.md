@@ -37,7 +37,7 @@ coverage-autopilot/
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── index.tsx
+│   │   ├── main.tsx
 │   │   ├── app/
 │   │   ├── screens/
 │   │   │   ├── repositories/
@@ -263,7 +263,7 @@ The client has no layers of a domain. Its folders still import one way.
 
 | Folder | May import |
 | --- | --- |
-| `index.tsx` | `app/`, `commands/` |
+| `main.tsx` | `app/`, `commands/` |
 | `app/` | `screens/`, `components/`, `hooks/`, `theme/`, `api/` |
 | `screens/<name>/` | Its own folder, `components/`, `hooks/`, `theme/`, `api/` |
 | `commands/` | `api/`, `theme/` |
@@ -333,6 +333,7 @@ does not change when the importing file moves.
 | `#infrastructure/*` | `backend/src/shared/infrastructure/*` |
 | `#tests/*` | `tests/*` of the workspace the file is in |
 | `#app/*`, `#screens/*`, `#commands/*`, `#components/*`, `#theme/*`, `#hooks/*`, `#api/*` | `frontend/src/<folder>/*` |
+| `#api-contracts/*` | `api-contracts/src/*`, for the files of that workspace itself |
 | `#harness/*` | `harness/*` |
 | `@coverage-autopilot/api-contracts` | The `api-contracts` workspace |
 
