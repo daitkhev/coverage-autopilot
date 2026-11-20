@@ -216,6 +216,8 @@ Each item is marked `task` if the task states it and `added` if I added it.
 - **NFR-2. Secrets.** The tool stores no tokens. It uses the existing `gh`
   login, or `GH_TOKEN` in CI. Tokens are never written to the database or logs.
   Sandboxed processes start with an explicit list of environment variables.
+  A generated file that contains the language model credential is never
+  stored or published.
   `task`, extended
 - **NFR-3. Publishing boundary.** Only a diff leaves the sandbox. The host
   applies it to a clean clone and pushes from there, never from a directory
@@ -251,6 +253,7 @@ Each item is marked `task` if the task states it and `added` if I added it.
 | `gh` CLI for pull requests | A tool with no external dependency | The tool handles no tokens and works locally and in CI with one adapter. |
 | SQLite queue | Horizontal scaling across machines | The task fixes SQLite. The queue is behind a port and can move to a broker later. |
 | No separate outbox table | A general mechanism for external actions | There is one external action and it is idempotent. The job row in the publishing state plays that role. |
+| An AI CLI, not a model API | An exact token limit per call | The task asks for a CLI. It limits turns and estimated cost, so the token budget is approximate. |
 | Containers, not microVMs | The strongest isolation | Containers with no network and no secrets cover the stated threat. |
 | Mutation testing required by default, target file only | Speed, and projects the mutation tool cannot run | It is the check that stops a test without assertions. A project it cannot run on fails before any generation. |
 | No path, sequence or MC/DC coverage | Stricter structural metrics | TypeScript coverage tools do not measure them. |

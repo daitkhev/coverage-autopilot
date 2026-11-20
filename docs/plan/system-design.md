@@ -3,9 +3,9 @@
 Author: Valentin Daitkhe
 
 This document defines the domain model and the contracts between modules: the
-objects the system works with, their states, the rules of the quality gate and
-the way modules call each other. It builds on
-[Scope and requirements](scope-and-requirements.md) and
+objects the system works with, their states, the rules of the quality gate,
+the way the test generator is started and the way modules call each other. It
+builds on [Scope and requirements](scope-and-requirements.md) and
 [Project structure](project-structure.md). The HTTP contract between the
 service and its client is not written yet.
 
@@ -21,6 +21,7 @@ service and its client is not written yet.
 | Improvement | The process of raising the coverage of one file, from the request to the pull request |
 | Target | The file to improve, with its uncovered branches and undetected mutants |
 | Attempt | One try at generating a test inside an improvement |
+| Generator | The AI CLI that writes the test |
 | Test patch | The diff an attempt produced. It touches test files only |
 | Budget | The limits of an improvement: attempts, tokens and wall-clock time |
 | Quality policy | The settings of the quality gate, fixed when the improvement is created |
@@ -102,7 +103,7 @@ improvement and the verification report belongs to the attempt.
 | Object | Kind | Holds |
 | --- | --- | --- |
 | `Improvement` | Aggregate | Repository, source snapshot, baseline snapshot, base commit, target file, status, quality policy, generator configuration, budget and usage, attempts, mutation baseline, idempotency key, branch, pull request, failure reason |
-| `Attempt` | Entity inside `Improvement` | Number, test patch, token usage, verification report |
+| `Attempt` | Entity inside `Improvement` | Number, generation outcome, test patch, token usage, verification report |
 | `Budget`, `BudgetUsage` | Value objects | The three limits and what has been spent. The time limit becomes an absolute deadline when work starts |
 | `ImprovementTarget` | Value object | The file, its uncovered branches and its undetected mutants |
 | `TestPatch` | Value object | The full text of the diff and its hash |
@@ -220,9 +221,10 @@ to repeat because the branch name is derived from the improvement and the run
 checks for an existing branch and pull request first.
 
 One thing is not guaranteed. If the process dies during generation, the
-tokens that call spent are unknown. The token limit still holds as an upper
-bound, because one generator call has its own cap and technical retries are
-limited.
+tokens that call spent are unknown. The loss is bounded, because one generator
+call is limited in turns and cost and technical retries are limited, but the
+token budget is not exact. The details are under
+[Test generator](#test-generator).
 
 ## Verification
 
@@ -391,6 +393,115 @@ Not measured and not claimed: the Stryker TypeScript checker, large projects,
 monorepos, Jest in ESM mode, and what survives `SIGKILL` or an out-of-memory
 kill. The threshold for $R$ is not calibrated yet. The two tests above sit at
 0% and 100% and say nothing about a value in between.
+
+## Test generator
+
+The generator is the AI CLI that writes the test. It is reached through one
+port, `TestGenerator`, in `improvement/application/ports`. The adapter for a
+concrete CLI lives in `improvement/infrastructure`. The first adapter runs
+Claude Code in its non-interactive mode. Another CLI is a second adapter, and
+`GeneratorConfig` says which one to use.
+
+```ts
+interface TestGenerator {
+  generate(
+    request: GenerationRequest,
+    signal: AbortSignal,
+  ): Promise<GenerationResult>;
+}
+```
+
+A request carries the working copy, the target with its uncovered branches
+and undetected mutants, the reasons the previous attempt was rejected, the
+generator configuration and the limits of this call. The result is one of:
+
+| Outcome | Meaning | What the improvement does |
+| --- | --- | --- |
+| `generated` | The CLI finished and changed files | Extracts the patch and verifies it |
+| `no_changes` | The CLI finished and changed nothing | Closes the attempt without verification |
+| `limit_reached` | The call hit its turn or cost limit | Closes the attempt without verification |
+| `quota_exhausted` | The account has no usage left for now | Fails with a generator reason. A quick retry would not help |
+| `credential_exposed` | A changed file contains the credential | Fails with a security reason. No patch is stored |
+
+Every outcome reports the tokens it used. An attempt that produced no patch
+still counts against the budget. A missing CLI or a failed login is a fault
+and is raised as a typed exception.
+
+### How the generator is started
+
+The repository is untrusted, and an AI CLI reads configuration from the
+directory it runs in. These rules hold for every adapter:
+
+1. The CLI runs inside the generator sandbox, never directly on the host.
+2. Its environment is an explicit list: the credential of the language model
+   and nothing else from the service.
+3. Configuration that comes with the repository is switched off: hooks, tool
+   servers and project settings.
+4. The CLI can read and write files in the working copy. It has no shell, no
+   network tools, and no access to files outside the working copy, also not
+   through a symbolic link.
+5. Before the first model call the adapter reads the CLI's own start report
+   and stops the run unless it lists exactly the allowed tools and no tool
+   servers.
+6. A call is limited three ways: a number of turns, an estimated cost, and a
+   deadline enforced from outside, because the CLI has no time limit of its
+   own.
+7. After any outcome other than `generated` the working copy is thrown away.
+   A run that stopped at a limit may already have written a file.
+8. Tool calls the CLI refused are recorded. They are a sign that something in
+   the repository tried to steer the model.
+9. The adapter knows the credential, so it searches the changed files for its
+   exact value before it returns.
+
+The token budget is not exact with a CLI. It limits turns and estimated cost,
+not tokens, the cost limit can be passed by one response, and a run that was
+killed reports nothing. The real token count comes only with the final
+result.
+
+### What the generator run showed
+
+I ran Claude Code 2.1.329 in a scratch repository that carried harmless
+traps: four hooks, a tool server, an environment value, a symbolic link to a
+file outside, and an instruction in a source comment. The child process got a
+cleaned environment.
+
+Without protection, a prompt that only asked for the word OK was enough: the
+hooks of the repository ran, its tool server started and its environment
+value reached the hooks. There was no trust prompt.
+
+```bash
+claude --restricted \
+  --tools "Read,Write,Edit,Glob,Grep" \
+  --permission-mode acceptEdits --permission-prompts none \
+  --strict-mcp-config \
+  --settings '{"disableAllHooks":true,"permissions":{"blockReadsOutsideWorkingDirectories":true}}' \
+  --output-format json --no-session-persistence \
+  -p "<prompt>" < /dev/null
+```
+
+| Tried under protection | Result |
+| --- | --- |
+| Hooks and tool server from the repository | Did not run |
+| Read through the symbolic link | Refused |
+| Read an absolute path outside, and `/etc/hosts` | Refused |
+| Write a file outside the working copy | Refused |
+| Run a shell command | No shell among the tools |
+| Write the requested test file | Written, nothing else changed |
+
+- Refused calls are listed in the result and the exit code stays 0, so the
+  adapter has to read the list.
+- The turn limit and the cost limit both end with exit code 1 and a typed
+  subtype. With a cost limit of 0.0005 the run reported 0.00089, and the test
+  file was already on disk.
+- `SIGTERM` gives exit code 143 and no output.
+- The streaming output starts with a report of the tools and tool servers in
+  effect, and carries the state of the account's usage limits. Output token
+  counts in it are placeholders until the final result.
+
+Not measured and not claimed: whether a `CLAUDE.md` from the repository
+reaches the model, since two probes gave the same answer with and without
+protection; login with a long-lived token or an API key; running inside a
+container or on Linux; and what a blocked usage limit looks like.
 
 ## Contracts between modules
 
