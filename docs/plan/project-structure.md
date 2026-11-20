@@ -75,6 +75,7 @@ coverage-autopilot/
 │
 ├── docs/
 │   └── plan/
+├── .env.example
 ├── package.json
 └── README.md
 ```
@@ -97,6 +98,10 @@ coverage-autopilot/
   tools, their configuration, the policy as data and the settings of the AI
   agent. It is not a workspace. It belongs to the root package and no
   product code imports it. It is described in [Harness](harness.md).
+- `.env.example` lists the settings of one machine, such as how much
+  memory a mutation run may take. A person copies it to `.env`, which is
+  never committed. The settings are described in
+  [Harness](harness.md#settings-of-one-machine).
 - The root `package.json` declares `backend`, `frontend` and
   `api-contracts` as workspaces.
 
@@ -373,8 +378,9 @@ An implementation carries its technology as a prefix:
 
 ## Tests
 
-Tests do not sit next to the code. Each workspace has a `tests/` folder with
-one subfolder per kind of test:
+Vitest runs every test of the project. Why it is not Jest is in
+[Known problems](#known-problems). Tests do not sit next to the code. Each
+workspace has a `tests/` folder with one subfolder per kind of test:
 
 | Folder | Tests | May touch |
 | --- | --- | --- |
@@ -412,3 +418,37 @@ describe('CoveragePercentage', () => {
 
 The project's own code is held to 95% coverage on every counter: statements,
 branches, functions and lines. The build fails below that.
+
+## Known problems
+
+These are problems of the tools the project stands on, not of its own
+code. Each one changed a decision, and the reports are linked so that the
+decision can be looked at again when a report is closed.
+
+| Problem | Reported in | What the project does |
+| --- | --- | --- |
+| Jest keeps every module in memory when it runs tests as ES modules, the mode behind `--experimental-vm-modules`. One run of the tests of the harness left about 290 MB that no collection freed. The mutation engine runs the tests thousands of times in one process, and 15 such processes took more than 40 GB | [jestjs/jest#9959](https://github.com/jestjs/jest/issues/9959), [nodejs/node#33439](https://github.com/nodejs/node/issues/33439), [nodejs/node#44211](https://github.com/nodejs/node/issues/44211). [jestjs/jest#15215](https://github.com/jestjs/jest/pull/15215) makes it smaller and does not end it | The tests run on Vitest. The code is ES modules and Ink 8 has no other form, so compiling the tests to CommonJS would not have worked for the client |
+| StrykerJS with Jest and coverage per test keeps the environment of every test file reachable, so memory grows through a run | [stryker-mutator/stryker-js#6253](https://github.com/stryker-mutator/stryker-js/issues/6253). The fix, [#6254](https://github.com/stryker-mutator/stryker-js/pull/6254), is not merged | StrykerJS runs the tests through its Vitest runner |
+| StrykerJS starts one test runner for each processor but one, whatever memory the machine has. On 16 processors that was 15 | [Its configuration](https://stryker-mutator.io/docs/stryker-js/configuration/) | The mutation step always names the number. It comes from the settings of the machine and from the memory that is allowed |
+| A test runner of StrykerJS under Vitest that reaches the limit of its heap ends the whole run with `Worker exited unexpectedly`. It is not started again, as a Jest runner is | Seen here with a heap of 48 MB and of 96 MB. No report was found | The heap of a test runner is never set below 512 MB. Less memory gives fewer test runners and a longer run |
+| A mutant in code that runs while a file is loaded cannot be tied to a test, so every test that can reach the file runs for it | [Static mutants](https://stryker-mutator.io/docs/mutation-testing-elements/static-mutants/) | A test builds what it needs inside the test, and the harness reads no file while a module is loaded |
+| Vitest takes the configuration of a folder above when the project it is started in has none | Seen here: the fixture project ran with the configuration of the root | The fixture project has its own configuration. The product names the configuration when it starts Vitest in a repository |
+| Vitest 5 does not install on Node 25 | The `engines` field of the package | Vitest 4.1.12, until the desk moves to Node 26 |
+| NestJS reads the types of constructor parameters from metadata that only some compilers write. Vitest does not write it by default | Not tried here | To be tried with the first module of the service, with the SWC plugin for Vitest |
+
+Others measured the same thing with Jest before this project did:
+
+- [gbourgeat/ddd-ts-kit#495](https://github.com/gbourgeat/ddd-ts-kit/pull/495):
+  on 31 GB a mutation run under Jest did not finish, at about 2.5 GB for
+  each Jest process. Under Vitest the same 659 mutants took 1 minute and
+  46 seconds.
+- [NightMarketz/luminaristest#673](https://github.com/NightMarketz/luminaristest/pull/673):
+  12 test runners of 1 to 3.3 GB each filled 31 GB. The number of test
+  runners was then worked out from memory, and a test runner is started
+  again after 25 runs.
+- [bymaxone/nest-logger#292](https://github.com/bymaxone/nest-logger/pull/292):
+  a test runner is started again after 50 runs, and the run is cut into
+  eight parts in CI.
+
+What the harness measured on its own code, 2,400 mutants, is in
+[Harness](harness.md#order-of-work).

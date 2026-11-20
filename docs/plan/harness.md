@@ -46,12 +46,14 @@ harness/
 │   ├── ratchet.ts
 │   ├── types.ts
 │   ├── coverage.ts
+│   ├── duplication.ts
 │   ├── documents.ts
 │   ├── mutation.ts
 │   └── guard.ts
 ├── policy/
 │   ├── structure.json
 │   ├── packages.json
+│   ├── mutation.json
 │   └── limits.json
 ├── baseline.json
 ├── architecture/
@@ -83,9 +85,16 @@ harness/
 │   ├── type-projects.ts
 │   ├── run-coverage.ts
 │   ├── coverage-files.ts
-│   └── run-documents.ts
+│   ├── run-duplication.ts
+│   ├── run-documents.ts
+│   └── run-mutation.ts
 ├── documents/
 │   └── links.ts
+├── mutation/
+│   ├── report.ts
+│   ├── kill-rate.ts
+│   ├── verdict.ts
+│   └── resources.ts
 ├── eslint/
 │   ├── config.ts
 │   └── rules/
@@ -99,23 +108,25 @@ harness/
 └── tests/
     ├── unit/
     ├── integration/
+    ├── runners/
     └── support/
 ```
 
 | Part | Holds |
 | --- | --- |
 | `bin/` | What a person, a hook or CI starts. `check.ts` is the gate. `ratchet.ts` is the architecture linter. `types.ts` runs the compiler on the root and on every workspace that has source. `coverage.ts` measures coverage and checks the report. `documents.ts` lints the documents and checks their links. Each of these files is one line that calls a function, so the code behind it is tested in the same process. `mutation.ts` reads the report of a mutation run and gives the verdict. `guard.ts` sorts the files of a change into policy and the rest |
-| `policy/` | The rules as data, written by hand. `structure.json` has the modules, the layers, who may import whom and which folder a file suffix belongs to. `packages.json` has every outside package and where it may be imported. `limits.json` has every number |
+| `policy/` | The rules as data, written by hand. `structure.json` has the modules, the layers, who may import whom and which folder a file suffix belongs to. `packages.json` has every outside package and where it may be imported. `mutation.json` has the runs of the mutation engine and the areas each report is read for. `limits.json` has every number |
 | `baseline.json` | The lists the ratchet recorded last. Written by the ratchet and never by hand |
 | `architecture/` | The code of the ratchet. `rules.ts` is the list of rules, and a rule that is not in it does not run. `commands.ts` holds check, write and compare |
-| `gate/` | The steps of the gate and its profiles, as data that a test can read. `tools.ts` has the path of every tool. `host.ts` is what a command needs from the machine: a tree, a way to start a program, a way to print. A test gives a stand-in |
+| `gate/` | The steps of the gate and its profiles, as data that a test can read. `tools.ts` has the path of every tool. `host.ts` is what a command needs from the machine: a tree, a way to start a program, a way to print, its settings and the number of its processors. It is the only file that reads the environment. A test gives a stand-in |
 | `documents/` | The link check of the documents |
+| `mutation/` | Reading a report of the mutation engine, the kill rate and the verdict of an area. `resources.ts` works out how many test runners a machine starts |
 | `shared/` | Reading the files of `policy/`, and the one error class of the harness |
 | `eslint/` | The lint configuration and the project's own lint rules |
-| `configs/` | The configuration of every other tool: TypeScript base, Prettier, Knip, Jest, StrykerJS, jscpd, commitlint, lefthook, markdownlint |
+| `configs/` | The configuration of every other tool: TypeScript base, Prettier, Knip, Vitest, StrykerJS, jscpd, commitlint, lefthook, markdownlint |
 | `agents/` | The settings and the hooks of the AI agent |
-| `fixtures/` | Small repositories, some wrong on purpose and some right. The harness is tested on them |
-| `tests/` | The tests of the harness itself |
+| `fixtures/` | Small repositories, some wrong on purpose and some right. The harness is tested on them. `projects/` has one small project for Jest and one for Vitest, each with a file no test imports, a file of types alone and a file that cannot be parsed |
+| `tests/` | The tests of the harness itself. `runners/` starts the real test runners on the fixture projects. Those tests run no code of the harness, so coverage and mutation leave them out |
 
 - The harness is TypeScript and Node runs it as it is, with no build step.
   That limits it to syntax that can be erased: no `enum`, no parameter
@@ -157,15 +168,16 @@ The gate has three profiles. Each one holds the one before it.
 | Compare | The ratchet, `--compare` | A recorded migration changed, or a limit got looser than the base has it | `full` |
 | Unused code | Knip | A file, an export or a dependency is unused, or a dependency is not declared | `full` |
 | Copy and paste | jscpd | Duplication is above its ceiling | `full` |
-| Unit tests | Jest | A test fails | `full` |
-| Integration tests | Jest | A test fails | `full` |
-| Coverage | Jest over the unit and the integration tests, then a check of the report | A counter is below its floor, or a source file is not in the report | `full` |
+| Unit tests | Vitest | A test fails | `full` |
+| Integration tests | Vitest | A test fails | `full` |
+| Coverage | Vitest over the unit and the integration tests, then a check of the report | A counter is below its floor, or a source file is not in the report | `full` |
 | Build | `tsc` | The build fails | `full` |
 | Documents | markdownlint, a link check that stays offline | A rule is broken, or a link or an anchor points nowhere | `full` |
 | Secrets | gitleaks | Something that looks like a credential is in the diff | `full` |
-| End-to-end tests | Jest | A test fails | `ci` |
-| Stress tests | Jest | An invariant is broken | `ci` |
-| Mutation tests | StrykerJS, `mutation.ts` | A kill rate is below its floor, or the report is not complete | `ci` |
+| End-to-end tests | Vitest | A test fails | `ci` |
+| Stress tests | Vitest | An invariant is broken | `ci` |
+| Runners | Jest and Vitest, started on the fixture projects | A runner no longer reports coverage the way the design relies on | `ci` |
+| Mutation tests | StrykerJS with its Vitest runner, `mutation.ts` | A kill rate is below its floor, or the report is not complete | `ci` |
 | Workflows | actionlint, zizmor | An action is not pinned to a commit, or a job has more permissions than it uses | `ci` |
 | Frozen files | A workflow that GitHub takes from the default branch | A change touches the policy and something else | `ci` |
 | Commit message | commitlint | The message is not a Conventional Commit | On commit, `ci` |
@@ -194,12 +206,13 @@ One tool holds one concern. A second tool for the same concern is not added.
 | Type-aware rules | typescript-eslint | 8.73.0 |
 | Types | TypeScript | 6.0.3 |
 | Unused code and dependencies | Knip | 6.47.0 |
-| Tests and coverage | Jest, with `@swc/jest` | 30.5.2 |
+| Tests and coverage | Vitest, with `@vitest/coverage-v8` | 4.1.12 |
 | Rendering the client in a test | `ink-testing-library` | 4.0.0, with Ink 8.0.0 |
-| Mutation tests | StrykerJS as the engine | 10.1.1, in an earlier run |
+| Mutation tests | StrykerJS as the engine, with `@stryker-mutator/vitest-runner` | 10.1.1, on the harness itself |
+| The second runner of the fixture projects | Jest, with `@swc/jest` | 30.5.2 |
 | Copy and paste | jscpd | 5.4.3 |
 | Documents | markdownlint-cli2, and the harness's own link check | 0.24.2 |
-| Focused and skipped tests | `eslint-plugin-jest` | 29.17.1 |
+| Focused and skipped tests | `@vitest/eslint-plugin` | 1.6.28 |
 | Commit messages | commitlint | Not tried yet |
 | Git hooks | lefthook | Not tried yet |
 
@@ -449,7 +462,7 @@ the imports. These calls need no import, so ESLint holds them:
 | --- | --- | --- |
 | A class is not called `Manager`, `Helper`, `Processor`, `Provider` or `Util` | `no-restricted-syntax` | ✓ |
 | An interface has no `I` prefix | `naming-convention` | |
-| The outer `describe` names the unit, a nested one a method or a `when`, and every `it` starts with `should` | `jest/valid-title` | |
+| The outer `describe` names the unit, a nested one a method or a `when`, and every `it` starts with `should` | `vitest/valid-title` | |
 | Imports are sorted in groups: Node, packages, the contracts workspace, aliases | `simple-import-sort` | ✓ |
 
 ### The client
@@ -485,19 +498,21 @@ the imports. These calls need no import, so ESLint holds them:
 
 ## Tests
 
-Jest runs every test of the project. The kinds of tests and their folders
-are in [Project structure](project-structure.md#tests).
+Vitest runs every test of the project. It was Jest until the mutation
+tests showed what Jest costs: the reports are in
+[Known problems](project-structure.md#known-problems). The kinds of tests
+and their folders are in [Project structure](project-structure.md#tests).
 
 | Rule | Held by | Tried |
 | --- | --- | --- |
-| Coverage of each workspace and of the harness is at least 95% of statements, branches, functions and lines | The coverage floors of Jest | ✓ |
+| Coverage of each workspace and of the harness is at least 95% of statements, branches, functions and lines | The coverage floors, which the coverage step gives to Vitest | ✓ |
 | Every source file is in the coverage report, imported by a test or not | A check that compares the report with the files the ratchet measures. A file of types alone has nothing to run and may be absent | ✓ |
-| No `.only` and no `.skip` | `jest/no-focused-tests`, `jest/no-disabled-tests` | ✓ |
+| No `.only` and no `.skip` | `vitest/no-focused-tests`, `vitest/no-disabled-tests` | ✓ |
 | A unit test touches memory only | The ratchet, `unit-test-reach` | |
 | A test does not read the real time or make a real id | The same bans as in the source, with the fixed clock and the id sequence from `tests/support/` | |
 | A test that fails is not run again | Retries are off | |
 | No test reaches the network. `git`, `gh` and the AI CLI are stand-ins that ship with the tests | The sandbox of the test job has no network | |
-| A kept frame or snapshot is not written by the gate | Jest runs with `--ci` | ✓ |
+| A kept frame or snapshot is not written by the gate | Vitest runs with `--update=none` | ✓ |
 | No file, export or dependency is unused, and every imported package is declared | Knip | ✓ |
 
 Coverage says that code ran. The next three parts say what must be proved.
@@ -597,13 +612,23 @@ $$
 
 - A timeout is not a kill. A test that hangs on a mutant proves nothing.
 - A mutant that does not compile is left out, as StrykerJS leaves it out.
+  So is a mutant that breaks the run before any test starts, which
+  StrykerJS reports as an error of the run.
+- A mutant that was switched off is not left out. The run counts as not
+  measured, so a comment in the code cannot take a mutant out of the rate.
 - With no mutant to count, the rate is not 100 and not 0. The area is
   `not_applicable`. That is the result of a complete run that found nothing
   to mutate. A missing report is never `not_applicable`.
 - The step fails as not measured, with no rate at all, when the report is
   missing, the run was interrupted, a mutant has a status the code does not
   know or no final status, or a file in the scope is absent from the
-  report.
+  report. The scope of an area is its source files that have something to
+  run. StrykerJS does not list a file with nothing to mutate, and a file
+  of types alone is not expected in the report.
+- An old report is removed before the run, so a run that was stopped
+  leaves nothing that could be read as its result.
+- The rate is compared with the floor on whole numbers. A rate that is
+  shown as 90.00% and is a little below 90 does not pass a floor of 90.
 
 The floor is a decision, not a measurement. After the first full run the
 owner sets a floor for each area, and the area is held to it. The first
@@ -630,6 +655,37 @@ measured score does not become the floor by itself, because it can be zero.
 The areas do not share one floor. The code that guards a lease is held
 higher than the code that draws a panel.
 
+### Settings of one machine
+
+A mutation run is the one step that can take a whole machine. How much it
+takes is a setting of that machine, not a rule, so it is not in
+`harness/policy/`. A setting comes from the environment, or from a file
+`.env` at the root that is never committed. A variable that is already set
+wins over the file. `.env.example` lists every setting.
+
+| Variable | Says | When it is not set |
+| --- | --- | --- |
+| `HARNESS_MUTATION_WORKERS` | How many test runners work at once | 4, or the number of processors when there are fewer |
+| `HARNESS_MUTATION_MEMORY_MB` | The memory the run may take in all | 4096 |
+| `HARNESS_MUTATION_TIMEOUT_MS` | How long a mutant may run past its expected time before it counts as timed out | 15000 |
+
+- The run is given 512 MB for the engine and 768 MB for each test
+  runner. When the memory does not hold the test runners that were asked
+  for, fewer start and the run takes longer. The heap of a test runner
+  is never set below 512 MB, because a test runner that reaches its limit
+  ends the whole run.
+- With less than 1280 MB not one test runner fits. The step says so and
+  does not start, which is a refusal and not a crash in the middle.
+- A value that is not a whole number above zero fails the step before
+  the engine starts.
+- These settings change how long a run takes and how much it holds. They
+  do not change which rules apply or what a floor is, so principle 7
+  stands. One of them can move a result at its edge: a mutant that is
+  slow and not endless is a timeout under a short limit, and a timeout is
+  never a kill. A shorter limit can only lower a rate.
+- `host.ts` is the only file that reads the environment, and the lint
+  policy names it. Every other file gets a value.
+
 ## Numbers
 
 Every number of the policy is in `harness/policy/limits.json`. The tools
@@ -638,7 +694,8 @@ read their limits from it, so a number is written once.
 | Number | Starts at | May move |
 | --- | --- | --- |
 | Coverage floor, four counters | 95 | Up |
-| Kill rate floor per area | Set by the owner after the first full run | Up |
+| Kill rate floor of the harness | 88. The first rate on Vitest was 90.28% | Up |
+| Kill rate floor of every other area | Set by the owner after its first full run | Up |
 | Duplication ceiling | 0.9% of lines. The first measured share was 0.89% | Down |
 | Lines in a function | 50 | Down |
 | Branches in a function | 8 | Down |
@@ -912,10 +969,15 @@ moves a selection with the arrow keys, and four tests for it.
 Not tried there: colour in a rendered text, a screen of the real size, and
 a resize.
 
+This trial was made with Jest, and the project has moved to Vitest since.
+The ES module mode of Jest is the one that keeps every module in memory,
+so the flag is gone from the project. The same component has not been
+rendered under Vitest yet.
+
 ### Not tried and not claimed
 
-Jest for the service, StrykerJS on this project's own code and
-`mutation.ts`, commitlint, lefthook,
+Vitest for the service and for the client, NestJS under Vitest, StrykerJS
+on the code of the service, commitlint, lefthook,
 actionlint, zizmor, gitleaks, the workflows, the frozen files check and
 the policy that allows its event, `guard.ts`, every row of the table of
 ways around except the install scripts, running the script of one named
@@ -958,8 +1020,8 @@ repository can hold them. They are set by hand, once:
 The harness is built by priority. A small gate runs in CI from the first
 stage, and the last stage only makes CI strict.
 
-The first three stages are built, the third as far as it goes without
-product code. What the harness holds today:
+The first four stages are built, the third and the fourth as far as they
+go without product code. What the harness holds today:
 
 - The ratchet with 13 of its 18 rules. Stage one gave `file-name`,
   `relative-import`, `unresolved-import` and `import-cycle`. Stage two
@@ -988,20 +1050,37 @@ product code. What the harness holds today:
   and the documents. The build waits for something to build, and the
   search for secrets for the stage that makes CI strict. Formatting and
   lint look at the whole tree, not at staged files, and no passed tree is
-  remembered.
+  remembered. `ci` adds two steps so far: the runners and the mutation
+  tests.
 - Coverage of the harness is held at the floor of 95 for all four
   counters. It stands at 99% of statements, 97% of branches and 100% of
-  functions. The floors go to Jest from `limits.json`, and the Jest
+  functions. The floors go to Vitest from `limits.json`, and its
   configuration holds no number.
 - Knip with one configuration for the root and the three workspaces.
   jscpd with the ceiling from `limits.json`. markdownlint and the link
   check over the documents git sees.
 - Two lint rules for tests: no focused test and no skipped test.
+- The mutation step. `mutation.json` names a run of the engine and the
+  areas its report is read for. `mutation.ts` removes the old report,
+  starts StrykerJS, reads the new report and prints one verdict for each
+  area. One area exists, `harness`: everything in the folder but `bin/`,
+  the fixtures and the tests.
+- The settings of one machine: how many test runners a mutation run
+  starts, how much memory it may take and how long a mutant may run.
+  They come from the environment or from `.env`, and `.env.example`
+  describes them.
+- Two fixture projects, one for Jest and one for Vitest, with the same
+  four source files. The tests in `tests/runners/` start the real runners
+  on them and hold what each one writes in its coverage report.
 - Things were switched off on purpose, one at a time. In stage one: a lint
   rule, type-aware lint, a rule of the ratchet, and the pattern of a banned
   shape. In stage two: a rule taken out of the list, `domain` allowed to
   import `infrastructure`, an ORM added to `packages.json`, and the
-  baseline removed. Each time a test of the harness or the gate went red.
+  baseline removed. In stage four: StrykerJS told to skip the mutants
+  that run when a file is loaded, a test of a fixture project made to
+  import the file that nothing imports, an engine that cannot start while
+  an old report lies in its place, and a floor of the kill rate lowered
+  against the base. Each time a test of the harness or the gate went red.
 - CI runs on Node 26.13.1. The harness was written and run on 25.2.1, so
   `engines` allows both lines until the workflow has passed.
 
@@ -1065,6 +1144,110 @@ What stage three showed and changed:
   recovery and the migrations are not written: they come with the code
   they guard.
 
+What stage four showed and changed:
+
+- The tests moved from Jest to Vitest. Jest ran them as ES modules, and
+  in that mode it keeps every module it loaded: one run of the tests left
+  about 290 MB that no collection freed. StrykerJS runs the tests
+  thousands of times in one process and started 15 processes on a machine
+  with 16 processors, and together they took more than 40 GB. Compiled
+  to CommonJS the tests kept nothing, but the client cannot go that way,
+  because Ink 8 is ES modules only. The reports of others are in
+  [Known problems](project-structure.md#known-problems).
+- The move changed little in the tests: the import in 44 files and three
+  calls. All of them passed on the first run, in under two seconds.
+- The same mutation run on the same machine. Every row but the first
+  had four test runners:
+
+  | Runner | Time | Most memory | Kill rate |
+  | --- | --- | --- | --- |
+  | Jest as ES modules, 15 test runners | 16 min 50 s | Over 40 GB | 89.19% |
+  | Jest compiled to CommonJS | 9 min 12 s | 4.9 GB | 89.41% |
+  | Vitest | 4 min 43 s | 2.8 GB | 90.13% |
+  | Vitest, after the changes below | 4 min 28 s | 2.8 GB | 90.24% |
+  | Vitest, with 2048 MB allowed, so two test runners | 7 min 35 s | 1.5 GB | 90.28% |
+
+  The first row is the tree of stage three, with 2173 mutants. The others
+  are the tree of this stage, with about 2,450.
+- Jest and Vitest gave the same verdict on 2379 mutants they both had,
+  but for four that Vitest killed and Jest did not. They name a mutant
+  that breaks the load of a file differently: 118 were an error of the
+  run under Jest and 59 under Vitest, and the others were killed. The
+  rate leaves the errors out, so it depends a little on the runner.
+- StrykerJS changes the files where they are. Its usual way is a copy of
+  the tree in a temporary folder. The tests of the harness ask git which
+  files exist, and git does not see a copy inside an ignored folder. The
+  engine keeps a backup while it runs and puts the files back when it
+  ends. Its folder is ignored by git, or the ratchet would judge the
+  backup.
+- By default StrykerJS writes a comment that switches the type checks off
+  as the first line of every file in a source or a test folder. Every line
+  of the fixtures moved down by one, and each test that expects a finding
+  on a line failed. The comment is switched off.
+- A file with nothing to mutate is not in the report of StrykerJS. The
+  scope of an area is found the same way as in coverage: by reading each
+  file with the parser.
+- A mutant in code that runs while a file is loaded cannot be tied to a
+  test, so every test that can reach the file runs for it. A quarter of
+  the mutants were of this kind. Three things made it so, and each was
+  changed: a test that built a rule or read the policy at the top of its
+  file, a test that took its list of cases from the ratchet, and the list
+  of steps, which read a limit while it was loaded. Copy and paste is now
+  its own command for that reason. 440 such mutants are left of 610. Most
+  of the rest are the tables of the lint policy and the patterns of the
+  link check, which are data. They are not skipped, because the tables
+  are the policy.
+- A mutant that hangs costs the whole time limit. With a limit of 60
+  seconds, eight endless mutants held a test runner for eight minutes in
+  all. The limit is 15 seconds now. The eight are in the walk over the
+  files, in the search for a cycle and in the start of a program, and
+  they count as not killed.
+- The time that is left is mostly not the tests. The tests themselves
+  take 413 seconds of the 1,070 that four test runners work. The rest is
+  what Vitest does before a test runs, for each of 2,450 mutants.
+- The kill rate of the harness is 90.28%: 2220 killed, 214 survived, 17
+  not reached by any test and 8 timed out. 59 broke the run before a
+  test started and are left out. By folder: `mutation/` 97.3%, `shared/`
+  95.6%, `architecture/` 91.6%, `gate/` 90.9%, `documents/` 90.9%,
+  `eslint/` 33.7%. The lint configuration has 55 of the survivors: a
+  fixture holds that a rule fires, and not every option of the rule.
+- The owner set the floor of the harness at 88, two points under the
+  rate, because the rate moves a little from run to run and a floor does
+  not go down. CI runs the mutation step as a job of its own, with a
+  longer time limit than the other jobs have.
+- A test runner under Vitest that reaches the limit of its heap ends the
+  run: with 48 MB and with 96 MB the engine stopped with an error, and
+  with 200 MB it finished. So the memory that is allowed decides how
+  many test runners start, and never how small one of them is.
+- Vitest takes the configuration of a folder above when a project has
+  none. The fixture project for Vitest ran with the configuration of the
+  root until it got its own. The product must name the configuration of
+  the repository it works on.
+- The configuration of Vitest is a module, not a JSON file. It is in
+  `configs/vitest.ts`, a test holds every line of it, and two files of
+  one line at the root point to it, as for Prettier and ESLint.
+- The lint rules for tests come from `@vitest/eslint-plugin` now. The
+  fixture of a skipped test lost one case, `xit`, which Vitest does not
+  have.
+- Vitest 5.1.1 refuses Node 25, and the install is strict about the
+  engine. The project uses Vitest 4.1.12 until the desk moves to Node 26.
+- Jest and Vitest agree on the facts the product stands on, when each is
+  given the list of files. A file that no test imports is in the report
+  at zero. A file that cannot be parsed is in neither report, the run
+  still ends with 0, and only a line of the log names it. So the product
+  compares the list of files with the report and does not trust the exit
+  code. Without the list, each of them reports the imported file alone.
+- They differ in two facts. A file of types alone is absent from the
+  report of Jest and is in the report of Vitest with nothing to count.
+  The same file has six statements for Jest and four for Vitest, so a
+  share of one is not compared with a share of the other.
+- Not done in this stage. The fixture projects are not mutated: the
+  facts of verification in the table of invariants need the code of the
+  product. The areas of the product have no code and no run. Nothing
+  holds the number of mutants that run while a file is loaded, so it can
+  grow again unseen. A test runner is not started again after a number
+  of runs: under Vitest its memory did not grow.
+
 1. **A gate that runs.** The root `package.json` with exact versions,
    Prettier, the TypeScript configuration, ESLint, the ratchet with its
    first rules and their fixtures of both kinds, `check.ts` with the
@@ -1073,7 +1256,7 @@ What stage three showed and changed:
    layers, `contracts/` as the only way in, `packages.json` with no ORM,
    the lists and `ratchet:compare`. The three workspaces as empty shells
    that pass. The first `baseline.json` is written here.
-3. **Tests that hold the design.** Jest with the coverage floors, Knip and
+3. **Tests that hold the design.** The tests with the coverage floors, Knip and
    jscpd, and the `full` profile. The invariant tests of the queue, the
    requests, the improvement, the recovery and the migrations are written
    with the code they guard, starting from the earlier trial runs.
