@@ -7,7 +7,7 @@ export const LIMITS = 'harness/policy/limits.json';
 /** Numbers that may only go down. */
 const CEILINGS = ['function.', 'file.', 'duplication.'];
 /** Numbers that may only go up. */
-const FLOORS = ['coverage.'];
+const FLOORS = ['coverage.', 'mutation.'];
 const IGNORED = ['schema'];
 
 function numbersIn(record: JsonRecord, prefix = ''): Map<string, number> {

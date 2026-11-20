@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "runs": {
+    "harness": {
+      "config": "harness/configs/stryker.json",
+      "report": "reports/mutation/harness.json",
+      "areas": {
+        "harness": {
+          "in": ["harness/"],
+          "out": ["harness/bin/", "harness/tests/"]
+        }
+      }
+    }
+  }
+}

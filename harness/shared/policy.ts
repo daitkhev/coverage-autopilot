@@ -35,6 +35,15 @@ export interface Limits {
   /** The share of duplicated lines the tree may have, in percent. */
   readonly duplicationPercent: number;
   readonly coverage: CoverageFloors;
+  /** The kill rate each area must reach, in percent. Set by the owner. */
+  readonly mutationFloors: ReadonlyMap<string, number>;
+}
+
+function mutationFloorsOf(file: JsonRecord): Map<string, number> {
+  const floors = recordAt(file, 'mutation');
+  return new Map(
+    Object.keys(floors).map((area) => [area, numberAt(floors, area)]),
+  );
 }
 
 function coverageOf(file: JsonRecord): CoverageFloors {
@@ -58,5 +67,6 @@ export function readLimits(): Limits {
     fileLines: numberAt(recordAt(file, 'file'), 'lines'),
     duplicationPercent: numberAt(recordAt(file, 'duplication'), 'percent'),
     coverage: coverageOf(file),
+    mutationFloors: mutationFloorsOf(file),
   };
 }

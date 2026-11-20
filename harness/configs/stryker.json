@@ -1,0 +1,20 @@
+{
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.config.mjs"
+  },
+  "mutate": [
+    "harness/**/*.ts",
+    "!harness/bin/**",
+    "!harness/fixtures/**",
+    "!harness/tests/**"
+  ],
+  "inPlace": true,
+  "disableTypeChecks": false,
+  "coverageAnalysis": "perTest",
+  "reporters": ["json"],
+  "jsonReporter": {
+    "fileName": "reports/mutation/harness.json"
+  },
+  "tempDirName": ".stryker-tmp"
+}

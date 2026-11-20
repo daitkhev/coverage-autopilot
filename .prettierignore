@@ -1,8 +1,11 @@
 node_modules/
 /coverage/
 /*/coverage/
+/reports/
+.stryker-tmp/
 dist/
 package-lock.json
 docs/
 *.md
 harness/baseline.json
+harness/fixtures/projects/*/src/broken.ts

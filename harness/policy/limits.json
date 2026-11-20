@@ -12,6 +12,9 @@
   "duplication": {
     "percent": 0.9
   },
+  "mutation": {
+    "harness": 88
+  },
   "coverage": {
     "statements": 95,
     "branches": 95,
