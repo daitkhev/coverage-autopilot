@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "file-name",
+    "path": "src/coverageSnapshot.ts",
+    "line": 1
+  }
+]

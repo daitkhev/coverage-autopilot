@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "file-name",
+    "path": "src/index.ts",
+    "line": 1
+  }
+]

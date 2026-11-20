@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "relative-import",
+    "path": "src/a.ts",
+    "line": 1
+  }
+]

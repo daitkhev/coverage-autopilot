@@ -1,0 +1,146 @@
+{
+  "boolean-parameter": [
+    {
+      "rule": "no-restricted-syntax",
+      "says": "boolean parameter"
+    }
+  ],
+  "then-call": [
+    {
+      "rule": "no-restricted-syntax",
+      "says": "await"
+    }
+  ],
+  "class-suffix": [
+    {
+      "rule": "no-restricted-syntax",
+      "says": "suffix"
+    }
+  ],
+  "real-clock": [
+    {
+      "rule": "no-restricted-syntax",
+      "says": "clock"
+    },
+    {
+      "rule": "no-restricted-syntax",
+      "says": "clock"
+    }
+  ],
+  "parameter-count": [
+    {
+      "rule": "no-restricted-syntax",
+      "says": "parameters"
+    }
+  ],
+  "result-type": [
+    {
+      "rule": "id-denylist"
+    }
+  ],
+  "default-export": [
+    {
+      "rule": "no-restricted-exports"
+    }
+  ],
+  "floating-promise": [
+    {
+      "rule": "@typescript-eslint/no-floating-promises"
+    }
+  ],
+  "truthy-condition": [
+    {
+      "rule": "@typescript-eslint/strict-boolean-expressions"
+    }
+  ],
+  "inline-disable": [
+    {
+      "rule": null,
+      "says": "noInlineConfig"
+    },
+    {
+      "rule": "no-restricted-syntax",
+      "says": "clock"
+    }
+  ],
+  "import-order": [
+    {
+      "rule": "simple-import-sort/imports"
+    }
+  ],
+  "export-order": [
+    {
+      "rule": "simple-import-sort/exports"
+    }
+  ],
+  "magic-number": [
+    {
+      "rule": "@typescript-eslint/no-magic-numbers"
+    }
+  ],
+  "console-output": [
+    {
+      "rule": "no-console"
+    }
+  ],
+  "environment-read": [
+    {
+      "rule": "no-restricted-properties"
+    }
+  ],
+  "warning-comment": [
+    {
+      "rule": "no-warning-comments"
+    }
+  ],
+  "nested-ternary": [
+    {
+      "rule": "no-nested-ternary"
+    }
+  ],
+  "two-classes": [
+    {
+      "rule": "max-classes-per-file"
+    }
+  ],
+  "type-for-object": [
+    {
+      "rule": "@typescript-eslint/consistent-type-definitions"
+    }
+  ],
+  "value-import-of-type": [
+    {
+      "rule": "@typescript-eslint/consistent-type-imports"
+    }
+  ],
+  "member-accessibility": [
+    {
+      "rule": "@typescript-eslint/explicit-member-accessibility"
+    }
+  ],
+  "boundary-types": [
+    {
+      "rule": "@typescript-eslint/explicit-module-boundary-types"
+    }
+  ],
+  "long-function": [
+    {
+      "rule": "max-lines-per-function"
+    }
+  ],
+  "long-file": [
+    {
+      "rule": "max-lines"
+    }
+  ],
+  "deep-nesting": [
+    {
+      "rule": "max-depth"
+    }
+  ],
+  "many-branches": [
+    {
+      "rule": "complexity"
+    }
+  ]
+}
