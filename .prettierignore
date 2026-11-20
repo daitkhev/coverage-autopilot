@@ -5,3 +5,4 @@ dist/
 package-lock.json
 docs/
 *.md
+harness/baseline.json

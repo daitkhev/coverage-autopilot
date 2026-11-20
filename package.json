@@ -12,6 +12,8 @@
   "scripts": {
     "check": "node harness/bin/check.ts",
     "ratchet": "node harness/bin/ratchet.ts",
+    "ratchet:write": "node harness/bin/ratchet.ts --write",
+    "ratchet:compare": "node harness/bin/ratchet.ts --compare",
     "format": "prettier --write . --config prettier.config.mjs"
   },
   "devDependencies": {
