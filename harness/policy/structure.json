@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "source": {
+    "extensions": [".ts", ".tsx", ".mts", ".mjs"],
+    "excluded": ["harness/fixtures/"]
+  },
+  "names": {
+    "banned": ["index", "utils", "helpers", "common", "misc"]
+  }
+}
