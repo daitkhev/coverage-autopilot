@@ -4,8 +4,9 @@ Author: Valentin Daitkhe
 
 I am Valentin Daitkhe, and this is the starting point of my plan for
 `coverage-autopilot`. It fixes what the tool must do and what it will not do,
-before any design or code. The system design, the domain model and the
-verification harness are described in their own documents in this folder.
+before any design or code. The domain model is in
+[System design](system-design.md) and the folder layout is in
+[Project structure](project-structure.md).
 
 ## 1. Task
 
@@ -85,15 +86,17 @@ flowchart TD
    the user can push to the repository, and the test runner is supported.
 2. **Clean clone.** Clone the repository at the base commit.
 3. **Baseline run.** In the test sandbox, install dependencies and run the
-   existing tests with coverage. The sandbox holds no secrets and has no
+   existing tests with coverage. Then find the mutants of the target file that
+   the existing tests do not detect. The sandbox holds no secrets and has no
    network after the install.
 4. **Select.** Pick the uncovered branches of the target file.
 5. **Generate.** In the generator sandbox, the AI CLI writes a test file. It
    holds only the language model credential and runs no commands.
 6. **Run again and measure.** Back in the test sandbox: coverage, repeated runs
    and mutants.
-7. **Quality gate.** On a failure the job repairs the test while budget is left
-   and fails when the budget is spent.
+7. **Quality gate.** A rejected test is repaired while budget is left, and the
+   job fails when the budget is spent. A check that could not finish is run
+   again without using up an attempt.
 8. **Publish.** Only the diff leaves the sandbox. The host applies it to a clean
    clone, commits, pushes and opens the pull request, then stores the link.
 
@@ -129,14 +132,19 @@ share a line. I use each metric for a different purpose:
 
 Coverage only shows that code ran. It does not show that a test checks anything.
 Mutation testing covers that gap. The tool makes small changes (mutants) to the
-target file and counts how many of them make the new tests fail:
+target file. A total mutation score is not enough, because it can be high
+thanks to tests that already existed. The tool counts the gain instead: the
+mutants that no test detected before and that the new tests kill.
 
 $$
-MS(T) = \frac{\text{mutants killed by } T}{\text{all mutants} - \text{equivalent mutants}}
+\Delta K = \lvert \lbrace m : m \text{ undetected before, killed after} \rbrace \rvert
 $$
+
+The exact rule is in [System design](system-design.md#mutation-gate).
 
 Mutation testing is expensive, so I scope it: mutants are created only in the
-target file, and only the new tests run against them.
+target file, the starting point is measured once per job, and later runs test
+only the mutants the new tests reach.
 
 The quality gate accepts a candidate only if all of these hold:
 
@@ -146,9 +154,9 @@ The quality gate accepts a candidate only if all of these hold:
 4. Tests that passed before still pass.
 5. The new tests pass on several consecutive runs.
 6. Coverage of the target file went up.
-7. The share of killed mutants in the newly covered code is at or above the
-   policy threshold. If mutation testing is not available for the project, the
-   result is recorded as "not measured" and the policy decides whether to accept.
+7. The new tests kill mutants that no test detected before: at least one, and
+   at least the policy share of the mutants they reach. This check is required
+   by default. If the policy turns it off, the pull request says so.
 
 A job also carries a budget with three limits: attempts, tokens and wall-clock
 time. The job fails when any of them runs out.
@@ -215,7 +223,8 @@ Each item is marked `task` if the task states it and `added` if I added it.
   Different repositories run in parallel. `task`
 - **NFR-5. Durable queue.** Jobs live in SQLite. A worker claims a job
   atomically and holds a lease with a heartbeat. An expired lease returns the
-  job to the queue. Retries are limited. `added`
+  job to the queue. Retries are limited. A retry repeats the same step and
+  does not use up a generation attempt. `added`
 - **NFR-6. Idempotency.** Execution is at-least-once. Each job has a key derived
   from repository, base SHA, target file, generator configuration and quality
   policy. The key is unique among active and successful jobs, so a failed job
@@ -242,7 +251,7 @@ Each item is marked `task` if the task states it and `added` if I added it.
 | SQLite queue | Horizontal scaling across machines | The task fixes SQLite. The queue is behind a port and can move to a broker later. |
 | No separate outbox table | A general mechanism for external actions | There is one external action and it is idempotent. The job row in the publishing state plays that role. |
 | Containers, not microVMs | The strongest isolation | Containers with no network and no secrets cover the stated threat. |
-| Mutation testing for one runner first, target file only | A strength guarantee for every project | It is the expensive step. Where it is missing, the result says so. |
+| Mutation testing required by default, target file only | Speed, and projects the mutation tool cannot run | It is the check that stops a test without assertions. A project it cannot run on fails before any generation. |
 | No path, sequence or MC/DC coverage | Stricter structural metrics | TypeScript coverage tools do not measure them. |
 | No scoring function for candidates | Choosing the best of several tests | A job produces one test file. Targets are picked by uncovered branch count. |
 | Line coverage as the displayed number | The stricter headline metric | It matches what users expect. Branch coverage still decides the gate. |

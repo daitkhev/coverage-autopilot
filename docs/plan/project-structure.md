@@ -4,8 +4,8 @@ Author: Valentin Daitkhe
 
 This document fixes where code lives and which parts may depend on which. It
 follows from [Scope and requirements](scope-and-requirements.md). File names in
-the examples are illustrative. The domain model itself is defined in the system
-design document.
+the examples are illustrative. The domain model itself is defined in
+[System design](system-design.md).
 
 ## Repository layout
 
@@ -79,8 +79,12 @@ Each module is a bounded context with its own rules and its own lifecycle.
 | --- | --- |
 | `repositories` | Connected repositories, access checks, working copies |
 | `coverage` | Project detection, test runs with coverage, report parsing, snapshots, thresholds |
-| `verification` | Quality gate, repeated runs, mutation testing |
-| `improvement` | Improvement job, its state machine, queue, budget, test generation, publishing |
+| `verification` | Quality gate, repeated runs, mutation testing. Stores nothing |
+| `improvement` | Improvement, its attempts and statuses, budget, test generation, publishing |
+
+The job queue is not a module. It is technical code in
+`shared/infrastructure/queue`, and both `coverage` and `improvement` put jobs
+into it.
 
 Dependencies point one way and have no cycles:
 
@@ -112,7 +116,6 @@ backend/src/modules/coverage/
 │   │   ├── coverage-percentage.vo.ts
 │   │   └── coverage-threshold.vo.ts
 │   ├── services/
-│   ├── events/
 │   ├── errors/
 │   │   └── invalid-coverage-percentage.error.ts
 │   └── repositories/
@@ -143,15 +146,14 @@ backend/src/modules/coverage/
 │       └── coverage.controller.ts
 │
 ├── contracts/
-│   ├── coverage-public-api.ts
-│   └── coverage-events.ts
+│   └── coverage-public-api.ts
 │
 └── coverage.module.ts
 ```
 
 | Layer | Contains | May use the framework |
 | --- | --- | --- |
-| `domain` | Entities, value objects, domain services, events, errors, repository interfaces | No |
+| `domain` | Entities, value objects, domain services, errors, repository interfaces | No |
 | `application` | Use cases as commands and queries, ports for everything outside | Only `@Injectable()` and `@Inject()` |
 | `infrastructure` | Implementations of repositories and ports: SQLite, test runners, CLIs | Yes |
 | `presentation` | HTTP controllers | Yes |
@@ -169,7 +171,10 @@ flowchart TD
 
 Repository interfaces live in `domain/repositories/`. Every other outbound
 dependency is a port in `application/ports/`. A folder is created only when it
-has a file to hold: a module with no events has no `events/` folder.
+has a file to hold: a module with no domain services has no `services/` folder.
+
+Modules call each other synchronously. There is no event bus and no `events/`
+folder in the first version.
 
 ## Shared code
 
@@ -182,6 +187,8 @@ backend/src/shared/
 │   └── id/
 └── infrastructure/
     ├── database/
+    ├── queue/
+    ├── artifacts/
     ├── config/
     ├── logging/
     ├── time/
@@ -190,12 +197,14 @@ backend/src/shared/
 ```
 
 - `kernel/` is plain TypeScript: base classes for entities and value objects,
+  the small types every module uses (`RepositoryId`, `CommitSha`, `FilePath`),
   the three base errors (`DomainError`, `ApplicationError`,
   `InfrastructureError`), and the `Clock` and `IdGenerator` interfaces. The
   domain may import it.
 - `infrastructure/` is technical code used by more than one module: the SQLite
-  connection, configuration, logging, the system clock, the id generator and
-  the sandbox that runs untrusted commands. The domain may not import it.
+  connection, the job queue, storage for raw tool output, configuration,
+  logging, the system clock, the id generator and the sandbox that runs
+  untrusted commands. The domain may not import it.
 
 Errors are exceptions. Every error is its own class that extends one of the
 three base errors, and one boundary per entry point turns them into an HTTP
@@ -263,7 +272,6 @@ Files are kebab-case with the role as a suffix.
 | `.entity.ts` | Entity or aggregate root |
 | `.vo.ts` | Value object |
 | `.service.ts` | Domain service |
-| `.event.ts` | Domain event |
 | `.error.ts` | One error class |
 | `.schema.ts` | Zod schema and the DTO type inferred from it |
 | `.dto.ts` | DTO that needs no validation |
