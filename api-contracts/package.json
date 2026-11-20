@@ -1,0 +1,9 @@
+{
+  "name": "@coverage-autopilot/api-contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#api-contracts/*": "./src/*.ts"
+  }
+}

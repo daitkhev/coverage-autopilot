@@ -9,6 +9,11 @@
   "imports": {
     "#harness/*": "./harness/*.ts"
   },
+  "workspaces": [
+    "api-contracts",
+    "backend",
+    "frontend"
+  ],
   "scripts": {
     "check": "node harness/bin/check.ts",
     "ratchet": "node harness/bin/ratchet.ts",
