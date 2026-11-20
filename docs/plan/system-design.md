@@ -318,7 +318,8 @@ $$
 The kill rate compares the gain with the mutants the new tests reach:
 
 $$
-R = \frac{\Delta K}{\lvert \lbrace m \in U : m \text{ is run by a new test},\ s_1(m) \ne \text{Timeout} \rbrace \rvert}
+R = \frac{\Delta K}{\lvert \lbrace m \in U :
+m \text{ is run by a new test},\ s_1(m) \ne \text{Timeout} \rbrace \rvert}
 $$
 
 The check passes when $\Delta K \ge 1$ and $R$ is at or above the policy

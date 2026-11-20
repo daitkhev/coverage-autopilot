@@ -139,7 +139,8 @@ thanks to tests that already existed. The tool counts the gain instead: the
 mutants that no test detected before and that the new tests kill.
 
 $$
-\Delta K = \lvert \lbrace m : m \text{ undetected before, killed after} \rbrace \rvert
+\Delta K = \lvert \lbrace m :
+m \text{ undetected before, killed after} \rbrace \rvert
 $$
 
 The exact rule is in [System design](system-design.md#mutation-gate).

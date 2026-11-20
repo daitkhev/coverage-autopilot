@@ -459,7 +459,7 @@ A repository is named as `owner/name`.
 
 With `--wait` progress is printed as plain lines, one per change:
 
-```
+```text
 $ coverage-autopilot improve example/payments src/billing/invoice.ts --wait
 analyzing    lines 41.2%, 14 mutants no test detects
 attempt 1    rejected: the new tests detect 0 of 14 mutants

@@ -9,7 +9,7 @@ the examples are illustrative. The domain model itself is defined in
 
 ## Repository layout
 
-```
+```text
 coverage-autopilot/
 ├── backend/
 │   ├── src/
@@ -141,7 +141,7 @@ asked for it. The contracts are listed in
 
 Every module has the same layers. This is the `coverage` module as an example:
 
-```
+```text
 backend/src/modules/coverage/
 ├── domain/
 │   ├── entities/
@@ -213,7 +213,7 @@ folder in the first version.
 
 ## Shared code
 
-```
+```text
 backend/src/shared/
 ├── kernel/
 │   ├── primitives/
