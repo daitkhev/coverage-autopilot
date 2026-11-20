@@ -62,6 +62,19 @@ export const processHost: Host = {
   processors: availableParallelism(),
 };
 
+/** The mark a gate leaves in the environment of everything it starts. */
+const INSIDE_GATE = 'HARNESS_INSIDE_GATE';
+
+/** Whether this process was started, however far down, by a gate. */
+export function isInsideGate(): boolean {
+  return process.env[INSIDE_GATE] !== undefined;
+}
+
+/** The environment of a gate: this one, with the mark of the gate. */
+export function gateEnvironment(): NodeJS.ProcessEnv {
+  return { ...process.env, [INSIDE_GATE]: '1' };
+}
+
 /** Node and the script come first in `process.argv`. */
 const FIRST_ARGUMENT = 2;
 
