@@ -197,7 +197,8 @@ Each item is marked `task` if the task states it and `added` if I added it.
   existing branch or pull request instead of creating a duplicate. `added`
 - **FR-9.** Run a preflight check before spending any budget: `git` and `gh`
   present, `gh` authenticated, write access to the repository, a supported test
-  runner. `added`
+  runner, and a target file that has not changed on the default branch since
+  the scan. `added`
 - **FR-10.** Report expected failures as typed outcomes, not crashes: no test
   runner, dependency install failed, timeout, nothing to improve. `added`
 - **FR-11.** Optional review mode: the job waits for approval after the gate,

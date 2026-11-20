@@ -23,6 +23,7 @@ coverage-autopilot/
 │   │   │   └── improvement/
 │   │   └── shared/
 │   │       ├── kernel/
+│   │       ├── application/
 │   │       └── infrastructure/
 │   ├── migrations/
 │   ├── tests/
@@ -77,10 +78,10 @@ Each module is a bounded context with its own rules and its own lifecycle.
 
 | Module | Owns |
 | --- | --- |
-| `repositories` | Connected repositories, access checks, working copies |
+| `repositories` | Connected repositories, access checks, working copies, branches and pull requests. Everything that uses `git` and `gh` |
 | `coverage` | Project detection, test runs with coverage, report parsing, snapshots, thresholds |
 | `verification` | Quality gate, repeated runs, mutation testing. Stores nothing |
-| `improvement` | Improvement, its attempts and statuses, budget, test generation, publishing |
+| `improvement` | Improvement, its attempts and statuses, budget, test generation, the decision to publish |
 
 The job queue is not a module. It is technical code in
 `shared/infrastructure/queue`, and both `coverage` and `improvement` put jobs
@@ -94,14 +95,19 @@ flowchart TD
     IMP --> COV["coverage"]
     IMP --> REPO["repositories"]
     VER --> COV
+    VER --> REPO
     COV --> REPO
 ```
 
 - `coverage` asks `repositories` for a working copy.
-- `verification` asks `coverage` to run tests and measure them.
+- `verification` asks `repositories` for a clean working copy, applies the
+  patch to it, and asks `coverage` to run tests and measure them.
 - `improvement` drives the whole job and uses the other three.
 
 A module calls another module only through that module's `contracts/` folder.
+Only values cross a module boundary. A working copy belongs to the module that
+asked for it. The contracts are listed in
+[System design](system-design.md#contracts-between-modules).
 
 ## Inside a module
 
@@ -166,6 +172,7 @@ flowchart TD
     INFRA --> DOM["domain"]
     APP --> DOM
     APP --> OTHER["contracts of<br/>other modules"]
+    APP --> PORTS["shared ports"]
     DOM --> KERNEL["shared/kernel"]
 ```
 
@@ -185,6 +192,8 @@ backend/src/shared/
 │   ├── errors/
 │   ├── time/
 │   └── id/
+├── application/
+│   └── ports/
 └── infrastructure/
     ├── database/
     ├── queue/
@@ -199,8 +208,11 @@ backend/src/shared/
 - `kernel/` is plain TypeScript: base classes for entities and value objects,
   the small types every module uses (`RepositoryId`, `CommitSha`, `FilePath`),
   the three base errors (`DomainError`, `ApplicationError`,
-  `InfrastructureError`), and the `Clock` and `IdGenerator` interfaces. The
-  domain may import it.
+  `InfrastructureError`), the `Clock` and `IdGenerator` interfaces, and an
+  opaque `Transaction` handle. The domain may import it.
+- `application/ports/` holds the technical interfaces that only the
+  application layer needs: `TransactionManager`, `JobQueue` and `JobHandler`.
+  The domain may not import it, so a domain object cannot reach the queue.
 - `infrastructure/` is technical code used by more than one module: the SQLite
   connection, the job queue, storage for raw tool output, configuration,
   logging, the system clock, the id generator and the sandbox that runs
@@ -222,14 +234,15 @@ There is no `utils/` folder. A helper belongs to the module that needs it.
 These rules are checked by a tool, not by review:
 
 1. `domain` imports only its own module's `domain` and `shared/kernel`.
-2. `application` imports its own `domain`, `shared/kernel`, and the `contracts`
-   of other modules.
+2. `application` imports its own `domain`, `shared/kernel`,
+   `shared/application` and the `contracts` of other modules.
 3. Only `infrastructure` and `presentation` import NestJS, the database driver
    or any other library that does I/O. The one exception: `application` may
    import the `@Injectable()` and `@Inject()` decorators, and nothing else from
    NestJS.
 4. A module never imports from another module outside its `contracts/`.
 5. `shared/kernel` imports nothing from the project and no framework.
+   `shared/application` imports only `shared/kernel`.
 6. `frontend` imports nothing from `backend`, and `backend` imports nothing
    from `frontend`. Both may import `api-contracts`, which imports neither.
 7. Zod is used where data enters the system: `api-contracts`, configuration and
@@ -248,7 +261,8 @@ does not change when the importing file moves.
 | --- | --- |
 | `#repositories/*`, `#coverage/*`, `#verification/*`, `#improvement/*` | `backend/src/modules/<module>/*` |
 | `#kernel/*` | `backend/src/shared/kernel/*` |
-| `#shared/*` | `backend/src/shared/infrastructure/*` |
+| `#ports/*` | `backend/src/shared/application/ports/*` |
+| `#infrastructure/*` | `backend/src/shared/infrastructure/*` |
 | `#tests/*` | `backend/tests/*` |
 | `#app/*`, `#screens/*`, `#commands/*`, `#components/*`, `#hooks/*`, `#api/*` | `frontend/src/<folder>/*` |
 | `@coverage-autopilot/api-contracts` | The `api-contracts` workspace |
