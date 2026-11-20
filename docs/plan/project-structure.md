@@ -44,6 +44,11 @@ coverage-autopilot/
 │   ├── package.json
 │   └── tsconfig.json
 │
+├── api-contracts/
+│   ├── src/
+│   ├── package.json
+│   └── tsconfig.json
+│
 ├── docs/
 │   └── plan/
 ├── package.json
@@ -57,7 +62,10 @@ coverage-autopilot/
 - `frontend/` is the terminal client. `screens/` holds the interactive views and
   `commands/` holds the non-interactive commands. It talks to the backend only
   through `api/`.
-- The root `package.json` declares both folders as workspaces.
+- `api-contracts/` holds the Zod schemas of the HTTP API. The backend validates
+  requests with them and the frontend validates responses with them, so each
+  DTO is described once and its type is inferred from the schema.
+- The root `package.json` declares the three folders as workspaces.
 
 ## Backend modules
 
@@ -102,6 +110,8 @@ backend/src/modules/coverage/
 │   │   └── coverage-threshold.vo.ts
 │   ├── services/
 │   ├── events/
+│   ├── errors/
+│   │   └── invalid-coverage-percentage.error.ts
 │   └── repositories/
 │       └── coverage-snapshot.repository.ts
 │
@@ -138,8 +148,8 @@ backend/src/modules/coverage/
 
 | Layer | Contains | May use the framework |
 | --- | --- | --- |
-| `domain` | Entities, value objects, domain services, events, repository interfaces | No |
-| `application` | Use cases as commands and queries, ports for everything outside | No |
+| `domain` | Entities, value objects, domain services, events, errors, repository interfaces | No |
+| `application` | Use cases as commands and queries, ports for everything outside | Only `@Injectable()` and `@Inject()` |
 | `infrastructure` | Implementations of repositories and ports: SQLite, test runners, CLIs | Yes |
 | `presentation` | HTTP controllers | Yes |
 | `contracts` | The only surface other modules may import | No |
@@ -164,19 +174,34 @@ has a file to hold: a module with no events has no `events/` folder.
 backend/src/shared/
 ├── kernel/
 │   ├── primitives/
-│   └── errors/
+│   ├── errors/
+│   ├── time/
+│   └── id/
 └── infrastructure/
     ├── database/
     ├── config/
     ├── logging/
+    ├── time/
+    ├── id/
     └── sandbox/
 ```
 
 - `kernel/` is plain TypeScript: base classes for entities and value objects,
-  the result type, base errors. The domain may import it.
+  the three base errors (`DomainError`, `ApplicationError`,
+  `InfrastructureError`), and the `Clock` and `IdGenerator` interfaces. The
+  domain may import it.
 - `infrastructure/` is technical code used by more than one module: the SQLite
-  connection, configuration, logging and the sandbox that runs untrusted
-  commands. The domain may not import it.
+  connection, configuration, logging, the system clock, the id generator and
+  the sandbox that runs untrusted commands. The domain may not import it.
+
+Errors are exceptions. Every error is its own class that extends one of the
+three base errors, and one boundary per entry point turns them into an HTTP
+response or a job failure reason. An expected outcome, such as a rejected
+candidate, is a typed value and not an exception.
+
+The domain and the application never call `new Date()` or `randomUUID()`. They
+receive a `Clock` and an `IdGenerator`, which keeps leases, timeouts and ids
+deterministic in tests.
 
 There is no `utils/` folder. A helper belongs to the module that needs it.
 
@@ -188,10 +213,16 @@ These rules are checked by a tool, not by review:
 2. `application` imports its own `domain`, `shared/kernel`, and the `contracts`
    of other modules.
 3. Only `infrastructure` and `presentation` import NestJS, the database driver
-   or any other library that does I/O.
+   or any other library that does I/O. The one exception: `application` may
+   import the `@Injectable()` and `@Inject()` decorators, and nothing else from
+   NestJS.
 4. A module never imports from another module outside its `contracts/`.
 5. `shared/kernel` imports nothing from the project and no framework.
-6. `frontend` imports nothing from `backend`.
+6. `frontend` imports nothing from `backend`, and `backend` imports nothing
+   from `frontend`. Both may import `api-contracts`, which imports neither.
+7. Zod is used where data enters the system: `api-contracts`, configuration and
+   adapters that parse the output of external tools. The domain does not import
+   it and checks its own invariants.
 
 ## Naming
 
@@ -203,6 +234,9 @@ Files are kebab-case with the role as a suffix.
 | `.vo.ts` | Value object |
 | `.service.ts` | Domain service |
 | `.event.ts` | Domain event |
+| `.error.ts` | One error class |
+| `.schema.ts` | Zod schema and the DTO type inferred from it |
+| `.dto.ts` | DTO that needs no validation |
 | `.repository.ts` | Repository interface in `domain`, implementation in `infrastructure` |
 | `.port.ts` | Outbound port |
 | `.adapter.ts` | Implementation of a port |
