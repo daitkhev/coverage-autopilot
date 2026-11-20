@@ -1,0 +1,3 @@
+#!/bin/sh
+# What git runs before a push, for a person and for an agent alike.
+exec node harness/bin/before-push.ts
