@@ -9,3 +9,4 @@ docs/
 *.md
 harness/baseline.json
 harness/fixtures/projects/*/src/broken.ts
+.claude/settings.local.json
