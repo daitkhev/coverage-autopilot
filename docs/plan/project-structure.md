@@ -63,7 +63,8 @@ coverage-autopilot/
 - `backend/` is the NestJS service. `main.ts` starts the HTTP API on a local
   socket and `worker.ts` starts the job worker. Both load the same modules.
   Running them as one process or two is a deployment choice, because jobs are
-  claimed through the database.
+  claimed through the database. `migrations/` holds plain SQL files. The
+  service applies the missing ones in order every time it starts.
 - `frontend/` is the terminal client. `screens/` holds the interactive views and
   `commands/` holds the non-interactive commands. It talks to the backend only
   through `api/`.
@@ -250,6 +251,9 @@ These rules are checked by a tool, not by review:
    it and checks its own invariants.
 8. No file uses a relative import. Every import goes through an alias from the
    [Imports](#imports) section.
+9. SQL is written only in `infrastructure/persistence` of a module, in
+   `shared/infrastructure` and in `migrations/`. There is no ORM and no query
+   builder.
 
 ## Imports
 

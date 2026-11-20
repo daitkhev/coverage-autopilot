@@ -187,7 +187,9 @@ Each item is marked `task` if the task states it and `added` if I added it.
 - **FR-1.** Connect a GitHub repository by URL. `task`
 - **FR-2.** Scan a repository: clone, detect the test runner, run tests with
   coverage, store a per-file snapshot tied to the commit SHA. `task`
-- **FR-3.** Include source files that no test loads, reported as 0%. `added`
+- **FR-3.** Include source files that no test loads, reported as 0%. A file
+  that could not be measured is listed apart with the reason and is never
+  shown as 0%. `added`
 - **FR-4.** List files below the threshold with their coverage. The threshold
   and its metric are configurable, 80% of lines by default. `task`
 - **FR-5.** Start an improvement for one file as a background job. `task`
@@ -231,11 +233,13 @@ Each item is marked `task` if the task states it and `added` if I added it.
   atomically and holds a lease with a heartbeat. An expired lease returns the
   job to the queue. Retries are limited. A retry repeats the same step and
   does not use up a generation attempt. `added`
-- **NFR-6. Idempotency.** Execution is at-least-once. Each job has a key derived
-  from repository, base SHA, target file, generator configuration and quality
-  policy. The key is unique among active and successful jobs, so a failed job
-  can be requested again. At most one open improvement exists per repository
-  and file. `added`
+- **NFR-6. Idempotency.** Execution is at-least-once. A request for an
+  improvement carries a key made by the client, and the same key always
+  returns the same improvement. A fingerprint is derived from repository, base
+  SHA, target file, generator configuration and quality policy. It is unique
+  among active and successful improvements, so the same work is not done
+  twice and a failed improvement can be requested again. At most one open
+  improvement exists per repository and file. `added`
 - **NFR-7. Bounded cost.** Every job has a budget and stops when it is used up.
   `added`
 - **NFR-8. Extensibility.** Project detection, test runner, coverage report
@@ -255,6 +259,7 @@ Each item is marked `task` if the task states it and `added` if I added it.
 | Write access required, no fork flow | Repositories the user cannot push to | The main use is the user's own repository. A missing permission is reported in preflight. |
 | `gh` CLI for pull requests | A tool with no external dependency | The tool handles no tokens and works locally and in CI with one adapter. |
 | SQLite queue | Horizontal scaling across machines | The task fixes SQLite. The queue is behind a port and can move to a broker later. |
+| Plain SQL, no ORM | Generated queries and mapping | The rules the database checks need partial indexes and a claim in one statement. Six tables are few enough to map by hand. |
 | No separate outbox table | A general mechanism for external actions | There is one external action and it is idempotent. The job row in the publishing state plays that role. |
 | An AI CLI, not a model API | An exact token limit per call | The task asks for a CLI. It limits turns and estimated cost, so the token budget is approximate. |
 | A Unix socket, not a network port | Windows, and a browser dashboard without extra work | Nothing on the network can reach the service, and no port has to be chosen. |
@@ -268,4 +273,4 @@ Each item is marked `task` if the task states it and `added` if I added it.
 | Automatic publishing by default | A human check before every pull request | The task asks for an automatic flow. Review mode exists as an option. |
 | Unsupported repositories are reported, not bootstrapped | Repositories with no test runner | Adding a runner changes the project and is not a coverage improvement. |
 | At-least-once execution | Exactly-once semantics | With idempotent steps the visible result is the same and the design is simpler. |
-| Base SHA is part of the job key | Reuse of work after the base branch moves | A test verified against one commit says nothing about another. |
+| Base SHA is part of the request fingerprint | Reuse of work after the base branch moves | A test verified against one commit says nothing about another. |
