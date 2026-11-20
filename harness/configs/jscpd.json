@@ -1,0 +1,6 @@
+{
+  "pattern": "**/*.{ts,tsx}",
+  "ignore": ["**/node_modules/**", "harness/fixtures/**"],
+  "reporters": ["console"],
+  "gitignore": true
+}

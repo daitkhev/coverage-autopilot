@@ -1,6 +1,11 @@
 import { join, resolve } from 'node:path';
 
-import { numberAt, readJsonRecord, recordAt } from '#harness/shared/json';
+import {
+  type JsonRecord,
+  numberAt,
+  readJsonRecord,
+  recordAt,
+} from '#harness/shared/json';
 
 /** The folder of the harness this code runs from. */
 export const HARNESS_ROOT = resolve(import.meta.dirname, '..');
@@ -13,12 +18,33 @@ export function policyFile(name: string): string {
   return join(HARNESS_ROOT, 'policy', name);
 }
 
+/** The share of each counter that tests must reach, in percent. */
+export interface CoverageFloors {
+  readonly statements: number;
+  readonly branches: number;
+  readonly functions: number;
+  readonly lines: number;
+}
+
 export interface Limits {
   readonly functionLines: number;
   readonly functionBranches: number;
   readonly functionDepth: number;
   readonly functionParameters: number;
   readonly fileLines: number;
+  /** The share of duplicated lines the tree may have, in percent. */
+  readonly duplicationPercent: number;
+  readonly coverage: CoverageFloors;
+}
+
+function coverageOf(file: JsonRecord): CoverageFloors {
+  const coverage = recordAt(file, 'coverage');
+  return {
+    statements: numberAt(coverage, 'statements'),
+    branches: numberAt(coverage, 'branches'),
+    functions: numberAt(coverage, 'functions'),
+    lines: numberAt(coverage, 'lines'),
+  };
 }
 
 export function readLimits(): Limits {
@@ -30,5 +56,7 @@ export function readLimits(): Limits {
     functionDepth: numberAt(ofFunction, 'depth'),
     functionParameters: numberAt(ofFunction, 'parameters'),
     fileLines: numberAt(recordAt(file, 'file'), 'lines'),
+    duplicationPercent: numberAt(recordAt(file, 'duplication'), 'percent'),
+    coverage: coverageOf(file),
   };
 }

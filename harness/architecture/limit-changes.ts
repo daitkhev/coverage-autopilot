@@ -5,7 +5,7 @@ import { isRecord, type JsonRecord } from '#harness/shared/json';
 export const LIMITS = 'harness/policy/limits.json';
 
 /** Numbers that may only go down. */
-const CEILINGS = ['function.', 'file.'];
+const CEILINGS = ['function.', 'file.', 'duplication.'];
 /** Numbers that may only go up. */
 const FLOORS = ['coverage.'];
 const IGNORED = ['schema'];

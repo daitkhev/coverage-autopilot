@@ -9,6 +9,9 @@
   "file": {
     "lines": 300
   },
+  "duplication": {
+    "percent": 0.9
+  },
   "coverage": {
     "statements": 95,
     "branches": 95,

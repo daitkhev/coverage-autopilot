@@ -1,0 +1,25 @@
+{
+  "workspaces": {
+    ".": {
+      "entry": ["harness/bin/*.ts", "harness/tests/**/*.test.ts"],
+      "project": ["harness/**/*.ts"],
+      "ignore": ["harness/fixtures/**"],
+      "ignoreDependencies": ["jest", "jscpd", "knip", "markdownlint-cli2"],
+      "jest": { "config": ["harness/configs/jest.json"] },
+      "eslint": { "config": ["eslint.config.mjs"] },
+      "prettier": { "config": ["prettier.config.mjs"] }
+    },
+    "backend": {
+      "entry": ["src/main.ts", "tests/**/*.test.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    },
+    "frontend": {
+      "entry": ["src/main.tsx", "tests/**/*.test.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"]
+    },
+    "api-contracts": {
+      "entry": ["src/*.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    }
+  }
+}

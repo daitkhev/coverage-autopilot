@@ -1,19 +1,12 @@
+import type { NodeCommand } from '#harness/gate/host';
+import { JEST_CONFIG, JEST_NODE_OPTIONS, TOOLS } from '#harness/gate/tools';
 import { HarnessError } from '#harness/shared/harness.error';
+import { readLimits } from '#harness/shared/policy';
 
-/** One check of the gate: a program that Node runs, and its arguments. */
-export interface Step {
+/** One check of the gate: a name, and the program that Node runs for it. */
+export interface Step extends NodeCommand {
   readonly name: string;
-  /** Options for Node itself, before the script. */
-  readonly nodeOptions: readonly string[];
-  /** The script, from the root of the repository. */
-  readonly script: string;
-  readonly arguments: readonly string[];
 }
-
-const JEST_NODE_OPTIONS = [
-  '--experimental-vm-modules',
-  '--disable-warning=ExperimentalWarning',
-];
 
 /** What a tree is compared with on a desk: the commit it stands on. */
 const LOCAL_BASE = 'HEAD';
@@ -26,8 +19,8 @@ function tests(name: string, folder: string): Step {
   return {
     name,
     nodeOptions: JEST_NODE_OPTIONS,
-    script: 'node_modules/jest/bin/jest.js',
-    arguments: ['--config', 'harness/configs/jest.json', '--ci', folder],
+    script: TOOLS.jest,
+    arguments: ['--config', JEST_CONFIG, '--ci', folder],
   };
 }
 
@@ -38,7 +31,7 @@ function tests(name: string, folder: string): Step {
 export const STEPS: readonly Step[] = [
   tool(
     'format',
-    'node_modules/prettier/bin/prettier.cjs',
+    TOOLS.prettier,
     '--check',
     '.',
     '--config',
@@ -48,7 +41,7 @@ export const STEPS: readonly Step[] = [
   ),
   tool(
     'lint',
-    'node_modules/eslint/bin/eslint.js',
+    TOOLS.eslint,
     '.',
     '--config',
     'eslint.config.mjs',
@@ -58,8 +51,31 @@ export const STEPS: readonly Step[] = [
   tool('types', 'harness/bin/types.ts'),
   tool('architecture', 'harness/bin/ratchet.ts'),
   tool('compare', 'harness/bin/ratchet.ts', '--compare', LOCAL_BASE),
+  tool(
+    'unused',
+    TOOLS.knip,
+    '--config',
+    'harness/configs/knip.json',
+    '--exclude',
+    'subpaths',
+    '--no-progress',
+    '--no-config-hints',
+  ),
+  tool(
+    'duplication',
+    TOOLS.jscpd,
+    '.',
+    '--config',
+    'harness/configs/jscpd.json',
+    '--threshold',
+    String(readLimits().duplicationPercent),
+    '--fail-on-empty',
+    '--no-colors',
+  ),
   tests('unit', 'harness/tests/unit'),
   tests('integration', 'harness/tests/integration'),
+  tool('coverage', 'harness/bin/coverage.ts'),
+  tool('documents', 'harness/bin/documents.ts'),
 ];
 
 const FAST = ['format', 'lint', 'types', 'architecture'];
@@ -67,7 +83,16 @@ const FAST = ['format', 'lint', 'types', 'architecture'];
 /** The profiles of the gate. Each one holds the one before it. */
 export const PROFILES: Readonly<Record<string, readonly string[]>> = {
   fast: FAST,
-  full: [...FAST, 'compare', 'unit', 'integration'],
+  full: [
+    ...FAST,
+    'compare',
+    'unused',
+    'duplication',
+    'unit',
+    'integration',
+    'coverage',
+    'documents',
+  ],
 };
 
 function stepNamed(name: string): Step {
