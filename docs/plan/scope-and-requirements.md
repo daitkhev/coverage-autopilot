@@ -56,30 +56,46 @@ execute, measure again, then reject, repair or accept.
 
 ```mermaid
 flowchart TD
-    REQ["Improve request: repository + target file"] --> PRE["Preflight: git, gh auth, write access, test runner"]
-    PRE --> CLONE["Clean clone at base SHA"]
+    REQ["Improve request<br/>repo + file"] --> PRE["Preflight<br/>checks"]
+    PRE --> CLONE["Clean clone<br/>at base SHA"]
     CLONE --> BASE
 
-    subgraph TESTBOX["Test sandbox: no secrets, no network after install"]
-        BASE["Baseline: install, run tests with coverage"]
-        EXEC["Run again: coverage, repeat runs, mutants"]
+    subgraph TESTBOX["Test sandbox"]
+        BASE["Baseline run<br/>with coverage"]
+        EXEC["Run again<br/>and measure"]
     end
 
-    BASE --> SEL["Select uncovered branches in the target file"]
+    BASE --> SEL["Select<br/>uncovered code"]
     SEL --> GEN
 
-    subgraph GENBOX["Generator sandbox: language model credential only"]
-        GEN["AI CLI writes a test file, runs no commands"]
+    subgraph GENBOX["Generator sandbox"]
+        GEN["AI CLI writes<br/>a test file"]
     end
 
     GEN --> EXEC
     EXEC --> GATE{"Quality gate"}
-    GATE -->|"fail, budget left"| GEN
-    GATE -->|"fail, budget exhausted"| FAILED["failed"]
-    GATE -->|"pass"| DIFF["Extract diff, test files only"]
-    DIFF --> PUB["Host: apply to a clean clone, commit, push, open pull request"]
-    PUB --> DONE["completed, pull request link stored"]
+    GATE -->|"repair"| GEN
+    GATE -->|"budget spent"| FAILED["failed"]
+    GATE -->|"pass"| DIFF["Extract diff<br/>tests only"]
+    DIFF --> PUB["Commit, push<br/>open PR"]
+    PUB --> DONE["completed"]
 ```
+
+1. **Preflight.** Check that `git` and `gh` are present, `gh` is authenticated,
+   the user can push to the repository, and the test runner is supported.
+2. **Clean clone.** Clone the repository at the base commit.
+3. **Baseline run.** In the test sandbox, install dependencies and run the
+   existing tests with coverage. The sandbox holds no secrets and has no
+   network after the install.
+4. **Select.** Pick the uncovered branches of the target file.
+5. **Generate.** In the generator sandbox, the AI CLI writes a test file. It
+   holds only the language model credential and runs no commands.
+6. **Run again and measure.** Back in the test sandbox: coverage, repeated runs
+   and mutants.
+7. **Quality gate.** On a failure the job repairs the test while budget is left
+   and fails when the budget is spent.
+8. **Publish.** Only the diff leaves the sandbox. The host applies it to a clean
+   clone, commits, pushes and opens the pull request, then stores the link.
 
 Two properties hold for every job:
 
