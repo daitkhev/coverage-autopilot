@@ -1,7 +1,8 @@
 node_modules/
 dist/
 build/
-coverage/
+/coverage/
+/*/coverage/
 .env
 .env.*
 !.env.example

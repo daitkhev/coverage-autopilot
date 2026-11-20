@@ -119,6 +119,7 @@ export const eslintConfig: Linter.Config[] = defineConfig(
     ignores: [
       'node_modules/',
       'coverage/',
+      '*/coverage/',
       'dist/',
       'docs/',
       'harness/fixtures/',
