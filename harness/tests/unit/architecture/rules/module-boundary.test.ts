@@ -7,6 +7,7 @@ import {
   SHARED,
 } from '#harness/tests/support/policy-builder';
 import {
+  detailsBetween,
   importTo,
   projectOf,
   sourceFile,
@@ -17,9 +18,7 @@ const BY_CONTRACTS = 'Another module is reached through its contracts/ only.';
 const BY_MODULE_FILE = 'A module is wired in through its module file only.';
 
 function detailsFor(from: string, to: string): string[] {
-  return rule
-    .check(projectOf(sourceFile(from, [importTo(to)])))
-    .map((finding) => finding.detail);
+  return detailsBetween(rule, from, to);
 }
 
 describe('moduleBoundary', () => {

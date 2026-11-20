@@ -1,7 +1,6 @@
-import { type Edge, edgesOf, findingAt } from '#harness/architecture/edges';
-import type { Finding } from '#harness/architecture/finding';
+import { type Edge, edgeRule } from '#harness/architecture/edges';
 import { moduleOf, type Place } from '#harness/architecture/places';
-import type { Project, Rule } from '#harness/architecture/project';
+import type { Rule } from '#harness/architecture/project';
 import type { Backend } from '#harness/shared/structure';
 
 type LayerPlace = Extract<Place, { kind: 'layer' }>;
@@ -48,17 +47,7 @@ function problemOf(edge: Edge, backend: Backend): string {
     : '';
 }
 
-function checkWith(backend: Backend, project: Project): Finding[] {
-  return edgesOf(project, backend).flatMap((edge) => {
-    const detail = problemOf(edge, backend);
-    return detail === '' ? [] : [findingAt(edge, 'layer-direction', detail)];
-  });
-}
-
 /** Inside a module and in the shared code, imports point one way. */
 export function layerDirection(backend: Backend): Rule {
-  return {
-    id: 'layer-direction',
-    check: (project) => checkWith(backend, project),
-  };
+  return edgeRule('layer-direction', backend, problemOf);
 }

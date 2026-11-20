@@ -3,6 +3,7 @@ import { describe, expect, it } from '@jest/globals';
 import { workspaceBoundary } from '#harness/architecture/rules/workspace-boundary';
 import { structureOf } from '#harness/tests/support/policy-builder';
 import {
+  detailsBetween,
   importOf,
   importTo,
   projectOf,
@@ -12,9 +13,7 @@ import {
 const rule = workspaceBoundary(structureOf());
 
 function detailsFor(from: string, to: string): string[] {
-  return rule
-    .check(projectOf(sourceFile(from, [importTo(to)])))
-    .map((finding) => finding.detail);
+  return detailsBetween(rule, from, to);
 }
 
 describe('workspaceBoundary', () => {

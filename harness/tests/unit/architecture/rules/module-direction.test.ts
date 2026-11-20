@@ -3,6 +3,7 @@ import { describe, expect, it } from '@jest/globals';
 import { moduleDirection } from '#harness/architecture/rules/module-direction';
 import { backendOf, MODULES } from '#harness/tests/support/policy-builder';
 import {
+  detailsBetween,
   importTo,
   projectOf,
   sourceFile,
@@ -11,9 +12,7 @@ import {
 const rule = moduleDirection(backendOf());
 
 function detailsFor(from: string, to: string): string[] {
-  return rule
-    .check(projectOf(sourceFile(from, [importTo(to)])))
-    .map((finding) => finding.detail);
+  return detailsBetween(rule, from, to);
 }
 
 describe('moduleDirection', () => {

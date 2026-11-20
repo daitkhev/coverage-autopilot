@@ -1,7 +1,6 @@
-import { type Edge, edgesOf, findingAt } from '#harness/architecture/edges';
-import type { Finding } from '#harness/architecture/finding';
+import { type Edge, edgeRule } from '#harness/architecture/edges';
 import { moduleOf } from '#harness/architecture/places';
-import type { Project, Rule } from '#harness/architecture/project';
+import type { Rule } from '#harness/architecture/project';
 import type { Backend } from '#harness/shared/structure';
 
 const CONTRACTS = 'contracts';
@@ -30,17 +29,7 @@ function problemOf(edge: Edge, backend: Backend): string {
   return wiring && edge.to.kind !== 'module-file' ? BY_MODULE_FILE : '';
 }
 
-function checkWith(backend: Backend, project: Project): Finding[] {
-  return edgesOf(project, backend).flatMap((edge) => {
-    const detail = problemOf(edge, backend);
-    return detail === '' ? [] : [findingAt(edge, 'module-boundary', detail)];
-  });
-}
-
 /** A module is entered through its contracts, or wired by its module file. */
 export function moduleBoundary(backend: Backend): Rule {
-  return {
-    id: 'module-boundary',
-    check: (project) => checkWith(backend, project),
-  };
+  return edgeRule('module-boundary', backend, problemOf);
 }

@@ -3,6 +3,7 @@ import type {
   ImportRecord,
   Manifest,
   Project,
+  Rule,
   SourceFile,
 } from '#harness/architecture/project';
 
@@ -57,4 +58,11 @@ export function manifestOf(path: string, content: unknown): Manifest {
 
 export function projectWith(...manifests: readonly Manifest[]): Project {
   return { files: [], manifests };
+}
+
+/** What a rule says about one file that imports another. */
+export function detailsBetween(rule: Rule, from: string, to: string): string[] {
+  return rule
+    .check(projectOf(sourceFile(from, [importTo(to)])))
+    .map((finding) => finding.detail);
 }

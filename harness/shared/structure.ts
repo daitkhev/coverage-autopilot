@@ -10,7 +10,7 @@ import {
 import { policyFile } from '#harness/shared/policy';
 
 /** What one layer of a module may import. */
-export interface LayerRule {
+interface LayerRule {
   /** Layers of the same module. */
   readonly layers: readonly string[];
   /** Folders of the shared code. */

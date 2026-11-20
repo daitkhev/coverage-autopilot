@@ -7,6 +7,7 @@ import {
   SHARED,
 } from '#harness/tests/support/policy-builder';
 import {
+  detailsBetween,
   importOf,
   importTo,
   projectOf,
@@ -16,9 +17,7 @@ import {
 const rule = layerDirection(backendOf());
 
 function detailsFor(from: string, to: string): string[] {
-  return rule
-    .check(projectOf(sourceFile(from, [importTo(to)])))
-    .map((finding) => finding.detail);
+  return detailsBetween(rule, from, to);
 }
 
 describe('layerDirection', () => {
