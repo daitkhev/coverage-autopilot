@@ -75,7 +75,12 @@ coverage-autopilot/
 │
 ├── docs/
 │   └── plan/
+├── .claude/
+│   └── settings.json
+├── .codex/
+│   └── hooks.json
 ├── .env.example
+├── AGENTS.md
 ├── package.json
 └── README.md
 ```
@@ -95,9 +100,16 @@ coverage-autopilot/
   requests with them and the frontend validates responses with them, so each
   DTO is described once and its type is inferred from the schema.
 - `harness/` holds the checks that decide whether a change may land: the
-  tools, their configuration, the policy as data and the settings of the AI
-  agent. It is not a workspace. It belongs to the root package and no
-  product code imports it. It is described in [Harness](harness.md).
+  tools, their configuration, the policy as data, the hooks of git and
+  the hooks and settings of the AI agents. It is not a workspace. It
+  belongs to the root package and no product code imports it. It is
+  described in [Harness](harness.md).
+- `AGENTS.md` is the text for whoever changes the tree, an AI agent or
+  a person: how the hooks are switched on, the profiles of the gate and
+  the rules that no tool holds. `.claude/settings.json` and
+  `.codex/hooks.json` are links to the settings in `harness/`, because
+  each agent reads its settings from its own folder only. They are
+  described in [Harness](harness.md#the-ai-agent).
 - `.env.example` lists the settings of one machine, such as how much
   memory a mutation run may take. A person copies it to `.env`, which is
   never committed. The settings are described in

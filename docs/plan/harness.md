@@ -49,11 +49,13 @@ harness/
 │   ├── duplication.ts
 │   ├── documents.ts
 │   ├── mutation.ts
+│   ├── before-push.ts
 │   └── guard.ts
 ├── policy/
 │   ├── structure.json
 │   ├── packages.json
 │   ├── mutation.json
+│   ├── frozen.json
 │   └── limits.json
 ├── baseline.json
 ├── architecture/
@@ -101,9 +103,32 @@ harness/
 ├── configs/
 ├── shared/
 ├── agents/
-│   └── claude/
-│       ├── settings.json
-│       └── hooks/
+│   ├── hooks/
+│   │   ├── before-command.ts
+│   │   ├── before-edit.ts
+│   │   └── done.ts
+│   ├── before-command.ts
+│   ├── denied-command.ts
+│   ├── shell-words.ts
+│   ├── before-edit.ts
+│   ├── edit-of-policy.ts
+│   ├── edited-files.ts
+│   ├── when-done.ts
+│   ├── done-verdict.ts
+│   ├── tree.ts
+│   ├── last-verdict.ts
+│   ├── full-gate.ts
+│   ├── red-step.ts
+│   ├── before-push.ts
+│   ├── hook-call.ts
+│   ├── hook-answers.ts
+│   ├── claude/
+│   │   └── settings.json
+│   └── codex/
+│       └── hooks.json
+├── git/
+│   ├── pre-commit
+│   └── pre-push
 ├── fixtures/
 └── tests/
     ├── unit/
@@ -114,17 +139,18 @@ harness/
 
 | Part | Holds |
 | --- | --- |
-| `bin/` | What a person, a hook or CI starts. `check.ts` is the gate. `ratchet.ts` is the architecture linter. `types.ts` runs the compiler on the root and on every workspace that has source. `coverage.ts` measures coverage and checks the report. `documents.ts` lints the documents and checks their links. Each of these files is one line that calls a function, so the code behind it is tested in the same process. `mutation.ts` reads the report of a mutation run and gives the verdict. `guard.ts` sorts the files of a change into policy and the rest |
-| `policy/` | The rules as data, written by hand. `structure.json` has the modules, the layers, who may import whom and which folder a file suffix belongs to. `packages.json` has every outside package and where it may be imported. `mutation.json` has the runs of the mutation engine and the areas each report is read for. `limits.json` has every number |
+| `bin/` | What a person, a hook or CI starts. `check.ts` is the gate. `ratchet.ts` is the architecture linter. `types.ts` runs the compiler on the root and on every workspace that has source. `coverage.ts` measures coverage and checks the report. `documents.ts` lints the documents and checks their links. Each of these files is one line that calls a function, so the code behind it is tested in the same process. `mutation.ts` reads the report of a mutation run and gives the verdict. `before-push.ts` is what git runs before a push. `guard.ts` sorts the files of a change into policy and the rest |
+| `policy/` | The rules as data, written by hand. `structure.json` has the modules, the layers, who may import whom and which folder a file suffix belongs to. `packages.json` has every outside package and where it may be imported. `mutation.json` has the runs of the mutation engine and the areas each report is read for. `frozen.json` names the files that are policy. `limits.json` has every number |
 | `baseline.json` | The lists the ratchet recorded last. Written by the ratchet and never by hand |
 | `architecture/` | The code of the ratchet. `rules.ts` is the list of rules, and a rule that is not in it does not run. `commands.ts` holds check, write and compare |
 | `gate/` | The steps of the gate and its profiles, as data that a test can read. `tools.ts` has the path of every tool. `host.ts` is what a command needs from the machine: a tree, a way to start a program, a way to print, its settings and the number of its processors. It is the only file that reads the environment. A test gives a stand-in |
 | `documents/` | The link check of the documents |
 | `mutation/` | Reading a report of the mutation engine, the kill rate and the verdict of an area. `resources.ts` works out how many test runners a machine starts |
-| `shared/` | Reading the files of `policy/`, and the one error class of the harness |
+| `shared/` | Reading the files of `policy/`, the answer to whether a file is policy, and the one error class of the harness |
 | `eslint/` | The lint configuration and the project's own lint rules |
-| `configs/` | The configuration of every other tool: TypeScript base, Prettier, Knip, Vitest, StrykerJS, jscpd, commitlint, lefthook, markdownlint |
-| `agents/` | The settings and the hooks of the AI agent |
+| `configs/` | The configuration of every other tool: TypeScript base, Prettier, Knip, Vitest, StrykerJS, jscpd, commitlint, markdownlint |
+| `agents/` | What holds whoever changes the tree: an agent of any maker, or a person. The checks are written once and know no agent. `hooks/` has the three files of one line that an agent starts. `claude/` and `codex/` hold nothing but the settings file of that agent, which names those hooks |
+| `git/` | The hooks of git: before a commit and before a push. They hold a person and an agent alike |
 | `fixtures/` | Small repositories, some wrong on purpose and some right. The harness is tested on them. `projects/` has one small project for Jest and one for Vitest, each with a file no test imports, a file of types alone and a file that cannot be parsed |
 | `tests/` | The tests of the harness itself. `runners/` starts the real test runners on the fixture projects. Those tests run no code of the harness, so coverage and mutation leave them out |
 
@@ -214,7 +240,7 @@ One tool holds one concern. A second tool for the same concern is not added.
 | Documents | markdownlint-cli2, and the harness's own link check | 0.24.2 |
 | Focused and skipped tests | `@vitest/eslint-plugin` | 1.6.28 |
 | Commit messages | commitlint | Not tried yet |
-| Git hooks | lefthook | Not tried yet |
+| Git hooks | Two files of the project's own in `harness/git/` | None |
 
 ## The ratchet
 
@@ -296,8 +322,8 @@ it, in the trial run or in a fixture of the repository.
   second check keeps it so when the table changes.
 - A symbolic link is read as a link and never followed. The path of a file
   says where it is, and for a link that is not enough: its target is
-  checked too. The one link of the project is `.claude/settings.json`,
-  and its target is inside `harness/`.
+  checked too. The project has two links, `.claude/settings.json` and
+  `.codex/hooks.json`, and the target of each is inside `harness/`.
 
 `lockfile-source` says where a package comes from and that what is
 downloaded is what the lockfile names. It does not say that the package is
@@ -740,27 +766,163 @@ A rule without both kinds of cases fails the tests of the harness.
 
 ## The AI agent
 
-An agent is held by the same gate as a person. Its settings are part of the
-harness, so they are frozen with it.
+An agent is held by the same gate as a person, and a person by the same
+hooks as an agent. Nothing here depends on who made the agent.
+
+| Level | Holds | Where |
+| --- | --- | --- |
+| The hooks of git | Everyone who commits or pushes: a person, Claude Code, Codex, any other agent | `harness/git/` |
+| The hooks of an agent | What git does not see: a command before it runs, an edit before it happens, the moment the agent says it is done | `harness/agents/` |
+| The text for an agent | The rules that no tool holds | `AGENTS.md` at the root |
 
 | File | Where | Holds |
 | --- | --- | --- |
-| `AGENTS.md` | The root | A short text for any agent: the profiles of the gate and the rules a tool cannot hold. It repeats no rule that a tool holds |
-| `CLAUDE.md` | The root | Two lines that name the gate and include `AGENTS.md`. One text serves every agent |
-| `settings.json` | `harness/agents/claude/` | The shared settings of Claude Code. `.claude/settings.json` is a link to this file, because the agent reads its settings from there |
-| Hooks | `harness/agents/claude/hooks/` | The scripts that the settings start |
+| `AGENTS.md` | The root | A short text for whoever changes the tree: how the hooks are switched on, the profiles of the gate and the rules a tool cannot hold. It repeats no rule that a tool holds |
+| `settings.json` | `harness/agents/claude/` | The settings of Claude Code: which hook it starts and when. `.claude/settings.json` is a link to this file, because Claude Code reads its settings from that one place |
+| `hooks.json` | `harness/agents/codex/` | The same for Codex. `.codex/hooks.json` is a link to this file |
+| Hooks | `harness/agents/hooks/` | The three programs that both files start. Each is one line that calls a function, like a command in `bin/` |
+| `frozen.json` | `harness/policy/` | Which files are policy. The hook before an edit reads it |
 
-| Setting | What it does |
+There is no `CLAUDE.md`. Claude Code reads `AGENTS.md` itself when no
+`CLAUDE.md` stands beside it or above it, and Codex reads `AGENTS.md`
+only. So one text serves every agent. A test fails when a `CLAUDE.md`
+appears at the root.
+
+A link in `.claude/` and in `.codex/` is all that an agent gets outside
+`harness/`. Each tool looks for its settings in its own folder and
+nowhere else, so the file cannot be in `harness/` alone.
+
+A person's own settings stay in `.claude/settings.local.json`, which git
+ignores. They are not part of the policy. Prettier leaves that file alone,
+so the gate gives one verdict with it and without it.
+
+### The hooks of git
+
+A person who writes by hand gets the same answers as an agent, from git:
+
+| Hook | Refuses |
 | --- | --- |
-| A hook before an edit | An edit of a frozen file does not happen on its own. The agent stops and asks the owner |
-| A hook when the agent says it is done | Runs the `full` profile. A red gate sends the agent back to work with the output of the red step. A tree that already passed is not judged again |
-| Denied commands | A commit or a push that skips the hooks, a forced push, a push to `main`, the merge of a pull request |
+| `pre-commit` | A commit of a tree that `fast` does not pass |
+| `pre-push` | A push to `main`. A push that rewrites history on the remote. A push of a tree that `full` does not pass |
+
+- Git gives the hook before a push the names it is about to update, with
+  the commit the remote has and the commit it gets. So the hook does not
+  read the command: it does not matter how the push was written.
+- A push rewrites history when the commit of the remote is not in the
+  history of the new one. That is what a forced push does, and nothing
+  else does it.
+- The verdict of `full` is kept with the fingerprint of the tree, the
+  same way as for an agent. A tree that passed is pushed without a second
+  run.
+- Both hooks judge the tree as it stands on the disk, like the gate does,
+  and not only what is staged or committed.
+- A hook that runs inside a run of the gate does not start the gate
+  again. A test of the gate may start git, and git starts the hook: with
+  no stop that is a loop of processes with no end.
+- Git does not clone a setting, so each clone switches the hooks on once:
+  `git config core.hooksPath harness/git`. `AGENTS.md` says so. No package
+  is needed for it and no install script.
+
+A person can still skip a hook with `--no-verify`. An agent cannot: that
+is the first thing its own hook refuses. For both, CI and the settings of
+the branch on GitHub judge again.
+
+### One set of hooks for every agent
+
+Claude Code and Codex give a hook the same JSON and read the same answers,
+so a hook is written once. The settings file of an agent only says which
+program to start at which moment.
+
+| Moment | Program | Claude Code | Codex |
+| --- | --- | --- | --- |
+| Before a shell command | `hooks/before-command.ts` | On | On |
+| Before an edit | `hooks/before-edit.ts` | Waits for the last stage | Waits for the last stage |
+| When the agent says it is done | `hooks/done.ts` | On | On |
+
+What differs between the two is small, and it is the only code that knows
+an agent:
+
+| Difference | Claude Code | Codex |
+| --- | --- | --- |
+| How an edit names its files | One path in a field | The text of a patch, which may change several files |
+| A question to the person | Supported | Not supported, so the edit is refused and the agent is told to ask |
+| How the settings start a program | Node with a list of arguments, the folder of the project put in by the tool | One shell line, the root found by `git rev-parse` |
+| Before the hooks run | Nothing | The person marks the project as trusted and approves each hook once, and again when its line changes |
+
+A third agent needs one more settings file, and no new check.
+
+### The hook before a command
+
+It reads the text of a shell command and refuses:
+
+| Refused | Recognised as |
+| --- | --- |
+| A commit that skips the hooks | `git commit` with `--no-verify`, or with `-n` among its short options |
+| A push that skips the hooks | `git push` with `--no-verify` |
+| A forced push | `git push` with `--force`, `--force-with-lease`, `-f`, or a name that starts with `+` |
+| A push to `main` | `git push` whose target is `main`, however the name is written, or a push that names no branch while the tree is on `main` |
+| A move of the hooks of git | `core.hooksPath` set to anything but `harness/git`, or removed |
+| The merge of a pull request | `gh pr merge` |
+
+- The command is split into its simple commands the way a shell splits
+  it: at `;`, `&&`, `||`, `|`, a new line and brackets. Quotes hold a
+  word together.
+- The options of git itself are stepped over, so `git -C . push --force`
+  is a forced push.
+- Words that only stand before a program are stepped over too: a variable
+  that is set, `env`, `command`, `time`, `then`, `do`.
+- A script given to `bash -c`, `sh -c` or `eval` is read the same way.
+- The lines of a here-document are the content of a file and are not
+  read. Without this, writing a document that names a denied command
+  would be refused.
+- A command the hook cannot read is refused.
+
+It reads a text and is not a shell. A script file that pushes, a variable
+that holds the command and an alias are not seen. What stops those is the
+hook of git before a push, and after it the settings of the branch on
+GitHub.
+
+### The hook before an edit
+
+The agent gives the hook the call of its edit tool. For a file of the
+policy the edit waits for the owner: Claude Code puts the question to the
+person with the reason, and Codex is refused and told to ask.
+
+- A file is judged by where it really is. An edit through a link is an
+  edit of the file that the link reaches.
+- A patch that changes several files waits when one of them is policy.
+- A file outside the repository is not judged.
+- An edit that the hook cannot read waits as well. A check that did not
+  run has failed.
+
+The hook is built and tested, and no settings file starts it yet. It is
+switched on as the last step of the last stage.
+
+### The hook when the agent says it is done
+
+- A tree is named by its fingerprint: every file git sees, with what is
+  in it. A file that git ignores is not part of the name.
+- The last verdict is kept with that fingerprint in `reports/gate/`, which
+  git ignores. A tree with the same fingerprint is not judged again.
+- A new tree is judged by `check.ts full`. Both streams of the gate go to
+  one file, so the output is read in the order it was printed.
+- Green: the agent stops and nothing is said.
+- Red: the agent is sent back to work. It gets the name of the red step
+  and what the step printed, at most the last 8,000 characters.
+- Red, and the agent stops again with no change to the tree: it is let
+  go, and the person is told which step is red.
+
+The last rule is there on purpose. One tree sends the agent back one time
+only. An agent that cannot make a step green would else be held for ever,
+and the person would pay for every round. A red tree is never called
+green: the hook before a push refuses it every time, and CI judges it
+again.
+
+Only the last verdict is kept, so a tree the agent comes back to after
+another one is judged again.
 
 While it works, the agent runs `fast` after each small group of edits.
 `AGENTS.md` says so. Only the `full` run at the end is forced.
-
-A person's own settings stay in `.claude/settings.local.json`, which git
-ignores. They are not part of the policy.
 
 ## Who judges the judge
 
@@ -773,10 +935,14 @@ four kinds, and only the first is frozen:
 
 | Kind | Files | With code in one change | Held by |
 | --- | --- | --- | --- |
-| Policy | Everything in `harness/` except `baseline.json`. Every file at the root except `README.md` and the lockfile: the root `package.json`, `.npmrc`, the files that point into `harness/`, `AGENTS.md`, `CLAUDE.md`. Every `tsconfig`, `.github/`, `.claude/` | No | The frozen files check |
+| Policy | Everything in `harness/` except `baseline.json`. Every file at the root except `README.md` and the lockfile: the root `package.json`, `.npmrc`, the files that point into `harness/`, `AGENTS.md`. Every `tsconfig`, `.github/`, `.claude/`, `.codex/` | No | The frozen files check |
 | Recorded state | `harness/baseline.json` | Yes | The ratchet: it must be exactly what the tree gives. `ratchet:compare`: a recorded migration did not change |
 | Package lists | The `package.json` of each workspace, the lockfile | Yes | The ratchet: `package-placement`, `package-manifest` and `lockfile-source`, read against a policy that the same change cannot touch |
 | Product | The three workspaces, the migrations, the documents | Yes | The gate |
+
+The first row is written as data in `harness/policy/frozen.json`: the
+frozen places, the names that are frozen in any folder, and the files
+inside them that are free.
 
 The baseline is written from the tree and checked against the tree, so it
 cannot say anything the code does not. That is why it may travel with the
@@ -815,6 +981,8 @@ ways I know, and what closes each:
 | Guard | Holds | Does not hold |
 | --- | --- | --- |
 | The hook before an edit | The edit tools of the agent | A shell command that writes the file |
+| The hooks of git | Every commit and every push of a clone where they are switched on, by a person or an agent | A person who passes `--no-verify`, and a clone where nobody switched them on |
+| The hook before a command | A commit or a push of an agent that skips the hooks of git or moves them | A command hidden in a script file or a variable |
 | The frozen files check | A change that touches policy and anything else is red | A change that touches policy only |
 | The owner's merge | A change of policy alone lands only when the owner merges it | Nothing, as long as the owner reads it |
 | `ratchet:compare` | A number that loosened, a migration that changed | A weaker rule |
@@ -834,8 +1002,9 @@ The frozen files check must not belong to the change it judges:
   the pull request contains.
 - It asks the API of GitHub for the files of the pull request and compares
   their names with the list of policy paths, which is written in the
-  workflow itself. A renamed file counts under both names, and a deleted
-  file counts.
+  workflow itself. A test holds that it is the list of `frozen.json`, which
+  the hook before an edit reads. A renamed file counts under both names,
+  and a deleted file counts.
 - It never checks the change out and never runs a line of it. What it runs
   is `harness/bin/guard.ts` of the default branch, which imports no
   package, so nothing is installed. Its token can read the pull request and
@@ -862,9 +1031,10 @@ What stays outside the repository is listed under
 
 | Moment | Runs | Started by |
 | --- | --- | --- |
-| Before a commit | `fast` | lefthook |
-| On the commit message | commitlint | lefthook |
-| Before a push | `full` | lefthook |
+| Before a commit | `fast` | The hook of git, `pre-commit` |
+| On the commit message | commitlint | A hook of git, when commitlint is added |
+| Before a push | The refusal of a push to `main` and of a rewritten history, then `full` | The hook of git, `pre-push` |
+| Before a shell command of an agent | The denied commands | The hook in the agent settings |
 | When an agent says it is done | `full` | The hook in the agent settings |
 | On a pull request | `ci` but the mutation tests, one job per step, and the frozen files check | GitHub Actions |
 | On a push to `dev` or `main` | `ci` but the mutation tests | GitHub Actions |
@@ -910,8 +1080,8 @@ and two lists.
   baseline failed it too.
 - A root `eslint.config.mjs` of one line loaded a TypeScript configuration
   from `harness/eslint/` through the alias.
-- Git stores `.claude/settings.json` as a link to the file in `harness/`,
-  and both git and Node tell a link from a file without following it.
+- Git stored a link as a link, and both git and Node told a link from a
+  file without following it.
 - With install scripts off, both trial projects installed and worked:
   ESLint, Knip and the ratchet in one, Jest with SWC and Ink in the other.
   The lockfile marks the packages that carry an install script. There were
@@ -972,21 +1142,44 @@ a resize.
 
 This trial was made with Jest, and the project has moved to Vitest since.
 The ES module mode of Jest is the one that keeps every module in memory,
-so the flag is gone from the project. The same component has not been
-rendered under Vitest yet.
+so the flag is gone from the project.
+
+The same component and the same four tests then ran under Vitest. What
+changed in the tests is the import and the name of the timer functions.
+
+- All four passed, in a third of a second. Five runs gave the same result.
+- Vitest compiled the `.tsx` files with no setting for it, and resolved
+  the same two aliases from `package.json`.
+- With `--update=none` Vitest refused to write a rendered text that was
+  not kept yet, and the test failed.
+- The coverage floor of 95 failed the run at 90%.
+- `ink-testing-library` draws on a terminal of 100 columns, and that
+  number cannot be set. A screen of 80, 96 and 112 columns was drawn by
+  Ink itself on a stand-in terminal of that width, and the widest line
+  was exactly as wide each time. So the tests of the three widths need a
+  stand-in of the project's own, about twenty lines.
+- A rendered text has no colour codes by default and with `NO_COLOR`.
+  With `FORCE_COLOR=1` it has them. So a kept text is plain, and a test
+  of colour sets the variable itself.
+
+Still not tried there: a whole screen of the client, and a resize.
 
 ### Not tried and not claimed
 
-Vitest for the service and for the client, NestJS under Vitest, StrykerJS
-on the code of the service, commitlint, lefthook,
+Vitest for the service, NestJS under Vitest, a whole screen of the client
+under Vitest, StrykerJS on the code of the service, commitlint,
 actionlint, zizmor, gitleaks, the workflows, the frozen files check and
 the policy that allows its event, `guard.ts`, every row of the table of
 ways around except the install scripts, running the script of one named
-package, the memory of a passed tree, Linux, and every row without a
-tick. For the
-agent: whether Claude Code reads its settings through a link, and the two
-hooks. If the link is not followed, `.claude/settings.json` becomes a copy,
-and a check compares it with the file in `harness/`.
+package, Linux, and every row without a tick. For the agent: the hook
+before an edit inside a live session, what Claude Code does with its
+question when no person is there to answer, and a new session that finds
+`AGENTS.md` with no `CLAUDE.md` beside it. Codex was not run at all: its
+part is written from its documentation and its source, and the hooks got
+the input that the documentation describes. Not tried there: whether it
+reads `.codex/hooks.json` through a link, how it shows the approval of a
+hook, and the hooks in a run without a terminal. No agent other than
+these two was looked at.
 
 ## Rules a tool cannot hold
 
@@ -1021,8 +1214,8 @@ repository can hold them. They are set by hand, once:
 The harness is built by priority. A small gate runs in CI from the first
 stage, and the last stage only makes CI strict.
 
-The first four stages are built, the third and the fourth as far as they
-go without product code. What the harness holds today:
+The first five stages are built, the third, the fourth and the fifth as
+far as they go without product code. What the harness holds today:
 
 - The ratchet with 13 of its 18 rules. Stage one gave `file-name`,
   `relative-import`, `unresolved-import` and `import-cycle`. Stage two
@@ -1073,6 +1266,14 @@ go without product code. What the harness holds today:
 - Two fixture projects, one for Jest and one for Vitest, with the same
   four source files. The tests in `tests/runners/` start the real runners
   on them and hold what each one writes in its coverage report.
+- The hooks of git, `pre-commit` and `pre-push`, which hold a person and
+  an agent alike.
+- The agent. `AGENTS.md` at the root. One set of hooks in
+  `harness/agents/`, and a settings file for Claude Code and for Codex
+  that names them, each reached through a link. On: the hook before a
+  shell command, and the hook that runs `full` when the agent says it is
+  done. The hook before an edit, with `frozen.json` as its list of policy
+  files, is built and tested and not switched on.
 - Things were switched off on purpose, one at a time. In stage one: a lint
   rule, type-aware lint, a rule of the ratchet, and the pattern of a banned
   shape. In stage two: a rule taken out of the list, `domain` allowed to
@@ -1081,7 +1282,16 @@ go without product code. What the harness holds today:
   that run when a file is loaded, a test of a fixture project made to
   import the file that nothing imports, an engine that cannot start while
   an old report lies in its place, and a floor of the kill rate lowered
-  against the base. Each time a test of the harness or the gate went red.
+  against the base. In stage five: the link to the settings made a copy,
+  a `CLAUDE.md` put beside `AGENTS.md`, a hook taken out of the settings
+  of an agent, a hook file that nothing starts, `harness/` taken out of
+  the policy files, a fingerprint that forgets the content of a file, a
+  red gate that does not send the agent back, a red tree that holds the
+  agent for ever, an edit or a command the hook cannot read let through,
+  a push to `main` let through by the hook of git, a hook of git that is
+  no program any more, a gate allowed to start a gate, and a profile
+  removed from `AGENTS.md`. Each time
+  a test of the harness or the gate went red.
 - CI runs on Node 26.13.1. The harness was written and run on 25.2.1, so
   `engines` allows both lines until the workflow has passed.
 
@@ -1259,6 +1469,102 @@ What stage four showed and changed:
   grow again unseen. A test runner is not started again after a number
   of runs: under Vitest its memory did not grow.
 
+What stage five showed and changed:
+
+- The owner asked for three things after the first version, and each
+  changed the design. The settings of an agent stay in `harness/`. The
+  harness does not depend on the maker of an agent. A person who writes
+  by hand is held by the same rules as an agent.
+- So the checks moved out of the code for Claude Code. They know no
+  agent now, and the two settings files only name them. Claude Code and
+  Codex turned out to speak the same JSON to a hook, so the difference
+  between them is about thirty lines: how an edit names its files, and
+  that Codex cannot put a question to the person.
+- The denied commands were a list of patterns in the settings of Claude
+  Code. Ten spellings were refused when tried, and the forced push
+  written as `git -C . push --force` went through. Codex has rules of
+  its own for commands, which match the start of a command only. Both
+  were replaced by one hook that reads the command, with a test for each
+  spelling. In a live session of Claude Code it then refused that same
+  forced push, a push onto `main`, a commit with `--no-verify`, the merge
+  of a pull request and a move of the hooks of git, each tried as a dry
+  run, and let an ordinary push to `dev` through.
+- The first run of that hook refused its own author. A command that
+  wrote a test file held a denied command inside a here-document, and
+  the hook took the line of the file for a command. The lines of a
+  here-document are left out now.
+- The person got the hooks of git. The design had named lefthook for
+  them. Two files of three lines do the same with no package and no
+  install script, and install scripts are off in this project anyway.
+  What stays by hand is one setting of git in each clone.
+- The hook before a push reads the names git is about to update, so it
+  cannot be gone around by the way a command is written. With real git
+  it refused a red tree with the output of the red step and let a green
+  one through, both as a dry run. A test starts real git and sees the
+  push to `main` refused.
+- A test started real git, git started the hook before a push, and the
+  hook asked for the full gate, which runs the tests. While the hook
+  refused the push first, nothing more happened. When that refusal was
+  broken on purpose, the gate started itself again and again, and it was
+  stopped by hand. Two things changed. The test with real git is with
+  the runners now, which neither `full` nor the mutation step starts. And
+  a gate leaves a mark in the environment of everything it starts: a
+  hook that finds the mark does not start a gate, and keeps no verdict.
+- The owner chose to keep the two links in git. The other way was to
+  ignore `.claude/` and `.codex/` and make the links with a command in
+  each clone. With the links in git an agent is held from the first
+  minute in a new clone.
+- Claude Code reads its settings through the link. The link was made
+  inside a running session, and the next denied command was refused with
+  no restart. On Windows git writes a link as a plain file unless links
+  are switched on, and then the settings are not read. This is not
+  solved.
+- The design had a `CLAUDE.md` of two lines that included `AGENTS.md`.
+  The documentation of Claude Code says that from version 2.1.277 it
+  reads `AGENTS.md` itself when there is no `CLAUDE.md`, so the file was
+  dropped. An older version reads neither.
+- The hook of the end ran for real when a session of Claude Code ended a
+  turn. On a green tree it wrote the verdict and said nothing. On a tree
+  with one line too long in a document it sent the agent back with the
+  output of the red step, and the agent fixed the line. A judged tree
+  takes 0.08 seconds, a new one 9 to 15, which is the `full` profile.
+- "A tree that already passed is not judged again" became "a tree is
+  judged once". A red tree sends the agent back one time, or an agent
+  that cannot fix a step would be held for ever. The hook before a push
+  uses the same memory and never lets a red tree through.
+- Claude Code starts a hook as Node with a list of arguments, with no
+  shell between them, and puts the folder of the project in place of a
+  name in the argument. A hook of this form, written to a person's own
+  settings for one command, started and got the full path. Codex starts a
+  hook as one shell line and gives no such name, so its line asks git for
+  the root.
+- The list of policy files was prose in this document. It is data now,
+  `frozen.json`, with one function that reads it, and the frozen files
+  check will take the same list.
+- The hook files are one line each and run as programs, so the mutation
+  step leaves them out like the commands in `bin/`.
+- A test names the hook that is not switched on. A hook file that a
+  settings file does not start and the test does not name fails it, so
+  the hook cannot stay off by being forgotten.
+- Prettier checked a person's `.claude/settings.local.json`, which git
+  ignores. A desk and CI could then give two verdicts for one commit. The
+  file is in the ignore list of Prettier now.
+- An Ink component runs under Vitest. The four tests of the earlier trial
+  passed after a change of two names. What it showed is in
+  [Jest and the client](#jest-and-the-client).
+- The kill rate of the harness after this stage is 90.62%: 2841 killed,
+  264 survived, 19 not reached by any test and 11 timed out. The run
+  took 6 minutes with four test runners and 2.8 GB at most. Of the 731
+  mutants in the code of this stage 664 were killed. Most of the 60 that
+  survived are in the lists of the hook before a command: a word that
+  may stand before a program, with no test of its own. Ten such tests
+  were added after the run.
+- Not done in this stage. The tests of the client and `client-direction`
+  wait for the code of the client. The hook before an edit was not tried
+  inside a live session, because it is not switched on. Codex was not
+  run. The commit message is held by nothing yet. Nothing tells a person
+  that the hooks of git are not switched on in a clone.
+
 1. **A gate that runs.** The root `package.json` with exact versions,
    Prettier, the TypeScript configuration, ESLint, the ratchet with its
    first rules and their fixtures of both kinds, `check.ts` with the
@@ -1275,7 +1581,7 @@ What stage four showed and changed:
    Vitest, StrykerJS, `mutation.ts` with the kill rate, the three verdicts.
    The floors are set after the first full run.
 5. **The client and the agent.** The tests of the client, `AGENTS.md`,
-   `CLAUDE.md`, the agent settings and the two hooks.
+   the agent settings and the two hooks.
 6. **Strict CI.** The `ci` profile in full, the frozen files check,
    `CODEOWNERS`, the settings on GitHub, actionlint, zizmor and gitleaks.
    The hook that freezes the harness is switched on last.
