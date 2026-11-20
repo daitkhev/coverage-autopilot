@@ -4,6 +4,7 @@
  * `package.json`, so no change of that file can swap what runs.
  */
 export const TOOLS = {
+  '@stryker-mutator/core': 'node_modules/@stryker-mutator/core/bin/stryker.js',
   eslint: 'node_modules/eslint/bin/eslint.js',
   jest: 'node_modules/jest/bin/jest.js',
   jscpd: 'node_modules/jscpd/run-jscpd.js',
@@ -12,12 +13,20 @@ export const TOOLS = {
     'node_modules/markdownlint-cli2/markdownlint-cli2-bin.mjs',
   prettier: 'node_modules/prettier/bin/prettier.cjs',
   typescript: 'node_modules/typescript/bin/tsc',
+  vitest: 'node_modules/vitest/vitest.mjs',
 } as const;
 
-/** Jest loads ES modules through a mode Node still calls experimental. */
-export const JEST_NODE_OPTIONS = [
-  '--experimental-vm-modules',
-  '--disable-warning=ExperimentalWarning',
+/** Packages a tool loads by their name, so nothing imports them. */
+export const TOOL_PLUGINS = [
+  '@stryker-mutator/vitest-runner',
+  '@vitest/coverage-v8',
 ];
 
-export const JEST_CONFIG = 'harness/configs/jest.json';
+/** Packages the Jest fixture project loads when Jest is started on it. */
+export const FIXTURE_PACKAGES = ['@jest/globals', '@swc/core', '@swc/jest'];
+
+/** The unit and the integration tests of the harness. */
+export const TESTS_CONFIG = 'vitest.config.mjs';
+
+/** The tests that start the real runners on the fixture projects. */
+export const RUNNERS_CONFIG = 'vitest.runners.config.mjs';

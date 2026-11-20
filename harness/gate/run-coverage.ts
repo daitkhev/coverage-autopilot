@@ -5,30 +5,35 @@ import { listFiles } from '#harness/architecture/files';
 import { hasRuntimeCode, measuredFiles } from '#harness/gate/coverage-files';
 import { exitCodeOf } from '#harness/gate/exit-code';
 import type { Host, NodeCommand } from '#harness/gate/host';
-import { JEST_CONFIG, JEST_NODE_OPTIONS, TOOLS } from '#harness/gate/tools';
+import { TESTS_CONFIG, TOOLS } from '#harness/gate/tools';
 import { HarnessError } from '#harness/shared/harness.error';
 import { readJsonRecord } from '#harness/shared/json';
 import { type CoverageFloors, readLimits } from '#harness/shared/policy';
 import { readStructure } from '#harness/shared/structure';
 
-/** Where Jest writes the report, from the root of the tree. */
+/** Where Vitest writes the report, from the root of the tree. */
 export const COVERAGE_REPORT = 'coverage/harness/coverage-final.json';
 
 /** Both kinds of tests count: the unit tests alone do not touch a disk. */
 const TESTS = ['harness/tests/unit', 'harness/tests/integration'];
 
-/** Jest over all the tests of the harness, with the floors of the policy. */
+function floorsOf(floors: CoverageFloors): string[] {
+  return Object.entries(floors).map(
+    ([counter, floor]) => `--coverage.thresholds.${counter}=${String(floor)}`,
+  );
+}
+
+/** Vitest over all the tests of the harness, with the floors of the policy. */
 export function coverageCommand(floors: CoverageFloors): NodeCommand {
   return {
-    nodeOptions: JEST_NODE_OPTIONS,
-    script: TOOLS.jest,
+    nodeOptions: [],
+    script: TOOLS.vitest,
     arguments: [
+      'run',
       '--config',
-      JEST_CONFIG,
-      '--ci',
-      '--coverage',
-      '--coverageThreshold',
-      JSON.stringify({ global: floors }),
+      TESTS_CONFIG,
+      '--coverage.enabled',
+      ...floorsOf(floors),
       ...TESTS,
     ],
   };

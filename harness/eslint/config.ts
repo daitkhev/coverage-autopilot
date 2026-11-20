@@ -1,7 +1,7 @@
 import js from '@eslint/js';
+import vitest from '@vitest/eslint-plugin';
 import type { Linter } from 'eslint';
 import { defineConfig } from 'eslint/config';
-import jest from 'eslint-plugin-jest';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import tseslint from 'typescript-eslint';
 
@@ -55,8 +55,8 @@ const language: Linter.RulesRecord = {
 
 /** A test that runs alone or does not run hides the rest of the suite. */
 const testing: Linter.RulesRecord = {
-  'jest/no-focused-tests': 'error',
-  'jest/no-disabled-tests': 'error',
+  'vitest/no-focused-tests': 'error',
+  'vitest/no-disabled-tests': 'error',
 };
 
 const typed: Linter.RulesRecord = {
@@ -92,7 +92,7 @@ export const lintPolicy: Linter.Config[] = defineConfig(
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
   {
-    plugins: { 'simple-import-sort': simpleImportSort, jest },
+    plugins: { 'simple-import-sort': simpleImportSort, vitest },
     linterOptions: {
       noInlineConfig: true,
       reportUnusedDisableDirectives: 'error',
@@ -121,6 +121,9 @@ export const lintPolicy: Linter.Config[] = defineConfig(
   },
 );
 
+/** The only files that read the environment. Every other gets a value. */
+const ENVIRONMENT_READERS = ['harness/gate/host.ts'];
+
 /** What the gate runs: the policy, with generated and fixture files left out. */
 export const eslintConfig: Linter.Config[] = defineConfig(
   {
@@ -128,10 +131,16 @@ export const eslintConfig: Linter.Config[] = defineConfig(
       'node_modules/',
       'coverage/',
       '*/coverage/',
+      'reports/',
+      '.stryker-tmp/',
       'dist/',
       'docs/',
       'harness/fixtures/',
     ],
   },
   ...lintPolicy,
+  {
+    files: ENVIRONMENT_READERS,
+    rules: { 'no-restricted-properties': 'off' },
+  },
 );

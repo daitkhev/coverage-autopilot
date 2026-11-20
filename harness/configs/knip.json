@@ -4,10 +4,28 @@
       "entry": ["harness/bin/*.ts", "harness/tests/**/*.test.ts"],
       "project": ["harness/**/*.ts"],
       "ignore": ["harness/fixtures/**"],
-      "ignoreDependencies": ["jest", "jscpd", "knip", "markdownlint-cli2"],
-      "jest": { "config": ["harness/configs/jest.json"] },
-      "eslint": { "config": ["eslint.config.mjs"] },
-      "prettier": { "config": ["prettier.config.mjs"] }
+      "ignoreDependencies": [
+        "@jest/globals",
+        "@stryker-mutator/core",
+        "@stryker-mutator/vitest-runner",
+        "@swc/core",
+        "@swc/jest",
+        "@vitest/coverage-v8",
+        "jest",
+        "jscpd",
+        "knip",
+        "markdownlint-cli2",
+        "vitest"
+      ],
+      "eslint": {
+        "config": ["eslint.config.mjs"]
+      },
+      "prettier": {
+        "config": ["prettier.config.mjs"]
+      },
+      "vitest": {
+        "config": ["vitest.config.mjs", "vitest.runners.config.mjs"]
+      }
     },
     "backend": {
       "entry": ["src/main.ts", "tests/**/*.test.ts"],

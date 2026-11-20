@@ -5,13 +5,13 @@
       "packages": [
         "node:*",
         "@eslint/js",
-        "@jest/globals",
         "eslint",
-        "eslint-plugin-jest",
+        "@vitest/eslint-plugin",
         "eslint-plugin-simple-import-sort",
         "prettier",
         "typescript",
-        "typescript-eslint"
+        "typescript-eslint",
+        "vitest"
       ],
       "in": ["harness/"]
     },
@@ -83,7 +83,7 @@
       ]
     },
     {
-      "packages": ["node:*", "@jest/globals"],
+      "packages": ["node:*", "vitest"],
       "in": ["backend/tests/", "frontend/tests/", "api-contracts/tests/"]
     },
     {
