@@ -142,5 +142,33 @@
     {
       "rule": "complexity"
     }
+  ],
+  "focused-test": [
+    {
+      "rule": "jest/no-focused-tests",
+      "says": "focused"
+    },
+    {
+      "rule": "jest/no-focused-tests",
+      "says": "focused"
+    }
+  ],
+  "disabled-test": [
+    {
+      "rule": "jest/no-disabled-tests",
+      "says": "skipped"
+    },
+    {
+      "rule": "jest/no-disabled-tests",
+      "says": "skipped"
+    },
+    {
+      "rule": "jest/no-disabled-tests",
+      "says": "skipped"
+    },
+    {
+      "rule": "jest/no-disabled-tests",
+      "says": "missing function"
+    }
   ]
 }

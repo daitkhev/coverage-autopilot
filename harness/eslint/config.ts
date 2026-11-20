@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import type { Linter } from 'eslint';
 import { defineConfig } from 'eslint/config';
+import jest from 'eslint-plugin-jest';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import tseslint from 'typescript-eslint';
 
@@ -52,6 +53,12 @@ const language: Linter.RulesRecord = {
   'simple-import-sort/exports': 'error',
 };
 
+/** A test that runs alone or does not run hides the rest of the suite. */
+const testing: Linter.RulesRecord = {
+  'jest/no-focused-tests': 'error',
+  'jest/no-disabled-tests': 'error',
+};
+
 const typed: Linter.RulesRecord = {
   '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
   '@typescript-eslint/consistent-type-imports': 'error',
@@ -75,6 +82,7 @@ const typed: Linter.RulesRecord = {
 export const addedRuleIds: string[] = Object.keys({
   ...shape,
   ...language,
+  ...testing,
   ...typed,
 });
 
@@ -84,7 +92,7 @@ export const lintPolicy: Linter.Config[] = defineConfig(
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
   {
-    plugins: { 'simple-import-sort': simpleImportSort },
+    plugins: { 'simple-import-sort': simpleImportSort, jest },
     linterOptions: {
       noInlineConfig: true,
       reportUnusedDisableDirectives: 'error',
@@ -92,7 +100,7 @@ export const lintPolicy: Linter.Config[] = defineConfig(
     languageOptions: {
       parserOptions: { projectService: true, tsconfigRootDir: REPOSITORY_ROOT },
     },
-    rules: { ...shape, ...language, ...typed },
+    rules: { ...shape, ...language, ...testing, ...typed },
   },
   {
     files: ['**/*.test.ts', '**/*.test.tsx'],
