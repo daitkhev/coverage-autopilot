@@ -137,17 +137,16 @@ they answer different questions. The improvement says how far the work has
 come. The job says whether a worker is on it right now.
 
 ```mermaid
-stateDiagram-v2
-    [*] --> created
-    created --> analyzing
-    analyzing --> generating
-    analyzing --> skipped
-    generating --> verifying
-    verifying --> generating: rejected
-    verifying --> awaiting_approval: accepted
-    verifying --> publishing: accepted
-    awaiting_approval --> publishing
-    publishing --> completed
+flowchart TD
+    CR(["created"]) --> AN(["analyzing"])
+    AN --> GEN(["generating"])
+    AN --> SK(["skipped"])
+    GEN --> VER(["verifying"])
+    VER -->|"rejected"| GEN
+    VER -->|"accepted"| PUB(["publishing"])
+    VER -->|"accepted,<br/>review mode"| AW(["awaiting<br/>approval"])
+    AW --> PUB
+    PUB --> DONE(["completed"])
 ```
 
 - `analyzing` makes the working copy, measures baseline coverage and the
