@@ -4,21 +4,55 @@ export interface ParsedImport {
   readonly specifier: string;
   readonly line: number;
   readonly typeOnly: boolean;
+  readonly names: readonly string[];
 }
 
 interface Found {
-  readonly literal: ts.Expression | ts.Node | undefined;
+  readonly literal: ts.Node | undefined;
   readonly typeOnly: boolean;
+  readonly names: readonly string[];
+}
+
+const ALL = '*';
+
+function elementNames(
+  elements: readonly (ts.ImportSpecifier | ts.ExportSpecifier)[],
+): string[] {
+  return elements.map((element) => (element.propertyName ?? element.name).text);
+}
+
+function importedNames(clause: ts.ImportClause | undefined): string[] {
+  const bindings = clause?.namedBindings;
+  const names = clause?.name === undefined ? [] : ['default'];
+  if (bindings === undefined) {
+    return names;
+  }
+  return ts.isNamespaceImport(bindings)
+    ? [...names, ALL]
+    : [...names, ...elementNames(bindings.elements)];
+}
+
+function exportedNames(clause: ts.NamedExportBindings | undefined): string[] {
+  return clause !== undefined && ts.isNamedExports(clause)
+    ? elementNames(clause.elements)
+    : [ALL];
 }
 
 function fromDeclaration(node: ts.Node): Found | undefined {
   if (ts.isImportDeclaration(node)) {
     const phase = node.importClause?.phaseModifier;
-    const typeOnly = phase === ts.SyntaxKind.TypeKeyword;
-    return { literal: node.moduleSpecifier, typeOnly };
+    return {
+      literal: node.moduleSpecifier,
+      typeOnly: phase === ts.SyntaxKind.TypeKeyword,
+      names: importedNames(node.importClause),
+    };
   }
   if (ts.isExportDeclaration(node)) {
-    return { literal: node.moduleSpecifier, typeOnly: node.isTypeOnly };
+    return {
+      literal: node.moduleSpecifier,
+      typeOnly: node.isTypeOnly,
+      names: exportedNames(node.exportClause),
+    };
   }
   return undefined;
 }
@@ -28,10 +62,10 @@ function fromExpression(node: ts.Node): Found | undefined {
     ts.isCallExpression(node) &&
     node.expression.kind === ts.SyntaxKind.ImportKeyword
   ) {
-    return { literal: node.arguments[0], typeOnly: false };
+    return { literal: node.arguments[0], typeOnly: false, names: [ALL] };
   }
   if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument)) {
-    return { literal: node.argument.literal, typeOnly: true };
+    return { literal: node.argument.literal, typeOnly: true, names: [ALL] };
   }
   return undefined;
 }
@@ -58,6 +92,7 @@ export function parseImports(path: string, text: string): ParsedImport[] {
           specifier: literal.text,
           line: lineOf(source, node),
           typeOnly: found.typeOnly,
+          names: found.names,
         });
       }
     }

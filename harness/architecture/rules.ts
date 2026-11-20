@@ -1,16 +1,35 @@
+import type { Policy } from '#harness/architecture/policy';
 import type { Rule } from '#harness/architecture/project';
 import { fileName } from '#harness/architecture/rules/file-name';
 import { importCycle } from '#harness/architecture/rules/import-cycle';
+import { layerDirection } from '#harness/architecture/rules/layer-direction';
+import { misplacedFile } from '#harness/architecture/rules/misplaced-file';
+import { moduleBoundary } from '#harness/architecture/rules/module-boundary';
+import { moduleDirection } from '#harness/architecture/rules/module-direction';
+import { packageManifest } from '#harness/architecture/rules/package-manifest';
+import { packagePlacement } from '#harness/architecture/rules/package-placement';
 import { relativeImport } from '#harness/architecture/rules/relative-import';
+import { unknownLayer } from '#harness/architecture/rules/unknown-layer';
+import { unknownModule } from '#harness/architecture/rules/unknown-module';
 import { unresolvedImport } from '#harness/architecture/rules/unresolved-import';
-import type { Structure } from '#harness/shared/policy';
+import { workspaceBoundary } from '#harness/architecture/rules/workspace-boundary';
 
 /** Every rule of the ratchet. A rule that is not here does not run. */
-export function rulesOf(structure: Structure): Rule[] {
+export function rulesOf(policy: Policy): Rule[] {
+  const { structure } = policy;
   return [
     fileName(structure.bannedNames),
     importCycle,
+    layerDirection(structure.backend),
+    misplacedFile(structure.backend),
+    moduleBoundary(structure.backend),
+    moduleDirection(structure.backend),
+    packageManifest(structure),
+    packagePlacement(policy),
     relativeImport,
+    unknownLayer(structure.backend),
+    unknownModule(structure.backend),
     unresolvedImport,
+    workspaceBoundary(structure),
   ];
 }

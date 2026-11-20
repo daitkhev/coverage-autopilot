@@ -11,16 +11,18 @@ import { listFiles } from '#harness/architecture/files';
 import { parseImports } from '#harness/architecture/imports';
 import type {
   ImportRecord,
+  Manifest,
   Project,
   SourceFile,
 } from '#harness/architecture/project';
-import type { Structure } from '#harness/shared/policy';
+import type { Structure } from '#harness/shared/structure';
 
 const MANIFEST = 'package.json';
 
 interface Tree {
   readonly root: string;
   readonly files: ReadonlySet<string>;
+  readonly manifests: readonly Manifest[];
   /** Aliases by the folder of the `package.json` that declares them. */
   readonly aliases: ReadonlyMap<string, readonly Alias[]>;
 }
@@ -35,17 +37,20 @@ function folderOf(path: string): string {
   return folder === '.' ? '' : folder;
 }
 
-function aliasesByFolder(root: string, files: readonly string[]): Tree {
-  const manifests = files.filter((path) => posix.basename(path) === MANIFEST);
+function treeOf(root: string, files: readonly string[]): Tree {
+  const manifests = files
+    .filter((path) => posix.basename(path) === MANIFEST)
+    .map((path): Manifest => {
+      const text = readFileSync(join(root, path), 'utf8');
+      return { path, content: JSON.parse(text) as unknown };
+    });
   const aliases = new Map(
-    manifests.map((path) => {
-      const manifest: unknown = JSON.parse(
-        readFileSync(join(root, path), 'utf8'),
-      );
-      return [folderOf(path), aliasesOf(manifest, folderOf(path))] as const;
+    manifests.map((manifest) => {
+      const folder = folderOf(manifest.path);
+      return [folder, aliasesOf(manifest.content, folder)] as const;
     }),
   );
-  return { root, files: new Set(files), aliases };
+  return { root, files: new Set(files), manifests, aliases };
 }
 
 /** The aliases of the nearest `package.json` at or above a file. */
@@ -73,10 +78,11 @@ function sourceFileOf(tree: Tree, path: string): SourceFile {
 /** Reads the tree under `root` into the model the rules work on. */
 export function loadProject(root: string, structure: Structure): Project {
   const files = listFiles(root).filter((path) => existsSync(join(root, path)));
-  const tree = aliasesByFolder(root, files);
+  const tree = treeOf(root, files);
   return {
     files: files
       .filter((path) => isSource(path, structure))
       .map((path) => sourceFileOf(tree, path)),
+    manifests: tree.manifests,
   };
 }

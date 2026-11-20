@@ -1,0 +1,46 @@
+import { type Edge, edgesOf, findingAt } from '#harness/architecture/edges';
+import type { Finding } from '#harness/architecture/finding';
+import { moduleOf } from '#harness/architecture/places';
+import type { Project, Rule } from '#harness/architecture/project';
+import type { Backend } from '#harness/shared/structure';
+
+const CONTRACTS = 'contracts';
+const BY_MODULE_FILE = 'A module is wired in through its module file only.';
+
+function fromLayer(edge: Edge, layer: string, backend: Backend): string {
+  const intoContracts = edge.to.kind === 'layer' && edge.to.layer === CONTRACTS;
+  if (!intoContracts) {
+    return 'Another module is reached through its contracts/ only.';
+  }
+  return backend.reachOtherModules.includes(layer)
+    ? ''
+    : `${layer} may not reach another module.`;
+}
+
+function problemOf(edge: Edge, backend: Backend): string {
+  const target = moduleOf(edge.to);
+  if (target === undefined || target === moduleOf(edge.from)) {
+    return '';
+  }
+  if (edge.from.kind === 'layer') {
+    return fromLayer(edge, edge.from.layer, backend);
+  }
+  const wiring =
+    edge.from.kind === 'module-file' || edge.from.kind === 'service-root';
+  return wiring && edge.to.kind !== 'module-file' ? BY_MODULE_FILE : '';
+}
+
+function checkWith(backend: Backend, project: Project): Finding[] {
+  return edgesOf(project, backend).flatMap((edge) => {
+    const detail = problemOf(edge, backend);
+    return detail === '' ? [] : [findingAt(edge, 'module-boundary', detail)];
+  });
+}
+
+/** A module is entered through its contracts, or wired by its module file. */
+export function moduleBoundary(backend: Backend): Rule {
+  return {
+    id: 'module-boundary',
+    check: (project) => checkWith(backend, project),
+  };
+}

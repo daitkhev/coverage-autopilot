@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "rules": [
+    {
+      "packages": [
+        "node:*",
+        "@eslint/js",
+        "@jest/globals",
+        "eslint",
+        "eslint-plugin-simple-import-sort",
+        "prettier",
+        "typescript",
+        "typescript-eslint"
+      ],
+      "in": ["harness/"]
+    },
+    {
+      "packages": ["@nestjs/common"],
+      "names": ["Inject", "Injectable"],
+      "in": ["backend/src/modules/*/application/"]
+    },
+    {
+      "packages": ["@nestjs/common", "@nestjs/core"],
+      "in": [
+        "backend/src/modules/*/infrastructure/",
+        "backend/src/modules/*/presentation/",
+        "backend/src/modules/*/*.module.ts",
+        "backend/src/shared/infrastructure/",
+        "backend/src/*.ts"
+      ]
+    },
+    {
+      "packages": [
+        "node:child_process",
+        "node:crypto",
+        "node:events",
+        "node:fs",
+        "node:http",
+        "node:net",
+        "node:os",
+        "node:path",
+        "node:process",
+        "node:stream",
+        "node:timers",
+        "node:url",
+        "node:util"
+      ],
+      "in": [
+        "backend/src/modules/*/infrastructure/",
+        "backend/src/shared/infrastructure/",
+        "backend/src/*.ts",
+        "frontend/src/api/"
+      ]
+    },
+    {
+      "packages": ["node:sqlite"],
+      "in": [
+        "backend/src/modules/*/infrastructure/persistence/",
+        "backend/src/shared/infrastructure/database/"
+      ]
+    },
+    {
+      "packages": ["zod"],
+      "in": [
+        "api-contracts/src/",
+        "backend/src/modules/*/infrastructure/",
+        "backend/src/shared/infrastructure/"
+      ]
+    },
+    {
+      "packages": ["@coverage-autopilot/api-contracts"],
+      "in": ["backend/src/modules/*/presentation/", "frontend/src/"]
+    },
+    {
+      "packages": ["ink", "react"],
+      "in": [
+        "frontend/src/main.tsx",
+        "frontend/src/app/",
+        "frontend/src/screens/",
+        "frontend/src/components/",
+        "frontend/src/hooks/"
+      ]
+    },
+    {
+      "packages": ["node:*", "@jest/globals"],
+      "in": ["backend/tests/", "frontend/tests/", "api-contracts/tests/"]
+    },
+    {
+      "packages": ["ink", "ink-testing-library", "react"],
+      "in": ["frontend/tests/"]
+    }
+  ]
+}

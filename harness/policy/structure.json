@@ -6,5 +6,99 @@
   },
   "names": {
     "banned": ["index", "utils", "helpers", "common", "misc"]
+  },
+  "workspaces": {
+    "backend": {
+      "#repositories/*": "./src/modules/repositories/*.ts",
+      "#coverage/*": "./src/modules/coverage/*.ts",
+      "#verification/*": "./src/modules/verification/*.ts",
+      "#improvement/*": "./src/modules/improvement/*.ts",
+      "#kernel/*": "./src/shared/kernel/*.ts",
+      "#ports/*": "./src/shared/application/ports/*.ts",
+      "#infrastructure/*": "./src/shared/infrastructure/*.ts",
+      "#tests/*": "./tests/*.ts"
+    },
+    "frontend": {
+      "#app/*": "./src/app/*.tsx",
+      "#screens/*": "./src/screens/*.tsx",
+      "#components/*": "./src/components/*.tsx",
+      "#commands/*": "./src/commands/*.ts",
+      "#theme/*": "./src/theme/*.ts",
+      "#hooks/*": "./src/hooks/*.ts",
+      "#api/*": "./src/api/*.ts",
+      "#tests/*": "./tests/*.ts"
+    },
+    "api-contracts": {
+      "#api-contracts/*": "./src/*.ts"
+    }
+  },
+  "manifest": {
+    "fields": [
+      "name",
+      "version",
+      "private",
+      "type",
+      "imports",
+      "exports",
+      "dependencies",
+      "devDependencies"
+    ]
+  },
+  "backend": {
+    "source": "backend/src/",
+    "migrations": "backend/migrations/",
+    "modules": {
+      "repositories": [],
+      "coverage": ["repositories"],
+      "verification": ["coverage", "repositories"],
+      "improvement": ["verification", "coverage", "repositories"]
+    },
+    "layers": {
+      "domain": {
+        "layers": ["domain"],
+        "shared": ["kernel"]
+      },
+      "application": {
+        "layers": ["application", "contracts", "domain"],
+        "shared": ["application", "kernel"]
+      },
+      "infrastructure": {
+        "layers": ["application", "domain", "infrastructure"],
+        "shared": ["application", "infrastructure", "kernel"]
+      },
+      "presentation": {
+        "layers": ["application", "presentation"],
+        "shared": ["kernel"]
+      },
+      "contracts": {
+        "layers": ["contracts"],
+        "shared": ["kernel"]
+      }
+    },
+    "reachOtherModules": ["application", "contracts"],
+    "shared": {
+      "kernel": [],
+      "application": ["kernel"],
+      "infrastructure": ["application", "kernel"]
+    },
+    "suffixes": {
+      ".entity.ts": ["domain/entities/"],
+      ".vo.ts": ["domain/value-objects/"],
+      ".service.ts": ["domain/services/"],
+      ".error.ts": [
+        "domain/errors/",
+        "application/errors/",
+        "infrastructure/errors/"
+      ],
+      ".repository.ts": ["domain/repositories/", "infrastructure/persistence/"],
+      ".port.ts": ["application/ports/"],
+      ".adapter.ts": ["infrastructure/"],
+      ".command.ts": ["application/commands/"],
+      ".query.ts": ["application/queries/"],
+      ".handler.ts": ["application/commands/", "application/queries/"],
+      ".dto.ts": ["application/dto/", "contracts/"],
+      ".schema.ts": ["infrastructure/"],
+      ".controller.ts": ["presentation/http/"]
+    }
   }
 }

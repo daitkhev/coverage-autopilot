@@ -39,10 +39,53 @@ export function stringListAt(record: JsonRecord, key: string): string[] {
   return value;
 }
 
+export function stringAt(record: JsonRecord, key: string): string {
+  const value = record[key];
+  if (typeof value !== 'string') {
+    throw new HarnessError(`"${key}" must be a string.`);
+  }
+  return value;
+}
+
 export function numberAt(record: JsonRecord, key: string): number {
   const value = record[key];
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     throw new HarnessError(`"${key}" must be a number.`);
+  }
+  return value;
+}
+
+/** An object whose every value is a list of strings, as a map. */
+export function stringListsAt(
+  record: JsonRecord,
+  key: string,
+): Map<string, string[]> {
+  const inner = recordAt(record, key);
+  return new Map(
+    Object.keys(inner).map((name) => [name, stringListAt(inner, name)]),
+  );
+}
+
+/** An object whose every value is a string, as a map. */
+export function stringsAt(
+  record: JsonRecord,
+  key: string,
+): Map<string, string> {
+  return new Map(
+    Object.entries(recordAt(record, key)).map(([name, value]) => {
+      if (typeof value !== 'string') {
+        throw new HarnessError(`"${key}.${name}" must be a string.`);
+      }
+      return [name, value];
+    }),
+  );
+}
+
+/** A list of objects. */
+export function recordListAt(record: JsonRecord, key: string): JsonRecord[] {
+  const value = record[key];
+  if (!Array.isArray(value) || !value.every(isRecord)) {
+    throw new HarnessError(`"${key}" must be a list of objects.`);
   }
   return value;
 }
