@@ -26,6 +26,10 @@ coverage-autopilot/
 │   │       └── infrastructure/
 │   ├── migrations/
 │   ├── tests/
+│   │   ├── unit/
+│   │   ├── integration/
+│   │   ├── e2e/
+│   │   └── support/
 │   ├── package.json
 │   └── tsconfig.json
 │
@@ -106,7 +110,6 @@ backend/src/modules/coverage/
 │   │   └── coverage-snapshot.entity.ts
 │   ├── value-objects/
 │   │   ├── coverage-percentage.vo.ts
-│   │   ├── coverage-percentage.vo.test.ts
 │   │   └── coverage-threshold.vo.ts
 │   ├── services/
 │   ├── events/
@@ -223,6 +226,33 @@ These rules are checked by a tool, not by review:
 7. Zod is used where data enters the system: `api-contracts`, configuration and
    adapters that parse the output of external tools. The domain does not import
    it and checks its own invariants.
+8. No file uses a relative import. Every import goes through an alias from the
+   [Imports](#imports) section.
+
+## Imports
+
+Relative imports are not allowed anywhere, including `./` inside one folder.
+Every import starts with an alias, so a path reads the same from any file and
+does not change when the importing file moves.
+
+| Alias | Points to |
+| --- | --- |
+| `#repositories/*`, `#coverage/*`, `#verification/*`, `#improvement/*` | `backend/src/modules/<module>/*` |
+| `#kernel/*` | `backend/src/shared/kernel/*` |
+| `#shared/*` | `backend/src/shared/infrastructure/*` |
+| `#tests/*` | `backend/tests/*` |
+| `#app/*`, `#screens/*`, `#commands/*`, `#components/*`, `#hooks/*`, `#api/*` | `frontend/src/<folder>/*` |
+| `@coverage-autopilot/api-contracts` | The `api-contracts` workspace |
+
+```ts
+import { DomainError } from '#kernel/errors/domain.error';
+import type { Clock } from '#kernel/time/clock';
+import type { WorkingCopy } from '#repositories/contracts/working-copy.dto';
+```
+
+An alias is only a name for a path. The dependency rules above still apply to
+the file it points to: `#coverage/contracts/...` may be imported from another
+module and `#coverage/domain/...` may not.
 
 ## Naming
 
@@ -244,13 +274,43 @@ Files are kebab-case with the role as a suffix.
 | `.handler.ts` | Use case |
 | `.controller.ts` | HTTP controller |
 | `.module.ts` | NestJS module |
-| `.test.ts` | Unit test |
+| `.test.ts` | Test of any kind. The folder tells which kind |
 
 An implementation carries its technology as a prefix:
 `sqlite-coverage-snapshot.repository.ts`, `jest-runner.adapter.ts`.
 
 ## Tests
 
-- Unit tests sit next to the code they test, as `*.test.ts`.
-- `backend/tests/` holds integration and end-to-end tests that need a database
-  or a running service.
+Tests do not sit next to the code. Each workspace has a `tests/` folder with
+one subfolder per kind of test:
+
+| Folder | Tests | May touch |
+| --- | --- | --- |
+| `tests/unit/` | One class or function on its own | Memory only: no database, file system, network or child process |
+| `tests/integration/` | An adapter against the real thing it wraps: SQLite, `git`, a test runner on a fixture project | Local resources, no network |
+| `tests/e2e/` | The running service through its HTTP API and the client | Everything a real run uses, with external services faked |
+
+- The path under `tests/unit/` repeats the path under `src/`:
+  `src/modules/coverage/domain/value-objects/coverage-percentage.vo.ts` is
+  tested by
+  `tests/unit/modules/coverage/domain/value-objects/coverage-percentage.vo.test.ts`.
+- `tests/support/` holds test doubles and builders, such as a fixed clock and a
+  sequential id generator. It contains no tests.
+- The outer `describe` names the class or function under test. A nested
+  `describe` names a method or a context that starts with `when`. Every `it`
+  starts with `should`.
+
+```ts
+describe('CoveragePercentage', () => {
+  describe('create', () => {
+    it('should keep a value between 0 and 100', () => {});
+
+    describe('when the value is above 100', () => {
+      it('should throw InvalidCoveragePercentageError', () => {});
+    });
+  });
+});
+```
+
+The project's own code is held to 95% coverage on every counter: statements,
+branches, functions and lines. The build fails below that.
