@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "#anything/*": "../../../frontend/src/*.ts"
+  }
+}

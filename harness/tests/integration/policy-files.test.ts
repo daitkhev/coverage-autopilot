@@ -1,16 +1,159 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { readLimits, readStructure } from '#harness/shared/policy';
+import { readPackageRules } from '#harness/shared/packages';
+import { readLimits } from '#harness/shared/policy';
+import { readStructure } from '#harness/shared/structure';
+
+const structure = readStructure();
+const { backend } = structure;
+const packageRules = readPackageRules();
+
+/** Packages that stand between the code and its SQL. The design has none. */
+const DATABASE_LAYERS = [
+  '@mikro-orm/core',
+  '@prisma/client',
+  'better-sqlite3',
+  'drizzle-orm',
+  'knex',
+  'kysely',
+  'objection',
+  'prisma',
+  'sequelize',
+  'sqlite3',
+  'typeorm',
+];
 
 describe('readStructure', () => {
   it('should read what is measured and which names are refused', () => {
-    const structure = readStructure();
-
     expect(structure.extensions).toContain('.ts');
     expect(structure.excluded).toContain('harness/fixtures/');
     expect(structure.bannedNames).toEqual(
       expect.arrayContaining(['index', 'utils', 'helpers', 'common', 'misc']),
     );
+  });
+
+  it('should have the four modules, each using only the ones before it', () => {
+    const names = [...backend.modules.keys()];
+
+    expect(names).toEqual([
+      'repositories',
+      'coverage',
+      'verification',
+      'improvement',
+    ]);
+    for (const [index, name] of names.entries()) {
+      const before = names.slice(0, index);
+
+      expect(before).toEqual(
+        expect.arrayContaining([...(backend.modules.get(name) ?? [])]),
+      );
+    }
+  });
+
+  it('should keep the domain free of every other layer', () => {
+    expect(backend.layers.get('domain')).toEqual({
+      layers: ['domain'],
+      shared: ['kernel'],
+    });
+  });
+
+  it('should name only known layers and known shared folders', () => {
+    const layers = [...backend.layers.keys()];
+    const shared = [...backend.shared.keys()];
+
+    for (const rule of backend.layers.values()) {
+      expect(layers).toEqual(expect.arrayContaining([...rule.layers]));
+      expect(shared).toEqual(expect.arrayContaining([...rule.shared]));
+    }
+    for (const uses of backend.shared.values()) {
+      expect(shared).toEqual(expect.arrayContaining([...uses]));
+    }
+    expect(layers).toEqual(
+      expect.arrayContaining([...backend.reachOtherModules]),
+    );
+  });
+
+  it('should let no layer import the layer of the presentation but itself', () => {
+    const importers = [...backend.layers.entries()]
+      .filter(([, rule]) => rule.layers.includes('presentation'))
+      .map(([name]) => name);
+
+    expect(importers).toEqual(['presentation']);
+  });
+
+  it('should put every role suffix in a folder of a known layer', () => {
+    const layers = [...backend.layers.keys()];
+
+    for (const folders of backend.suffixes.values()) {
+      for (const folder of folders) {
+        expect(layers).toContain(folder.split('/')[0]);
+        expect(folder.endsWith('/')).toBe(true);
+      }
+    }
+  });
+
+  it('should keep every alias of a workspace inside that workspace', () => {
+    for (const aliases of structure.workspaces.values()) {
+      for (const [alias, target] of aliases) {
+        expect(alias).toMatch(/^#[a-z-]+\/\*$/);
+        expect(target).toMatch(/^\.\/(src|tests)\//);
+        expect(target).not.toContain('..');
+      }
+    }
+  });
+
+  it('should let a workspace have no scripts', () => {
+    expect(structure.manifestFields).not.toContain('scripts');
+  });
+});
+
+describe('readPackageRules', () => {
+  it('should give every rule packages and places', () => {
+    for (const rule of packageRules) {
+      expect(rule.packages).not.toHaveLength(0);
+      expect(rule.places).not.toHaveLength(0);
+    }
+  });
+
+  it('should list no package that stands between the code and its SQL', () => {
+    const listed = packageRules.flatMap((rule) => rule.packages);
+
+    expect(listed.filter((name) => DATABASE_LAYERS.includes(name))).toEqual([]);
+  });
+
+  it('should allow the database only where the SQL is written', () => {
+    const places = packageRules
+      .filter((rule) => rule.packages.includes('node:sqlite'))
+      .flatMap((rule) => rule.places);
+
+    expect(places).toEqual([
+      'backend/src/modules/*/infrastructure/persistence/',
+      'backend/src/shared/infrastructure/database/',
+    ]);
+  });
+
+  it('should allow no package in the domain of a module', () => {
+    const places = packageRules.flatMap((rule) => rule.places);
+
+    expect(places.filter((place) => place.includes('/domain'))).toEqual([]);
+  });
+
+  it('should allow every module of Node only in the harness and in tests', () => {
+    const places = packageRules
+      .filter((rule) => rule.packages.includes('node:*'))
+      .flatMap((rule) => rule.places);
+
+    expect(places.every((place) => /^harness\/$|\/tests\/$/.test(place))).toBe(
+      true,
+    );
+  });
+
+  it('should start every place in the harness or in a workspace', () => {
+    const roots = ['harness', ...structure.workspaces.keys()];
+
+    for (const place of packageRules.flatMap((rule) => rule.places)) {
+      expect(roots).toContain(place.split('/')[0]);
+    }
   });
 });
 

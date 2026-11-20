@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "package-manifest",
+    "path": "backend/src/modules/package.json",
+    "line": 1
+  }
+]

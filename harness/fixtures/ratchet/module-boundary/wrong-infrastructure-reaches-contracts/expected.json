@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "module-boundary",
+    "path": "backend/src/modules/improvement/infrastructure/verifier.adapter.ts",
+    "line": 1
+  }
+]

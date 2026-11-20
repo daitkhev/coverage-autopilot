@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "layer-direction",
+    "path": "backend/src/shared/kernel/result.ts",
+    "line": 1
+  }
+]

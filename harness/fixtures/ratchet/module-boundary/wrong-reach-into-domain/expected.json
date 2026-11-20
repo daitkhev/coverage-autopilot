@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "module-boundary",
+    "path": "backend/src/modules/improvement/application/commands/start.handler.ts",
+    "line": 1
+  }
+]

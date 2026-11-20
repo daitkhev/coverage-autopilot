@@ -2,6 +2,6 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#src/*": "./src/*.ts"
+    "#harness/*": "./harness/*.ts"
   }
 }

@@ -3,9 +3,10 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from '@jest/globals';
 
+import { readPolicy } from '#harness/architecture/policy';
 import { rulesOf } from '#harness/architecture/rules';
 import { runRatchet } from '#harness/architecture/run';
-import { HARNESS_ROOT, readStructure } from '#harness/shared/policy';
+import { HARNESS_ROOT } from '#harness/shared/policy';
 
 const FIXTURES = join(HARNESS_ROOT, 'fixtures', 'ratchet');
 const WRONG = 'wrong-';
@@ -43,7 +44,7 @@ function expectedIn(rule: string, name: string): unknown {
   return JSON.parse(readFileSync(file, 'utf8'));
 }
 
-const ruleIds = rulesOf(readStructure()).map((rule) => rule.id);
+const ruleIds = rulesOf(readPolicy()).map((rule) => rule.id);
 
 describe('ratchet on its fixtures', () => {
   it('should have fixtures for the rules that exist and for no other', () => {

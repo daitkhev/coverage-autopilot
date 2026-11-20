@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "package-placement",
+    "path": "backend/src/modules/coverage/infrastructure/persistence/report.repository.ts",
+    "line": 1
+  }
+]

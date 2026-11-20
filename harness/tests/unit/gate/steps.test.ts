@@ -23,6 +23,7 @@ describe('planFor', () => {
       'lint',
       'types',
       'architecture',
+      'compare',
       'unit',
       'integration',
     ]);
@@ -52,8 +53,11 @@ describe('STEPS', () => {
 
     expect(configured['format']).toContain('--config prettier.config.mjs');
     expect(configured['lint']).toContain('--config eslint.config.mjs');
-    expect(configured['types']).toContain('--project tsconfig.json');
     expect(configured['unit']).toContain('--config harness/configs/jest.json');
+  });
+
+  it('should compare a tree on a desk with the commit it stands on', () => {
+    expect(planFor('compare')[0]?.arguments).toEqual(['--compare', 'HEAD']);
   });
 
   it('should fail lint on a warning', () => {

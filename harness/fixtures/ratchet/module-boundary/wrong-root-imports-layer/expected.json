@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "module-boundary",
+    "path": "backend/src/main.ts",
+    "line": 1
+  }
+]

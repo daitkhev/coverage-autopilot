@@ -6,7 +6,11 @@ import {
   isStringList,
   numberAt,
   recordAt,
+  recordListAt,
+  stringAt,
   stringListAt,
+  stringListsAt,
+  stringsAt,
 } from '#harness/shared/json';
 
 describe('isRecord', () => {
@@ -57,5 +61,62 @@ describe('numberAt', () => {
     expect(() => numberAt({}, 'a')).toThrow(HarnessError);
     expect(() => numberAt({ a: '50' }, 'a')).toThrow('"a" must be a number.');
     expect(() => numberAt({ a: Number.NaN }, 'a')).toThrow(HarnessError);
+  });
+});
+
+describe('stringAt', () => {
+  it('should give the text under a key', () => {
+    expect(stringAt({ a: 'text' }, 'a')).toBe('text');
+  });
+
+  it('should throw HarnessError when the key holds no text', () => {
+    expect(() => stringAt({ a: 1 }, 'a')).toThrow(HarnessError);
+    expect(() => stringAt({}, 'a')).toThrow('"a" must be a string.');
+  });
+});
+
+describe('stringListsAt', () => {
+  it('should give a map of lists, in the order of the file', () => {
+    const map = stringListsAt({ a: { second: ['x'], first: [] } }, 'a');
+
+    expect([...map.entries()]).toEqual([
+      ['second', ['x']],
+      ['first', []],
+    ]);
+  });
+
+  it('should throw HarnessError when a value is not a list of strings', () => {
+    expect(() => stringListsAt({ a: { b: 'x' } }, 'a')).toThrow(HarnessError);
+    expect(() => stringListsAt({ a: [] }, 'a')).toThrow(HarnessError);
+  });
+});
+
+describe('stringsAt', () => {
+  it('should give a map of strings, in the order of the file', () => {
+    const map = stringsAt({ a: { second: 'x', first: 'y' } }, 'a');
+
+    expect([...map.entries()]).toEqual([
+      ['second', 'x'],
+      ['first', 'y'],
+    ]);
+  });
+
+  it('should throw HarnessError that names the value that is not text', () => {
+    expect(() => stringsAt({ a: { b: 1 } }, 'a')).toThrow(
+      '"a.b" must be a string.',
+    );
+  });
+});
+
+describe('recordListAt', () => {
+  it('should give the list of objects under a key', () => {
+    expect(recordListAt({ a: [{ b: 1 }, {}] }, 'a')).toEqual([{ b: 1 }, {}]);
+  });
+
+  it('should throw HarnessError when an item is not an object', () => {
+    expect(() => recordListAt({ a: [{}, 1] }, 'a')).toThrow(HarnessError);
+    expect(() => recordListAt({ a: {} }, 'a')).toThrow(
+      '"a" must be a list of objects.',
+    );
   });
 });

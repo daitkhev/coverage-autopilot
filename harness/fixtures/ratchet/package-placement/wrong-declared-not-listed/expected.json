@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "package-placement",
+    "path": "backend/package.json",
+    "line": 1
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "unknown-layer",
+    "path": "backend/src/shared/domain/money.ts",
+    "line": 1
+  }
+]

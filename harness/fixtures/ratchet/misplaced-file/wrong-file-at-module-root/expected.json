@@ -1,0 +1,12 @@
+[
+  {
+    "rule": "misplaced-file",
+    "path": "backend/src/modules/coverage/reports.module.ts",
+    "line": 1
+  },
+  {
+    "rule": "misplaced-file",
+    "path": "backend/src/modules/coverage/setup.ts",
+    "line": 1
+  }
+]

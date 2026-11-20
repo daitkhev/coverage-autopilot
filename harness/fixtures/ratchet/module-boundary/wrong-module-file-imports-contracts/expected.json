@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "module-boundary",
+    "path": "backend/src/modules/improvement/improvement.module.ts",
+    "line": 1
+  }
+]
