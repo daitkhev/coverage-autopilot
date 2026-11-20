@@ -1166,9 +1166,13 @@ What stage four showed and changed:
   | Vitest | 4 min 43 s | 2.8 GB | 90.13% |
   | Vitest, after the changes below | 4 min 28 s | 2.8 GB | 90.24% |
   | Vitest, with 2048 MB allowed, so two test runners | 7 min 35 s | 1.5 GB | 90.28% |
+  | Vitest, on a machine of CI | 14 min 33 s | Not measured | 90.36% |
 
   The first row is the tree of stage three, with 2173 mutants. The others
-  are the tree of this stage, with about 2,450.
+  are the tree of this stage, with about 2,450. The last row is the
+  standard machine of GitHub Actions, with four test runners. It is about
+  three times slower than the desk, so the time of a run in CI is not
+  guessed from the desk.
 - Jest and Vitest gave the same verdict on 2379 mutants they both had,
   but for four that Vitest killed and Jest did not. They name a mutant
   that breaks the load of a file differently: 118 were an error of the
@@ -1214,7 +1218,8 @@ What stage four showed and changed:
 - The owner set the floor of the harness at 88, two points under the
   rate, because the rate moves a little from run to run and a floor does
   not go down. CI runs the mutation step as a job of its own, with a
-  longer time limit than the other jobs have.
+  time limit of 30 minutes, beside the other jobs and not before them.
+  Four runs gave rates from 90.24% to 90.36%.
 - A test runner under Vitest that reaches the limit of its heap ends the
   run: with 48 MB and with 96 MB the engine stopped with an error, and
   with 200 MB it finished. So the memory that is allowed decides how
