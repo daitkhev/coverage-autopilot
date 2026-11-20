@@ -4,8 +4,8 @@ Author: Valentin Daitkhe
 
 This document defines the domain model and the contracts of the system: the
 objects it works with, their states, the rules of the quality gate, the way
-the test generator is started, the way modules call each other, and the way
-the client talks to the service. It builds on
+the test generator is started, the way modules call each other, the database
+schema, and the way the client talks to the service. It builds on
 [Scope and requirements](scope-and-requirements.md) and
 [Project structure](project-structure.md).
 
@@ -30,6 +30,8 @@ the client talks to the service. It builds on
 | Verdict | The decision on a test patch: accepted, rejected or inconclusive |
 | Mutant | A copy of the target file with one small change, used to see whether tests notice it |
 | Mutation baseline | The mutants of the target file that the existing tests do not detect |
+| Request key | A value the client makes for one command. The same key always returns the same result |
+| Request fingerprint | A hash of what an improvement was asked to do. Two requests with the same fingerprint ask for the same work |
 | Job | One unit of background work in the queue: a scan or an improvement |
 
 ## Domain model
@@ -70,8 +72,9 @@ Three aggregates are stored: `Repository`, `CoverageSnapshot` and
 
 | Object | Kind | Holds |
 | --- | --- | --- |
-| `CoverageSnapshot` | Aggregate | Repository, commit, detected project, scan parameters, origin key, coverage of every file. Never changes after it is created |
-| `FileCoverage` | Value object | File path, the four counters, uncovered lines and branches |
+| `CoverageSnapshot` | Aggregate | Repository, commit, detected project, scan parameters, origin key, coverage of every measured file, the files that could not be measured. Never changes after it is created |
+| `FileCoverage` | Value object | File path, state, the four counters, uncovered lines and branches |
+| `UnmeasuredFile` | Value object | File path and the reason it has no numbers |
 | `DetectedProject` | Value object | Test runner and its version, package manager, configuration file |
 | `CoverageThreshold` | Value object | Metric and percentage. Answers whether a file is below it |
 | `TestRun` | Value object | Which tests passed and failed, and how long the run took |
@@ -83,6 +86,10 @@ storage layout does not have to repeat the model.
 A snapshot has its own id. Repository and commit do not identify it, because
 the same commit can give different numbers under a different runner version or
 configuration. The snapshot records the parameters it was measured with.
+
+A snapshot is not a copy of the runner's report. The report is outside data
+that the adapter checks and sorts, as described in
+[What a snapshot contains](#what-a-snapshot-contains).
 
 ### verification
 
@@ -102,7 +109,7 @@ improvement and the verification report belongs to the attempt.
 
 | Object | Kind | Holds |
 | --- | --- | --- |
-| `Improvement` | Aggregate | Repository, source snapshot, baseline snapshot, base commit, target file, status, quality policy, generator configuration, budget and usage, attempts, mutation baseline, idempotency key, branch, pull request, failure reason |
+| `Improvement` | Aggregate | Repository, source snapshot, baseline snapshot, base commit, target file, status, quality policy, generator configuration, budget and usage, attempts, mutation baseline, request key, request fingerprint, branch, pull request, failure reason |
 | `Attempt` | Entity inside `Improvement` | Number, generation outcome, test patch, token usage, verification report |
 | `Budget`, `BudgetUsage` | Value objects | The three limits and what has been spent. The time limit becomes an absolute deadline when work starts |
 | `ImprovementTarget` | Value object | The file, its uncovered branches and its undetected mutants |
@@ -118,10 +125,14 @@ transitions and invariants and nothing else:
   a time.
 - An attempt is identified by the improvement and its number. Running a step
   again after a crash finds the open attempt and does not create a new one.
-- The test patch is saved in full before the status moves to `verifying`.
+- The test patch is saved in full before the status moves to `verifying`,
+  and never changes afterwards.
 - A pull request is recorded only after an accepted verdict.
 - The quality policy and the generator configuration never change after
-  creation. Both are part of the idempotency key.
+  creation. Both are part of the request fingerprint.
+- The source snapshot, the baseline snapshot and the base commit name the
+  same commit.
+- The target is a measured file of the source snapshot.
 
 Budget arithmetic lives in `Budget`. Running the AI CLI, the tests and `gh`
 belongs to the application layer, with one step class per status.
@@ -606,6 +617,91 @@ the scan job or of the improvement that asked. Called again with the same
 key, it returns the snapshot it already stored. `prepareProject` and
 `runTests` work in a working copy lent by the caller.
 
+#### What a snapshot contains
+
+The report of a test runner is not trusted as it is. Without a file list it
+leaves out every file that no test imports. With a list it can still drop a
+file, or invent numbers for a file it never loaded. So the adapter decides
+which files belong to a snapshot and puts each of them in exactly one state.
+
+1. The adapter builds the list of eligible files: the source files that the
+   project's own coverage settings include, or a default list when the
+   project has none.
+2. It reads every file with the TypeScript parser. Nothing is type-checked
+   and nothing is run.
+3. It gives the runner the files that parse and hold code that runs.
+4. It compares the report with its own list.
+
+$$F_{\text{eligible}} = F_{\text{measured}} \sqcup F_{\text{no code}} \sqcup F_{\text{unmeasured}}$$
+
+The three sets do not overlap, and every eligible file is in one of them.
+
+| State | Means | Stored as | Can be a target |
+| --- | --- | --- | --- |
+| `measured` | The file parses, holds code that runs, and the report counts it | A row with counters | Yes, when below the threshold |
+| `no_executable_code` | The file parses and holds type declarations only | A row with every counter at zero | No |
+| `unmeasured` | There are no numbers that can be trusted | An entry in the snapshot with a reason | No |
+
+The state follows from two inputs:
+
+| The parser says | The report has | State |
+| --- | --- | --- |
+| The file does not parse | Anything | `unmeasured`, reason `parse_failed` |
+| Type declarations only | Anything | `no_executable_code` |
+| Code that runs | Counters with a total above zero | `measured` |
+| Code that runs | Nothing for this file | `unmeasured`, reason `missing_from_report` |
+| Code that runs | Counters that are all zero of zero | `unmeasured`, reason `no_counters` |
+
+- The state comes from the adapter's own reading of the source, never from
+  the counters alone. A row of zeros from the runner proves nothing.
+- "Type declarations only" means that every top-level statement is an
+  interface, a type alias, a type-only import or export, or a `declare`
+  statement.
+- An unmeasured file has no percentage. It is not 0%.
+- The reasons are the three the adapter can tell apart from its two inputs.
+  Why a runner dropped a file is in its raw output, which is kept as a file.
+- The totals of a snapshot are computed over measured files only.
+- A file with no executable code is stored as a row but is never a target.
+  The application layer checks this before it creates an improvement.
+
+Coverage numbers describe a file under one set of tools, not the file on its
+own. The scan parameters of a snapshot record the runner and its version, the
+coverage provider and the rule that built the file list. Numbers are compared
+only between measurements with the same parameters. The gate compares the
+baseline snapshot with the run after the patch, and one improvement makes
+both with the same parameters. If they differ, the coverage check ends as
+`error`.
+
+#### What the coverage run showed
+
+I ran Jest 29.7 with ts-jest and Vitest 4.1 on a project with four source
+files: one that a test imports, one that nothing imports, one with types
+only, and one with a syntax error.
+
+| Run | Never imported | Types only | Syntax error |
+| --- | --- | --- | --- |
+| Either runner, no file list | Absent | Absent | Absent |
+| Jest, Babel provider, file list | 0 of 5 | Absent | Absent, one line in the log |
+| Jest, V8 provider, file list | 0 of 8 | 0 of 6 | 0 of 6, nothing in the log |
+| Vitest, V8 provider, file list | 0 of 4 | 0 of 0 | Absent, one line in the log |
+| Vitest, Istanbul provider, file list | 0 of 4 | Absent | The whole run fails |
+
+- A file that nothing imports appears only when the file list is passed:
+  `--collectCoverageFrom` for Jest and `--coverage.include` for Vitest.
+- The V8 provider of Jest makes a row from the line count of a file it never
+  loaded. A file with types only and a file that does not parse both look
+  like files with 0% coverage.
+- No report says that a file could not be measured. The file is dropped,
+  faked, or stops the run.
+- The imported file had 4 of 8 statements covered under Jest with Babel, 5 of
+  13 under Jest with V8 and 2 of 6 under Vitest. The numbers depend on the
+  tools.
+
+Not measured and not claimed: the sorting of files into three states is a
+design that follows from this run and has not been run itself. Also not
+measured: a project that sets its own file list, `.tsx` files, monorepos, and
+a file that fails when it is imported and not when it is parsed.
+
 ### The verification contract
 
 | Operation | Called by | Result |
@@ -667,14 +763,34 @@ type JobResult = JobFinished | JobRetry;
 
 - `enqueue` runs in the caller's transaction, so an improvement and its job
   are created together. A request names the kind of job, the repository it
-  serializes on, an idempotency key and the id of the object it works on. A
-  second request with the same key returns the existing job.
+  serializes on, an idempotency key and the id of the object it works on.
+  The caller builds the key from the object and the step, such as
+  `improvement:<id>:run`. A second request with the same key returns the
+  existing job when the kind, the repository and the payload are the same,
+  and is a conflict when they are not.
 - The worker owns the lease, the heartbeat and the count of technical
   retries. Nothing else counts them.
 - A handler asks for a retry by returning `retry`. An inconclusive verdict
   with a retryable error becomes a retry this way, without an exception. A
   fault that cannot be retried moves the improvement to `failed`, and the
   handler returns `finished`.
+
+#### Claiming a job
+
+A worker claims a job with one `UPDATE ... RETURNING` statement, so two
+workers cannot take the same job.
+
+- A job whose lease ran out comes first, because it still holds its
+  repository. The same row is leased again and gets a new lease token.
+- Then comes the oldest pending job whose repository has no leased job.
+- The order is set where the candidate is chosen. SQLite does not promise
+  an order for the rows that `RETURNING` gives back.
+- A job whose lease ran out and whose runs are spent is moved to `dead`
+  before the claim, and its handler is told through `onRetriesExhausted`.
+
+A unique index allows one leased job per repository. That is a fact about
+the rows. It does not stop a process that lost its lease from still running
+a command, which is why the next rule exists.
 
 #### A worker that lost its lease saves nothing
 
@@ -705,6 +821,10 @@ write transaction:
   and found by its origin key, so a late duplicate changes nothing.
 - The token protects the database only. A `git push` that already started
   cannot be taken back, which is why publishing is safe to repeat.
+- A result is saved once. The work behind it can run more than once: a
+  mutation run or the AI CLI may start again after a lost lease.
+- A write also checks the version of the improvement, because a cancel or an
+  approval from the API can arrive while the worker is busy.
 
 #### Completing a job
 
@@ -792,7 +912,8 @@ and does not stop the improvement.
 ### Storage
 
 - Aggregates and the queue share one SQLite file. That is what makes
-  `enqueue` inside the caller's transaction possible.
+  `enqueue` inside the caller's transaction possible. The tables are in
+  [Database schema](#database-schema).
 - A transaction contains database statements only. Cloning, the AI CLI and
   test runs happen outside it, because SQLite allows one writer at a time.
 - The sandbox cannot see the directory that holds the service's data.
@@ -801,6 +922,312 @@ and does not stop the improvement.
 
 Each check makes its own clean copy and installs dependencies again. What
 that costs in time is not measured yet.
+
+## Database schema
+
+The service uses SQLite through a plain SQL driver, with no ORM and no query
+builder. The schema changes through numbered SQL migrations. A persistence
+adapter holds the SQL and maps rows to an aggregate, and the aggregate knows
+nothing about tables. Transactions, the version check on an improvement,
+foreign keys, partial unique indexes and the lease token are all written out
+in SQL. This is a constraint of the architecture, not a detail of the first
+version.
+
+Three aggregates and the queue are stored in six tables. Five hold the
+aggregates and one holds the jobs. The diagram shows the key columns only.
+
+```mermaid
+erDiagram
+    repositories ||--o{ coverage_snapshots : has
+    coverage_snapshots ||--o{ file_coverages : contains
+    repositories ||--o{ improvements : has
+    coverage_snapshots ||--o{ improvements : "source, baseline"
+    file_coverages ||--o{ improvements : target
+    improvements ||--o{ attempts : has
+    repositories {
+        text id PK
+        text owner
+        text name
+        text default_branch
+    }
+    coverage_snapshots {
+        text id PK
+        text repository_id FK
+        text commit_sha
+        text origin_key UK
+        text scan_parameters
+        text unmeasured_files
+    }
+    file_coverages {
+        text snapshot_id PK, FK
+        text file_path PK
+        text state
+        int lines_covered
+        int lines_total
+        int branches_covered
+        int branches_total
+    }
+    improvements {
+        text id PK
+        text repository_id FK
+        text source_snapshot_id FK
+        text baseline_snapshot_id FK
+        text target_file FK
+        text status
+        text request_key UK
+        text request_fingerprint
+        text mutation_baseline
+        text deadline_at
+        int version
+    }
+    attempts {
+        text improvement_id PK, FK
+        int number PK
+        text generation_outcome
+        text patch
+        text patch_hash
+        text verification_report
+        text finished_at
+    }
+    jobs {
+        text id PK
+        text kind
+        text serialization_key
+        text idempotency_key UK
+        text subject_id
+        text status
+        int runs
+        int lease_token
+        text lease_expires_at
+    }
+```
+
+| Table | Stores |
+| --- | --- |
+| `repositories` | Connected repositories |
+| `coverage_snapshots` | One snapshot: commit, scan parameters, totals, the files that could not be measured |
+| `file_coverages` | One row for every measured file and every file with no executable code |
+| `improvements` | Status, the two keys, quality policy, generator configuration, budget and usage, mutation baseline, branch, pull request, failure reason |
+| `attempts` | Test patches and verification reports |
+| `jobs` | Leases, lease tokens, run counts, idempotency keys |
+
+### Rules the database checks
+
+| Rule | How |
+| --- | --- |
+| One open improvement per repository and file | Unique index on repository and target file, over rows whose status is not final |
+| The same request key gives the same improvement | Unique index on the request key |
+| The same work is not done twice | Unique index on the request fingerprint, over rows that are not `failed` or `cancelled` |
+| One open attempt per improvement | Unique index on the improvement, over rows with no finish time |
+| One running job per repository | Unique index on the serialization key, over `leased` rows |
+| One job per idempotency key | Unique index on the key |
+| One snapshot per origin | Unique index on the origin key |
+| A snapshot belongs to the repository of its improvement | Foreign key on snapshot and repository together, for the source and for the baseline |
+| The target is a file of the source snapshot | Foreign key on snapshot and file path together |
+| A status is a known value | `CHECK` on the status of improvements and of jobs |
+| A patch has a hash | `CHECK` that both are set or neither is |
+| A stored document is JSON | `CHECK` with `json_valid` |
+
+- Every column that an index or a check reads is `NOT NULL`. SQLite does not
+  see two `NULL` values as a conflict, and a check that gives `NULL` passes.
+- An index over open rows is written as "the status is not a final one". A
+  status added later counts as open until someone decides otherwise.
+- Both status columns have a `CHECK` because indexes read their text. A
+  misspelt status would otherwise slip past the index. Other lists of values
+  are checked by the domain.
+- The database checks that a status is a known one. Which move between
+  statuses is allowed stays a rule of the aggregate.
+- An unmeasured file has no row in `file_coverages`, so the foreign key
+  alone keeps it from being a target.
+- `jobs` has no foreign key to another table. The id of the object a job
+  works on is plain text to the queue, and the handler checks that the
+  object exists.
+- Two ordinary indexes serve the claim: pending jobs by time, and leased
+  jobs by the end of the lease.
+
+### Two keys of an improvement
+
+One key answers "is this the same request", the other "is this the same
+work".
+
+| The request has | Result |
+| --- | --- |
+| The same key and the same fingerprint | 200 with the improvement made before, whatever its status |
+| The same key and another fingerprint | 409 |
+| Another key, the same fingerprint, the earlier work is active | 409 with the id of the earlier improvement |
+| Another key, the same fingerprint, the earlier work is `completed` or `skipped` | 409 with the id of the earlier improvement |
+| Another key, the same fingerprint, the earlier work is `failed` or `cancelled` | 202 with a new improvement |
+
+The service opens a write transaction, looks for the earlier improvement by
+key, by fingerprint and by open target, and only then inserts. SQLite has one
+writer, so nothing changes between the look and the insert. The indexes stay
+as a safety net. The code does not tell conflicts apart by the error it gets
+back: every unique conflict has the same code.
+
+### What is stored where
+
+Everything a verdict or a recovery depends on is in SQLite. Files hold only
+what can be lost.
+
+| Data | Where |
+| --- | --- |
+| Coverage snapshot with the state of every file | SQLite |
+| Mutation baseline: every undetected mutant with its file, mutator, position, replacement and status | SQLite |
+| Test patch and its hash | SQLite |
+| Verification report: the result of every check, the status of every mutant after the patch, the reasons of the verdict | SQLite |
+| Budget usage | SQLite |
+| Raw output of the tools | Files |
+| Cache of the mutation tool | Files |
+| Working copies | Files, temporary |
+
+- A missing file makes a run slower or shows as "not available". It never
+  changes a verdict and never fails a job.
+- A file is written under a temporary name and renamed. Only then does the
+  database get a reference to it, in the transaction that saves the state.
+- The name of a file contains the hash of its content. A worker that lost
+  its lease cannot overwrite a file the database points to.
+- A file without a reference is removed later.
+
+The patch of an attempt is written once:
+
+| Stored patch | Result of a write |
+| --- | --- |
+| None | The patch and its hash are saved in one transaction with the move to `verifying` |
+| The same hash | The stored patch is used |
+| Another hash | An integrity error that is not retried |
+
+After a crash the worker reads the status and the stored patch. It does not
+start the generator again to see whether the text matches.
+
+### Migrations
+
+The service brings the database up to date by itself when it starts. This is
+the default and there is no command for the user to run.
+
+- A migration is a plain SQL file in `backend/migrations/`. The files are
+  numbered and applied in order.
+- The service applies the missing ones after it takes the instance lock and
+  before it opens the socket. No request and no worker ever sees a database
+  that is half migrated, and no other connection is open while it happens.
+- SQLite keeps a version number in the database file, so no extra table is
+  needed to know which migrations ran.
+- Migrations only go forward. A database with a higher version than the
+  service knows is refused with a clear error, and nothing in it is changed.
+- A new version of the tool reaches an existing database the usual way: the
+  client sees another contract version, the old service stops, and the new
+  one migrates as it starts.
+
+Every migration runs by the same procedure:
+
+1. Foreign key checks are switched off. SQLite ignores this switch inside a
+   transaction, so it comes first.
+2. A write transaction begins.
+3. The statements of the migration run.
+4. `PRAGMA foreign_key_check` must find nothing. If it finds a broken
+   reference, the transaction is rolled back.
+5. The new version number is written and the transaction is committed.
+6. Foreign key checks are switched on again.
+
+- There is one procedure and not two. Changing a `CHECK` or a foreign key
+  means building the table again, and SQLite refuses to drop a table that
+  others refer to while the checks are on. A second kind of migration for
+  that case would be one more thing to mark and to forget.
+- A migration that fails leaves the database as it was, and the service
+  does not start. It writes the reason to a file in the instance directory,
+  and the client that is waiting shows it.
+- A migration holds only statements that can be rolled back. `VACUUM` and
+  any other statement that SQLite refuses inside a transaction is not
+  allowed in one.
+- On every start, after the migrations, `PRAGMA quick_check` and
+  `PRAGMA foreign_key_check` run on the whole database. A finding stops the
+  start.
+
+A migration changes tables. It does not change the JSON documents stored in
+them, and unfinished work outlives an update: pending jobs, improvements that
+wait for approval, improvements that a crash left in the middle. So every
+change to the shape of a stored document does one of two things:
+
+- The new service still reads the old version. It keeps the Zod schema of
+  that version and converts the document when it reads it. This is the
+  default.
+- The migration rewrites the stored documents.
+
+A change that does neither is not released. The rule covers the payload and
+the outcome of a job, the quality policy, the generator configuration, the
+mutation baseline, the verification report, the scan parameters and the list
+of unmeasured files. A status that is renamed or removed is rewritten by the
+migration in the same way. A test reads a stored sample of every version of
+every document with the current code.
+
+I tried the procedure on SQLite 3.53:
+
+- The version number is committed with the migration and goes back with it
+  on a rollback and on a failed statement.
+- With the checks on, a migration that builds `improvements` again was
+  refused at the `DROP TABLE`, because `attempts` refers to it.
+- By the procedure the same migration added a status. The rows stayed, and
+  afterwards a misspelt status, an attempt of a missing improvement and the
+  removal of an improvement with attempts were all refused.
+- A migration that left an attempt without its improvement was found by
+  `PRAGMA foreign_key_check` and rolled back.
+- `VACUUM` inside a transaction was refused.
+- On a database of 18 MB with 200,000 file rows `PRAGMA quick_check` took
+  14 ms and `PRAGMA foreign_key_check` 11 ms.
+
+### Conventions
+
+- SQL lives in the `infrastructure/persistence` folder of a module, in
+  `shared/infrastructure` and in the migrations, and nowhere else.
+- Every table is `STRICT`. Foreign keys are switched on. The journal is a
+  write-ahead log, and a writer waits for a busy database before it fails.
+- Ids are text UUIDs from `IdGenerator`.
+- Time is text in UTC in one format, `YYYY-MM-DDTHH:mm:ss.sssZ`, and comes
+  from `Clock`. The clock of SQLite is never used. Text of a fixed width
+  sorts the way time does.
+- A file path is the path as git stores it: relative, with forward slashes
+  and no `.` or `..` parts. Letter case and Unicode form are left as they
+  are.
+- A stored JSON document carries the version of its schema and is parsed
+  with Zod when it is read. An unknown version is a typed error that is not
+  retried.
+- Nothing is deleted in the first version.
+- The instance lock is a file of its own and not part of this schema.
+- The SQLite driver is not chosen yet.
+
+### What the database run showed
+
+I tried a draft of this schema on SQLite 3.53 through `node:sqlite` on Node
+25. Every rule in the table above refused a row that broke it. Among them: a
+snapshot of another repository, a target file missing from the snapshot,
+another spelling of the same path, a misspelt status, a second open attempt
+and a patch without a hash.
+
+Then eight worker processes shared 120 jobs for six repositories with a
+lease of 300 ms. In 15% of its runs a worker stalled for two and a half
+leases and then tried to save. Every 400 ms a random worker was stopped with
+`SIGKILL` and replaced.
+
+| Run | Rounds | Jobs saved twice | Late saves refused | Jobs leased again |
+| --- | --- | --- | --- | --- |
+| Lease token checked in the saving transaction | 6 | 0 in every round | 14 to 28 a round | 17 to 27 a round |
+| No check | 4 | 8 to 17 a round | None | 16 to 22 a round |
+
+- With the check, all 120 jobs were saved exactly once in every round.
+- In both runs no repository ever had two leased jobs. The index held, and
+  without the token check jobs were still saved twice. The two rules guard
+  different things.
+- In a separate run of three rounds a job was allowed two runs at most. One
+  to three jobs a round ended as `dead`, none of them with a saved result,
+  and the other 117 to 119 were saved once.
+- No statement failed because the database was busy.
+- The plan of the claim query uses the indexes and reads no table in full.
+- Every unique conflict comes back with the same code, and the message
+  names columns, not the index. A foreign key failure names nothing.
+
+Not measured and not claimed: Linux, another SQLite driver, and power loss.
+Three things are left to the tests of the real application: a heartbeat that
+extends a lease, the two-step completion of a job, and stopping the service
+while a worker is busy.
 
 ## Client and service
 
@@ -858,9 +1285,11 @@ The service starts in a fixed order, the same on a clean start and after a
 crash:
 
 1. It takes the instance lock and exits quietly if another service holds it.
-2. Only then it removes a socket file left behind by a crashed service.
-3. It listens on the socket and restricts the file to its owner.
-4. It returns jobs with an expired lease to the queue.
+2. It opens the database, applies the [migrations](#migrations) it is
+   missing and checks it.
+3. Only then it removes a socket file left behind by a crashed service.
+4. It listens on the socket and restricts the file to its owner.
+5. It starts the worker, which first takes back jobs with an expired lease.
 
 The instance lock is a SQLite file of its own, next to the database, held in
 an exclusive transaction for the life of the process:
@@ -906,7 +1335,7 @@ be out of date.
   where the service is started by the same command and inherits its
   environment.
 - A choice that is not secret travels in the request: the AI CLI, the model,
-  the quality policy. All of them are part of the idempotency key.
+  the quality policy. All of them are part of the request fingerprint.
 - `GET /health` reports the GitHub account the service uses and when it was
   started, and the client shows it.
 - The versions of the tools are recorded with every job. Picking up a changed
@@ -948,7 +1377,7 @@ jobs are running, it says so and changes nothing.
 | `POST /scans/:id/cancel` | Cancel a scan | 202 |
 | `GET /repositories/:id/snapshots` | Snapshots, newest first | 200 |
 | `GET /snapshots/:id/files` | Coverage per file, with a below-threshold filter | 200 |
-| `POST /improvements` | Request an improvement of a file from a snapshot | 202, 409 |
+| `POST /improvements` | Request an improvement of a file from a snapshot | 202, 200, 409 |
 | `GET /improvements` | List, filtered by repository and status | 200 |
 | `GET /improvements/:id` | Status, attempts, budget use, pull request, failure reason | 200, 404 |
 | `GET /improvements/:id/patch` | The accepted patch and its hash, for review mode | 200, 409 |
@@ -960,10 +1389,15 @@ jobs are running, it says so and changes nothing.
   requests with it and the client validates responses.
 - A command that starts work answers 202 and returns a resource whose state
   the client reads afterwards.
+- A command that starts work carries a request key in the `Idempotency-Key`
+  header. The client makes one key for one command.
 - A repeated request returns what exists, with 200. The same repository, or
-  the same improvement with the same key, is not an error. 409 is for a real
+  the same key with the same content, is not an error. 409 is for a real
   conflict: a stale snapshot, another improvement of the same file in
-  progress, or an action that does not fit the current status.
+  progress, the same work already requested under another key, a key reused
+  with different content, or an action that does not fit the current
+  status. The full table is in
+  [Two keys of an improvement](#two-keys-of-an-improvement).
 - An approval names the hash of the patch the person saw. A different hash is
   a conflict.
 - The client sees scans and improvements, never queue jobs.
