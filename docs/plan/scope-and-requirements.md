@@ -34,7 +34,9 @@ The task asks for:
 
 - **A service and a client, not one CLI process.** The backend is a long-lived
   service that owns jobs and state. The CLI is its client. A job must survive
-  the client exiting, so the two cannot be the same process.
+  the client exiting, so the two cannot be the same process. The client starts
+  the service when it is not running, and they talk over a local socket, so
+  the user sees one command-line tool and no network port is opened.
 - **Unit tests only.** The unit of work is one source file and the output is one
   `*.test.ts` file next to it. Integration and end-to-end tests need
   infrastructure that a foreign repository does not give me.
@@ -205,8 +207,9 @@ Each item is marked `task` if the task states it and `added` if I added it.
   and the client shows the diff before publishing. Off by default. `added`
 - **FR-12.** Cancel a queued or running job. `added`
 - **FR-13.** Offer non-interactive commands next to the interactive client, with
-  a `--wait` flag that blocks until the job ends and returns an exit code.
-  `added`
+  a `--wait` flag that blocks until the job ends and returns an exit code,
+  and an `--isolated` flag that runs a private service for one command, for
+  CI. `added`
 
 ### Non-functional
 
@@ -254,6 +257,8 @@ Each item is marked `task` if the task states it and `added` if I added it.
 | SQLite queue | Horizontal scaling across machines | The task fixes SQLite. The queue is behind a port and can move to a broker later. |
 | No separate outbox table | A general mechanism for external actions | There is one external action and it is idempotent. The job row in the publishing state plays that role. |
 | An AI CLI, not a model API | An exact token limit per call | The task asks for a CLI. It limits turns and estimated cost, so the token budget is approximate. |
+| A Unix socket, not a network port | Windows, and a browser dashboard without extra work | Nothing on the network can reach the service, and no port has to be chosen. |
+| Asking for status again, no event stream | Updates the moment they happen | An improvement has about a dozen events. Asking once a second is enough. |
 | Containers, not microVMs | The strongest isolation | Containers with no network and no secrets cover the stated threat. |
 | Mutation testing required by default, target file only | Speed, and projects the mutation tool cannot run | It is the check that stops a test without assertions. A project it cannot run on fails before any generation. |
 | No path, sequence or MC/DC coverage | Stricter structural metrics | TypeScript coverage tools do not measure them. |
