@@ -2,12 +2,12 @@
 
 Author: Valentin Daitkhe
 
-This document defines the domain model and the contracts between modules: the
-objects the system works with, their states, the rules of the quality gate,
-the way the test generator is started and the way modules call each other. It
-builds on [Scope and requirements](scope-and-requirements.md) and
-[Project structure](project-structure.md). The HTTP contract between the
-service and its client is not written yet.
+This document defines the domain model and the contracts of the system: the
+objects it works with, their states, the rules of the quality gate, the way
+the test generator is started, the way modules call each other, and the way
+the client talks to the service. It builds on
+[Scope and requirements](scope-and-requirements.md) and
+[Project structure](project-structure.md).
 
 ## Glossary
 
@@ -801,3 +801,214 @@ and does not stop the improvement.
 
 Each check makes its own clean copy and installs dependencies again. What
 that costs in time is not measured yet.
+
+## Client and service
+
+The terminal client and the service are two processes. An improvement takes
+tens of minutes, and closing the terminal must not stop it. They exchange
+HTTP messages over a Unix domain socket. The service opens no network port.
+
+```mermaid
+flowchart TD
+    TUI["Terminal<br/>client"] --> SOCK["Unix socket,<br/>HTTP messages"]
+    CMD["Commands<br/>for scripts"] --> SOCK
+
+    subgraph SVC["backend service"]
+        API["HTTP<br/>controllers"]
+        WORKER["Worker"]
+        MOD["Modules"]
+        Q["Job queue"]
+    end
+
+    SOCK --> API
+    API --> MOD
+    MOD --> Q
+    WORKER --> Q
+    WORKER --> MOD
+    MOD --> DB[("SQLite")]
+    Q --> DB
+    WORKER --> TOOLS["Sandboxed<br/>tools"]
+```
+
+HTTP stays as the format of requests, responses and status codes. The socket
+is only the transport. This keeps ordinary NestJS controllers and one set of
+Zod schemas, and the service can be inspected with `curl --unix-socket`. A
+protocol of my own would need a hand-written dispatcher, and gRPC would bring
+a second toolchain for fourteen calls.
+
+Four properties hold:
+
+1. Closing the client does not cancel a job and does not stop the service.
+2. One service owns one database and its socket.
+3. A client in isolated mode cannot stop the user's own service.
+4. The service does not treat the environment it was started in as the
+   configuration of every later job.
+
+### Starting the service
+
+The user never starts a server. A client does this on every command:
+
+1. Connects to the socket and asks `GET /health`.
+2. If the service answers, compares the contract version.
+3. If nothing answers, starts the service as a detached process. A client
+   does this at most once.
+4. Waits until `GET /health` answers, then goes on.
+
+The service starts in a fixed order, the same on a clean start and after a
+crash:
+
+1. It takes the instance lock and exits quietly if another service holds it.
+2. Only then it removes a socket file left behind by a crashed service.
+3. It listens on the socket and restricts the file to its owner.
+4. It returns jobs with an expired lease to the queue.
+
+The instance lock is a SQLite file of its own, next to the database, held in
+an exclusive transaction for the life of the process:
+
+- It is not the main database, so the long transaction blocks nothing.
+- It uses its own connection, never the `TransactionManager`, which ends a
+  transaction when its callback returns.
+- The file is never deleted. Deleting it would let two services lock two
+  different files.
+- Only the holder of the lock may touch the socket file.
+
+The lock disappears with the process, also after `SIGKILL`.
+
+### Where it lives
+
+One instance directory holds the database, the lock, the socket, stored tool
+output and working copies. The directory is readable by its owner only, and
+so is the socket.
+
+The path of a Unix socket is limited to about a hundred bytes. The service
+uses a short absolute path and refuses to start with a clear message when the
+configured directory makes the path too long. It does not change its working
+directory to get around the limit, because it starts `git`, `gh`, test
+runners and the AI CLI, and a process started without an explicit directory
+would then run in the wrong place.
+
+The socket keeps out other users of the machine and pages in a web browser.
+It does not keep out other processes of the same user, and a check inside the
+service would not either: such a process can call `gh` directly. So requests
+carry no credentials. The limits that matter are different: the service acts
+only on repositories the user connected, every request is validated, and the
+sandbox can reach neither the socket, the database nor any credential.
+
+### Environment of a long-lived service
+
+The service can outlive the terminal that started it, so its environment can
+be out of date.
+
+- Credentials are read at the moment of use, from the stores of the tools
+  themselves. `gh` and the AI CLI are started anew for every operation, so a
+  changed login is picked up.
+- A token passed in an environment variable works only in isolated mode,
+  where the service is started by the same command and inherits its
+  environment.
+- A choice that is not secret travels in the request: the AI CLI, the model,
+  the quality policy. All of them are part of the idempotency key.
+- `GET /health` reports the GitHub account the service uses and when it was
+  started, and the client shows it.
+- The versions of the tools are recorded with every job. Picking up a changed
+  `PATH` needs a restart.
+
+### Waiting and isolation
+
+Two flags, independent of each other:
+
+| Flag | What it does |
+| --- | --- |
+| `--wait` | The command blocks until the job is final and returns an exit code. It needs no terminal and prints plain lines or JSON |
+| `--isolated` | The command starts a service of its own, with its own instance directory, and stops it at the end |
+
+A client stops only a service it started in isolated mode. CI uses both
+flags. A developer can use `--wait` alone, against the long-lived service.
+
+An isolated run starts with an empty database, so it does not remember
+earlier improvements. A second pull request is still not opened, because
+publishing looks for the branch and the pull request on GitHub first.
+
+### Versions
+
+The path carries no version, because one service never serves two versions.
+`GET /health` returns the version of the contract. When it differs from the
+client's, the client asks an idle service to stop and starts the new one. If
+jobs are running, it says so and changes nothing.
+
+### Routes
+
+| Method and path | Purpose | Answer |
+| --- | --- | --- |
+| `POST /repositories` | Connect a repository by URL | 201, or 200 with the existing one |
+| `GET /repositories` | List repositories | 200 |
+| `GET /repositories/:id` | One repository | 200, 404 |
+| `GET /repositories/:id/access` | Preflight for a repository | 200 |
+| `POST /repositories/:id/scans` | Queue a scan | 202 with the scan id |
+| `GET /scans/:id` | State and outcome of a scan | 200 |
+| `POST /scans/:id/cancel` | Cancel a scan | 202 |
+| `GET /repositories/:id/snapshots` | Snapshots, newest first | 200 |
+| `GET /snapshots/:id/files` | Coverage per file, with a below-threshold filter | 200 |
+| `POST /improvements` | Request an improvement of a file from a snapshot | 202, 409 |
+| `GET /improvements` | List, filtered by repository and status | 200 |
+| `GET /improvements/:id` | Status, attempts, budget use, pull request, failure reason | 200, 404 |
+| `GET /improvements/:id/patch` | The accepted patch and its hash, for review mode | 200, 409 |
+| `POST /improvements/:id/approve` | Approve publishing. The body carries the patch hash | 202, 409 |
+| `POST /improvements/:id/cancel` | Cancel an improvement | 202 |
+| `GET /health` | Readiness, versions, account in use, worker alive | 200 |
+
+- Each DTO has one Zod schema in `api-contracts`. The service validates
+  requests with it and the client validates responses.
+- A command that starts work answers 202 and returns a resource whose state
+  the client reads afterwards.
+- A repeated request returns what exists, with 200. The same repository, or
+  the same improvement with the same key, is not an error. 409 is for a real
+  conflict: a stale snapshot, another improvement of the same file in
+  progress, or an action that does not fit the current status.
+- An approval names the hash of the patch the person saw. A different hash is
+  a conflict.
+- The client sees scans and improvements, never queue jobs.
+- Coverage is sent as a percentage and as covered and total counts, so the
+  client computes nothing.
+
+An error has one shape, in HTTP and in the output of the client:
+
+```json
+{ "error": "stale_snapshot", "message": "The target file changed." }
+```
+
+`error` is a stable code. `message` is for people and may change. Status 400
+means the request did not match its schema, 404 not found, 409 a conflict and
+500 a fault.
+
+The client learns about progress by asking again, about once a second. There
+is no event stream in the first version: an improvement produces about a
+dozen events in its life, and the service has no event bus to feed a stream.
+
+### What the socket run showed
+
+I ran a NestJS 12.5 service with one route on macOS with Node 25.
+
+- `app.listen` with a socket path works, and the process had no TCP listener.
+  `curl --unix-socket` and a Node client with `socketPath` got normal
+  answers.
+- The service kept running and answering after the client and its shell had
+  exited.
+- After `SIGTERM` the process ended and the socket file was gone.
+- A path of 104 bytes worked and 105 failed.
+
+| Eight clients started at once | Services left alive |
+| --- | --- |
+| Clean start, no lock | 1 in every round |
+| After `SIGKILL`, socket file left, no lock | 8 in three rounds of four |
+| After `SIGKILL`, socket file left, instance lock | 1 in every round |
+
+On a clean start only one process can bind the address, so the others exit.
+The danger is the file a crashed service leaves: "remove it and listen" lets
+every starter remove the socket of the one before. Seven of the eight
+services were then alive and unreachable, each with a worker of its own.
+
+Not measured and not claimed: Linux and its path limit, surviving a logout or
+a reboot, and Windows. Two scenarios need the real application and are left
+to its tests: killing the service during a mutation run and checking that the
+same attempt continues and no second pull request appears, and stopping the
+service while a worker is busy without losing what recovery needs.
