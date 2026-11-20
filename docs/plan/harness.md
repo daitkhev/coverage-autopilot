@@ -53,15 +53,21 @@ harness/
 ├── baseline.json
 ├── architecture/
 │   ├── files.ts
+│   ├── load-project.ts
 │   ├── imports.ts
+│   ├── aliases.ts
 │   ├── graph.ts
+│   ├── rules.ts
 │   ├── rules/
 │   ├── lists.ts
 │   └── baseline.ts
+├── gate/
+│   └── steps.ts
 ├── eslint/
 │   ├── config.ts
 │   └── rules/
 ├── configs/
+├── shared/
 ├── agents/
 │   └── claude/
 │       ├── settings.json
@@ -69,7 +75,8 @@ harness/
 ├── fixtures/
 └── tests/
     ├── unit/
-    └── integration/
+    ├── integration/
+    └── support/
 ```
 
 | Part | Holds |
@@ -77,7 +84,9 @@ harness/
 | `bin/` | What a person, a hook or CI starts. `check.ts` is the gate. `ratchet.ts` is the architecture linter. `mutation.ts` reads the report of a mutation run and gives the verdict. `guard.ts` sorts the files of a change into policy and the rest |
 | `policy/` | The rules as data, written by hand. `structure.json` has the modules, the layers, who may import whom and which folder a file suffix belongs to. `packages.json` has every outside package and where it may be imported. `limits.json` has every number |
 | `baseline.json` | The lists the ratchet recorded last. Written by the ratchet and never by hand |
-| `architecture/` | The code of the ratchet |
+| `architecture/` | The code of the ratchet. `rules.ts` is the list of rules, and a rule that is not in it does not run |
+| `gate/` | The steps of the gate and its profiles, as data that a test can read |
+| `shared/` | Reading the files of `policy/`, and the one error class of the harness |
 | `eslint/` | The lint configuration and the project's own lint rules |
 | `configs/` | The configuration of every other tool: TypeScript base, Prettier, Knip, Jest, StrykerJS, jscpd, commitlint, lefthook, markdownlint |
 | `agents/` | The settings and the hooks of the AI agent |
@@ -209,17 +218,17 @@ chain of imports.
 
 ### What it checks
 
-A tick means the rule was planted as a violation in the trial run and the
-ratchet reported it.
+A tick means the rule was planted as a violation and the ratchet reported
+it, in the trial run or in a fixture of the repository.
 
 | Rule | Fails when | Graph | Tried |
 | --- | --- | --- | --- |
 | `unknown-module` | A folder under `modules/` is not one of the four modules | | ✓ |
 | `unknown-layer` | A module has a folder that is not one of the five layers | | |
 | `misplaced-file` | A suffix is outside its folder: `.entity.ts` outside `domain/entities/`, `.adapter.ts` outside `infrastructure/` | | |
-| `file-name` | A name is not kebab-case, or it is `index.ts`, `utils`, `helpers`, `common` or `misc` | | |
+| `file-name` | A name is not kebab-case, or it is `index.ts`, `utils`, `helpers`, `common` or `misc` | | ✓ |
 | `relative-import` | An import starts with a dot, `./` included | Design | ✓ |
-| `unresolved-import` | An alias leads to no file | Design | |
+| `unresolved-import` | An alias leads to no file | Design | ✓ |
 | `layer-direction` | A layer imports a layer or a shared folder it may not: `domain` imports `infrastructure`, `application` imports `presentation` | Design | ✓ |
 | `module-boundary` | A module imports another module outside its `contracts/` | Design | ✓ |
 | `module-direction` | A module uses a module it is not allowed to use, such as `repositories` using `coverage` | Design | ✓ |
@@ -324,8 +333,9 @@ the same tree write the same bytes.
 
 The rest of the rules are about the code inside a file. They are held by
 ESLint, the compiler and the other tools of the gate. A tick means the rule
-was planted as a violation in a trial run and the tool caught it. No tick
-means the rule is planned and not tried yet.
+was planted as a violation and the tool caught it, in a trial run or in a
+fixture of the repository. No tick means the rule is planned and not tried
+yet.
 
 ### TypeScript
 
@@ -341,14 +351,14 @@ means the rule is planned and not tried yet.
 
 | Rule added on top | Held by | Tried |
 | --- | --- | --- |
-| Exported functions and public methods state their parameter and return types | `explicit-module-boundary-types` | |
+| Exported functions and public methods state their parameter and return types | `explicit-module-boundary-types` |✓ |
 | A cast with `as` is allowed in `infrastructure` and `presentation` only | `no-restricted-syntax` | ✓ |
-| A condition is a boolean, not a value that happens to be truthy | `strict-boolean-expressions` | |
-| `interface` for an object, `type` for a union | `consistent-type-definitions` | |
-| A type is imported with `import type` | `consistent-type-imports` | |
-| Every class member says `public` or `private` | `explicit-member-accessibility` | |
-| One class in a file | `max-classes-per-file` | |
-| No default export | `no-restricted-exports` | |
+| A condition is a boolean, not a value that happens to be truthy | `strict-boolean-expressions` |✓ |
+| `interface` for an object, `type` for a union | `consistent-type-definitions` |✓ |
+| A type is imported with `import type` | `consistent-type-imports` |✓ |
+| Every class member says `public` or `private` | `explicit-member-accessibility` |✓ |
+| One class in a file | `max-classes-per-file` |✓ |
+| No default export | `no-restricted-exports` |✓ |
 
 ### Errors and outcomes
 
@@ -373,23 +383,23 @@ the imports. These calls need no import, so ESLint holds them:
 | --- | --- | --- | --- |
 | `new Date()`, `Date.now()` | The system clock adapter | `no-restricted-syntax` | ✓ |
 | `randomUUID()` | The id generator adapter | `no-restricted-syntax` | |
-| `process.env` | The configuration loader | `no-restricted-properties` | |
-| `console` | Nowhere in the service. The commands of the client print through one writer | `no-console` | |
+| `process.env` | The configuration loader | `no-restricted-properties` |✓ |
+| `console` | Nowhere in the service. The commands of the client print through one writer | `no-console` |✓ |
 | `setTimeout` as a pause, a retry loop | The shared retry and sleep code | `no-restricted-syntax` | |
 
 ### Size and shape
 
 | Rule | Limit | Held by | Tried |
 | --- | --- | --- | --- |
-| Lines in a function, blank lines and comments not counted | 50 | `max-lines-per-function` | |
-| Branches in a function | 8 | `complexity` | |
-| Nesting | 3 | `max-depth` | |
+| Lines in a function, blank lines and comments not counted | 50 | `max-lines-per-function` |✓ |
+| Branches in a function | 8 | `complexity` |✓ |
+| Nesting | 3 | `max-depth` |✓ |
 | Parameters. A constructor is exempt, because it lists dependencies | 3 | `no-restricted-syntax` | ✓ |
-| Lines in a file | 300 | `max-lines` | |
+| Lines in a file | 300 | `max-lines` |✓ |
 | A boolean parameter | None | `no-restricted-syntax` | ✓ |
 | `.then(` | None | `no-restricted-syntax` | ✓ |
-| A ternary inside a ternary | None | `no-nested-ternary` | |
-| A number in the middle of logic, other than 0, 1 and -1 | None | `no-magic-numbers` | |
+| A ternary inside a ternary | None | `no-nested-ternary` |✓ |
+| A number in the middle of logic, other than 0, 1 and -1 | None | `no-magic-numbers` |✓ |
 
 ### Naming
 
@@ -398,7 +408,7 @@ the imports. These calls need no import, so ESLint holds them:
 | A class is not called `Manager`, `Helper`, `Processor`, `Provider` or `Util` | `no-restricted-syntax` | ✓ |
 | An interface has no `I` prefix | `naming-convention` | |
 | The outer `describe` names the unit, a nested one a method or a `when`, and every `it` starts with `should` | `jest/valid-title` | |
-| Imports are sorted in groups: Node, packages, the contracts workspace, aliases | `simple-import-sort` | |
+| Imports are sorted in groups: Node, packages, the contracts workspace, aliases | `simple-import-sort` |✓ |
 
 ### The client
 
@@ -424,7 +434,7 @@ the imports. These calls need no import, so ESLint holds them:
 | --- | --- |
 | Versions are exact, with no `^` and no `~` | `save-exact`, and a check of every `package.json` |
 | Installing uses the lockfile only | `npm ci` |
-| One version of Node | `.nvmrc`, `engines` with `engine-strict` |
+| CI runs one exact version of Node. A version outside the range that was tried is refused | `.nvmrc`, `engines` with `engine-strict` |
 | A commit message is a Conventional Commit in lower case with no scope, `deps` aside | commitlint |
 | A branch is named `type/short-description` | A check in CI |
 | An action is pinned to a commit, and a job lists the permissions it uses | zizmor, actionlint |
@@ -903,6 +913,25 @@ repository can hold them. They are set by hand, once:
 
 The harness is built by priority. A small gate runs in CI from the first
 stage, and the last stage only makes CI strict.
+
+The first stage is built. What it holds today:
+
+- The ratchet with four rules: `file-name`, `relative-import`,
+  `unresolved-import` and `import-cycle`. There are no lists and no
+  baseline yet, so there is nothing to write or to compare.
+- The lint policy with the rules that need no layers. Each of the 26 rules
+  it adds has a wrong file and a right file in `harness/fixtures/lint/`,
+  and a test fails when a rule has none.
+- `check.ts` with `fast`, and with `full` as far as it goes: the unit and
+  integration tests of the harness. Formatting and lint look at the whole
+  tree, not at staged files, and no passed tree is remembered.
+- Four things were switched off on purpose, one at a time: a lint rule,
+  type-aware lint, a rule of the ratchet, and the pattern of a banned
+  shape. Each time a test of the harness went red.
+- Coverage of the harness is measured at 89% and not held yet. The two
+  commands in `bin/` run as separate processes and are not counted.
+- CI runs on Node 26.13.1. The harness was written and run on 25.2.1, so
+  `engines` allows both lines until the workflow has passed.
 
 1. **A gate that runs.** The root `package.json` with exact versions,
    Prettier, the TypeScript configuration, ESLint, the ratchet with its
