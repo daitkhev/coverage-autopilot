@@ -40,10 +40,11 @@ coverage-autopilot/
 │   │   ├── app/
 │   │   ├── screens/
 │   │   │   ├── repositories/
-│   │   │   ├── coverage/
-│   │   │   └── jobs/
+│   │   │   ├── files/
+│   │   │   └── improvements/
 │   │   ├── commands/
 │   │   ├── components/
+│   │   ├── theme/
 │   │   ├── hooks/
 │   │   └── api/
 │   ├── package.json
@@ -67,7 +68,10 @@ coverage-autopilot/
   service applies the missing ones in order every time it starts.
 - `frontend/` is the terminal client. `screens/` holds the interactive views and
   `commands/` holds the non-interactive commands. It talks to the backend only
-  through `api/`.
+  through `api/`. `theme/` is the only place that names a colour or a symbol:
+  it holds the colour roles, the symbols with their ASCII replacements, the
+  words for every status and the three widths of the layout. The screens and
+  the commands are described in [Terminal UI](terminal-ui.md).
 - `api-contracts/` holds the Zod schemas of the HTTP API. The backend validates
   requests with them and the frontend validates responses with them, so each
   DTO is described once and its type is inferred from the schema.
@@ -268,7 +272,7 @@ does not change when the importing file moves.
 | `#ports/*` | `backend/src/shared/application/ports/*` |
 | `#infrastructure/*` | `backend/src/shared/infrastructure/*` |
 | `#tests/*` | `backend/tests/*` |
-| `#app/*`, `#screens/*`, `#commands/*`, `#components/*`, `#hooks/*`, `#api/*` | `frontend/src/<folder>/*` |
+| `#app/*`, `#screens/*`, `#commands/*`, `#components/*`, `#theme/*`, `#hooks/*`, `#api/*` | `frontend/src/<folder>/*` |
 | `@coverage-autopilot/api-contracts` | The `api-contracts` workspace |
 
 ```ts
