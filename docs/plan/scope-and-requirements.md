@@ -110,13 +110,13 @@ publishes has been checked.
 Coverage comes from Istanbul-format reports, which give four counters per file:
 statements, branches, functions and lines. For a test suite `T`:
 
-```math
+$$
 C_s(T) = \frac{\text{statements executed by } T}{\text{all statements}}
 \qquad
 C_b(T) = \frac{\text{branch edges traversed by } T}{\text{all branch edges}}
 \qquad
 C_f(T) = \frac{\text{functions invoked by } T}{\text{all functions}}
-```
+$$
 
 Line coverage is an approximation of statement coverage: several statements can
 share a line. I use each metric for a different purpose:
@@ -131,9 +131,9 @@ Coverage only shows that code ran. It does not show that a test checks anything.
 Mutation testing covers that gap. The tool makes small changes (mutants) to the
 target file and counts how many of them make the new tests fail:
 
-```math
+$$
 MS(T) = \frac{\text{mutants killed by } T}{\text{all mutants} - \text{equivalent mutants}}
-```
+$$
 
 Mutation testing is expensive, so I scope it: mutants are created only in the
 target file, and only the new tests run against them.
