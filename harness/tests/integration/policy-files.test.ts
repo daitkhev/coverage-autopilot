@@ -165,6 +165,8 @@ describe('readLimits', () => {
       functionDepth: 3,
       functionParameters: 3,
       fileLines: 300,
+      duplicationPercent: 0.9,
+      coverage: { statements: 95, branches: 95, functions: 95, lines: 95 },
     });
   });
 });

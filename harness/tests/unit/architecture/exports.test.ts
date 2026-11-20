@@ -53,6 +53,16 @@ describe('parseExports', () => {
     expect(parseExports('a.ts', 'export const { a } = { a: 1 };')).toEqual([]);
   });
 
+  it('should skip a default export that has no name', () => {
+    expect(parseExports('a.ts', 'export default function () {}')).toEqual([]);
+  });
+
+  it('should pass over statements that cannot be exported', () => {
+    const text = 'start();\nexport const a = 1;\nif (a) {\n  start();\n}\n';
+
+    expect(parseExports('a.ts', text)).toEqual(['a']);
+  });
+
   it('should give nothing for a file that exports nothing', () => {
     expect(parseExports('a.ts', 'const a = 1;\n')).toEqual([]);
   });

@@ -43,4 +43,18 @@ describe('findCycles', () => {
 
     expect(findCycles(graph)).toEqual([]);
   });
+
+  it('should give the circles in the same order however the graph is built', () => {
+    const edges: [string, string[]][] = [
+      ['y', ['z']],
+      ['z', ['y']],
+      ['a', ['b']],
+      ['b', ['a']],
+    ];
+    const forward = findCycles(new Map(edges));
+    const backward = findCycles(new Map([...edges].reverse()));
+
+    expect(forward.map((group) => [...group].sort()[0])).toEqual(['a', 'y']);
+    expect(backward).toEqual(forward);
+  });
 });

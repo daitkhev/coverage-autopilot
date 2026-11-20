@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import { planFor, PROFILES, STEPS } from '#harness/gate/steps';
 import { HarnessError } from '#harness/shared/harness.error';
+import { readLimits } from '#harness/shared/policy';
 
 function namesOf(name: string): string[] {
   return planFor(name).map((step) => step.name);
@@ -24,8 +25,12 @@ describe('planFor', () => {
       'types',
       'architecture',
       'compare',
+      'unused',
+      'duplication',
       'unit',
       'integration',
+      'coverage',
+      'documents',
     ]);
   });
 
@@ -58,6 +63,25 @@ describe('STEPS', () => {
 
   it('should compare a tree on a desk with the commit it stands on', () => {
     expect(planFor('compare')[0]?.arguments).toEqual(['--compare', 'HEAD']);
+  });
+
+  it('should give Knip its configuration and hide nothing but aliases', () => {
+    const unused = planFor('unused')[0]?.arguments.join(' ');
+
+    expect(unused).toContain('--config harness/configs/knip.json');
+    expect(unused).toContain('--exclude subpaths');
+    expect(unused?.match(/--exclude/g)).toHaveLength(1);
+  });
+
+  it('should hold duplication at the ceiling of the policy', () => {
+    const duplication = planFor('duplication')[0]?.arguments ?? [];
+    const at = duplication.indexOf('--threshold');
+
+    expect(duplication[at + 1]).toBe(String(readLimits().duplicationPercent));
+    expect(duplication).toContain('--fail-on-empty');
+    expect(duplication.join(' ')).toContain(
+      '--config harness/configs/jscpd.json',
+    );
   });
 
   it('should fail lint on a warning', () => {

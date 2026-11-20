@@ -27,6 +27,15 @@ describe('compareFindings', () => {
     ]);
   });
 
+  it.each([
+    ['path', finding('a.ts', 1, 'x'), finding('b.ts', 1, 'x')],
+    ['line', finding('a.ts', 1, 'x'), finding('a.ts', 2, 'x')],
+    ['rule', finding('a.ts', 1, 'x'), finding('a.ts', 1, 'y')],
+  ])('should order by %s the same from both sides', (_, first, second) => {
+    expect(compareFindings(first, second)).toBeLessThan(0);
+    expect(compareFindings(second, first)).toBeGreaterThan(0);
+  });
+
   it('should call two equal findings equal', () => {
     expect(compareFindings(finding('a', 1, 'x'), finding('a', 1, 'x'))).toBe(0);
   });

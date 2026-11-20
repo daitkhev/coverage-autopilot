@@ -60,6 +60,12 @@ describe('checkTree', () => {
     ]);
   });
 
+  it('should not hide a defect behind a finding', () => {
+    repository.write(`${BASELINE}/in-the-way.txt`, 'a folder, not a file');
+
+    expect(() => checkTree(repository.root)).toThrow(/EISDIR/);
+  });
+
   it('should pass a tree that is what its baseline records', () => {
     repository.write(MIGRATION, 'create table a (id integer);\n');
     repository.write(CONTRACT, 'export interface ReportDto {}\n');
@@ -219,6 +225,26 @@ describe('compareWithBase', () => {
       '"coverage.lines" went down from 95 to 90. It moves one way.',
       '"file.lines" went up from 300 to 400. It moves one way.',
     ]);
+  });
+
+  it('should say so when the tree has no limits any more', () => {
+    repository.write(LIMITS, limits(300, 95));
+    const base = repository.commit();
+    repository.remove(LIMITS);
+
+    expect(compareWithBase(repository.root, base).notes).toContain(
+      `This tree has no ${LIMITS}.`,
+    );
+  });
+
+  it('should throw HarnessError for limits that are not an object', () => {
+    repository.write(LIMITS, '[]');
+    const base = repository.commit();
+    repository.write(LIMITS, limits(300, 95));
+
+    expect(() => compareWithBase(repository.root, base)).toThrow(
+      `${LIMITS} must hold a JSON object.`,
+    );
   });
 
   it('should pass a tree that only got stricter and only grew', () => {

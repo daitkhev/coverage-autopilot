@@ -47,6 +47,16 @@ describe('limitFindings', () => {
     expect(detailsFor(current)).toEqual([]);
   });
 
+  it('should take the share of duplication for a ceiling', () => {
+    const before = { ...BASE, duplication: { percent: 0.9 } };
+    const after = { ...BASE, duplication: { percent: 1.5 } };
+
+    expect(limitFindings(before, after).map((f) => f.detail)).toEqual([
+      '"duplication.percent" went up from 0.9 to 1.5. It moves one way.',
+    ]);
+    expect(limitFindings(after, before)).toEqual([]);
+  });
+
   it('should report a number that was removed', () => {
     expect(detailsFor({ ...BASE, file: {} })).toEqual([
       '"file.lines" was removed.',

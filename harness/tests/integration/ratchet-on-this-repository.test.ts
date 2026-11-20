@@ -35,7 +35,7 @@ describe('ratchet on this repository', () => {
     );
 
     expect(command?.imports.map((record) => record.target)).toContain(
-      'harness/architecture/commands.ts',
+      'harness/architecture/ratchet-command.ts',
     );
   });
 
