@@ -1,0 +1,30 @@
+{
+  "name": "coverage-autopilot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=25.2.0 <27"
+  },
+  "imports": {
+    "#harness/*": "./harness/*.ts"
+  },
+  "scripts": {
+    "check": "node harness/bin/check.ts",
+    "ratchet": "node harness/bin/ratchet.ts",
+    "format": "prettier --write . --config prettier.config.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@jest/globals": "30.5.2",
+    "@swc/core": "1.16.22",
+    "@swc/jest": "0.2.39",
+    "@types/node": "26.6.6",
+    "eslint": "10.15.0",
+    "eslint-plugin-simple-import-sort": "14.0.0",
+    "jest": "30.5.2",
+    "prettier": "3.10.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.73.0"
+  }
+}
