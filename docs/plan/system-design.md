@@ -546,6 +546,8 @@ events: the client asks for the status of a job.
   `code` and a `retryable` flag is a fault.
 - An operation takes one request object and, when it can be stopped, an
   `AbortSignal`.
+- A long operation may also take a progress observer, described in
+  [Progress of a running job](#progress-of-a-running-job).
 - Modules do not validate each other's data with Zod, because they share one
   process and its types. Zod parses what comes from outside: HTTP requests,
   configuration, tool output, and everything read back from JSON columns in
@@ -715,6 +717,25 @@ snapshot, the mutation baseline, the quality policy, a deadline and an id for
 log correlation. The report repeats the patch hash, so it is clear which text
 was verified. `verification` never retries on its own.
 
+Both operations run for minutes, so both accept a progress observer. It is
+one callback in the request:
+
+```ts
+interface CheckProgress {
+  check: CheckName;
+  status: 'running' | CheckStatus;
+  done?: number;
+  total?: number;
+}
+
+type ProgressObserver<T> = (progress: T) => void;
+```
+
+`verification` calls it when a check starts and when it ends. The optional
+counter is for a check that repeats, such as "run 2 of 3". The observer is
+not an event bus: it has one listener, it lives for one call, and nothing
+breaks when a call is missed.
+
 `improvement` is at the top of the dependency graph. It exposes nothing to
 other modules and is reached only through HTTP.
 
@@ -732,6 +753,7 @@ interface JobQueue {
   ): Promise<EnqueueJobResult>;
   cancel(jobId: JobId, tx: Transaction): Promise<void>;
   getJob(jobId: JobId): Promise<JobDto | null>;
+  getProgress(subjectId: string): Promise<JobProgressDto | null>;
 }
 
 interface JobHandler {
@@ -746,6 +768,7 @@ interface JobContext {
   readonly leaseToken: LeaseToken;
   readonly signal: AbortSignal;
   commit<T>(operation: (tx: Transaction) => Promise<T>): Promise<T>;
+  reportProgress(progress: JobProgress): void;
 }
 
 interface JobFinished {
@@ -843,6 +866,69 @@ works because every handler can be run again:
 The price is small: after such a crash the repository stays reserved until
 the lease runs out.
 
+#### Progress of a running job
+
+A person who watches an improvement wants to see which check is running. The
+status of the improvement says only `verifying`, and the verification report
+exists only when all checks are over. The steps in between are progress, and
+they are kept apart from state.
+
+```ts
+interface ProgressStep {
+  code: string;
+  status: 'pending' | 'running' | CheckStatus;
+  done?: number;
+  total?: number;
+}
+
+interface JobProgress {
+  steps: ProgressStep[];
+}
+```
+
+```mermaid
+flowchart LR
+    V["verification<br/>runs a check"] -->|"observer"| H["job handler"]
+    H -->|"reportProgress"| W["worker"]
+    W -->|"token check"| J[("jobs row")]
+    J --> Q["improvement<br/>or scan answer"]
+    Q --> C["client"]
+```
+
+- The handler turns what it hears into the full list of steps of the current
+  phase and gives it to `reportProgress`. A scan handler reports its own
+  steps the same way: clone, install, test run, reading the report.
+- `reportProgress` returns at once and never fails. The worker keeps the
+  latest value and writes it to the job row at most once a second.
+- The write checks the lease token, like the heartbeat. A worker that lost
+  its lease writes nothing.
+- A failed write is dropped. The next one carries the whole list again, so
+  nothing has to be replayed.
+- A claim empties the progress. A second run of a job never shows the steps
+  of the first.
+- The row keeps the time of the last write. The client shows the age when a
+  value is older than a few seconds, so a stalled worker does not look busy.
+- Progress is read from a leased job only. What is left in a finished job is
+  never shown.
+
+Progress is a hint for people. No handler, no recovery and no verdict reads
+it. Losing it changes only what the screen shows for a second.
+
+| Moment | What the client gets |
+| --- | --- |
+| The job waits in the queue | The status and no steps |
+| A phase starts | The steps of that phase, all `pending` |
+| A check starts or ends | The same list with one status changed |
+| The verdict is `rejected`, the next attempt starts | The steps of the new phase. The report of the finished attempt is stored with it |
+| The verdict is `inconclusive`, the attempt runs again | No steps until the job is claimed again, then a fresh list |
+| The user cancels | The status `cancelled` and no steps |
+| The improvement reaches a final status | The stored reports and no steps |
+
+The phase comes from the status of the improvement, which is state. Only the
+steps inside a phase come from progress. The generator reports no steps: the
+screen shows the attempt number and the time since the phase began, both
+stored with the improvement.
+
 ### Stopping a running job
 
 One `AbortSignal` reaches every operation of a job. The modules below only
@@ -878,6 +964,7 @@ improvement fails with `budget_exhausted` and nothing is retried.
 | The life of a working copy | The module that asked `repositories` for it |
 | Use of a borrowed working copy | The called module, for one call |
 | The lease and its token | The queue, through `JobContext` |
+| Progress of a running job | The handler reports it, the worker stores it |
 | Saving the state of an aggregate | The module that owns it, through its repository |
 | Completing a job | The worker |
 
@@ -999,6 +1086,8 @@ erDiagram
         int runs
         int lease_token
         text lease_expires_at
+        text progress
+        text progress_updated_at
     }
 ```
 
@@ -1009,7 +1098,7 @@ erDiagram
 | `file_coverages` | One row for every measured file and every file with no executable code |
 | `improvements` | Status, the two keys, quality policy, generator configuration, budget and usage, mutation baseline, branch, pull request, failure reason |
 | `attempts` | Test patches and verification reports |
-| `jobs` | Leases, lease tokens, run counts, idempotency keys |
+| `jobs` | Leases, lease tokens, run counts, idempotency keys, progress of the running job |
 
 ### Rules the database checks
 
@@ -1044,6 +1133,8 @@ erDiagram
   object exists.
 - Two ordinary indexes serve the claim: pending jobs by time, and leased
   jobs by the end of the lease.
+- `jobs.progress` is empty until a handler reports something, so its check
+  is written as "empty, or valid JSON".
 
 ### Two keys of an improvement
 
@@ -1076,6 +1167,7 @@ what can be lost.
 | Test patch and its hash | SQLite |
 | Verification report: the result of every check, the status of every mutant after the patch, the reasons of the verdict | SQLite |
 | Budget usage | SQLite |
+| Progress of a running job | SQLite, in the job row. May be lost |
 | Raw output of the tools | Files |
 | Cache of the mutation tool | Files |
 | Working copies | Files, temporary |
@@ -1225,15 +1317,16 @@ leases and then tried to save. Every 400 ms a random worker was stopped with
   names columns, not the index. A foreign key failure names nothing.
 
 Not measured and not claimed: Linux, another SQLite driver, and power loss.
-Three things are left to the tests of the real application: a heartbeat that
-extends a lease, the two-step completion of a job, and stopping the service
-while a worker is busy.
+Four things are left to the tests of the real application: a heartbeat that
+extends a lease, the two-step completion of a job, stopping the service
+while a worker is busy, and progress writes next to the heartbeat.
 
 ## Client and service
 
 The terminal client and the service are two processes. An improvement takes
 tens of minutes, and closing the terminal must not stop it. They exchange
 HTTP messages over a Unix domain socket. The service opens no network port.
+What the user sees and types is in [Terminal UI](terminal-ui.md).
 
 ```mermaid
 flowchart TD
@@ -1373,13 +1466,13 @@ jobs are running, it says so and changes nothing.
 | `GET /repositories/:id` | One repository | 200, 404 |
 | `GET /repositories/:id/access` | Preflight for a repository | 200 |
 | `POST /repositories/:id/scans` | Queue a scan | 202 with the scan id |
-| `GET /scans/:id` | State and outcome of a scan | 200 |
+| `GET /scans/:id` | State, steps of the running scan and its outcome | 200 |
 | `POST /scans/:id/cancel` | Cancel a scan | 202 |
 | `GET /repositories/:id/snapshots` | Snapshots, newest first | 200 |
 | `GET /snapshots/:id/files` | Coverage per file, with a below-threshold filter | 200 |
 | `POST /improvements` | Request an improvement of a file from a snapshot | 202, 200, 409 |
 | `GET /improvements` | List, filtered by repository and status | 200 |
-| `GET /improvements/:id` | Status, attempts, budget use, pull request, failure reason | 200, 404 |
+| `GET /improvements/:id` | Status, steps of the running phase, attempts, budget use, pull request, failure reason | 200, 404 |
 | `GET /improvements/:id/patch` | The accepted patch and its hash, for review mode | 200, 409 |
 | `POST /improvements/:id/approve` | Approve publishing. The body carries the patch hash | 202, 409 |
 | `POST /improvements/:id/cancel` | Cancel an improvement | 202 |
@@ -1417,6 +1510,9 @@ means the request did not match its schema, 404 not found, 409 a conflict and
 The client learns about progress by asking again, about once a second. There
 is no event stream in the first version: an improvement produces about a
 dozen events in its life, and the service has no event bus to feed a stream.
+The answer for a running scan or improvement carries the steps of the
+current phase and the time they were last written, as described in
+[Progress of a running job](#progress-of-a-running-job).
 
 ### What the socket run showed
 
