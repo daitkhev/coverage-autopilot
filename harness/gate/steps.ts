@@ -15,6 +15,9 @@ const JEST_NODE_OPTIONS = [
   '--disable-warning=ExperimentalWarning',
 ];
 
+/** What a tree is compared with on a desk: the commit it stands on. */
+const LOCAL_BASE = 'HEAD';
+
 function tool(name: string, script: string, ...rest: string[]): Step {
   return { name, nodeOptions: [], script, arguments: rest };
 }
@@ -52,14 +55,9 @@ export const STEPS: readonly Step[] = [
     '--max-warnings',
     '0',
   ),
-  tool(
-    'types',
-    'node_modules/typescript/bin/tsc',
-    '--noEmit',
-    '--project',
-    'tsconfig.json',
-  ),
+  tool('types', 'harness/bin/types.ts'),
   tool('architecture', 'harness/bin/ratchet.ts'),
+  tool('compare', 'harness/bin/ratchet.ts', '--compare', LOCAL_BASE),
   tests('unit', 'harness/tests/unit'),
   tests('integration', 'harness/tests/integration'),
 ];
@@ -69,7 +67,7 @@ const FAST = ['format', 'lint', 'types', 'architecture'];
 /** The profiles of the gate. Each one holds the one before it. */
 export const PROFILES: Readonly<Record<string, readonly string[]>> = {
   fast: FAST,
-  full: [...FAST, 'unit', 'integration'],
+  full: [...FAST, 'compare', 'unit', 'integration'],
 };
 
 function stepNamed(name: string): Step {
