@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { typeProjects } from '#harness/gate/type-projects';
 import { structureOf } from '#harness/tests/support/policy-builder';

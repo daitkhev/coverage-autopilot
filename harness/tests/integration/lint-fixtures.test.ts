@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
-import { beforeAll, describe, expect, it } from '@jest/globals';
 import { ESLint } from 'eslint';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { addedRuleIds, lintPolicy } from '#harness/eslint/config';
 import { syntaxBans } from '#harness/eslint/restricted-syntax';
@@ -38,7 +38,6 @@ function readExpected(): Map<string, Expectation[]> {
   return new Map(entries.map(([name, list]) => [name, list as Expectation[]]));
 }
 
-const expected = readExpected();
 const found = new Map<string, Message[]>();
 
 beforeAll(async () => {
@@ -47,7 +46,15 @@ beforeAll(async () => {
     overrideConfigFile: true,
     overrideConfig: lintPolicy,
   });
-  const results = await eslint.lintFiles([join(FIXTURES, '**', '*.ts')]);
+  const files = ['right', 'wrong'].flatMap((kind) =>
+    readdirSync(join(FIXTURES, kind)).map((file) => join(FIXTURES, kind, file)),
+  );
+  const lists = await Promise.all(
+    files.map((filePath) =>
+      eslint.lintText(readFileSync(filePath, 'utf8'), { filePath }),
+    ),
+  );
+  const results = lists.flat();
   for (const result of results) {
     const kind = basename(join(result.filePath, '..'));
     const messages = result.messages.map((message) => ({
@@ -59,16 +66,18 @@ beforeAll(async () => {
 }, 60_000);
 
 describe('lint policy on its fixtures', () => {
-  const names = [...expected.keys()].sort();
+  const names = namesIn('wrong');
 
   it('should have a wrong and a right file for every case', () => {
-    expect(namesIn('wrong')).toEqual(names);
-    expect(namesIn('right')).toEqual(names);
+    const cases = [...readExpected().keys()].sort();
+
+    expect(namesIn('wrong')).toEqual(cases);
+    expect(namesIn('right')).toEqual(cases);
   });
 
   it('should have a case for every rule the policy adds', () => {
     const covered = new Set(
-      [...expected.values()].flat().map((item) => item.rule),
+      [...readExpected().values()].flat().map((item) => item.rule),
     );
 
     expect(addedRuleIds.filter((rule) => !covered.has(rule))).toEqual([]);
@@ -83,7 +92,7 @@ describe('lint policy on its fixtures', () => {
 
   it.each(names)('should report exactly its rule in wrong/%s', (name) => {
     const messages = found.get(`wrong/${name}`) ?? [];
-    const wanted = expected.get(name) ?? [];
+    const wanted = readExpected().get(name) ?? [];
 
     expect(messages.map((message) => message.rule)).toEqual(
       wanted.map((item) => item.rule),

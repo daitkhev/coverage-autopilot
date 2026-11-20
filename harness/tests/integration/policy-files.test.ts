@@ -1,12 +1,9 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
+import { readMutationRuns } from '#harness/shared/mutation-policy';
 import { readPackageRules } from '#harness/shared/packages';
 import { readLimits } from '#harness/shared/policy';
 import { readStructure } from '#harness/shared/structure';
-
-const structure = readStructure();
-const { backend } = structure;
-const packageRules = readPackageRules();
 
 /** Packages that stand between the code and its SQL. The design has none. */
 const DATABASE_LAYERS = [
@@ -25,15 +22,15 @@ const DATABASE_LAYERS = [
 
 describe('readStructure', () => {
   it('should read what is measured and which names are refused', () => {
-    expect(structure.extensions).toContain('.ts');
-    expect(structure.excluded).toContain('harness/fixtures/');
-    expect(structure.bannedNames).toEqual(
+    expect(readStructure().extensions).toContain('.ts');
+    expect(readStructure().excluded).toContain('harness/fixtures/');
+    expect(readStructure().bannedNames).toEqual(
       expect.arrayContaining(['index', 'utils', 'helpers', 'common', 'misc']),
     );
   });
 
   it('should have the four modules, each using only the ones before it', () => {
-    const names = [...backend.modules.keys()];
+    const names = [...readStructure().backend.modules.keys()];
 
     expect(names).toEqual([
       'repositories',
@@ -45,36 +42,38 @@ describe('readStructure', () => {
       const before = names.slice(0, index);
 
       expect(before).toEqual(
-        expect.arrayContaining([...(backend.modules.get(name) ?? [])]),
+        expect.arrayContaining([
+          ...(readStructure().backend.modules.get(name) ?? []),
+        ]),
       );
     }
   });
 
   it('should keep the domain free of every other layer', () => {
-    expect(backend.layers.get('domain')).toEqual({
+    expect(readStructure().backend.layers.get('domain')).toEqual({
       layers: ['domain'],
       shared: ['kernel'],
     });
   });
 
   it('should name only known layers and known shared folders', () => {
-    const layers = [...backend.layers.keys()];
-    const shared = [...backend.shared.keys()];
+    const layers = [...readStructure().backend.layers.keys()];
+    const shared = [...readStructure().backend.shared.keys()];
 
-    for (const rule of backend.layers.values()) {
+    for (const rule of readStructure().backend.layers.values()) {
       expect(layers).toEqual(expect.arrayContaining([...rule.layers]));
       expect(shared).toEqual(expect.arrayContaining([...rule.shared]));
     }
-    for (const uses of backend.shared.values()) {
+    for (const uses of readStructure().backend.shared.values()) {
       expect(shared).toEqual(expect.arrayContaining([...uses]));
     }
     expect(layers).toEqual(
-      expect.arrayContaining([...backend.reachOtherModules]),
+      expect.arrayContaining([...readStructure().backend.reachOtherModules]),
     );
   });
 
   it('should let no layer import the layer of the presentation but itself', () => {
-    const importers = [...backend.layers.entries()]
+    const importers = [...readStructure().backend.layers.entries()]
       .filter(([, rule]) => rule.layers.includes('presentation'))
       .map(([name]) => name);
 
@@ -82,9 +81,9 @@ describe('readStructure', () => {
   });
 
   it('should put every role suffix in a folder of a known layer', () => {
-    const layers = [...backend.layers.keys()];
+    const layers = [...readStructure().backend.layers.keys()];
 
-    for (const folders of backend.suffixes.values()) {
+    for (const folders of readStructure().backend.suffixes.values()) {
       for (const folder of folders) {
         expect(layers).toContain(folder.split('/')[0]);
         expect(folder.endsWith('/')).toBe(true);
@@ -93,7 +92,7 @@ describe('readStructure', () => {
   });
 
   it('should keep every alias of a workspace inside that workspace', () => {
-    for (const aliases of structure.workspaces.values()) {
+    for (const aliases of readStructure().workspaces.values()) {
       for (const [alias, target] of aliases) {
         expect(alias).toMatch(/^#[a-z-]+\/\*$/);
         expect(target).toMatch(/^\.\/(src|tests)\//);
@@ -103,26 +102,26 @@ describe('readStructure', () => {
   });
 
   it('should let a workspace have no scripts', () => {
-    expect(structure.manifestFields).not.toContain('scripts');
+    expect(readStructure().manifestFields).not.toContain('scripts');
   });
 });
 
 describe('readPackageRules', () => {
   it('should give every rule packages and places', () => {
-    for (const rule of packageRules) {
+    for (const rule of readPackageRules()) {
       expect(rule.packages).not.toHaveLength(0);
       expect(rule.places).not.toHaveLength(0);
     }
   });
 
   it('should list no package that stands between the code and its SQL', () => {
-    const listed = packageRules.flatMap((rule) => rule.packages);
+    const listed = readPackageRules().flatMap((rule) => rule.packages);
 
     expect(listed.filter((name) => DATABASE_LAYERS.includes(name))).toEqual([]);
   });
 
   it('should allow the database only where the SQL is written', () => {
-    const places = packageRules
+    const places = readPackageRules()
       .filter((rule) => rule.packages.includes('node:sqlite'))
       .flatMap((rule) => rule.places);
 
@@ -133,13 +132,13 @@ describe('readPackageRules', () => {
   });
 
   it('should allow no package in the domain of a module', () => {
-    const places = packageRules.flatMap((rule) => rule.places);
+    const places = readPackageRules().flatMap((rule) => rule.places);
 
     expect(places.filter((place) => place.includes('/domain'))).toEqual([]);
   });
 
   it('should allow every module of Node only in the harness and in tests', () => {
-    const places = packageRules
+    const places = readPackageRules()
       .filter((rule) => rule.packages.includes('node:*'))
       .flatMap((rule) => rule.places);
 
@@ -149,9 +148,9 @@ describe('readPackageRules', () => {
   });
 
   it('should start every place in the harness or in a workspace', () => {
-    const roots = ['harness', ...structure.workspaces.keys()];
+    const roots = ['harness', ...readStructure().workspaces.keys()];
 
-    for (const place of packageRules.flatMap((rule) => rule.places)) {
+    for (const place of readPackageRules().flatMap((rule) => rule.places)) {
       expect(roots).toContain(place.split('/')[0]);
     }
   });
@@ -167,6 +166,36 @@ describe('readLimits', () => {
       fileLines: 300,
       duplicationPercent: 0.9,
       coverage: { statements: 95, branches: 95, functions: 95, lines: 95 },
+      mutationFloors: new Map([['harness', 88]]),
     });
+  });
+});
+
+describe('readMutationRuns', () => {
+  it('should hold every source file of the harness in one area', () => {
+    expect(readMutationRuns()).toEqual([
+      {
+        name: 'harness',
+        config: 'harness/configs/stryker.json',
+        report: 'reports/mutation/harness.json',
+        areas: [
+          {
+            name: 'harness',
+            places: ['harness/'],
+            excluded: ['harness/bin/', 'harness/tests/'],
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should have a floor only for an area that exists', () => {
+    const areas = readMutationRuns().flatMap((run) =>
+      run.areas.map((area) => area.name),
+    );
+
+    expect(areas).toEqual(
+      expect.arrayContaining([...readLimits().mutationFloors.keys()]),
+    );
   });
 });

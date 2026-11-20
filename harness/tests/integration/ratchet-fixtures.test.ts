@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { readPolicy } from '#harness/architecture/policy';
 import { rulesOf } from '#harness/architecture/rules';
@@ -44,14 +44,36 @@ function expectedIn(rule: string, name: string): unknown {
   return JSON.parse(readFileSync(file, 'utf8'));
 }
 
-const ruleIds = rulesOf(readPolicy()).map((rule) => rule.id);
+/**
+ * Every rule of the ratchet, written out. The names of the tests are made
+ * while the file is loaded, and nothing of the ratchet runs then.
+ */
+const RULE_IDS = [
+  'file-name',
+  'import-cycle',
+  'layer-direction',
+  'misplaced-file',
+  'module-boundary',
+  'module-direction',
+  'package-manifest',
+  'package-placement',
+  'relative-import',
+  'unknown-layer',
+  'unknown-module',
+  'unresolved-import',
+  'workspace-boundary',
+];
 
 describe('ratchet on its fixtures', () => {
-  it('should have fixtures for the rules that exist and for no other', () => {
-    expect(foldersOf(FIXTURES)).toEqual([...ruleIds].sort());
+  it('should know every rule of the ratchet, and no other', () => {
+    expect(rulesOf(readPolicy()).map((rule) => rule.id)).toEqual(RULE_IDS);
   });
 
-  describe.each(ruleIds)('%s', (rule) => {
+  it('should have fixtures for the rules that exist and for no other', () => {
+    expect(foldersOf(FIXTURES)).toEqual(RULE_IDS);
+  });
+
+  describe.each(RULE_IDS)('%s', (rule) => {
     it('should have a case of each kind', () => {
       expect(casesOf(rule, WRONG)).not.toHaveLength(0);
       expect(casesOf(rule, RIGHT)).not.toHaveLength(0);

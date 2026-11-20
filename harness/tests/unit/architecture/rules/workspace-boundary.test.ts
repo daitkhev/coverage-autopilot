@@ -1,5 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
+import type { Rule } from '#harness/architecture/project';
 import { workspaceBoundary } from '#harness/architecture/rules/workspace-boundary';
 import { structureOf } from '#harness/tests/support/policy-builder';
 import {
@@ -10,10 +11,10 @@ import {
   sourceFile,
 } from '#harness/tests/support/project-builder';
 
-const rule = workspaceBoundary(structureOf());
+const rule = (): Rule => workspaceBoundary(structureOf());
 
 function detailsFor(from: string, to: string): string[] {
-  return detailsBetween(rule, from, to);
+  return detailsBetween(rule(), from, to);
 }
 
 describe('workspaceBoundary', () => {
@@ -24,7 +25,7 @@ describe('workspaceBoundary', () => {
       ]),
     );
 
-    expect(rule.check(project)).toEqual([
+    expect(rule().check(project)).toEqual([
       {
         rule: 'workspace-boundary',
         path: 'frontend/src/api/client.ts',
@@ -59,6 +60,6 @@ describe('workspaceBoundary', () => {
       importOf({ specifier: '#gone/file', kind: 'alias' }),
     ]);
 
-    expect(rule.check(projectOf(file))).toEqual([]);
+    expect(rule().check(projectOf(file))).toEqual([]);
   });
 });

@@ -1,5 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
+import type { Rule } from '#harness/architecture/project';
 import { moduleDirection } from '#harness/architecture/rules/module-direction';
 import { backendOf, MODULES } from '#harness/tests/support/policy-builder';
 import {
@@ -9,10 +10,10 @@ import {
   sourceFile,
 } from '#harness/tests/support/project-builder';
 
-const rule = moduleDirection(backendOf());
+const rule = (): Rule => moduleDirection(backendOf());
 
 function detailsFor(from: string, to: string): string[] {
-  return detailsBetween(rule, from, to);
+  return detailsBetween(rule(), from, to);
 }
 
 describe('moduleDirection', () => {
@@ -23,7 +24,7 @@ describe('moduleDirection', () => {
       ]),
     );
 
-    expect(rule.check(project)).toEqual([
+    expect(rule().check(project)).toEqual([
       {
         rule: 'module-direction',
         path: `${MODULES}/store/application/find.ts`,

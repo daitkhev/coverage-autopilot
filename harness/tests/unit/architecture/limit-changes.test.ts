@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { limitFindings, LIMITS } from '#harness/architecture/limit-changes';
 
@@ -55,6 +55,17 @@ describe('limitFindings', () => {
       '"duplication.percent" went up from 0.9 to 1.5. It moves one way.',
     ]);
     expect(limitFindings(after, before)).toEqual([]);
+  });
+
+  it('should take the kill rate of an area for a floor', () => {
+    const before = { ...BASE, mutation: { harness: 90 } };
+    const after = { ...BASE, mutation: { harness: 85 } };
+
+    expect(limitFindings(before, after).map((f) => f.detail)).toEqual([
+      '"mutation.harness" went down from 90 to 85. It moves one way.',
+    ]);
+    expect(limitFindings(after, before)).toEqual([]);
+    expect(limitFindings(BASE, before)).toEqual([]);
   });
 
   it('should report a number that was removed', () => {

@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterAll, describe, expect, it } from '@jest/globals';
+import { afterAll, describe, expect, it } from 'vitest';
 
 import { HarnessError } from '#harness/shared/harness.error';
 import { readJsonRecord } from '#harness/shared/json';

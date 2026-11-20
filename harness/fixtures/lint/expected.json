@@ -145,29 +145,25 @@
   ],
   "focused-test": [
     {
-      "rule": "jest/no-focused-tests",
-      "says": "focused"
+      "rule": "vitest/no-focused-tests",
+      "says": "Focused tests"
     },
     {
-      "rule": "jest/no-focused-tests",
-      "says": "focused"
+      "rule": "vitest/no-focused-tests",
+      "says": "Focused tests"
     }
   ],
   "disabled-test": [
     {
-      "rule": "jest/no-disabled-tests",
-      "says": "skipped"
+      "rule": "vitest/no-disabled-tests",
+      "says": "Disabled test suite"
     },
     {
-      "rule": "jest/no-disabled-tests",
-      "says": "skipped"
+      "rule": "vitest/no-disabled-tests",
+      "says": "Disabled test -"
     },
     {
-      "rule": "jest/no-disabled-tests",
-      "says": "skipped"
-    },
-    {
-      "rule": "jest/no-disabled-tests",
+      "rule": "vitest/no-disabled-tests",
       "says": "missing function"
     }
   ]

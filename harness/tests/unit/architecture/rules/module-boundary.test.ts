@@ -1,5 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
+import type { Rule } from '#harness/architecture/project';
 import { moduleBoundary } from '#harness/architecture/rules/module-boundary';
 import {
   backendOf,
@@ -13,12 +14,12 @@ import {
   sourceFile,
 } from '#harness/tests/support/project-builder';
 
-const rule = moduleBoundary(backendOf());
+const rule = (): Rule => moduleBoundary(backendOf());
 const BY_CONTRACTS = 'Another module is reached through its contracts/ only.';
 const BY_MODULE_FILE = 'A module is wired in through its module file only.';
 
 function detailsFor(from: string, to: string): string[] {
-  return detailsBetween(rule, from, to);
+  return detailsBetween(rule(), from, to);
 }
 
 describe('moduleBoundary', () => {
@@ -29,7 +30,7 @@ describe('moduleBoundary', () => {
       ]),
     );
 
-    expect(rule.check(project)).toEqual([
+    expect(rule().check(project)).toEqual([
       {
         rule: 'module-boundary',
         path: `${MODULES}/reports/application/build.ts`,

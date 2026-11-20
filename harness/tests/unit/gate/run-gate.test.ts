@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { runGate } from '#harness/gate/run-gate';
 import { fakeHost } from '#harness/tests/support/fake-host';

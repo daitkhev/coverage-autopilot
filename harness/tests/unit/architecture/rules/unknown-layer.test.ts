@@ -1,5 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
+import type { Rule } from '#harness/architecture/project';
 import { unknownLayer } from '#harness/architecture/rules/unknown-layer';
 import {
   backendOf,
@@ -8,10 +9,10 @@ import {
 } from '#harness/tests/support/policy-builder';
 import { projectOf, sourceFile } from '#harness/tests/support/project-builder';
 
-const rule = unknownLayer(backendOf());
+const rule = (): Rule => unknownLayer(backendOf());
 
 function detailsFor(path: string): string[] {
-  return rule
+  return rule()
     .check(projectOf(sourceFile(path)))
     .map((finding) => finding.detail);
 }

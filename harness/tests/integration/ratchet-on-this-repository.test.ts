@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { checkTree } from '#harness/architecture/commands';
 import { listFiles } from '#harness/architecture/files';

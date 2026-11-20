@@ -1,5 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
+import type { Rule } from '#harness/architecture/project';
 import { layerDirection } from '#harness/architecture/rules/layer-direction';
 import {
   backendOf,
@@ -14,10 +15,10 @@ import {
   sourceFile,
 } from '#harness/tests/support/project-builder';
 
-const rule = layerDirection(backendOf());
+const rule = (): Rule => layerDirection(backendOf());
 
 function detailsFor(from: string, to: string): string[] {
-  return detailsBetween(rule, from, to);
+  return detailsBetween(rule(), from, to);
 }
 
 describe('layerDirection', () => {
@@ -29,7 +30,7 @@ describe('layerDirection', () => {
         ]),
       );
 
-      expect(rule.check(project)).toEqual([
+      expect(rule().check(project)).toEqual([
         {
           rule: 'layer-direction',
           path: `${MODULES}/store/domain/services/count.service.ts`,
@@ -48,7 +49,7 @@ describe('layerDirection', () => {
       });
       const file = sourceFile(`${MODULES}/store/domain/item.ts`, [record]);
 
-      expect(rule.check(projectOf(file))).toHaveLength(1);
+      expect(rule().check(projectOf(file))).toHaveLength(1);
     });
 
     it.each([

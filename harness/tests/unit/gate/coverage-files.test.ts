@@ -1,6 +1,7 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { hasRuntimeCode, measuredFiles } from '#harness/gate/coverage-files';
+import type { NodeCommand } from '#harness/gate/host';
 import { coverageCommand } from '#harness/gate/run-coverage';
 import type { Structure } from '#harness/shared/structure';
 import { structureOf } from '#harness/tests/support/policy-builder';
@@ -56,32 +57,35 @@ describe('hasRuntimeCode', () => {
 });
 
 describe('coverageCommand', () => {
-  const command = coverageCommand({
-    statements: 95,
-    branches: 94,
-    functions: 93,
-    lines: 92,
-  });
+  const command = (): NodeCommand =>
+    coverageCommand({ statements: 95, branches: 94, functions: 93, lines: 92 });
 
-  it('should give Jest the floors of the policy', () => {
-    const at = command.arguments.indexOf('--coverageThreshold');
-
-    expect(JSON.parse(command.arguments[at + 1] ?? '')).toEqual({
-      global: { statements: 95, branches: 94, functions: 93, lines: 92 },
-    });
+  it('should give Vitest the floors of the policy', () => {
+    expect(command().arguments).toEqual(
+      expect.arrayContaining([
+        '--coverage.thresholds.statements=95',
+        '--coverage.thresholds.branches=94',
+        '--coverage.thresholds.functions=93',
+        '--coverage.thresholds.lines=92',
+      ]),
+    );
   });
 
   it('should count the unit and the integration tests together', () => {
-    expect(command.arguments.slice(-2)).toEqual([
+    expect(command().arguments.slice(-2)).toEqual([
       'harness/tests/unit',
       'harness/tests/integration',
     ]);
-    expect(command.arguments).toContain('--coverage');
-    expect(command.arguments).toContain('--ci');
+    expect(command().arguments).toContain('--coverage.enabled');
+    expect(command().arguments.slice(0, 3)).toEqual([
+      'run',
+      '--config',
+      'vitest.config.mjs',
+    ]);
   });
 
-  it('should start Jest by its path, in the mode for ES modules', () => {
-    expect(command.script).toBe('node_modules/jest/bin/jest.js');
-    expect(command.nodeOptions).toContain('--experimental-vm-modules');
+  it('should start Vitest by its path, with no option of Node', () => {
+    expect(command().script).toBe('node_modules/vitest/vitest.mjs');
+    expect(command().nodeOptions).toEqual([]);
   });
 });

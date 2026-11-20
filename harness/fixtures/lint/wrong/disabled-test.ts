@@ -1,4 +1,4 @@
-import { describe, expect, it, xit } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 describe.skip('a group that does not run', () => {
   it('should be skipped', () => {
@@ -8,10 +8,6 @@ describe.skip('a group that does not run', () => {
 
 describe('a group', () => {
   it.skip('should be skipped', () => {
-    expect('a').toBe('a');
-  });
-
-  xit('should be skipped the old way', () => {
     expect('a').toBe('a');
   });
 

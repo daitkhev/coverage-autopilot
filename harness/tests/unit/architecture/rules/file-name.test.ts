@@ -1,12 +1,15 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
+import type { Rule } from '#harness/architecture/project';
 import { fileName } from '#harness/architecture/rules/file-name';
 import { projectOf, sourceFile } from '#harness/tests/support/project-builder';
 
-const rule = fileName(['index', 'utils']);
+const rule = (): Rule => fileName(['index', 'utils']);
 
 function detailsFor(path: string): string[] {
-  return rule.check(projectOf(sourceFile(path))).map((found) => found.detail);
+  return rule()
+    .check(projectOf(sourceFile(path)))
+    .map((found) => found.detail);
 }
 
 describe('fileName', () => {
@@ -49,7 +52,7 @@ describe('fileName', () => {
   });
 
   it('should give one finding for a file, on its first line', () => {
-    const found = rule.check(projectOf(sourceFile('Src/Utils/index.ts')));
+    const found = rule().check(projectOf(sourceFile('Src/Utils/index.ts')));
 
     expect(found).toHaveLength(1);
     expect(found[0]).toMatchObject({ rule: 'file-name', line: 1 });

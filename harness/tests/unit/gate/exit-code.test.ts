@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { exitCodeOf } from '#harness/gate/exit-code';
 import { HarnessError } from '#harness/shared/harness.error';

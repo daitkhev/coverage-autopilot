@@ -1,13 +1,14 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
+import type { Rule } from '#harness/architecture/project';
 import { misplacedFile } from '#harness/architecture/rules/misplaced-file';
 import { backendOf, MODULES } from '#harness/tests/support/policy-builder';
 import { projectOf, sourceFile } from '#harness/tests/support/project-builder';
 
-const rule = misplacedFile(backendOf());
+const rule = (): Rule => misplacedFile(backendOf());
 
 function detailsFor(inModule: string): string[] {
-  return rule
+  return rule()
     .check(projectOf(sourceFile(`${MODULES}/${inModule}`)))
     .map((finding) => finding.detail);
 }
@@ -61,6 +62,6 @@ describe('misplacedFile', () => {
       sourceFile('backend/tests/unit/item.entity.ts'),
     );
 
-    expect(rule.check(project)).toEqual([]);
+    expect(rule().check(project)).toEqual([]);
   });
 });

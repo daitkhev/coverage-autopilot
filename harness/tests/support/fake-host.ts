@@ -10,7 +10,12 @@ interface Shape {
   readonly root?: string;
   /** Says whether a started program passes. Every program does by default. */
   readonly passes?: (command: NodeCommand) => boolean;
+  /** The settings of the machine. None is set by default. */
+  readonly settings?: Readonly<Record<string, string>>;
+  readonly processors?: number;
 }
+
+const PROCESSORS = 8;
 
 export function fakeHost(shape: Shape = {}): FakeHost {
   const started: NodeCommand[] = [];
@@ -26,5 +31,7 @@ export function fakeHost(shape: Shape = {}): FakeHost {
     print: (text) => {
       printed.push(text);
     },
+    setting: (name) => shape.settings?.[name],
+    processors: shape.processors ?? PROCESSORS,
   };
 }

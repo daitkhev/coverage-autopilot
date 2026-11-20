@@ -1,10 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { runRatchetCommand } from '#harness/architecture/ratchet-command';
 import { COVERAGE_REPORT, runCoverage } from '#harness/gate/run-coverage';
 import { runDocuments } from '#harness/gate/run-documents';
+import {
+  duplicationCommand,
+  runDuplication,
+} from '#harness/gate/run-duplication';
 import { runTypes } from '#harness/gate/run-types';
-import { REPOSITORY_ROOT } from '#harness/shared/policy';
+import { readLimits, REPOSITORY_ROOT } from '#harness/shared/policy';
 import { type FakeHost, fakeHost } from '#harness/tests/support/fake-host';
 import {
   type TemporaryRepository,
@@ -75,6 +79,37 @@ describe('runTypes', () => {
       'tsconfig.json',
     );
     expect(here.printed[0]).toBe('types: root passed');
+  });
+});
+
+describe('runDuplication', () => {
+  it('should give jscpd its configuration and the ceiling', () => {
+    expect(duplicationCommand(0.5)).toEqual({
+      nodeOptions: [],
+      script: 'node_modules/jscpd/run-jscpd.js',
+      arguments: [
+        '.',
+        '--config',
+        'harness/configs/jscpd.json',
+        '--threshold',
+        '0.5',
+        '--fail-on-empty',
+        '--no-colors',
+      ],
+    });
+  });
+
+  it('should hold duplication at the ceiling of the policy', () => {
+    expect(runDuplication(host)).toBe(0);
+    expect(host.started).toEqual([
+      duplicationCommand(readLimits().duplicationPercent),
+    ]);
+  });
+
+  it('should fail when jscpd fails', () => {
+    const above = fakeHost({ root: repository.root, passes: () => false });
+
+    expect(runDuplication(above)).toBe(1);
   });
 });
 

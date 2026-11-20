@@ -1,5 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
+import type { Rule } from '#harness/architecture/project';
 import { packageManifest } from '#harness/architecture/rules/package-manifest';
 import { structureOf } from '#harness/tests/support/policy-builder';
 import {
@@ -7,12 +8,12 @@ import {
   projectWith,
 } from '#harness/tests/support/project-builder';
 
-const rule = packageManifest(structureOf());
+const rule = (): Rule => packageManifest(structureOf());
 const IMPORTS = { '#store/*': './src/modules/store/*.ts' };
 const DIFFERS = '"imports" differs from the alias table of the policy.';
 
 function detailsFor(path: string, content: unknown): string[] {
-  return rule
+  return rule()
     .check(projectWith(manifestOf(path, content)))
     .map((finding) => finding.detail);
 }
@@ -33,7 +34,7 @@ describe('packageManifest', () => {
     const content = { imports: IMPORTS, scripts: { check: 'true' } };
 
     expect(
-      rule.check(projectWith(manifestOf('backend/package.json', content))),
+      rule().check(projectWith(manifestOf('backend/package.json', content))),
     ).toEqual([
       {
         rule: 'package-manifest',

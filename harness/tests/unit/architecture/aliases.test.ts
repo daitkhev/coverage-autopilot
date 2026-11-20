@@ -1,6 +1,11 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
-import { aliasesOf, kindOf, resolveAlias } from '#harness/architecture/aliases';
+import {
+  type Alias,
+  aliasesOf,
+  kindOf,
+  resolveAlias,
+} from '#harness/architecture/aliases';
 
 describe('aliasesOf', () => {
   it('should read a pattern from the root manifest', () => {
@@ -45,25 +50,26 @@ describe('aliasesOf', () => {
 });
 
 describe('resolveAlias', () => {
-  const aliases = aliasesOf(
-    { imports: { '#src/*': './src/*.ts', '#main': './src/main.ts' } },
-    '',
-  );
+  const aliases = (): Alias[] =>
+    aliasesOf(
+      { imports: { '#src/*': './src/*.ts', '#main': './src/main.ts' } },
+      '',
+    );
 
   it('should name the file behind a pattern', () => {
-    expect(resolveAlias('#src/domain/a', aliases)).toBe('src/domain/a.ts');
+    expect(resolveAlias('#src/domain/a', aliases())).toBe('src/domain/a.ts');
   });
 
   it('should name the file behind an exact entry', () => {
-    expect(resolveAlias('#main', aliases)).toBe('src/main.ts');
+    expect(resolveAlias('#main', aliases())).toBe('src/main.ts');
   });
 
   it('should give nothing for an alias that is not declared', () => {
-    expect(resolveAlias('#other/a', aliases)).toBeUndefined();
+    expect(resolveAlias('#other/a', aliases())).toBeUndefined();
   });
 
   it('should not let a path climb out with dots', () => {
-    expect(resolveAlias('#src/../secret', aliases)).toBe('secret.ts');
+    expect(resolveAlias('#src/../secret', aliases())).toBe('secret.ts');
   });
 });
 

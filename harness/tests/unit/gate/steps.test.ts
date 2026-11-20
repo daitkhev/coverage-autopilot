@@ -1,8 +1,7 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { planFor, PROFILES, STEPS } from '#harness/gate/steps';
 import { HarnessError } from '#harness/shared/harness.error';
-import { readLimits } from '#harness/shared/policy';
 
 function namesOf(name: string): string[] {
   return planFor(name).map((step) => step.name);
@@ -34,6 +33,10 @@ describe('planFor', () => {
     ]);
   });
 
+  it('should run everything full runs, the runners and mutation for ci', () => {
+    expect(namesOf('ci')).toEqual([...namesOf('full'), 'runners', 'mutation']);
+  });
+
   it('should run one step by its name', () => {
     expect(namesOf('lint')).toEqual(['lint']);
   });
@@ -41,7 +44,9 @@ describe('planFor', () => {
   describe('when the name is unknown', () => {
     it('should throw HarnessError that lists what is known', () => {
       expect(() => planFor('everything')).toThrow(HarnessError);
-      expect(() => planFor('everything')).toThrow(/Known: fast, full, format/);
+      expect(() => planFor('everything')).toThrow(
+        /Known: fast, full, ci, format/,
+      );
     });
 
     it('should not take a property of every object for a profile', () => {
@@ -58,7 +63,10 @@ describe('STEPS', () => {
 
     expect(configured['format']).toContain('--config prettier.config.mjs');
     expect(configured['lint']).toContain('--config eslint.config.mjs');
-    expect(configured['unit']).toContain('--config harness/configs/jest.json');
+    expect(configured['unit']).toContain('--config vitest.config.mjs');
+    expect(configured['runners']).toContain(
+      '--config vitest.runners.config.mjs',
+    );
   });
 
   it('should compare a tree on a desk with the commit it stands on', () => {
@@ -73,15 +81,13 @@ describe('STEPS', () => {
     expect(unused?.match(/--exclude/g)).toHaveLength(1);
   });
 
-  it('should hold duplication at the ceiling of the policy', () => {
-    const duplication = planFor('duplication')[0]?.arguments ?? [];
-    const at = duplication.indexOf('--threshold');
-
-    expect(duplication[at + 1]).toBe(String(readLimits().duplicationPercent));
-    expect(duplication).toContain('--fail-on-empty');
-    expect(duplication.join(' ')).toContain(
-      '--config harness/configs/jscpd.json',
-    );
+  it('should leave the ceiling of duplication to its own command', () => {
+    expect(planFor('duplication')[0]).toEqual({
+      name: 'duplication',
+      nodeOptions: [],
+      script: 'harness/bin/duplication.ts',
+      arguments: [],
+    });
   });
 
   it('should fail lint on a warning', () => {
@@ -91,8 +97,9 @@ describe('STEPS', () => {
   });
 
   it('should keep the gate from writing a kept frame', () => {
-    expect(planFor('unit')[0]?.arguments).toContain('--ci');
-    expect(planFor('integration')[0]?.arguments).toContain('--ci');
+    for (const name of ['unit', 'integration', 'runners']) {
+      expect(planFor(name)[0]?.arguments).toContain('--update=none');
+    }
   });
 
   it('should have no step that a profile never runs', () => {

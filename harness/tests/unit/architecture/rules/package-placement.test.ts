@@ -1,6 +1,7 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import type { Policy } from '#harness/architecture/policy';
+import type { Rule } from '#harness/architecture/project';
 import {
   packageNameOf,
   packagePlacement,
@@ -37,11 +38,13 @@ const policy: Policy = {
     packageRule({ packages: ['@scope/schemas'], places: [INFRASTRUCTURE] }),
   ],
 };
-const rule = packagePlacement(policy);
+const rule = (): Rule => packagePlacement(policy);
 
 function detailsFor(path: string, specifier: string, ...names: string[]) {
   const file = sourceFile(path, [importFrom(specifier, ...names)]);
-  return rule.check(projectOf(file)).map((finding) => finding.detail);
+  return rule()
+    .check(projectOf(file))
+    .map((finding) => finding.detail);
 }
 
 describe('packageNameOf', () => {
@@ -63,7 +66,7 @@ describe('packagePlacement', () => {
       importOf({ specifier: 'lodash/merge', kind: 'package', line: 3 }),
     ]);
 
-    expect(rule.check(projectOf(file))).toEqual([
+    expect(rule().check(projectOf(file))).toEqual([
       {
         rule: 'package-placement',
         path: `${MODULES}/store/infrastructure/reader.ts`,
@@ -150,7 +153,7 @@ describe('packagePlacement', () => {
       importOf({ specifier: './price', kind: 'relative' }),
     ]);
 
-    expect(rule.check(projectOf(file))).toEqual([]);
+    expect(rule().check(projectOf(file))).toEqual([]);
   });
 
   describe('what a workspace declares', () => {
@@ -162,7 +165,7 @@ describe('packagePlacement', () => {
         }),
       );
 
-      expect(rule.check(project)).toEqual([
+      expect(rule().check(project)).toEqual([
         {
           rule: 'package-placement',
           path: 'backend/package.json',
@@ -183,13 +186,13 @@ describe('packagePlacement', () => {
         manifestOf('package.json', { devDependencies: { anything: '1.0.0' } }),
       );
 
-      expect(rule.check(project)).toEqual([]);
+      expect(rule().check(project)).toEqual([]);
     });
 
     it('should read a manifest that is not an object as empty', () => {
       const project = projectWith(manifestOf('backend/package.json', []));
 
-      expect(rule.check(project)).toEqual([]);
+      expect(rule().check(project)).toEqual([]);
     });
   });
 });
