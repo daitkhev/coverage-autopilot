@@ -284,3 +284,20 @@ Where this log and the plan differ, this log and the code are right.
 - Where: `backend/src/shared/infrastructure/queue/job-worker.ts`,
   `job-worker-log.ts`, `DeadJobContext` in
   `backend/src/shared/application/ports/job-handler.port.ts`.
+
+### The mutation tool is installed before code of the repository runs
+
+- `installTool` is a call of its own on the port of the mutation runner.
+  The gate makes it right after the packages of the project are
+  installed, before a type check and before any test. A measure never
+  opens the network.
+- Why: the network is open only before code of the repository runs in a
+  working copy. Installed inside a measure, the tool came after the
+  tests, and code of the repository or of one of its packages could have
+  sent the source out while the network was open.
+- A run of the tool that is stopped at its time limit leaves no cache
+  yet: the sandbox stops a command with `SIGKILL`, and the tool saves a
+  partial cache only when it is asked to stop. The cache only saves
+  time. A stop in two steps is owed to the wave of the stress tests.
+- Where: `backend/src/modules/verification/application/ports/mutation-runner.port.ts`,
+  `backend/src/modules/verification/infrastructure/mutation/`.
