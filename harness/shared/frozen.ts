@@ -12,6 +12,11 @@ export interface FrozenPolicy {
   readonly names: readonly string[];
   /** Files in those places that are not policy and travel with code. */
   readonly free: readonly string[];
+  /**
+   * The free files that may land with a change of the policy as well: a
+   * record of the tree, which a change of either kind can move.
+   */
+  readonly withPolicy: readonly string[];
 }
 
 export function readFrozenPolicy(): FrozenPolicy {
@@ -20,6 +25,7 @@ export function readFrozenPolicy(): FrozenPolicy {
     places: stringListAt(file, 'places'),
     names: stringListAt(file, 'names'),
     free: stringListAt(file, 'free'),
+    withPolicy: stringListAt(file, 'withPolicy'),
   };
 }
 

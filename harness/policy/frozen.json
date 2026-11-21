@@ -2,5 +2,6 @@
   "schema": 1,
   "places": ["harness/", ".github/", ".claude/", ".codex/", "*"],
   "names": ["tsconfig*.json"],
-  "free": ["harness/baseline.json", "README.md", "package-lock.json"]
+  "free": ["harness/baseline.json", "README.md", "package-lock.json"],
+  "withPolicy": ["harness/baseline.json", "package-lock.json"]
 }

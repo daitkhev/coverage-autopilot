@@ -6,6 +6,7 @@ const POLICY: FrozenPolicy = {
   places: ['harness/', '.github/', '*'],
   names: ['tsconfig*.json'],
   free: ['harness/baseline.json', 'README.md'],
+  withPolicy: [],
 };
 
 describe('isFrozen', () => {
