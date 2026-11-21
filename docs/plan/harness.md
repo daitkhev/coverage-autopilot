@@ -73,6 +73,7 @@ harness/
 │   ├── patterns.ts
 │   ├── edges.ts
 │   ├── graph.ts
+│   ├── reach.ts
 │   ├── import-rule.ts
 │   ├── rules.ts
 │   ├── rules/
@@ -90,6 +91,7 @@ harness/
 │   ├── run-gate.ts
 │   ├── run-types.ts
 │   ├── type-projects.ts
+│   ├── areas.ts
 │   ├── run-coverage.ts
 │   ├── coverage-files.ts
 │   ├── run-duplication.ts
@@ -126,7 +128,9 @@ harness/
 │   ├── before-edit.ts
 │   ├── edit-of-policy.ts
 │   ├── edited-files.ts
+│   ├── work-tree.ts
 │   ├── when-done.ts
+│   ├── done-tree.ts
 │   ├── done-verdict.ts
 │   ├── tree.ts
 │   ├── last-verdict.ts
@@ -208,9 +212,9 @@ The gate has three profiles. Each one holds the one before it.
 | Compare | The ratchet, `--compare` | A recorded migration changed, or a limit got looser than the base has it | `full` |
 | Unused code | Knip | A file, an export or a dependency is unused, or a dependency is not declared | `full` |
 | Copy and paste | jscpd | Duplication is above its ceiling | `full` |
-| Unit tests | Vitest | A test fails | `full` |
-| Integration tests | Vitest | A test fails | `full` |
-| Coverage | Vitest over the unit and the integration tests, then a check of the report | A counter is below its floor, or a source file is not in the report | `full` |
+| Unit tests | Vitest, over the harness and every workspace | A test fails | `full` |
+| Integration tests | Vitest, over the harness and every workspace | A test fails | `full` |
+| Coverage | Vitest over the unit and the integration tests of one area at a time, then a check of its report. An area is the harness or one workspace | A counter of an area is below its floor, or a source file is not in the report of its area | `full` |
 | Build | `tsc` | The build fails | `full` |
 | Documents | markdownlint, a link check that stays offline | A rule is broken, or a link or an anchor points nowhere | `full` |
 | Secrets | gitleaks | Something that looks like a credential is in a commit the tree stands on, or in a file git sees | `full` |
@@ -360,12 +364,12 @@ it, in the trial run or in a fixture of the repository.
 | `package-placement` | A package or a `node:` module is imported where `packages.json` does not allow it, or a `package.json` declares a package that is not in `packages.json` | Design | ✓ |
 | `import-cycle` | Files import each other in a circle | Design | ✓ |
 | `workspace-boundary` | An alias leads from one workspace into another, or between a workspace and the root. As a package only `api-contracts` is listed, so `package-placement` refuses the other ways across | Design | ✓ |
-| `client-direction` | A folder of the client imports one that the table in [Project structure](project-structure.md#frontend-folders) does not allow: a command imports a screen, `api/` imports a component, a screen imports another screen. Or a component reaches `api/` through a chain of imports | Design | |
+| `client-direction` | A folder of the client imports one that the table in [Project structure](project-structure.md#frontend-folders) does not allow: a command imports a screen, `api/` imports a component, a screen imports another screen. Or a component reaches `api/` through a chain of imports | Design | ✓ |
 | `package-manifest` | The `package.json` of a workspace has a field the policy does not list, such as `scripts` or `overrides`. Or its aliases differ from the alias table, or a version is not one exact number. Or a workspace has a second `package.json` below its root | | ✓ |
 | `lockfile-source` | An entry of the lockfile does not come from the npm registry under its own name and version, or has no checksum. A `file:` path, a `git` address and a bare archive address are refused. So is a name that stands for another package, unless `structure.json` lists it | | ✓ |
 | `unknown-file` | A workspace holds a file of a kind that `structure.json` does not list for that place, such as a second configuration of a tool. Or the repository holds a symbolic link that the policy does not list with its target | | ✓ |
-| `test-placement` | A `.test.ts` file is outside `tests/`, a file under `tests/unit/` has no source file on the same path, or `tests/support/` holds a test | | |
-| `unit-test-reach` | A unit test reaches, through any chain of imports, a file of `infrastructure` or a `node:` module that does I/O | Runtime | |
+| `test-placement` | A test of a workspace is outside `tests/`, or under `tests/` in a folder that is not a kind of tests. Or a file under `tests/unit/` has no source file on the same path, or `tests/support/` holds a test | | ✓ |
+| `unit-test-reach` | A unit test of a workspace reaches, through any chain of imports, a file of `infrastructure` or a `node:` module that does I/O | Runtime | ✓ |
 
 - A type imported across a boundary is a dependency of the design, so the
   boundary rules read the design graph. `import type` does not get around
@@ -377,6 +381,15 @@ it, in the trial run or in a fixture of the repository.
   and no chain of imports may lead from `components/` or `hooks/` to
   `api/`. The table alone already makes such a chain impossible. The
   second check keeps it so when the table changes.
+- The gate runs the folders of the kinds of tests and no other. A test in
+  any other place would never run, so `test-placement` refuses it. The
+  kinds, the layer that does I/O and the modules of Node that do are
+  lists in `structure.json`, like the table of the client.
+- A file of `infrastructure` has integration tests and no unit test: a
+  unit test repeats the path of its source file, and one that loads a
+  file of that layer is refused. A unit test of a screen cannot load the
+  client of `api/` either, so a screen is given its client and imports
+  only the type of it.
 - A symbolic link is read as a link and never followed. The path of a file
   says where it is, and for a link that is not enough: its target is
   checked too. The project has two links, `.claude/settings.json` and
@@ -502,6 +515,7 @@ yet.
 | Every class member says `public` or `private` | `explicit-member-accessibility` | ✓ |
 | One class in a file | `max-classes-per-file` | ✓ |
 | No default export | `no-restricted-exports` | ✓ |
+| A class of the service names each thing it is given with `@Inject` | The compiler of the service writes no types into the code, so NestJS cannot find by its type a thing that is not named, and the test that builds the class fails | ✓ |
 
 ### Errors and outcomes
 
@@ -559,7 +573,7 @@ the imports. These calls need no import, so ESLint holds them:
 | --- | --- | --- |
 | Hooks are called by the rules of React, with complete dependency lists | `react-hooks` | |
 | A colour name or a symbol is written only in `theme/` | The project's own lint rule | |
-| A folder of the client imports only what its row allows, and only `api/` opens the socket | The ratchet, `client-direction` and `package-placement` | |
+| A folder of the client imports only what its row allows, and only `api/` opens the socket | The ratchet, `client-direction` and `package-placement` | ✓ |
 
 ### Text
 
@@ -596,7 +610,7 @@ and their folders are in [Project structure](project-structure.md#tests).
 | Coverage of each workspace and of the harness is at least 95% of statements, branches, functions and lines | The coverage floors, which the coverage step gives to Vitest | ✓ |
 | Every source file is in the coverage report, imported by a test or not | A check that compares the report with the files the ratchet measures. A file of types alone has nothing to run and may be absent | ✓ |
 | No `.only` and no `.skip` | `vitest/no-focused-tests`, `vitest/no-disabled-tests` | ✓ |
-| A unit test touches memory only | The ratchet, `unit-test-reach` | |
+| A unit test touches memory only | The ratchet, `unit-test-reach` | ✓ |
 | A test does not read the real time or make a real id | The same bans as in the source, with the fixed clock and the id sequence from `tests/support/` | |
 | A test that fails is not run again | Retries are off | |
 | No test reaches the network. `git`, `gh` and the AI CLI are stand-ins that ship with the tests | The sandbox of the test job has no network | |
@@ -900,6 +914,7 @@ program to start at which moment.
 | Before a shell command | `hooks/before-command.ts` | On | On |
 | Before an edit | `hooks/before-edit.ts` | On, and puts the question to the person | On, and refuses |
 | When the agent says it is done | `hooks/done.ts` | On | On |
+| When a helper of the agent says it is done | `hooks/done.ts` | On, for a helper that has a tree of its own | Has no such moment |
 
 What differs between the two is small, and it is the only code that knows
 an agent:
@@ -912,6 +927,37 @@ an agent:
 | Before the hooks run | Nothing | The person marks the project as trusted and approves each hook once, and again when its line changes |
 
 A third agent needs one more settings file, and no new check.
+
+### A tree for each agent
+
+Several agents can work at the same time, each on its own branch. Git
+links a second tree to the repository for that: one more folder with the
+files of another branch, and the same history behind it. Claude Code puts
+such a tree under `.claude/worktrees/` and starts a helper in it.
+
+| Rule | Held by |
+| --- | --- |
+| The first tree does not judge the files of a linked tree | Git ignores `.claude/worktrees/`, and so do Prettier and ESLint. Every other step takes its files from git |
+| A file is judged by its path in the tree that holds it | The hooks ask git which tree holds the file, and count the path from the root of that tree |
+| A helper in a linked tree cannot change the policy | The hook before an edit refuses there and does not ask: no person is at hand |
+| A helper with a tree of its own is held to `full` in that tree | The hook when a helper says it is done, which runs the gate of that tree |
+| A helper in the first tree is not judged apart | It is one step of the agent that started it, and that agent is judged when it stops |
+
+- A linked tree is told from the first by where git keeps its history:
+  the first tree holds it, and a linked tree points at it. Two trees
+  belong to one repository when they share that place. A tree of another
+  repository is not judged at all.
+- The hooks that judge a linked tree are the ones of the first tree, and
+  so is `frozen.json`. The gate that judges it is its own, because the
+  gate is part of what the branch holds. So the work of a helper is
+  judged twice: by its own gate when it stops, and by the gate of the
+  branch it is merged into.
+- A linked tree starts with no `node_modules/`. The helper installs the
+  packages from the lockfile before its first run of the gate.
+- The hook before an edit sees the edit tools only. A helper that writes
+  a file of the policy with a shell command is not stopped by it. What
+  stops that is `guard.ts`, which sorts the files of a branch before it is
+  merged, and after it the frozen files check.
 
 ### The hook before a command
 
@@ -934,6 +980,8 @@ It reads the text of a shell command and refuses:
 - Words that only stand before a program are stepped over too: a variable
   that is set, `env`, `command`, `time`, `then`, `do`.
 - A script given to `bash -c`, `sh -c` or `eval` is read the same way.
+- The branch is asked in the folder the agent names for its command, so
+  a push from a linked tree is judged by the branch of that tree.
 - The lines of a here-document are the content of a file and are not
   read. Without this, writing a document that names a denied command
   would be refused.
@@ -954,6 +1002,8 @@ person with the reason, and Codex is refused and told to ask.
   edit of the file that the link reaches.
 - A patch that changes several files waits when one of them is policy.
 - A file outside the repository is not judged.
+- In a linked tree the edit is refused for every agent, and nobody is
+  asked. Why is in [A tree for each agent](#a-tree-for-each-agent).
 - An edit that the hook cannot read waits as well. A check that did not
   run has failed.
 
@@ -962,6 +1012,9 @@ stage six. Until then the harness was built in the open, change by change.
 
 ### The hook when the agent says it is done
 
+- The tree that is judged is the one the agent works in, which it names
+  by its folder. An agent that names no folder of the repository is
+  judged in the first tree.
 - A tree is named by its fingerprint: every file git sees, with what is
   in it. A file that git ignores is not part of the name.
 - The last verdict is kept with that fingerprint in `reports/gate/`, which
@@ -1294,14 +1347,15 @@ The first five stages are built, the third, the fourth and the fifth as
 far as they go without product code. The sixth is built but for the
 settings on GitHub, which are not files. What the harness holds today:
 
-- The ratchet with 15 of its 18 rules. Stage one gave `file-name`,
+- The ratchet with all 18 of its rules. Stage one gave `file-name`,
   `relative-import`, `unresolved-import` and `import-cycle`. Stage two
   gave `unknown-module`, `unknown-layer`, `misplaced-file`,
   `layer-direction`, `module-boundary`, `module-direction`,
   `package-placement`, `workspace-boundary` and `package-manifest`. Stage
-  six gave `lockfile-source` and `unknown-file`. Each has fixtures of both
-  kinds, 70 small repositories in all, and they are judged by the real
-  policy.
+  six gave `lockfile-source` and `unknown-file`. The work before the
+  implementation gave `client-direction`, `test-placement` and
+  `unit-test-reach`. Each has fixtures of both kinds, 84 small
+  repositories in all, and they are judged by the real policy.
 - `structure.json` with the four modules, the five layers, the shared
   folders, the role suffixes and the alias table of each workspace.
   `packages.json` with every allowed package and its places. No ORM and
@@ -1325,10 +1379,10 @@ settings on GitHub, which are not files. What the harness holds today:
   the workflows, the runners and the mutation tests.
 - The three tools that are programs, in `tools.json`, and the code that
   downloads each one by its checksum.
-- Coverage of the harness is held at the floor of 95 for all four
-  counters. It stands at 99% of statements, 97% of branches and 100% of
-  functions. The floors go to Vitest from `limits.json`, and its
-  configuration holds no number.
+- Coverage is held at the floor of 95 for all four counters, in the
+  harness and in each workspace apart. The harness stands at 98% of
+  statements, 97% of branches and 99% of functions. The floors go to
+  Vitest from `limits.json`, and its configuration holds no number.
 - Knip with one configuration for the root and the three workspaces.
   jscpd with the ceiling from `limits.json`. markdownlint and the link
   check over the documents git sees.
@@ -1750,8 +1804,74 @@ What stage six showed and changed:
   the required checks, the policy that allows `pull_request_target`, the
   review by the code owner. No new workflow has run on GitHub, and the
   frozen files check cannot until its file is on `main`. The three tools
-  have run on one kind of machine only, and CI will be their first run on
-  Linux.
+  had run on one kind of machine only. Their first run on Linux was the
+  run of CI on the commits of this stage, and all three passed there.
+
+What the work before the implementation showed and changed:
+
+- The code of the product is written by several agents at once, each in
+  a tree of its own. The harness was not ready for that in two ways, and
+  both were found by a helper that was started in such a tree for a
+  trial.
+- The tree of a helper is a folder inside the first tree. Every edit
+  there was taken for an edit of `.claude/`, which is policy, and the
+  helper waited for a person who was not there. It had to be stopped. The
+  hooks now ask git which tree holds a file. How they judge it is in
+  [A tree for each agent](#a-tree-for-each-agent).
+- Claude Code gives a hook the folder of the helper, and starts the hook
+  from the first tree. So the hooks and the list of the policy that judge
+  a helper cannot be changed by that helper.
+- In the second trial the helper was refused an edit of `limits.json` in
+  its own tree. It wrote a file with an error of types, said it was done,
+  and was sent back once with the output of the red step. It removed the
+  file and was let go.
+- A helper has no moment of its own in Codex. Nothing was built for it,
+  and nothing is claimed.
+- The steps of the tests ran the tests of the harness only. They now run
+  the unit and the integration tests of every workspace too, by one
+  configuration at the root. Vitest reads the `tsconfig.json` nearest to
+  each file, so the client gets its JSX and the service its decorators
+  with no setting of Vitest.
+- Coverage was one number for the tree. A workspace at half of its
+  branches would have passed behind the harness. The step now measures
+  one area at a time, each by its own tests, in its own report. A trial
+  workspace with one branch of two covered was red at 50%, while the
+  harness stood at 98%.
+- NestJS finds what a class needs by the types of its constructor, which
+  the compiler writes into the code when it is asked to. v8 counts each
+  of those written lines as a branch with one side never taken, on the
+  line of the decorator: one class, one branch nobody can cover. So the
+  compiler of the service is not asked to write them, and a class names
+  each thing it is given with `@Inject`. The trial class lost its false
+  branch, and a class that names nothing fails its own test.
+- Node does not run a decorator from a TypeScript file. The service
+  started from its source through the loader of SWC in under a second.
+  The loader is not a part of the tree yet: it comes with the code that
+  starts the service.
+- `packages.json` got what the tests of the service and the types of the
+  client need: `@nestjs/testing`, the two packages NestJS asks for beside
+  itself, the contracts in the tests, and the types of React.
+- `test-placement` found tests in five older fixtures of other rules that
+  repeated no source file. They are integration tests now, which repeat
+  nothing.
+- `test-placement` judges one thing the design did not name: a test
+  under `tests/` in a folder that is not a kind of tests. The gate runs
+  the folders of the kinds, so such a test would never run.
+- The end-to-end and the stress tests have folders and no step yet. They
+  and the build come with the code that starts the service.
+- The kill rate of the harness after this work is 91.77%: 3779 killed,
+  280 survived, 44 not reached by any test and 15 timed out. The run took
+  7 minutes with four test runners and 2.7 GB at most. Of the 408 mutants
+  in the seven new source files 383 were found, 18 survived and 7 were
+  not reached. Most of the 18 put another value where a value is given
+  for a thing that is absent, and no input of the rules makes it absent.
+  Three were real, and each got a test after the run: a package whose
+  name ends like a module of Node, a chain that one file starts twice,
+  and a file git knows that is gone from the disk. Two conditions that
+  nothing could reach were removed.
+- The helper was tried with the hooks of this work and the gate of the
+  commit before it. A helper on the gate of this work is the first agent
+  of the implementation.
 
 1. **A gate that runs.** The root `package.json` with exact versions,
    Prettier, the TypeScript configuration, ESLint, the ratchet with its

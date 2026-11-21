@@ -416,6 +416,11 @@ workspace has a `tests/` folder with one subfolder per kind of test:
   sequential id generator. It contains no tests.
 - A screen of the client rendered to text in memory is a unit test. A test
   of `api/` against a socket is an integration test.
+- A unit test loads nothing that does I/O, through any chain of imports.
+  So a file of `infrastructure` has integration tests only, and a screen
+  is given the client of `api/` and imports the type of it alone.
+- A test in a folder that is not one of these kinds is refused: the gate
+  would never run it.
 - A stress test passes when the guarantee holds, whatever the order of
   events was. It runs before a merge only. Which guarantees are tested this
   way is listed in [Harness](harness.md#invariant-tests).
