@@ -21,6 +21,7 @@ import {
   remoteRefSchema,
   symbolicHeadSchema,
 } from '#repositories/infrastructure/git/git-output.schema';
+import { hostGit } from '#repositories/infrastructure/git/git-tool-settings';
 import {
   REPOSITORIES_SETTINGS,
   type RepositoriesSettings,
@@ -54,7 +55,7 @@ export class GitCli implements Git {
   ) {
     this.git = new ToolRunner({
       name: 'git',
-      settings: settings.git,
+      settings: hostGit(settings.git),
       secrets: secretValuesOf(settings),
     });
     this.root = settings.workingCopiesRoot;
@@ -147,6 +148,7 @@ export class GitCli implements Git {
         'diff',
         '--quiet',
         '--no-ext-diff',
+        '--no-textconv',
         snapshot,
         headCommit.value,
         '--',
@@ -167,8 +169,7 @@ export class GitCli implements Git {
     args: readonly string[],
     signal: AbortSignal,
   ): Promise<boolean> {
-    const call = { arguments: args, directory };
-    const run = await this.git.run(call, signal);
+    const run = await this.git.run(this.mirror.callIn(directory, args), signal);
     if (run.exitCode > NO) {
       throw new ToolFailedError(
         `git ${args.join(' ')} failed. It said: ${run.output}`,

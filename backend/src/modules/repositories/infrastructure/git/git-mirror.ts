@@ -9,7 +9,10 @@ import type { RepositoryUrl } from '#repositories/domain/value-objects/repositor
 import { CommitNotFoundError } from '#repositories/infrastructure/errors/commit-not-found.error';
 import { revisionSchema } from '#repositories/infrastructure/git/git-output.schema';
 import { parseToolOutput } from '#repositories/infrastructure/tools/tool-output';
-import type { ToolRunner } from '#repositories/infrastructure/tools/tool-runner';
+import type {
+  ToolCall,
+  ToolRunner,
+} from '#repositories/infrastructure/tools/tool-runner';
 
 /** The folder of the mirrors under the root of the working copies. */
 const MIRRORS = 'mirrors';
@@ -23,7 +26,9 @@ export interface MirrorRequest {
 /**
  * One bare clone per repository that the working copies are cloned from,
  * so the host is asked only for what is new. A copy gets its own objects
- * and no link back, so nothing done in a copy reaches the mirror.
+ * and no link back, so nothing done in a copy reaches the mirror. No tree
+ * is ever checked out of it, and every call names it, so git never looks
+ * for a repository in a folder and never takes another for it.
  */
 export class GitMirror {
   private readonly git: ToolRunner;
@@ -38,6 +43,11 @@ export class GitMirror {
     return join(this.folder, `${repositoryId.value}.git`);
   }
 
+  /** A call in the mirror at the path, which it names. */
+  public callIn(path: string, args: readonly string[]): ToolCall {
+    return { arguments: [`--git-dir=${path}`, ...args], directory: path };
+  }
+
   /** Brings the branch from the host and gives the commit it is at. */
   public async fetchBranch(
     request: MirrorRequest,
@@ -46,23 +56,17 @@ export class GitMirror {
     const path = await this.prepared(request.repositoryId, signal);
     const ref = request.branch.ref;
     await this.git.runChecked(
-      {
-        arguments: [
-          'fetch',
-          '--quiet',
-          '--no-tags',
-          request.url.value,
-          `+${ref}:${ref}`,
-        ],
-        directory: path,
-      },
+      this.callIn(path, [
+        'fetch',
+        '--quiet',
+        '--no-tags',
+        request.url.value,
+        `+${ref}:${ref}`,
+      ]),
       signal,
     );
     const run = await this.git.runChecked(
-      {
-        arguments: ['rev-parse', '--verify', `${ref}^{commit}`],
-        directory: path,
-      },
+      this.callIn(path, ['rev-parse', '--verify', `${ref}^{commit}`]),
       signal,
     );
     return CommitSha.create(
@@ -87,16 +91,13 @@ export class GitMirror {
       return;
     }
     const run = await this.git.run(
-      {
-        arguments: [
-          'fetch',
-          '--quiet',
-          '--no-tags',
-          request.url.value,
-          request.commit.value,
-        ],
-        directory: path,
-      },
+      this.callIn(path, [
+        'fetch',
+        '--quiet',
+        '--no-tags',
+        request.url.value,
+        request.commit.value,
+      ]),
       signal,
     );
     if (run.exitCode !== 0) {
@@ -112,16 +113,16 @@ export class GitMirror {
     signal: AbortSignal,
   ): Promise<boolean> {
     const run = await this.git.run(
-      {
-        arguments: ['cat-file', '-e', `${commit.value}^{commit}`],
-        directory: path,
-      },
+      this.callIn(path, ['cat-file', '-e', `${commit.value}^{commit}`]),
       signal,
     );
     return run.exitCode === 0;
   }
 
-  /** The mirror of the repository, made the first time it is needed. */
+  /**
+   * The mirror of the repository, made the first time it is needed, with
+   * no template, so no hook comes with it.
+   */
   private async prepared(
     repositoryId: RepositoryId,
     signal: AbortSignal,
@@ -131,7 +132,7 @@ export class GitMirror {
       await mkdir(this.folder, { recursive: true });
       await this.git.runChecked(
         {
-          arguments: ['init', '--quiet', '--bare', path],
+          arguments: ['init', '--quiet', '--bare', '--template=', path],
           directory: this.folder,
         },
         signal,
