@@ -12,6 +12,19 @@
             ]
           }
         ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/harness/agents/hooks/before-edit.ts",
+              "ask"
+            ]
+          }
+        ]
       }
     ],
     "Stop": [

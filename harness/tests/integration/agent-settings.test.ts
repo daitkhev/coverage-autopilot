@@ -20,8 +20,8 @@ const HOOKS = 'harness/agents/hooks';
 const CLAUDE = 'harness/agents/claude/settings.json';
 const CODEX = 'harness/agents/codex/hooks.json';
 
-/** Built and tested, and switched on with the stage that makes CI strict. */
-const NOT_SWITCHED_ON = ['before-edit.ts'];
+/** A hook that is built and waits is named here. Every hook is on now. */
+const NOT_SWITCHED_ON: string[] = [];
 
 /** The owner may run a file, and so may everyone else. */
 const MAY_RUN = 0o111;
@@ -51,6 +51,7 @@ describe('frozen.json', () => {
       places: ['harness/', '.github/', '.claude/', '.codex/', '*'],
       names: ['tsconfig*.json'],
       free: ['harness/baseline.json', 'README.md', 'package-lock.json'],
+      withPolicy: ['harness/baseline.json', 'package-lock.json'],
     });
   });
 });
@@ -91,6 +92,16 @@ describe('the hooks of Claude Code', () => {
             },
           ],
         },
+        {
+          matcher: 'Edit|MultiEdit|Write|NotebookEdit',
+          hooks: [
+            {
+              type: 'command',
+              command: 'node',
+              args: [start('before-edit.ts'), 'ask'],
+            },
+          ],
+        },
       ],
       Stop: [
         {
@@ -123,6 +134,10 @@ describe('the hooks of Codex', () => {
           matcher: '^Bash$',
           hooks: [{ type: 'command', command: start('before-command.ts') }],
         },
+        {
+          matcher: '^apply_patch$',
+          hooks: [{ type: 'command', command: start('before-edit.ts') }],
+        },
       ],
       Stop: [
         {
@@ -141,12 +156,14 @@ describe('the hooks of git', () => {
   it('should be in the folder that the denied commands protect', () => {
     expect(GIT_HOOKS).toBe('harness/git');
     expect(readdirSync(join(REPOSITORY_ROOT, GIT_HOOKS)).sort()).toEqual([
+      'commit-msg',
       'pre-commit',
       'pre-push',
     ]);
   });
 
   it.each([
+    ['commit-msg', 'exec node harness/bin/commit-messages.ts --edit "$1"'],
     ['pre-commit', 'exec node harness/bin/check.ts fast'],
     ['pre-push', 'exec node harness/bin/before-push.ts'],
   ])('should start the gate by its path in %s', (name, command) => {
