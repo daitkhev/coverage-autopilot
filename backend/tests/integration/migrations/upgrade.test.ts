@@ -89,6 +89,60 @@ describe('a database of the first version', () => {
     }).toThrow(FOREIGN_KEY);
   });
 
+  it('should move the counters of a file out of its document', () => {
+    writeFirstVersion();
+    database.connection.exec(
+      "UPDATE file_coverages SET uncovered = '" +
+        '{"version":1,"statements":{"covered":3,"total":7},"functions":' +
+        '{"covered":1,"total":2},"uncoveredLines":[{"start":4,"end":6}],' +
+        '"openBranchLines":[4],"uncoveredFunctions":[]}\'',
+    );
+
+    migrateDatabase(database.connection, MIGRATIONS);
+
+    expect(
+      database.connection
+        .prepare(
+          'SELECT statements_covered, statements_total, functions_covered, ' +
+            'functions_total, uncovered FROM file_coverages',
+        )
+        .all(),
+    ).toEqual([
+      {
+        statements_covered: 3,
+        statements_total: 7,
+        functions_covered: 1,
+        functions_total: 2,
+        uncovered:
+          '{"version":1,"uncoveredLines":[{"start":4,"end":6}],' +
+          '"openBranchLines":[4],"uncoveredFunctions":[]}',
+      },
+    ]);
+  });
+
+  it('should count nothing for a file whose document held no counter', () => {
+    writeFirstVersion();
+
+    migrateDatabase(database.connection, MIGRATIONS);
+
+    expect(
+      database.connection
+        .prepare(
+          'SELECT statements_covered, statements_total, functions_covered, ' +
+            'functions_total, uncovered FROM file_coverages',
+        )
+        .all(),
+    ).toEqual([
+      {
+        statements_covered: 0,
+        statements_total: 0,
+        functions_covered: 0,
+        functions_total: 0,
+        uncovered: '{"version":1}',
+      },
+    ]);
+  });
+
   it('should leave a repository with no head until a check reads one', () => {
     const repositoryId = writeFirstVersion();
 

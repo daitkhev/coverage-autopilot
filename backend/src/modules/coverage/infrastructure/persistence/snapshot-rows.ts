@@ -71,13 +71,6 @@ export function snapshotColumns(snapshot: CoverageSnapshot): Columns {
   };
 }
 
-function countsOf(counter: CoverageCounter): {
-  readonly covered: number;
-  readonly total: number;
-} {
-  return { covered: counter.covered, total: counter.total };
-}
-
 export function fileColumns(snapshotId: string, file: FileCoverage): Columns {
   const { counters, uncovered } = file;
   return {
@@ -88,10 +81,12 @@ export function fileColumns(snapshotId: string, file: FileCoverage): Columns {
     lines_total: counters.of('lines').total,
     branches_covered: counters.of('branches').covered,
     branches_total: counters.of('branches').total,
+    statements_covered: counters.of('statements').covered,
+    statements_total: counters.of('statements').total,
+    functions_covered: counters.of('functions').covered,
+    functions_total: counters.of('functions').total,
     uncovered: JSON.stringify({
       version: DOCUMENT_VERSION,
-      statements: countsOf(counters.of('statements')),
-      functions: countsOf(counters.of('functions')),
       uncoveredLines: uncovered.lines,
       openBranchLines: uncovered.branchLines,
       uncoveredFunctions: uncovered.functions,
@@ -112,12 +107,18 @@ function fileFrom(row: FileRow): FileCoverage {
   return FileCoverage.measured({
     path,
     counters: CoverageCounters.create({
-      statements: CoverageCounter.create(document.statements),
+      statements: CoverageCounter.create({
+        covered: row.statements_covered,
+        total: row.statements_total,
+      }),
       branches: CoverageCounter.create({
         covered: row.branches_covered,
         total: row.branches_total,
       }),
-      functions: CoverageCounter.create(document.functions),
+      functions: CoverageCounter.create({
+        covered: row.functions_covered,
+        total: row.functions_total,
+      }),
       lines: CoverageCounter.create({
         covered: row.lines_covered,
         total: row.lines_total,

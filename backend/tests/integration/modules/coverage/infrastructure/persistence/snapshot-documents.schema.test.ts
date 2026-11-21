@@ -24,8 +24,7 @@ const VERSION_1 = {
     '{"version":1,"testRunOutput":"artifact-1","files":[{"path":' +
     '"src/broken.ts","reason":"parse_failed","toolMessage":"\')\' expected."}]}',
   uncovered:
-    '{"version":1,"statements":{"covered":1,"total":4},"functions":' +
-    '{"covered":1,"total":2},"uncoveredLines":[{"start":6,"end":9}],' +
+    '{"version":1,"uncoveredLines":[{"start":6,"end":9}],' +
     '"openBranchLines":[6],"uncoveredFunctions":[{"name":"halve","line":5}]}',
 };
 
@@ -51,8 +50,14 @@ function insertFile(
   uncovered: string,
 ): void {
   connection
-    .prepare('INSERT INTO file_coverages VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(snapshotId, 'src/used.ts', 'measured', 2, 5, 1, 2, uncovered);
+    .prepare(
+      'INSERT INTO file_coverages (snapshot_id, file_path, state, ' +
+        'lines_covered, lines_total, branches_covered, branches_total, ' +
+        'statements_covered, statements_total, functions_covered, ' +
+        'functions_total, uncovered) ' +
+        "VALUES (?, 'src/used.ts', 'measured', 2, 5, 1, 2, 1, 4, 1, 2, ?)",
+    )
+    .run(snapshotId, uncovered);
 }
 
 async function readSample(): Promise<CoverageSnapshot | null> {
@@ -120,7 +125,7 @@ describe('the stored documents of a snapshot', () => {
 
   describe('when a document of a known version lacks its shape', () => {
     it('should throw InvalidStoredDocumentError, which is not retried', async () => {
-      storeSample({ uncovered: '{"version":1,"statements":{}}' });
+      storeSample({ uncovered: '{"version":1,"uncoveredLines":{}}' });
 
       const reading = readSample();
 

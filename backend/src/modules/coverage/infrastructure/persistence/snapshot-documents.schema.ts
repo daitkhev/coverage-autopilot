@@ -19,8 +19,6 @@ const count = z.int().nonnegative();
 const line = z.int().positive();
 const word = z.string().min(1);
 
-const counterSchema = z.strictObject({ covered: count, total: count });
-
 export const detectedProjectDocumentSchema = z.strictObject({
   version: z.literal(DOCUMENT_VERSION),
   testRunner: z.enum(TEST_RUNNER_NAMES),
@@ -51,14 +49,12 @@ export const unmeasuredFilesDocumentSchema = z.strictObject({
 });
 
 /**
- * The `uncovered` column of a file. The table has columns for lines and
- * branches only, so the counters of statements and functions travel here
- * until a migration gives them columns of their own.
+ * The `uncovered` column of a file: what of it never ran. The counters
+ * are columns. The fourth migration took the two that were kept here out
+ * of every stored document, so this shape is the only one of version 1.
  */
 export const uncoveredDocumentSchema = z.strictObject({
   version: z.literal(DOCUMENT_VERSION),
-  statements: counterSchema,
-  functions: counterSchema,
   uncoveredLines: z.array(z.strictObject({ start: line, end: line })),
   openBranchLines: z.array(line),
   uncoveredFunctions: z.array(z.strictObject({ name: z.string(), line })),
@@ -82,6 +78,10 @@ export const fileRowSchema = z.object({
   lines_total: count,
   branches_covered: count,
   branches_total: count,
+  statements_covered: count,
+  statements_total: count,
+  functions_covered: count,
+  functions_total: count,
   uncovered: z.string(),
 });
 

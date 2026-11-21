@@ -41,6 +41,10 @@ const FILE_COLUMNS = [
   'lines_total',
   'branches_covered',
   'branches_total',
+  'statements_covered',
+  'statements_total',
+  'functions_covered',
+  'functions_total',
   'uncovered',
 ];
 
@@ -59,7 +63,8 @@ const SELECT_SNAPSHOT = `SELECT id, repository_id, commit_sha, origin_key,
   FROM coverage_snapshots`;
 
 const SELECT_FILES = `SELECT file_path, state, lines_covered, lines_total,
-    branches_covered, branches_total, uncovered
+    branches_covered, branches_total, statements_covered, statements_total,
+    functions_covered, functions_total, uncovered
   FROM file_coverages WHERE snapshot_id = ? ORDER BY file_path`;
 
 /**
