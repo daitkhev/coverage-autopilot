@@ -9,6 +9,7 @@
       "project": ["harness/**/*.ts"],
       "ignore": ["harness/fixtures/**"],
       "ignoreDependencies": [
+        "@commitlint/cli",
         "@jest/globals",
         "@stryker-mutator/core",
         "@stryker-mutator/vitest-runner",

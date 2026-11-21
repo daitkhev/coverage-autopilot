@@ -4,6 +4,7 @@
  * `package.json`, so no change of that file can swap what runs.
  */
 export const TOOLS = {
+  '@commitlint/cli': 'node_modules/@commitlint/cli/cli.js',
   '@stryker-mutator/core': 'node_modules/@stryker-mutator/core/bin/stryker.js',
   eslint: 'node_modules/eslint/bin/eslint.js',
   jest: 'node_modules/jest/bin/jest.js',

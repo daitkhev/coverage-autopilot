@@ -1,0 +1,3 @@
+#!/bin/sh
+# What git runs on the message of a commit, for a person and an agent alike.
+exec node harness/bin/commit-messages.ts --edit "$1"
