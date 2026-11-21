@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { InvalidStoredJobError } from '#infrastructure/queue/errors/invalid-stored-job.error';
 import type {
   JobDocument,
@@ -6,68 +8,44 @@ import type {
   JobProgress,
 } from '#ports/job-queue.port';
 
-type ProgressStep = JobProgress['steps'][number];
-
 /** The version of the progress document this service writes and reads. */
 const PROGRESS_VERSION = 1;
 
-const KINDS: readonly JobKind[] = ['scan', 'improvement'];
+const kindSchema = z.enum(['scan', 'improvement']);
 
-const STATUSES: readonly JobDto['status'][] = [
+const statusSchema = z.enum([
   'pending',
   'leased',
   'completed',
   'dead',
   'cancelled',
-];
+]);
 
-const STEP_STATUSES: readonly ProgressStep['status'][] = [
-  'pending',
-  'running',
-  'passed',
-  'failed',
-  'skipped',
-  'not_applicable',
-  'error',
-];
+const stepSchema = z.object({
+  code: z.string(),
+  status: z.enum([
+    'pending',
+    'running',
+    'passed',
+    'failed',
+    'skipped',
+    'not_applicable',
+    'error',
+  ]),
+  done: z.int().exactOptional(),
+  total: z.int().exactOptional(),
+});
 
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+const progressSchema = z.object({
+  version: z.literal(PROGRESS_VERSION),
+  steps: z.array(stepSchema),
+});
 
-function isCount(value: unknown): boolean {
-  return value === undefined || Number.isInteger(value);
-}
-
-function isStep(value: unknown): value is ProgressStep {
-  return (
-    isRecord(value) &&
-    typeof value['code'] === 'string' &&
-    STEP_STATUSES.some((status) => status === value['status']) &&
-    isCount(value['done']) &&
-    isCount(value['total'])
-  );
-}
-
-function isSteps(value: unknown): value is readonly ProgressStep[] {
-  return Array.isArray(value) && value.every(isStep);
-}
+const documentSchema = z.looseObject({ version: z.number() });
 
 /** What `JSON.parse` gives is JSON, so only the version is left to check. */
 function isDocument(value: unknown): value is JobDocument {
-  return isRecord(value) && typeof value['version'] === 'number';
-}
-
-function oneOf<T extends string>(
-  values: readonly T[],
-  text: string,
-  what: string,
-): T {
-  const value = values.find((candidate) => candidate === text);
-  if (value === undefined) {
-    throw new InvalidStoredJobError(`"${text}" is not ${what}.`);
-  }
-  return value;
+  return documentSchema.safeParse(value).success;
 }
 
 /**
@@ -86,13 +64,9 @@ export function jobDocumentOf(text: string): JobDocument {
 }
 
 export function jobProgressOf(text: string): JobProgress {
-  const value: unknown = JSON.parse(text);
-  if (
-    isRecord(value) &&
-    value['version'] === PROGRESS_VERSION &&
-    isSteps(value['steps'])
-  ) {
-    return { steps: value['steps'] };
+  const parsed = progressSchema.safeParse(JSON.parse(text));
+  if (parsed.success) {
+    return { steps: parsed.data.steps };
   }
   throw new InvalidStoredJobError(
     `The stored progress of a job is not a list of steps of version ` +
@@ -106,9 +80,17 @@ export function progressDocumentOf(progress: JobProgress): string {
 }
 
 export function jobKindOf(text: string): JobKind {
-  return oneOf(KINDS, text, 'a kind of job');
+  const parsed = kindSchema.safeParse(text);
+  if (parsed.success) {
+    return parsed.data;
+  }
+  throw new InvalidStoredJobError(`"${text}" is not a kind of job.`);
 }
 
 export function jobStatusOf(text: string): JobDto['status'] {
-  return oneOf(STATUSES, text, 'a status of a job');
+  const parsed = statusSchema.safeParse(text);
+  if (parsed.success) {
+    return parsed.data;
+  }
+  throw new InvalidStoredJobError(`"${text}" is not a status of a job.`);
 }
