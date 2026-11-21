@@ -141,6 +141,38 @@ describe('markdownlint.json', () => {
   });
 });
 
+describe('the configurations of the tools that are programs', () => {
+  const text = (name: string): string =>
+    readFileSync(join(HARNESS_ROOT, 'configs', name), 'utf8');
+
+  it('should search for secrets with every rule of the tool, and no other', () => {
+    expect(text('gitleaks.toml')).toBe('[extend]\nuseDefault = true\n');
+  });
+
+  it('should keep no list of accepted secrets', () => {
+    expect(existsSync(join(HARNESS_ROOT, 'configs/.gitleaksignore'))).toBe(
+      false,
+    );
+  });
+
+  it('should accept one finding of zizmor: the event of the frozen check', () => {
+    const lines = text('zizmor.yml')
+      .split('\n')
+      .filter((line) => line !== '' && !line.trim().startsWith('#'));
+
+    expect(lines).toEqual([
+      'rules:',
+      '  dangerous-triggers:',
+      '    ignore:',
+      '      - frozen.yml',
+    ]);
+  });
+
+  it('should switch nothing off in actionlint', () => {
+    expect(text('actionlint.yaml')).toBe('self-hosted-runner:\n  labels: []\n');
+  });
+});
+
 describe('stryker.json', () => {
   const stryker = (): Record<string, unknown> => config('stryker.json');
 

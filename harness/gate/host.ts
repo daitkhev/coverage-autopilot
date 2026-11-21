@@ -20,6 +20,8 @@ export interface Host {
   readonly root: string;
   /** Runs a program to its end and says whether it passed. */
   readonly start: (command: NodeCommand) => boolean;
+  /** Runs a program that is not Node to its end, in the same way. */
+  readonly run: (program: string, arguments_: readonly string[]) => boolean;
   readonly print: (text: string) => void;
   /** A setting of this machine, from the environment. Empty is not set. */
   readonly setting: (name: string) => string | undefined;
@@ -53,6 +55,13 @@ export const processHost: Host = {
       [...command.nodeOptions, command.script, ...command.arguments],
       { cwd: REPOSITORY_ROOT, stdio: 'inherit' },
     );
+    return result.status === 0;
+  },
+  run: (program, arguments_) => {
+    const result = spawnSync(program, arguments_, {
+      cwd: REPOSITORY_ROOT,
+      stdio: 'inherit',
+    });
     return result.status === 0;
   },
   print: (text) => {

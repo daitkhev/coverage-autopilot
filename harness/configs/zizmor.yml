@@ -1,0 +1,5 @@
+rules:
+  dangerous-triggers:
+    ignore:
+      # The check of frozen files must not belong to the change it judges.
+      - frozen.yml

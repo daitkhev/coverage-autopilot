@@ -30,11 +30,17 @@ describe('planFor', () => {
       'integration',
       'coverage',
       'documents',
+      'secrets',
     ]);
   });
 
-  it('should run everything full runs, the runners and mutation for ci', () => {
-    expect(namesOf('ci')).toEqual([...namesOf('full'), 'runners', 'mutation']);
+  it('should run everything full runs, the workflows, runners and mutation for ci', () => {
+    expect(namesOf('ci')).toEqual([
+      ...namesOf('full'),
+      'workflows',
+      'runners',
+      'mutation',
+    ]);
   });
 
   it('should run one step by its name', () => {

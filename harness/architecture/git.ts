@@ -43,6 +43,15 @@ export function isAncestor(
   return result.status === 0;
 }
 
+/** Whether a clone has only a part of its history. */
+export function isShallow(root: string): boolean {
+  const result = spawnSync('git', ['rev-parse', '--is-shallow-repository'], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  return result.stdout.trim() === 'true';
+}
+
 /** The branch a tree is on, or nothing when it is on no branch. */
 export function currentBranch(root: string): string {
   const result = spawnSync('git', ['symbolic-ref', '--short', 'HEAD'], {

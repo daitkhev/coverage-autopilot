@@ -57,6 +57,18 @@ describe('processHost', () => {
     ).toBe(true);
   });
 
+  it('should run a program that is not a script of Node', () => {
+    expect(processHost.run('sh', ['-c', 'exit 0'])).toBe(true);
+    expect(processHost.run('sh', ['-c', 'exit 3'])).toBe(false);
+    expect(processHost.run('harness-no-such-program', [])).toBe(false);
+  });
+
+  it('should run a program in this repository', () => {
+    expect(processHost.run('sh', ['-c', 'test -f harness/bin/check.ts'])).toBe(
+      true,
+    );
+  });
+
   it('should print a line to the terminal', () => {
     const write = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
 

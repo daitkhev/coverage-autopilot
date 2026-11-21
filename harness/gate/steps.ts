@@ -68,6 +68,8 @@ export const STEPS: readonly Step[] = [
   tests('integration', 'harness/tests/integration'),
   tool('coverage', 'harness/bin/coverage.ts'),
   tool('documents', 'harness/bin/documents.ts'),
+  tool('secrets', 'harness/bin/secrets.ts'),
+  tool('workflows', 'harness/bin/workflows.ts'),
   {
     name: 'runners',
     nodeOptions: [],
@@ -87,13 +89,14 @@ const FULL = [
   'integration',
   'coverage',
   'documents',
+  'secrets',
 ];
 
 /** The profiles of the gate. Each one holds the one before it. */
 export const PROFILES: Readonly<Record<string, readonly string[]>> = {
   fast: FAST,
   full: FULL,
-  ci: [...FULL, 'runners', 'mutation'],
+  ci: [...FULL, 'workflows', 'runners', 'mutation'],
 };
 
 function stepNamed(name: string): Step {
