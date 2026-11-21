@@ -1,10 +1,20 @@
 import type { Role } from '#theme/roles';
+import type { SymbolName } from '#theme/symbols';
 
 /**
  * A filled cell is heavy and an empty one is light, so a bar reads without
  * colour too. The tick of a threshold takes one cell of its own.
  */
 export type BarPart = 'filled' | 'empty' | 'tick';
+
+/** The symbol of a part. The empty part is a border, the tick plain text. */
+export const BAR_PARTS: Readonly<
+  Record<BarPart, { readonly glyph: SymbolName; readonly role?: Role }>
+> = {
+  filled: { glyph: 'barFilled' },
+  empty: { glyph: 'barEmpty', role: 'border' },
+  tick: { glyph: 'threshold', role: 'primary' },
+};
 
 /** A stretch of cells of one part. */
 export interface BarRun {

@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`KeyHints > should draw the keys of the footer 1`] = `"↑↓ move    enter open    s scan    a add    / filter    : commands    q quit"`;

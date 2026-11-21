@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CoverageBar > should draw a bar with its threshold tick and its percentage 1`] = `"━━━━────┼─   41.2%"`;

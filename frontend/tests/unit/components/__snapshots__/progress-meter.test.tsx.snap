@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ProgressMeter > should draw a limit in use with its numbers 1`] = `"━━━━━━━─────────  84k of 200k"`;

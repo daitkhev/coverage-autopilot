@@ -1,6 +1,9 @@
 import { Box, renderToString, Text } from 'ink';
 import { createElement, type ReactNode } from 'react';
 
+import { ThemeContext } from '#hooks/use-theme';
+import { FULL_THEME, type ThemeSettings } from '#theme/settings';
+
 const ESCAPE_CODE = 27;
 const ESCAPE = String.fromCharCode(ESCAPE_CODE);
 const STYLE_CODE = new RegExp(`${ESCAPE}\\[[0-9;]*m`, 'gu');
@@ -33,19 +36,44 @@ export function cellWidth(text: string): number {
   return PROBE_CELLS - (line.lastIndexOf(PROBE_END) - text.length);
 }
 
+const NARROW_COLUMNS = 80;
+const COMPACT_COLUMNS = 96;
+const WIDE_COLUMNS = 112;
+
+/** The widths every part is checked at, one of each layout. */
+export const WIDTHS = [NARROW_COLUMNS, COMPACT_COLUMNS, WIDE_COLUMNS];
+
+/** The width a part is kept at, as one frame of text. */
+export const USUAL_COLUMNS = WIDE_COLUMNS;
+
 /** Room around the box, so a part that is too wide shows past its width. */
 const OVERFLOW_ROOM = 3;
 
-/** A part drawn in a box of a terminal's width, as plain text. */
-export function drawnAt(element: ReactNode, columns: number): string {
+/** A part drawn in a box of a terminal's width, with its codes of style. */
+export function styledAt(element: ReactNode, columns: number): string {
   const box = createElement(
     Box,
     { width: columns, flexDirection: 'column' },
     element,
   );
-  return plainText(
-    renderToString(box, { columns: columns * OVERFLOW_ROOM }),
-  ).replace(/ +$/gmu, '');
+  return renderToString(box, { columns: columns * OVERFLOW_ROOM });
+}
+
+/** A part drawn in a box of a terminal's width, as plain text. */
+export function drawnAt(element: ReactNode, columns: number): string {
+  return plainText(styledAt(element, columns)).replace(/ +$/gmu, '');
+}
+
+/** A part drawn for a terminal with the given abilities. */
+export function drawnWith(
+  settings: Partial<ThemeSettings>,
+  element: ReactNode,
+): ReactNode {
+  return createElement(
+    ThemeContext,
+    { value: { ...FULL_THEME, ...settings } },
+    element,
+  );
 }
 
 const CHARACTERS = new Intl.Segmenter('en', { granularity: 'grapheme' });
