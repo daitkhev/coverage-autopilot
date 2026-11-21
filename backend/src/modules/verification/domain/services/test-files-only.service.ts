@@ -4,6 +4,9 @@ import { addedFilesOf } from '#verification/domain/services/patch-text.service';
 const SEPARATOR = '/';
 const PARENT = '..';
 
+/** Where the packages of a project are installed. Never a place for a test. */
+const PACKAGES = 'node_modules';
+
 /** Parts that would let two texts name one file: none, here, or a backslash. */
 const NOT_PLAIN = /(?:^|\/)\.?(?:\/|$)|[\\\0]/u;
 
@@ -31,8 +34,12 @@ function pathProblemOf(
   if (path.startsWith(SEPARATOR)) {
     return `The patch adds ${path}, an absolute path.`;
   }
-  if (path.split(SEPARATOR).includes(PARENT)) {
+  const parts = path.split(SEPARATOR);
+  if (parts.includes(PARENT)) {
     return `The patch adds ${path}, which leads out of the repository.`;
+  }
+  if (parts.includes(PACKAGES)) {
+    return `The patch adds ${path}, a file among the installed packages.`;
   }
   if (NOT_PLAIN.test(path)) {
     return `The patch adds ${path}, which is not a plain path in the repository.`;

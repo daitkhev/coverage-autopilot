@@ -55,6 +55,12 @@ describe('testFilesOf', () => {
       expect(reasonOf('../a.test.ts')).toBe(
         'The patch adds ../a.test.ts, which leads out of the repository.',
       );
+      expect(reasonOf('node_modules/left-pad/a.test.ts')).toBe(
+        'The patch adds node_modules/left-pad/a.test.ts, a file among the installed packages.',
+      );
+      expect(reasonOf('src/node_modules/a.test.ts')).toContain(
+        'among the installed packages',
+      );
       expect(reasonOf('src/./a.test.ts')).toContain('not a plain path');
       expect(reasonOf('src//a.test.ts')).toContain('not a plain path');
       expect(reasonOf('src\\a.test.ts')).toContain('not a plain path');
