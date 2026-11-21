@@ -1,0 +1,59 @@
+import { join } from 'node:path';
+
+import { CommitSha } from '#kernel/primitives/commit-sha';
+import { RepositoryId } from '#kernel/primitives/repository-id';
+import type { CreateCopyRequest } from '#repositories/application/ports/working-copies.port';
+import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
+import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
+import { WorkingCopyId } from '#repositories/domain/value-objects/working-copy-id.vo';
+import { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-copies.adapter';
+import { TemporaryCodeHost } from '#tests/support/temporary-code-host';
+
+export const WIDGETS = 'acme/widgets';
+
+/** The copy most tests work on. */
+export const COPY = WorkingCopyId.fromPurpose('scan:1');
+
+const REPOSITORY_ID = RepositoryId.create(
+  '00000000-0000-4000-8000-000000000001',
+);
+const NEVER = new AbortController().signal;
+
+/**
+ * `acme/widgets` on a temporary host with a first commit of two source
+ * files and an ignored folder, and the working copies made from it.
+ */
+export class WorkingCopyFixture {
+  public readonly host = new TemporaryCodeHost();
+  public readonly copies = new GitWorkingCopies(this.host.settings);
+  public readonly url = RepositoryUrl.parse(TemporaryCodeHost.urlOf(WIDGETS));
+  public readonly first = this.host.createRepository(WIDGETS, {
+    '.gitignore': 'coverage/\n',
+    'src/a.ts': 'export const a = 1;\n',
+    'src/b.ts': 'export const b = 2;\n',
+  });
+
+  public requestFor(commit = this.first, id = COPY): CreateCopyRequest {
+    return {
+      id,
+      repositoryId: REPOSITORY_ID,
+      url: this.url,
+      branch: BranchName.create('main'),
+      commit: CommitSha.create(commit),
+    };
+  }
+
+  /** A copy at the commit, the first one unless named, and its path. */
+  public async created(commit = this.first, id = COPY): Promise<string> {
+    return this.copies.create(this.requestFor(commit, id), NEVER);
+  }
+
+  /** Where the copy of an id is, whether it is there or not. */
+  public pathOf(id = COPY): string {
+    return join(this.host.settings.workingCopiesRoot, 'copies', id.value);
+  }
+
+  public remove(): void {
+    this.host.remove();
+  }
+}
