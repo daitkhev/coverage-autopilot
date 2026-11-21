@@ -179,7 +179,7 @@ describe('AppShell', () => {
   describe('when a dialog is open', () => {
     it('should draw the dialog over the screen and hide what is behind', () => {
       const size = { columns: USUAL_COLUMNS, rows: 24 };
-      const filler = <Text>{'x'.repeat(200)}</Text>;
+      const filler = <Text>{'x'.repeat(size.columns * size.rows)}</Text>;
       const drawn = drawnAt(
         shell(size, { body: filler, dialog: question(() => undefined) }),
         USUAL_COLUMNS,

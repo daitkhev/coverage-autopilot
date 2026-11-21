@@ -1,4 +1,4 @@
-import { Box } from 'ink';
+import { Box, Text } from 'ink';
 import type { ReactNode } from 'react';
 
 import { DataList } from '#components/data-list';
@@ -7,7 +7,7 @@ import { Panel, type PanelTone } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import { type KeyHandlers, useKeys } from '#hooks/use-keys';
 import { useSelection } from '#hooks/use-selection';
-import { BLANK_FILL } from '#theme/roles';
+import { useTerminalSize } from '#hooks/use-terminal-size';
 
 /** A numbered answer. The answer that destroys work is drawn red. */
 export interface Answer {
@@ -29,6 +29,21 @@ interface DialogProps {
   readonly onClose: () => void;
   /** The sentences of a question, or the fields of a form. */
   readonly children?: ReactNode;
+}
+
+/**
+ * The cells under a dialog, written as spaces, so the screen behind it
+ * does not show through. As many lines as the terminal has rows are cut
+ * to the height of the dialog.
+ */
+function Blank({ width }: { readonly width: number }): ReactNode {
+  const { rows } = useTerminalSize();
+  const line = ' '.repeat(width);
+  return (
+    <Box position="absolute" width="100%" height="100%" overflow="hidden">
+      <Text>{Array.from({ length: rows }, () => line).join('\n')}</Text>
+    </Box>
+  );
 }
 
 /** The answers that a digit picks: `1` to `9`. */
@@ -102,7 +117,8 @@ export function Dialog(props: DialogProps): ReactNode {
     { active: true },
   );
   return (
-    <Box width={props.width} backgroundColor={BLANK_FILL}>
+    <Box width={props.width}>
+      <Blank width={props.width} />
       <Panel
         title={props.title}
         focused
