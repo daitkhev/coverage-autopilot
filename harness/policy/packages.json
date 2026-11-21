@@ -83,12 +83,28 @@
       ]
     },
     {
+      "packages": ["reflect-metadata", "rxjs"],
+      "in": ["backend/src/*.ts"]
+    },
+    {
       "packages": ["node:*", "vitest"],
       "in": ["backend/tests/", "frontend/tests/", "api-contracts/tests/"]
     },
     {
+      "packages": ["@nestjs/common", "@nestjs/core", "@nestjs/testing"],
+      "in": ["backend/tests/"]
+    },
+    {
+      "packages": ["@coverage-autopilot/api-contracts"],
+      "in": ["backend/tests/", "frontend/tests/"]
+    },
+    {
       "packages": ["ink", "ink-testing-library", "react"],
       "in": ["frontend/tests/"]
+    },
+    {
+      "packages": ["@types/react"],
+      "in": ["frontend/src/", "frontend/tests/"]
     }
   ]
 }

@@ -1,4 +1,7 @@
 {
   "extends": "../harness/configs/tsconfig.base.json",
+  "compilerOptions": {
+    "experimentalDecorators": true
+  },
   "include": ["src", "tests"]
 }
