@@ -46,7 +46,8 @@ const language: Linter.RulesRecord = {
     {
       object: 'process',
       property: 'env',
-      message: 'The environment is read by the configuration loader only.',
+      message:
+        'Only the entry file of the service reads the environment. Take a value.',
     },
   ],
   'simple-import-sort/imports': ['error', { groups: IMPORT_GROUPS }],
@@ -121,8 +122,11 @@ export const lintPolicy: Linter.Config[] = defineConfig(
   },
 );
 
-/** The only files that read the environment. Every other gets a value. */
-const ENVIRONMENT_READERS = ['harness/gate/host.ts'];
+/**
+ * The only files that read the environment: the host of the gate and the
+ * entry file of the service. Every other file gets a value.
+ */
+const ENVIRONMENT_READERS = ['harness/gate/host.ts', 'backend/src/main.ts'];
 
 /** What the gate runs: the policy, with generated and fixture files left out. */
 export const eslintConfig: Linter.Config[] = defineConfig(
