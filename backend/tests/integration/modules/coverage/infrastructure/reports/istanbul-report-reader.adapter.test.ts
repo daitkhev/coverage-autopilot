@@ -1,5 +1,5 @@
-import { realpathSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, realpathSync, symlinkSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -244,6 +244,24 @@ describe('IstanbulReportReader', () => {
     describe('when the runner wrote no report', () => {
       it('should answer with null', async () => {
         await expect(read(null)).resolves.toBeNull();
+      });
+    });
+
+    describe('when code of the repository put a link in its place', () => {
+      it('should throw UnreadableCoverageReportError and read nothing', async () => {
+        folder.write('elsewhere.json', '{}');
+        mkdirSync(dirname(join(folder.root, REPORT)), { recursive: true });
+        symlinkSync(
+          join(folder.root, 'elsewhere.json'),
+          join(folder.root, REPORT),
+        );
+
+        await expect(read(null)).rejects.toThrow(
+          new UnreadableCoverageReportError(
+            `The coverage report ${join(folder.root, REPORT)} was not ` +
+              'read: it is not a plain file.',
+          ),
+        );
       });
     });
 

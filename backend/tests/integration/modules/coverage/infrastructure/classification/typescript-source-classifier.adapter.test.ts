@@ -151,7 +151,7 @@ describe('TypescriptSourceClassifier', () => {
         }),
       ).rejects.toThrow(
         new UnreadableSourceFileError(
-          `The source file ${join(root, 'src/linked.ts')} is not a plain file.`,
+          `The source file ${join(root, 'src/linked.ts')} was not read: it is not a plain file.`,
         ),
       );
     });

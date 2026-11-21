@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
@@ -30,6 +30,7 @@ import {
   FILE_LIST_RULE,
   listSourceFiles,
 } from '#coverage/infrastructure/detection/source-file-list';
+import { readCopyFile } from '#coverage/infrastructure/files/copy-file';
 import { FilePath } from '#kernel/primitives/file-path';
 
 const MANIFEST = 'package.json';
@@ -73,12 +74,17 @@ const CONFIG_FILES: Readonly<Record<TestRunnerName, readonly string[]>> = {
   ),
 };
 
+/** `null` for a file that is not JSON of this shape, or is not read at all. */
 function readJson<Schema extends z.ZodType>(
-  path: string,
+  file: { readonly root: string; readonly path: string },
   schema: Schema,
 ): z.infer<Schema> | null {
+  const read = readCopyFile(file.root, file.path);
+  if (read.outcome !== 'read') {
+    return null;
+  }
   try {
-    return schema.parse(JSON.parse(readFileSync(path, 'utf8')));
+    return schema.parse(JSON.parse(read.text));
   } catch {
     return null;
   }
@@ -94,7 +100,7 @@ function readManifest(
       'The repository has no package.json at its root.',
     );
   }
-  const manifest = readJson(path, packageManifestSchema);
+  const manifest = readJson({ root, path }, packageManifestSchema);
   return manifest === null
     ? unsupported(
         'invalid_package_manifest',
@@ -137,7 +143,9 @@ function lockedVersion(
     existsSync(path),
   );
   const lock =
-    lockfile === undefined ? null : readJson(lockfile, packageLockSchema);
+    lockfile === undefined
+      ? null
+      : readJson({ root, path: lockfile }, packageLockSchema);
   const version = lock?.packages?.[`node_modules/${runner}`]?.version;
   return version === undefined
     ? unsupported(

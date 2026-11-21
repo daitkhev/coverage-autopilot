@@ -1,4 +1,3 @@
-import { lstat, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
@@ -7,6 +6,10 @@ import ts from 'typescript';
 import type { SourceClassifier } from '#coverage/application/ports/source-classifier.port';
 import type { SourceReading } from '#coverage/domain/services/file-state.service';
 import { UnreadableSourceFileError } from '#coverage/infrastructure/errors/unreadable-source-file.error';
+import {
+  readCopyFile,
+  REFUSAL_WORDS,
+} from '#coverage/infrastructure/files/copy-file';
 import type { FilePath } from '#kernel/primitives/file-path';
 
 const JSX_EXTENSION = '.tsx';
@@ -72,22 +75,16 @@ function messageOf(diagnostic: ts.Diagnostic): string {
  * A link is refused: code of the repository may have put one in the place
  * of a source, and it could lead to a file of the host.
  */
-async function readPlainFile(path: string): Promise<string> {
-  let isFile: boolean;
-  try {
-    isFile = (await lstat(path)).isFile();
-  } catch (error) {
-    throw new UnreadableSourceFileError(
-      `The source file ${path} could not be read.`,
-      { cause: error },
-    );
+function readSource(root: string, path: string): string {
+  const file = readCopyFile(root, path);
+  if (file.outcome === 'read') {
+    return file.text;
   }
-  if (!isFile) {
-    throw new UnreadableSourceFileError(
-      `The source file ${path} is not a plain file.`,
-    );
-  }
-  return readFile(path, 'utf8');
+  throw new UnreadableSourceFileError(
+    file.outcome === 'missing'
+      ? `The source file ${path} could not be read.`
+      : `The source file ${path} was not read: ${REFUSAL_WORDS[file.reason]}.`,
+  );
 }
 
 /** Turning one file into JavaScript reports what the parser refused. */
@@ -106,6 +103,24 @@ function firstSyntaxError(
   return diagnostics?.[0];
 }
 
+function readingOf(root: string, name: string): SourceReading {
+  const text = readSource(root, join(root, name));
+  const refused = firstSyntaxError(name, text);
+  if (refused !== undefined) {
+    return { kind: 'parse_failed', message: messageOf(refused) };
+  }
+  const file = ts.createSourceFile(
+    name,
+    text,
+    ts.ScriptTarget.Latest,
+    false,
+    name.endsWith(JSX_EXTENSION) ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  return file.statements.every(isDeclarationOnly)
+    ? { kind: 'declarations_only' }
+    : { kind: 'executable' };
+}
+
 /**
  * Reads a source file with the parser of the TypeScript compiler. Nothing
  * is type-checked and nothing of the repository is run: the file is text
@@ -117,21 +132,8 @@ export class TypescriptSourceClassifier implements SourceClassifier {
     readonly workingCopyPath: string;
     readonly path: FilePath;
   }): Promise<SourceReading> {
-    const name = request.path.value;
-    const text = await readPlainFile(join(request.workingCopyPath, name));
-    const refused = firstSyntaxError(name, text);
-    if (refused !== undefined) {
-      return { kind: 'parse_failed', message: messageOf(refused) };
-    }
-    const file = ts.createSourceFile(
-      name,
-      text,
-      ts.ScriptTarget.Latest,
-      false,
-      name.endsWith(JSX_EXTENSION) ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    return Promise.resolve(
+      readingOf(request.workingCopyPath, request.path.value),
     );
-    return file.statements.every(isDeclarationOnly)
-      ? { kind: 'declarations_only' }
-      : { kind: 'executable' };
   }
 }
