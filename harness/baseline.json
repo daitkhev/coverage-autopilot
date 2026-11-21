@@ -7,6 +7,8 @@
       "repositories": [],
       "verification": []
     },
-    "migrations": {}
+    "migrations": {
+      "backend/migrations/0001-create-the-schema.sql": "7657cd6564bf8063459cba98cca9d0627118ef24f7b6efc6157be22c865569c3"
+    }
   }
 }
