@@ -6,6 +6,7 @@ import {
   type ServiceConfig,
 } from '#infrastructure/config/service-config';
 import {
+  DEVELOPER,
   loadWith,
   PLAIN_MACHINE,
   refusal,
@@ -37,9 +38,9 @@ describe('loadServiceConfig', () => {
     });
 
     it('should refuse a home that makes the default too long', () => {
-      expect(() => loadServiceConfig({ HOME: `/${'h'.repeat(80)}` })).toThrow(
-        InvalidServiceConfigError,
-      );
+      expect(() =>
+        loadServiceConfig({ HOME: `/${'h'.repeat(80)}` }, DEVELOPER),
+      ).toThrow(InvalidServiceConfigError);
     });
   });
 
@@ -56,7 +57,9 @@ describe('loadServiceConfig', () => {
       ['no folder and no home', {}],
       ['no folder and a relative home', { HOME: 'home/dev' }],
     ])('should throw InvalidServiceConfigError for %s', (_case, variables) => {
-      expect(() => loadServiceConfig(variables)).toThrow(refusal(expected));
+      expect(() => loadServiceConfig(variables, DEVELOPER)).toThrow(
+        refusal(expected),
+      );
     });
   });
 
@@ -65,8 +68,10 @@ describe('loadServiceConfig', () => {
       ['AUTOPILOT_LOG_LEVEL', 'trace', 'debug, info, warn or error'],
       ['AUTOPILOT_SANDBOX_IMAGE', '--privileged', 'the name of an image'],
       ['AUTOPILOT_SANDBOX_IMAGE', 'node 24', 'the name of an image'],
-      ['AUTOPILOT_SANDBOX_USER', '0:0', '<uid>:<gid>, both above 0'],
-      ['AUTOPILOT_SANDBOX_USER', '1000', '<uid>:<gid>, both above 0'],
+      ['AUTOPILOT_SANDBOX_UID', '0', 'a whole number above 0, so that no'],
+      ['AUTOPILOT_SANDBOX_UID', '501:20', 'a whole number above 0, so that'],
+      ['AUTOPILOT_SANDBOX_GID', '0', 'a whole number above 0, so that no'],
+      ['AUTOPILOT_SANDBOX_GID', 'staff', 'a whole number above 0, so that'],
       ['AUTOPILOT_SANDBOX_CPUS', '0', 'a number above 0'],
       ['AUTOPILOT_SANDBOX_CPUS', 'two', 'a number above 0'],
       ['AUTOPILOT_SANDBOX_MEMORY_MB', '1.5', 'a whole number above 0'],

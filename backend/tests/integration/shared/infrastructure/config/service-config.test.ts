@@ -7,6 +7,7 @@ import {
   type ServiceConfig,
 } from '#infrastructure/config/service-config';
 import {
+  DEVELOPER,
   loadWith,
   PLAIN_MACHINE,
   refusal,
@@ -14,7 +15,7 @@ import {
 
 describe('loadServiceConfig', () => {
   it('should fill every setting that is not set with its default', () => {
-    expect(loadServiceConfig(PLAIN_MACHINE)).toEqual({
+    expect(loadServiceConfig(PLAIN_MACHINE, DEVELOPER)).toEqual({
       instance: {
         directory: '/home/dev/.coverage-autopilot',
         database: '/home/dev/.coverage-autopilot/service.sqlite',
@@ -27,8 +28,8 @@ describe('loadServiceConfig', () => {
       secrets: [],
       sandbox: {
         engine: { command: ['docker'], environment: PLAIN_MACHINE },
-        image: 'node:24-slim',
-        user: '1000:1000',
+        image: 'node:26-slim',
+        user: '501:20',
         limits: {
           memoryMb: 4096,
           cpus: 2,
@@ -52,13 +53,59 @@ describe('loadServiceConfig', () => {
     });
   });
 
+  describe('when no variable names the user of a command', () => {
+    it('should run a command as the user and the group of the service', () => {
+      const config = loadServiceConfig(PLAIN_MACHINE, { uid: 1000, gid: 985 });
+
+      expect(config.sandbox.user).toBe('1000:985');
+    });
+
+    it('should take the one that is set and keep the other', () => {
+      expect(loadWith({ AUTOPILOT_SANDBOX_UID: '1500' }).sandbox.user).toBe(
+        '1500:20',
+      );
+      expect(loadWith({ AUTOPILOT_SANDBOX_GID: '1500' }).sandbox.user).toBe(
+        '501:1500',
+      );
+    });
+
+    it('should refuse a service that runs as root', () => {
+      expect(() =>
+        loadServiceConfig(PLAIN_MACHINE, { uid: 0, gid: 0 }),
+      ).toThrow(
+        refusal(
+          'AUTOPILOT_SANDBOX_UID: expected a whole number above 0, so that ' +
+            'no command runs as root. When it is not set, it is the user ' +
+            'the service runs as.',
+          'AUTOPILOT_SANDBOX_GID: expected a whole number above 0, so that ' +
+            'no command runs in the group of root. When it is not set, it ' +
+            'is the group the service runs in.',
+        ),
+      );
+    });
+
+    it('should let a service of root name another user for its commands', () => {
+      const config = loadServiceConfig(
+        {
+          ...PLAIN_MACHINE,
+          AUTOPILOT_SANDBOX_UID: '1000',
+          AUTOPILOT_SANDBOX_GID: '1000',
+        },
+        { uid: 0, gid: 0 },
+      );
+
+      expect(config.sandbox.user).toBe('1000:1000');
+    });
+  });
+
   it('should take every setting from its variable', () => {
     const config = loadWith({
       AUTOPILOT_INSTANCE_DIR: '/srv/autopilot/./instance/',
       AUTOPILOT_LOG_LEVEL: 'debug',
       AUTOPILOT_SANDBOX_ENGINE: '["/opt/bin/podman", "--remote"]',
       AUTOPILOT_SANDBOX_IMAGE: 'registry.local/sandbox@sha256:abc',
-      AUTOPILOT_SANDBOX_USER: '501:20',
+      AUTOPILOT_SANDBOX_UID: '1001',
+      AUTOPILOT_SANDBOX_GID: '1002',
       AUTOPILOT_SANDBOX_MEMORY_MB: '1024',
       AUTOPILOT_SANDBOX_CPUS: '0.5',
       AUTOPILOT_SANDBOX_PROCESSES: '64',
@@ -88,7 +135,7 @@ describe('loadServiceConfig', () => {
       sandbox: {
         engine: { command: ['/opt/bin/podman', '--remote'] },
         image: 'registry.local/sandbox@sha256:abc',
-        user: '501:20',
+        user: '1001:1002',
         limits: {
           memoryMb: 1024,
           cpus: 0.5,
@@ -125,7 +172,7 @@ describe('loadServiceConfig', () => {
   });
 
   it('should give a frozen value, to its last level', () => {
-    const config = loadServiceConfig(PLAIN_MACHINE);
+    const config = loadServiceConfig(PLAIN_MACHINE, DEVELOPER);
 
     expect(Object.isFrozen(config)).toBe(true);
     expect(Object.isFrozen(config.sandbox.engine.command)).toBe(true);
@@ -188,7 +235,7 @@ describe('loadServiceConfig', () => {
 
   describe('when it is injected by its token', () => {
     it('should be the configuration the module was given', async () => {
-      const config = loadServiceConfig(PLAIN_MACHINE);
+      const config = loadServiceConfig(PLAIN_MACHINE, DEVELOPER);
       const module = await Test.createTestingModule({
         providers: [{ provide: SERVICE_CONFIG, useValue: config }],
       }).compile();

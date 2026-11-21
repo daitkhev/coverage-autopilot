@@ -18,6 +18,12 @@ import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
 /** The variables as the entry file gets them. Empty is not set. */
 type Environment = Readonly<Record<string, string | undefined>>;
 
+/** The user and the group the service runs as, from the entry file. */
+export interface ProcessUser {
+  readonly uid: number;
+  readonly gid: number;
+}
+
 interface QueueSettings {
   readonly leaseMs: number;
   /** Always shorter than the lease. */
@@ -99,12 +105,28 @@ function setValues(
   );
 }
 
-function inputOf(environment: Environment): Record<string, unknown> {
+/**
+ * A command of a repository writes into a working copy the service made,
+ * so it runs as the user of the service unless a variable names another.
+ * A service that runs as root gets 0 here, and the check refuses it.
+ */
+function fallbacksOf(user: ProcessUser): Readonly<Record<string, string>> {
+  return {
+    AUTOPILOT_SANDBOX_UID: String(user.uid),
+    AUTOPILOT_SANDBOX_GID: String(user.gid),
+  };
+}
+
+function inputOf(
+  environment: Environment,
+  user: ProcessUser,
+): Record<string, unknown> {
   const table: Readonly<Record<string, Variable>> = VARIABLES;
+  const ofTheProcess = fallbacksOf(user);
   return Object.fromEntries(
     Object.entries(table).map(([name, variable]) => [
       name,
-      setValue(environment, name) ?? variable.fallback,
+      setValue(environment, name) ?? variable.fallback ?? ofTheProcess[name],
     ]),
   );
 }
@@ -133,7 +155,9 @@ function sandboxOf(
       environment: setValues(environment, ENGINE_VARIABLES),
     },
     image: values.AUTOPILOT_SANDBOX_IMAGE,
-    user: values.AUTOPILOT_SANDBOX_USER,
+    user:
+      `${String(values.AUTOPILOT_SANDBOX_UID)}:` +
+      String(values.AUTOPILOT_SANDBOX_GID),
     limits: {
       memoryMb: values.AUTOPILOT_SANDBOX_MEMORY_MB,
       cpus: values.AUTOPILOT_SANDBOX_CPUS,
@@ -199,12 +223,16 @@ function deepFreeze<T extends object>(value: T): T {
 
 /**
  * Reads the configuration from the variables it is given: the entry file
- * passes the environment of the process, and nothing else in the service
- * reads it. A wrong value stops the start with every wrong variable at
- * once, and never with the value, which may be a secret.
+ * passes the environment of the process and the user it runs as, and
+ * nothing else in the service reads them. A wrong value stops the start
+ * with every wrong variable at once, and never with the value, which may
+ * be a secret.
  */
-export function loadServiceConfig(environment: Environment): ServiceConfig {
-  const parsed = serviceEnvironmentSchema.safeParse(inputOf(environment));
+export function loadServiceConfig(
+  environment: Environment,
+  user: ProcessUser,
+): ServiceConfig {
+  const parsed = serviceEnvironmentSchema.safeParse(inputOf(environment, user));
   if (!parsed.success) {
     const problems = problemsOf(parsed.error.issues).map(
       ({ variable, expected }) => `${variable}: expected ${expected}.`,

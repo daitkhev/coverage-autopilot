@@ -36,11 +36,17 @@ export const VARIABLES = {
   },
   AUTOPILOT_SANDBOX_IMAGE: {
     expected: 'the name of an image, with no space and no "-" at its start',
-    fallback: 'node:24-slim',
+    fallback: 'node:26-slim',
   },
-  AUTOPILOT_SANDBOX_USER: {
-    expected: '<uid>:<gid>, both above 0, so that no command runs as root',
-    fallback: '1000:1000',
+  AUTOPILOT_SANDBOX_UID: {
+    expected:
+      'a whole number above 0, so that no command runs as root. When it ' +
+      'is not set, it is the user the service runs as',
+  },
+  AUTOPILOT_SANDBOX_GID: {
+    expected:
+      'a whole number above 0, so that no command runs in the group of ' +
+      'root. When it is not set, it is the group the service runs in',
   },
   AUTOPILOT_SANDBOX_MEMORY_MB: { expected: WHOLE, fallback: '4096' },
   AUTOPILOT_SANDBOX_CPUS: { expected: 'a number above 0', fallback: '2' },
@@ -79,8 +85,6 @@ export interface Problem {
 
 const WHOLE_NUMBER = /^[1-9][0-9]*$/;
 const POSITIVE_NUMBER = /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
-/** Never 0: no command runs as root or in the group of root. */
-const USER = /^[1-9][0-9]*:[1-9][0-9]*$/;
 /** The engine would read a name that starts with `-` as an option. */
 const IMAGE = /^[^\s-]\S*$/;
 
@@ -113,7 +117,8 @@ const fields = z.object({
     .transform(jsonOf)
     .pipe(z.tuple([z.string().min(1)], z.string())),
   AUTOPILOT_SANDBOX_IMAGE: z.string().regex(IMAGE),
-  AUTOPILOT_SANDBOX_USER: z.string().regex(USER),
+  AUTOPILOT_SANDBOX_UID: wholeNumber(),
+  AUTOPILOT_SANDBOX_GID: wholeNumber(),
   AUTOPILOT_SANDBOX_MEMORY_MB: wholeNumber(),
   AUTOPILOT_SANDBOX_CPUS: z
     .string()
