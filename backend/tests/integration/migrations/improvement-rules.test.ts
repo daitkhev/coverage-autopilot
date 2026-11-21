@@ -166,7 +166,7 @@ describe('improvements', () => {
   });
 
   describe('the stored documents', () => {
-    it.each(['quality_policy', 'generator_config', 'mutation_baseline'])(
+    it.each(['quality_policy', 'generator_config', 'verification_baseline'])(
       'should refuse a %s that is not JSON',
       (column) => {
         expect(() => rows.improvement(target, { [column]: '{x' })).toThrow(
@@ -175,10 +175,40 @@ describe('improvements', () => {
       },
     );
 
-    it('should accept no mutation baseline before it is measured', () => {
+    it('should accept no baseline of the gate before it is measured', () => {
       expect(() =>
-        rows.improvement(target, { mutation_baseline: null }),
+        rows.improvement(target, { verification_baseline: null }),
       ).not.toThrow();
+    });
+  });
+
+  describe('the end of an improvement', () => {
+    it.each([
+      [
+        'a failure with its sentence',
+        { failure_reason: 'stale_snapshot', failure_message: 'It changed.' },
+      ],
+      [
+        'a skip with its sentence',
+        { skip_reason: 'threshold_met', skip_message: 'Nothing to do.' },
+      ],
+    ])('should accept %s', (_name, row) => {
+      expect(() => rows.improvement(target, row)).not.toThrow();
+    });
+
+    it.each([
+      ['a failure with no sentence', { failure_reason: 'stale_snapshot' }],
+      ['a sentence of no failure', { failure_message: 'The file changed.' }],
+      ['a skip with no sentence', { skip_reason: 'threshold_met' }],
+      ['a sentence of no skip', { skip_message: 'Nothing to do.' }],
+    ])('should refuse %s', (_name, row) => {
+      expect(() => rows.improvement(target, row)).toThrow(CHECK);
+    });
+
+    it('should refuse an improvement with no mode', () => {
+      expect(() => rows.improvement(target, { mode: null })).toThrow(
+        'NOT NULL constraint failed: improvements.mode',
+      );
     });
   });
 
@@ -235,10 +265,19 @@ describe('attempts', () => {
     }).toThrow(FOREIGN_KEY);
   });
 
-  it('should refuse a verification report that is not JSON', () => {
+  it.each(['verification_report', 'generation_output'])(
+    'should refuse a %s that is not JSON',
+    (column) => {
+      expect(() => {
+        rows.attempt(improvementId, { [column]: 'passed' });
+      }).toThrow(CHECK);
+    },
+  );
+
+  it('should accept no output until a call of the generator ends', () => {
     expect(() => {
-      rows.attempt(improvementId, { verification_report: 'passed' });
-    }).toThrow(CHECK);
+      rows.attempt(improvementId, { generation_output: null });
+    }).not.toThrow();
   });
 });
 

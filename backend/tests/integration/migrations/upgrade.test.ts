@@ -143,6 +143,63 @@ describe('a database of the first version', () => {
     ]);
   });
 
+  it('should keep an improvement in automatic mode, with its baseline', () => {
+    writeFirstVersion();
+    database.connection.exec(
+      'UPDATE improvements SET mutation_baseline = \'{"version":1}\'',
+    );
+
+    migrateDatabase(database.connection, MIGRATIONS);
+
+    expect(
+      database.connection
+        .prepare(
+          'SELECT mode, failure_reason, failure_message, skip_reason, ' +
+            'skip_message, verification_baseline FROM improvements',
+        )
+        .get(),
+    ).toEqual({
+      mode: 'automatic',
+      failure_reason: null,
+      failure_message: null,
+      skip_reason: null,
+      skip_message: null,
+      verification_baseline: '{"version":1}',
+    });
+  });
+
+  it('should give a failure of then a sentence that says it had none', () => {
+    writeFirstVersion();
+    database.connection.exec(
+      "UPDATE improvements SET status = 'failed', " +
+        "failure_reason = 'stale_snapshot'",
+    );
+
+    migrateDatabase(database.connection, MIGRATIONS);
+
+    expect(
+      database.connection
+        .prepare('SELECT failure_reason, failure_message FROM improvements')
+        .get(),
+    ).toEqual({
+      failure_reason: 'stale_snapshot',
+      failure_message:
+        'The improvement failed before its failures kept a sentence.',
+    });
+  });
+
+  it('should leave an attempt of then with no output of the generator', () => {
+    writeFirstVersion();
+
+    migrateDatabase(database.connection, MIGRATIONS);
+
+    expect(
+      database.connection
+        .prepare('SELECT generation_output FROM attempts')
+        .get(),
+    ).toEqual({ generation_output: null });
+  });
+
   it('should leave a repository with no head until a check reads one', () => {
     const repositoryId = writeFirstVersion();
 

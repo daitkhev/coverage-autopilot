@@ -96,6 +96,7 @@ export class SchemaRows {
       base_commit: COMMIT,
       target_file: target.filePath,
       status: 'created',
+      mode: 'automatic',
       request_key: `key-${id}`,
       request_fingerprint: `fingerprint-${id}`,
       quality_policy: DOCUMENT,

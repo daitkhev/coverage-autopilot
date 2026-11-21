@@ -73,7 +73,8 @@
       "backend/migrations/0001-create-the-schema.sql": "7657cd6564bf8063459cba98cca9d0627118ef24f7b6efc6157be22c865569c3",
       "backend/migrations/0002-let-an-improvement-wait-for-a-limit.sql": "92a47bf91a78b8bec08697879f787544c054997cacaeac3014a1222fd844ac42",
       "backend/migrations/0003-record-the-head-of-a-repository.sql": "c977ac514b8096e0c911c1f512408c19a35fb1db3f44c06530a0adacd7865056",
-      "backend/migrations/0004-count-the-statements-and-functions-of-a-file.sql": "f5df9809088c0fccc4b131757580476d86150e6830695cf3849116b36a4f01f7"
+      "backend/migrations/0004-count-the-statements-and-functions-of-a-file.sql": "f5df9809088c0fccc4b131757580476d86150e6830695cf3849116b36a4f01f7",
+      "backend/migrations/0005-keep-what-an-improvement-and-its-attempts-show.sql": "99a3067f08802abb3a71e08d0dc1f0b5b6bbdf6258681af0289abaf859e1d007"
     }
   }
 }
