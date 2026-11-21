@@ -31,6 +31,12 @@ export interface Manifest {
 export interface Project {
   readonly files: readonly SourceFile[];
   readonly manifests: readonly Manifest[];
+  /** Every file of the tree, of any kind. A link is among them. */
+  readonly paths: readonly string[];
+  /** Each symbolic link, with the target that is written in it. */
+  readonly links: ReadonlyMap<string, string>;
+  /** The lockfile at the root as it was parsed, when there is one. */
+  readonly lockfile: unknown;
 }
 
 export interface Rule {

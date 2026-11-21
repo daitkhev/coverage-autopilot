@@ -59,6 +59,26 @@ export function structureOf(): Structure {
       ['frontend', new Map([['#app/*', './src/app/*.tsx']])],
     ]),
     manifestFields: ['name', 'version', 'imports', 'dependencies'],
+    workspaceFiles: new Map([
+      [
+        'backend',
+        new Map([
+          ['', ['package.json', 'tsconfig.json']],
+          ['src/', ['.ts']],
+          ['tests/', ['.ts']],
+          ['migrations/', ['.sql']],
+        ]),
+      ],
+      [
+        'frontend',
+        new Map([
+          ['', ['package.json', 'tsconfig.json']],
+          ['src/', ['.ts', '.tsx']],
+        ]),
+      ],
+    ]),
+    links: new Map([['.agent/settings.json', '../harness/settings.json']]),
+    packageAliases: new Map([['pad-cjs', 'left-pad']]),
     backend: backendOf(),
   };
 }

@@ -44,6 +44,35 @@
       "devDependencies"
     ]
   },
+  "files": {
+    "backend": {
+      "": ["package.json", "tsconfig.json"],
+      "src/": [".ts"],
+      "tests/": [".ts"],
+      "migrations/": [".sql"]
+    },
+    "frontend": {
+      "": ["package.json", "tsconfig.json"],
+      "src/": [".ts", ".tsx"],
+      "tests/": [".ts", ".tsx", ".snap"]
+    },
+    "api-contracts": {
+      "": ["package.json", "tsconfig.json"],
+      "src/": [".ts"],
+      "tests/": [".ts"]
+    }
+  },
+  "links": {
+    ".claude/settings.json": "../harness/agents/claude/settings.json",
+    ".codex/hooks.json": "../harness/agents/codex/hooks.json"
+  },
+  "packageAliases": {
+    "@jest/react-is-18": "react-is",
+    "@jest/react-is-19": "react-is",
+    "string-width-cjs": "string-width",
+    "strip-ansi-cjs": "strip-ansi",
+    "wrap-ansi-cjs": "wrap-ansi"
+  },
   "backend": {
     "source": "backend/src/",
     "migrations": "backend/migrations/",

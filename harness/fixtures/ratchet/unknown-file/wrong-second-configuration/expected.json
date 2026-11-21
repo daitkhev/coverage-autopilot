@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "unknown-file",
+    "path": "backend/vitest.config.ts",
+    "line": 1
+  }
+]

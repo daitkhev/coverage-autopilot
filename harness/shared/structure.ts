@@ -45,6 +45,21 @@ export interface Structure {
   readonly workspaces: ReadonlyMap<string, ReadonlyMap<string, string>>;
   /** The fields a `package.json` of a workspace may have. */
   readonly manifestFields: readonly string[];
+  /**
+   * What each workspace may hold. Under the empty name are the files of
+   * its root. Under each folder are the extensions a file there may have.
+   */
+  readonly workspaceFiles: ReadonlyMap<
+    string,
+    ReadonlyMap<string, readonly string[]>
+  >;
+  /** Every symbolic link of the tree, with the target it must have. */
+  readonly links: ReadonlyMap<string, string>;
+  /**
+   * The names in the lockfile that stand for another package, each with
+   * the package it stands for. A package of the registry asks for them.
+   */
+  readonly packageAliases: ReadonlyMap<string, string>;
   readonly backend: Backend;
 }
 
@@ -84,6 +99,15 @@ function workspacesOf(file: JsonRecord): Map<string, Map<string, string>> {
   );
 }
 
+function workspaceFilesOf(
+  file: JsonRecord,
+): Map<string, Map<string, string[]>> {
+  const files = recordAt(file, 'files');
+  return new Map(
+    Object.keys(files).map((name) => [name, stringListsAt(files, name)]),
+  );
+}
+
 export function readStructure(): Structure {
   const file = readJsonRecord(policyFile('structure.json'));
   const source = recordAt(file, 'source');
@@ -93,6 +117,9 @@ export function readStructure(): Structure {
     bannedNames: stringListAt(recordAt(file, 'names'), 'banned'),
     workspaces: workspacesOf(file),
     manifestFields: stringListAt(recordAt(file, 'manifest'), 'fields'),
+    workspaceFiles: workspaceFilesOf(file),
+    links: stringsAt(file, 'links'),
+    packageAliases: stringsAt(file, 'packageAliases'),
     backend: backendOf(file),
   };
 }

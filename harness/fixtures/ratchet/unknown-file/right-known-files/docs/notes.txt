@@ -1,0 +1,1 @@
+Outside a workspace any file may be.

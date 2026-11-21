@@ -48,8 +48,31 @@ export function sourceFile(
   return { path, imports };
 }
 
+/** A project that holds nothing. A test adds the part it is about. */
+const EMPTY: Project = {
+  files: [],
+  manifests: [],
+  paths: [],
+  links: new Map(),
+  lockfile: undefined,
+};
+
 export function projectOf(...files: readonly SourceFile[]): Project {
-  return { files, manifests: [] };
+  return { ...EMPTY, files };
+}
+
+/** A project that is only a list of paths, some of them links. */
+export function projectOfPaths(
+  paths: readonly string[],
+  links: Readonly<Record<string, string>> = {},
+): Project {
+  const all = [...paths, ...Object.keys(links)].sort();
+  return { ...EMPTY, paths: all, links: new Map(Object.entries(links)) };
+}
+
+/** A project that is only a lockfile. */
+export function projectWithLockfile(lockfile: unknown): Project {
+  return { ...EMPTY, lockfile };
 }
 
 export function manifestOf(path: string, content: unknown): Manifest {
@@ -57,7 +80,7 @@ export function manifestOf(path: string, content: unknown): Manifest {
 }
 
 export function projectWith(...manifests: readonly Manifest[]): Project {
-  return { files: [], manifests };
+  return { ...EMPTY, manifests };
 }
 
 /** What a rule says about one file that imports another. */

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readlinkSync } from 'node:fs';
 import { join, posix } from 'node:path';
 
 import {
@@ -18,6 +18,7 @@ import type {
 import type { Structure } from '#harness/shared/structure';
 
 const MANIFEST = 'package.json';
+const LOCKFILE = 'package-lock.json';
 
 interface Tree {
   readonly root: string;
@@ -75,14 +76,42 @@ function sourceFileOf(tree: Tree, path: string): SourceFile {
   return { path, imports };
 }
 
+/**
+ * The symbolic links among the files, each with its target. A link is
+ * read as a link and never followed, so one that points nowhere is found
+ * as well.
+ */
+function linksOf(root: string, paths: readonly string[]): Map<string, string> {
+  const links = paths.filter(
+    (path) =>
+      lstatSync(join(root, path), {
+        throwIfNoEntry: false,
+      })?.isSymbolicLink() === true,
+  );
+  return new Map(links.map((path) => [path, readlinkSync(join(root, path))]));
+}
+
+function lockfileOf(root: string, files: readonly string[]): unknown {
+  return files.includes(LOCKFILE)
+    ? (JSON.parse(readFileSync(join(root, LOCKFILE), 'utf8')) as unknown)
+    : undefined;
+}
+
 /** Reads the tree under `root` into the model the rules work on. */
 export function loadProject(root: string, structure: Structure): Project {
-  const files = listFiles(root).filter((path) => existsSync(join(root, path)));
+  const listed = listFiles(root);
+  const links = linksOf(root, listed);
+  const files = listed.filter(
+    (path) => !links.has(path) && existsSync(join(root, path)),
+  );
   const tree = treeOf(root, files);
   return {
     files: files
       .filter((path) => isSource(path, structure))
       .map((path) => sourceFileOf(tree, path)),
     manifests: tree.manifests,
+    paths: [...files, ...links.keys()].sort(),
+    links,
+    lockfile: lockfileOf(root, files),
   };
 }

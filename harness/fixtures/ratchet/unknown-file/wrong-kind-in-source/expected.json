@@ -1,0 +1,12 @@
+[
+  {
+    "rule": "unknown-file",
+    "path": "backend/src/settings.json",
+    "line": 1
+  },
+  {
+    "rule": "unknown-file",
+    "path": "frontend/src/migrations.sql",
+    "line": 1
+  }
+]
