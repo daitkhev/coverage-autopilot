@@ -348,3 +348,51 @@ Where this log and the plan differ, this log and the code are right.
 - Where: `backend/src/modules/verification/domain/services/`,
   `backend/src/modules/verification/application/commands/verify-patch/`,
   `backend/src/modules/verification/verification.module.ts`.
+
+### An improvement counts work, not waiting
+
+- The limit of minutes becomes one deadline when work starts, so a
+  restart of the service cannot give the minutes back.
+- Two statuses are waits: `waiting_for_limit` and `awaiting_approval`.
+  Leaving either moves the deadline later by the length of the wait, so a
+  person who approves the next morning spends no minute of the budget.
+- A third spent window fails the improvement with the reason
+  `quota_exhausted`: the contract has no reason of its own for it, and to
+  a person it means the same, that the account has no usage for now.
+- What is spent counts every attempt that was opened. Whether a new one
+  may open counts only the attempts that are over, so the open attempt of
+  a run after a crash may finish.
+- A rejected patch closes its attempt. An inconclusive verdict keeps the
+  attempt open in `verifying`, because it says nothing about the patch:
+  the caller runs the gate again or fails the improvement.
+- A person approves a patch by its hash. Another hash is refused, so
+  nobody approves a patch they did not see.
+- The branch is `coverage-autopilot/<id>` and follows from the id alone,
+  so publishing that starts again finds the branch it made.
+- A limit of tokens is a number or nothing. The default and the maximum
+  of the service have it together or not at all, and the aggregate never
+  asks who pays.
+- Both baselines must name the commit of the improvement, and the
+  baseline of the gate its file as well. Generation starts with both.
+- A save checks the version the improvement was read with. One that
+  moved is `stale_improvement`, and nothing is written.
+- Where: `backend/src/modules/improvement/domain/`,
+  `backend/src/modules/improvement/infrastructure/persistence/`,
+  `backend/migrations/0005-keep-what-an-improvement-and-its-attempts-show.sql`.
+
+### Owed to the wave that drives an improvement
+
+- The generator may not say when the window opens, and the aggregate
+  takes only a definite moment. The application chooses one, such as the
+  end of the window the last report named, or a fixed wait.
+- After a rejected patch the improvement is `generating` whatever is left
+  of the budget, and opening an attempt with a spent budget is refused.
+  The step asks for the allowance first and fails the improvement with
+  `budget_exhausted`.
+- The id of a snapshot is a value object in two modules. It moves to the
+  kernel when a third place needs it.
+- The answer of a route reads `coverageBefore` that may be empty, the
+  paths of raw output from the stored references, and the wait for a
+  worker or a repository from the job, which the aggregate does not know.
+- The binding of the store, the generator, its sandbox and its settings
+  in the file of the module.
