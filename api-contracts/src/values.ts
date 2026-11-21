@@ -4,6 +4,7 @@ const ID_MAX_LENGTH = 64;
 const PATH_MAX_LENGTH = 1024;
 const TEXT_MAX_LENGTH = 8192;
 const PERCENTAGE_MAX = 100;
+const MILLISECOND_DIGITS = 3;
 
 /** A SHA-1 or a SHA-256 object name, as `git` prints it. */
 const COMMIT_SHA = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
@@ -16,7 +17,14 @@ const PATCH_HASH = /^[0-9a-f]{64}$/;
 
 export const idSchema = z.string().min(1).max(ID_MAX_LENGTH);
 
-export const timestampSchema = z.iso.datetime({ offset: true });
+/**
+ * One format for every moment, `YYYY-MM-DDTHH:mm:ss.sssZ`: always UTC and
+ * always with milliseconds, so two moments compare as text. The client
+ * shows a moment in the time zone of its user.
+ */
+export const timestampSchema = z.iso.datetime({
+  precision: MILLISECOND_DIGITS,
+});
 
 export const commitShaSchema = z.string().regex(COMMIT_SHA);
 

@@ -18,8 +18,8 @@ const check = {
 const rejected = {
   number: 2,
   status: 'closed',
-  startedAt: '2026-11-21T10:05:00Z',
-  finishedAt: '2026-11-21T10:12:00Z',
+  startedAt: '2026-11-21T10:05:00.000Z',
+  finishedAt: '2026-11-21T10:12:00.000Z',
   generationOutcome: 'generated',
   tokensUsed: 18000,
   patchHash: HASH,

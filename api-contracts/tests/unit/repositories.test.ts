@@ -12,7 +12,7 @@ const repository = {
   name: 'payments',
   url: 'https://github.com/example/payments',
   defaultBranch: 'main',
-  connectedAt: '2026-11-20T08:00:00Z',
+  connectedAt: '2026-11-20T08:00:00.000Z',
   latestSnapshot: null,
   activeScanId: 'scan1',
 };
@@ -56,7 +56,7 @@ describe('repositoryListSchema', () => {
 describe('accessCheckSchema', () => {
   const check = {
     repositoryId: 'r1',
-    checkedAt: '2026-11-21T10:00:00Z',
+    checkedAt: '2026-11-21T10:00:00.000Z',
     passed: false,
     steps: [
       {

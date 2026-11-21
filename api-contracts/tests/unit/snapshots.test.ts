@@ -19,7 +19,7 @@ const threshold = { metric: 'branches', percentage: 80 };
 const snapshot = {
   id: 's1',
   commitSha: 'c'.repeat(40),
-  capturedAt: '2026-11-21T09:00:00Z',
+  capturedAt: '2026-11-21T09:00:00.000Z',
   totals: counters,
   threshold,
   files: { below: 3, above: 9, unmeasured: 1, noCode: 2 },

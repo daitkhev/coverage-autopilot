@@ -6,9 +6,9 @@ const health = {
   ready: true,
   contractVersion: CONTRACT_VERSION,
   serviceVersion: '0.1.0',
-  startedAt: '2026-11-21T08:00:00Z',
+  startedAt: '2026-11-21T08:00:00.000Z',
   githubAccount: 'octocat',
-  worker: { alive: true, lastSeenAt: '2026-11-21T10:00:00Z' },
+  worker: { alive: true, lastSeenAt: '2026-11-21T10:00:00.000Z' },
   activeWork: { scans: 0, improvements: 2 },
   tools: [
     { name: 'git', version: '2.47.0' },

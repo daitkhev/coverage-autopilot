@@ -25,10 +25,24 @@ describe('idSchema', () => {
 });
 
 describe('timestampSchema', () => {
-  it.each([['2026-11-21T10:00:00Z'], ['2026-11-21T10:00:00.123+01:00']])(
-    'should accept %s',
+  it('should accept a moment in UTC with milliseconds', () => {
+    const moment = '2026-11-21T10:00:00.123Z';
+
+    expect(timestampSchema.safeParse(moment).success).toBe(true);
+  });
+
+  it.each([
+    ['2026-11-21T11:00:00.123+01:00'],
+    ['2026-11-21T10:00:00.123+00:00'],
+    ['2026-11-21T10:00:00.123'],
+  ])('should refuse %s, which is not said in UTC', (value) => {
+    expect(timestampSchema.safeParse(value).success).toBe(false);
+  });
+
+  it.each([['2026-11-21T10:00:00Z'], ['2026-11-21T10:00:00.123456Z']])(
+    'should refuse %s, which has no milliseconds or more than them',
     (value) => {
-      expect(timestampSchema.safeParse(value).success).toBe(true);
+      expect(timestampSchema.safeParse(value).success).toBe(false);
     },
   );
 

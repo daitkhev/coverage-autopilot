@@ -1481,6 +1481,9 @@ jobs are running, it says so and changes nothing.
 
 - Each DTO has one Zod schema in `api-contracts`. The service validates
   requests with it and the client validates responses.
+- A moment in a request or an answer is the text the database keeps: UTC,
+  `YYYY-MM-DDTHH:mm:ss.sssZ`. Another offset or another precision is
+  refused. The client shows a moment in the time zone of its user.
 - A command that starts work answers 202 and returns a resource whose state
   the client reads afterwards.
 - A command that starts work carries a request key in the `Idempotency-Key`

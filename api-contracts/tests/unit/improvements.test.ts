@@ -34,10 +34,10 @@ const improvement = {
   status: 'awaiting_approval',
   mode: 'review',
   waitingFor: 'approval',
-  phaseStartedAt: '2026-11-21T10:20:00Z',
+  phaseStartedAt: '2026-11-21T10:20:00.000Z',
   budget: { attempts: 3, tokens: 200000, minutes: 45 },
   usage: { attempts: 2, tokens: 36000, seconds: 1210 },
-  deadlineAt: '2026-11-21T10:45:00Z',
+  deadlineAt: '2026-11-21T10:45:00.000Z',
   qualityPolicy: request.qualityPolicy,
   generator: { ...request.generator, promptVersion: '3' },
   attempts: [],
@@ -46,8 +46,8 @@ const improvement = {
   pullRequest: null,
   failure: null,
   skip: null,
-  createdAt: '2026-11-21T10:00:00Z',
-  updatedAt: '2026-11-21T10:20:00Z',
+  createdAt: '2026-11-21T10:00:00.000Z',
+  updatedAt: '2026-11-21T10:20:00.000Z',
   cancelledAt: null,
 };
 

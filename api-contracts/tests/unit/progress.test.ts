@@ -8,7 +8,7 @@ const progress = {
     { code: 'repeated_runs', status: 'running', done: 2, total: 3 },
     { code: 'mutation_gain', status: 'pending' },
   ],
-  updatedAt: '2026-11-21T10:00:00Z',
+  updatedAt: '2026-11-21T10:00:00.000Z',
 };
 
 describe('progressSchema', () => {
