@@ -112,3 +112,32 @@ Where this log and the plan differ, this log and the code are right.
   because the terminal has no colour that means "the default background".
 - Where: `frontend/src/theme/status.ts`,
   `frontend/src/components/dialog.tsx`.
+
+### A scan starts from the head the repositories module reads
+
+- The contract of `repositories` has one operation the plan does not list:
+  `resolveHead`. It reads the head of the default branch from the host of
+  the code, stores it with the repository and returns it.
+- Why: a scan needs a commit to clone, and the plan did not say who finds
+  it. The same read keeps `outdated` true to the last look.
+- Where: `backend/src/modules/repositories/contracts/repositories-public-api.ts`.
+
+### The sandbox and the store of tool output are shared ports
+
+- `Sandbox` runs one command of an untrusted repository in a working copy,
+  with exactly the listed variables and no network unless the request opens
+  it for the install. A command that failed or ran out of time is a value.
+- `ArtifactStore` keeps the raw output of the tools in files named by the
+  hash of their content. A file that is gone reads as nothing.
+- Why here: more than one module runs commands and keeps output, and the
+  three files were written before the modules so the modules could be built
+  side by side.
+- Where: `backend/src/shared/application/ports/sandbox.port.ts`,
+  `backend/src/shared/application/ports/artifact-store.port.ts`.
+
+### A connection of the service may not edit the schema table
+
+- The connection is opened with the defensive flag of SQLite. Node 26 sets
+  it by default and Node 25 does not, so a test passed on a desk and failed
+  in CI.
+- Where: `backend/src/shared/infrastructure/database/sqlite-connection.ts`.
