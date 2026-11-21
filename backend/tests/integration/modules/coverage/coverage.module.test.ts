@@ -9,7 +9,6 @@ import { RunScanHandler } from '#coverage/application/commands/run-scan/run-scan
 import { CoverageApi } from '#coverage/application/coverage-api';
 import { COVERAGE_SETTINGS } from '#coverage/application/coverage-settings';
 import { TestRunnerUnavailableError } from '#coverage/application/errors/test-runner-unavailable.error';
-import { SOURCE_CLASSIFIER } from '#coverage/application/ports/source-classifier.port';
 import {
   TEST_RUNNERS,
   type TestRunner,
@@ -37,10 +36,7 @@ import {
   REPOSITORY_ID,
   SNAPSHOT_COMMIT,
 } from '#tests/support/coverage-snapshots';
-import {
-  fixedClassifier,
-  inMemoryArtifacts,
-} from '#tests/support/coverage-stand-ins';
+import { inMemoryArtifacts } from '#tests/support/coverage-stand-ins';
 import { FixedClock } from '#tests/support/fixed-clock';
 import {
   createProjectFolder,
@@ -91,7 +87,7 @@ function jestSandbox(folder: ProjectFolder): RecordingSandbox {
   });
 }
 
-/** What the service gives the module, with the classifier still to come. */
+/** What the service gives the module. */
 function servicesOf(database: TemporaryDatabase, folder: ProjectFolder) {
   return [
     { provide: SQLITE_CONNECTION, useValue: database.connection },
@@ -130,10 +126,7 @@ beforeEach(() => {
     'package-lock.json': lockfileOf({ jest: '30.5.2' }),
     'src/sum.ts': SUM,
   });
-  services = [
-    ...servicesOf(database, folder),
-    { provide: SOURCE_CLASSIFIER, useValue: fixedClassifier({}) },
-  ];
+  services = servicesOf(database, folder);
 });
 
 afterEach(() => {
@@ -196,14 +189,6 @@ describe('CoverageModule', () => {
         new TestRunnerUnavailableError(
           'No adapter runs vitest, which the detector can name.',
         ),
-      );
-    });
-  });
-
-  describe('when no one provides the source classifier', () => {
-    it('should not compile', async () => {
-      await expect(compile(servicesOf(database, folder))).rejects.toThrow(
-        /SOURCE_CLASSIFIER|SourceClassifier/u,
       );
     });
   });

@@ -15,6 +15,7 @@ import {
 import { TestRunnerUnavailableError } from '#coverage/application/errors/test-runner-unavailable.error';
 import { COVERAGE_REPORT_READER } from '#coverage/application/ports/coverage-report-reader.port';
 import { PROJECT_DETECTOR } from '#coverage/application/ports/project-detector.port';
+import { SOURCE_CLASSIFIER } from '#coverage/application/ports/source-classifier.port';
 import {
   TEST_RUNNERS,
   type TestRunner,
@@ -25,6 +26,7 @@ import { ListFilesBelowThresholdHandler } from '#coverage/application/queries/li
 import { COVERAGE_PUBLIC_API } from '#coverage/contracts/coverage-public-api';
 import { COVERAGE_SNAPSHOT_REPOSITORY } from '#coverage/domain/repositories/coverage-snapshot.repository';
 import { TEST_RUNNER_NAMES } from '#coverage/domain/value-objects/detected-project.vo';
+import { TypescriptSourceClassifier } from '#coverage/infrastructure/classification/typescript-source-classifier.adapter';
 import { NodeProjectDetector } from '#coverage/infrastructure/detection/node-project-detector.adapter';
 import { SqliteCoverageSnapshotRepository } from '#coverage/infrastructure/persistence/sqlite-coverage-snapshot.repository';
 import { IstanbulReportReader } from '#coverage/infrastructure/reports/istanbul-report-reader.adapter';
@@ -41,12 +43,6 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
  * the sandbox, the store of tool output, the queue, the transaction
  * manager, the SQLite connection, the clock, the id generator and the
  * settings of this module.
- *
- * `SOURCE_CLASSIFIER` is provided by no one yet. Its adapter parses a file
- * with the TypeScript compiler, which the package policy does not allow
- * in the service until the owner decides it, and a parser made of text
- * matching would decide the state of a file wrongly. Until then the
- * service cannot start this module, which is safer than a wrong snapshot.
  */
 @Module({
   providers: [
@@ -56,6 +52,7 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
     },
     { provide: PROJECT_DETECTOR, useClass: NodeProjectDetector },
     { provide: COVERAGE_REPORT_READER, useClass: IstanbulReportReader },
+    { provide: SOURCE_CLASSIFIER, useClass: TypescriptSourceClassifier },
     {
       provide: TEST_RUNNERS,
       useFactory: (
