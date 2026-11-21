@@ -271,3 +271,16 @@ Where this log and the plan differ, this log and the code are right.
   the source of a patch.
 - The generator runs in a second instance of the sandbox, with an image
   of its own and an open network. The port of the sandbox is the same.
+
+### A job that cannot be read is dead at its first claim
+
+- A stored payload that is not a document with a version is never run and
+  never claimed again. The worker buries the job and tells its handler
+  with `payload: null`, so the object of the job is failed like any other
+  whose runs are spent.
+- The worker writes a line for the start and the end of every job, for a
+  handler that throws, for a claim the database refuses and for an end it
+  cannot write.
+- Where: `backend/src/shared/infrastructure/queue/job-worker.ts`,
+  `job-worker-log.ts`, `DeadJobContext` in
+  `backend/src/shared/application/ports/job-handler.port.ts`.
