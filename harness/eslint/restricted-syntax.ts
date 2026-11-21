@@ -5,6 +5,32 @@ export interface SyntaxBan {
 
 const BANNED_SUFFIXES = 'Manager|Helper|Processor|Provider|Util';
 
+const PROCESS_MODULE = 'ImportDeclaration[source.value=/^(node:)?process$/]';
+
+/**
+ * Every way to reach the environment of the process: as a property, with
+ * a name or with a text, on the global or through `globalThis`; by taking
+ * the object apart; and through the module, by the name, by the default or
+ * by everything at once.
+ */
+const ENVIRONMENT_READS = [
+  "MemberExpression[object.name='process'][property.name='env']",
+  "MemberExpression[object.name='process'][property.value='env']",
+  "MemberExpression[object.property.name='process'][property.name='env']",
+  "MemberExpression[object.property.name='process'][property.value='env']",
+  "VariableDeclarator[init.name='process'] > ObjectPattern > Property[key.name='env']",
+  `${PROCESS_MODULE} > ImportSpecifier[imported.name='env']`,
+  `${PROCESS_MODULE} > ImportDefaultSpecifier`,
+  `${PROCESS_MODULE} > ImportNamespaceSpecifier`,
+];
+
+/** Left out for the few files that are there to read the environment. */
+export const ENVIRONMENT_BAN: SyntaxBan = {
+  selector: ENVIRONMENT_READS.join(', '),
+  message:
+    'Only an entry file reads the environment. Take a value as an argument.',
+};
+
 /** Shapes of code the policy refuses, as selectors over the syntax tree. */
 export function syntaxBans(maxParameters: number): SyntaxBan[] {
   const count = String(maxParameters);
@@ -38,5 +64,6 @@ export function syntaxBans(maxParameters: number): SyntaxBan[] {
         "CallExpression[callee.object.name='Date'][callee.property.name='now']",
       message: 'The real clock is read in one adapter only. Take a Clock.',
     },
+    ENVIRONMENT_BAN,
   ];
 }

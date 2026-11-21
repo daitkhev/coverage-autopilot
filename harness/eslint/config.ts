@@ -5,7 +5,7 @@ import { defineConfig } from 'eslint/config';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import tseslint from 'typescript-eslint';
 
-import { syntaxBans } from '#harness/eslint/restricted-syntax';
+import { ENVIRONMENT_BAN, syntaxBans } from '#harness/eslint/restricted-syntax';
 import { readLimits, REPOSITORY_ROOT } from '#harness/shared/policy';
 
 const limits = readLimits();
@@ -39,15 +39,6 @@ const language: Linter.RulesRecord = {
     'error',
     {
       restrictDefaultExports: { direct: true, named: true, defaultFrom: true },
-    },
-  ],
-  'no-restricted-properties': [
-    'error',
-    {
-      object: 'process',
-      property: 'env',
-      message:
-        'Only the entry file of the service reads the environment. Take a value.',
     },
   ],
   'simple-import-sort/imports': ['error', { groups: IMPORT_GROUPS }],
@@ -123,10 +114,23 @@ export const lintPolicy: Linter.Config[] = defineConfig(
 );
 
 /**
- * The only files that read the environment: the host of the gate and the
- * entry file of the service. Every other file gets a value.
+ * The only files that read the environment: the host of the gate, the
+ * entry file of the service, the entry file of the client, and the
+ * stand-in of the container engine, a program of the tests that is there
+ * to record the environment it was started with. Every other file gets a
+ * value.
  */
-const ENVIRONMENT_READERS = ['harness/gate/host.ts', 'backend/src/main.ts'];
+const ENVIRONMENT_READERS = [
+  'harness/gate/host.ts',
+  'backend/src/main.ts',
+  'frontend/src/main.tsx',
+  'backend/tests/support/stand-in-engine.ts',
+];
+
+/** Every banned shape of code but the read of the environment. */
+const bansOfAReader = syntaxBans(limits.functionParameters).filter(
+  (ban) => ban !== ENVIRONMENT_BAN,
+);
 
 /** What the gate runs: the policy, with generated and fixture files left out. */
 export const eslintConfig: Linter.Config[] = defineConfig(
@@ -146,6 +150,6 @@ export const eslintConfig: Linter.Config[] = defineConfig(
   ...lintPolicy,
   {
     files: ENVIRONMENT_READERS,
-    rules: { 'no-restricted-properties': 'off' },
+    rules: { 'no-restricted-syntax': ['error', ...bansOfAReader] },
   },
 );

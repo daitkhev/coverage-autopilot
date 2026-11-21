@@ -84,9 +84,17 @@
     }
   ],
   "environment-read": [
-    {
-      "rule": "no-restricted-properties"
-    }
+    { "rule": "no-restricted-syntax", "says": "environment" },
+    { "rule": "no-restricted-syntax", "says": "environment" },
+    { "rule": "no-restricted-syntax", "says": "environment" },
+    { "rule": "no-restricted-syntax", "says": "environment" },
+    { "rule": "no-restricted-syntax", "says": "environment" },
+    { "rule": "no-restricted-syntax", "says": "environment" },
+    { "rule": "no-restricted-syntax", "says": "environment" },
+    { "rule": "no-restricted-syntax", "says": "environment" },
+    { "rule": "@typescript-eslint/dot-notation" },
+    { "rule": "no-restricted-syntax", "says": "environment" },
+    { "rule": "@typescript-eslint/dot-notation" }
   ],
   "warning-comment": [
     {
