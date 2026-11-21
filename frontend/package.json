@@ -12,5 +12,13 @@
     "#hooks/*": "./src/hooks/*.ts",
     "#api/*": "./src/api/*.ts",
     "#tests/*": "./tests/*.ts"
+  },
+  "dependencies": {
+    "ink": "8.0.0",
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "ink-testing-library": "4.0.0"
   }
 }
