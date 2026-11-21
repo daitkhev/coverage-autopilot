@@ -8,7 +8,8 @@
       "verification": []
     },
     "migrations": {
-      "backend/migrations/0001-create-the-schema.sql": "7657cd6564bf8063459cba98cca9d0627118ef24f7b6efc6157be22c865569c3"
+      "backend/migrations/0001-create-the-schema.sql": "7657cd6564bf8063459cba98cca9d0627118ef24f7b6efc6157be22c865569c3",
+      "backend/migrations/0002-let-an-improvement-wait-for-a-limit.sql": "92a47bf91a78b8bec08697879f787544c054997cacaeac3014a1222fd844ac42"
     }
   }
 }

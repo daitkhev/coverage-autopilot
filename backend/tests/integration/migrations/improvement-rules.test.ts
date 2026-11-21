@@ -128,6 +128,43 @@ describe('improvements', () => {
     );
   });
 
+  describe('the wait for a limit', () => {
+    const waiting = { status: 'waiting_for_limit', resumes_at: STORED_TIME };
+
+    it('should accept an improvement that waits until a known time', () => {
+      expect(() => rows.improvement(target, waiting)).not.toThrow();
+    });
+
+    it('should refuse one that waits with no time to go on at', () => {
+      expect(() =>
+        rows.improvement(target, { status: 'waiting_for_limit' }),
+      ).toThrow(CHECK);
+    });
+
+    it('should refuse a time to go on at while it does not wait', () => {
+      expect(() =>
+        rows.improvement(target, {
+          status: 'generating',
+          resumes_at: STORED_TIME,
+        }),
+      ).toThrow(CHECK);
+    });
+
+    it('should count one that waits as open, so its file is taken', () => {
+      rows.improvement(target, waiting);
+
+      expect(() => rows.improvement(target)).toThrow(UNIQUE);
+    });
+  });
+
+  describe('the limit of tokens', () => {
+    it('should accept none, as a subscription has', () => {
+      expect(() =>
+        rows.improvement(target, { max_tokens: null }),
+      ).not.toThrow();
+    });
+  });
+
   describe('the stored documents', () => {
     it.each(['quality_policy', 'generator_config', 'mutation_baseline'])(
       'should refuse a %s that is not JSON',

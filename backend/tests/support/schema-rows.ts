@@ -104,6 +104,7 @@ export class SchemaRows {
       max_tokens: 1,
       time_limit_ms: 1,
       tokens_used: 0,
+      limit_waits: 0,
       phase_started_at: STORED_TIME,
       version: 1,
       created_at: STORED_TIME,
