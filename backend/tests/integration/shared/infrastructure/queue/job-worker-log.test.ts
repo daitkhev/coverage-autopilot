@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { InfrastructureError } from '#kernel/errors/infrastructure.error';
 import {
+  GADGETS,
   QueueBench,
   type QueueProcess,
   scanOf,
@@ -20,6 +21,13 @@ const LONGEST_MESSAGE = 2_000;
 let bench: QueueBench;
 let one: QueueProcess;
 let jobId: string;
+
+/** A payload the queue would never store: a document with no version. */
+function corruptPayload(id: string): void {
+  bench.connection
+    .prepare(`UPDATE jobs SET payload = '{"branch":"main"}' WHERE id = ?`)
+    .run(id);
+}
 
 beforeEach(async () => {
   bench = new QueueBench();
@@ -163,6 +171,74 @@ describe('JobWorker', () => {
           },
         },
       ]);
+    });
+  });
+
+  describe('when the stored payload of a job cannot be read', () => {
+    it('should bury the job, tell its handler and never run it', async () => {
+      corruptPayload(jobId);
+
+      await one.worker.poll();
+      await one.worker.whenIdle();
+
+      expect(one.handler.runs).toEqual([]);
+      expect(one.handler.exhausted).toEqual([
+        { jobId, subjectId: 'scan-1', payload: null, runs: 1 },
+      ]);
+      expect(bench.stored(jobId)).toMatchObject({
+        status: 'dead',
+        lease_expires_at: null,
+      });
+      expect(one.logger.at('error')).toEqual([
+        {
+          level: 'error',
+          message:
+            'The stored payload of a job cannot be read, so the job is dead.',
+          fields: { ...JOB_FIELDS, jobId, subjectId: 'scan-1' },
+        },
+      ]);
+    });
+
+    it('should go on with the jobs behind it', async () => {
+      corruptPayload(jobId);
+      const next = await one.enqueue(scanOf(WIDGETS, 'scan-2'));
+      const other = await one.enqueue(scanOf(GADGETS, 'scan-3'));
+
+      await one.worker.poll();
+      one.handler.latest().finish();
+      await one.worker.whenIdle();
+      await one.worker.poll();
+
+      expect(bench.stored(other.jobId)).toMatchObject({ status: 'completed' });
+      expect(bench.stored(next.jobId)).toMatchObject({ status: 'leased' });
+    });
+
+    it('should bury it also when its runs are spent already', async () => {
+      await one.worker.poll();
+      corruptPayload(jobId);
+      const two = await bench.open({ maxRuns: 1 });
+
+      bench.clock.advance(one.settings.leaseMs);
+      await two.worker.poll();
+      await two.worker.whenIdle();
+
+      expect(two.handler.exhausted).toMatchObject([{ jobId, payload: null }]);
+      expect(bench.stored(jobId)).toMatchObject({ status: 'dead' });
+    });
+
+    it('should not extend a lease or write progress for it', async () => {
+      corruptPayload(jobId);
+      one.handler.refuseNextExhausted();
+      await one.worker.poll();
+
+      await one.worker.heartbeat();
+      await one.worker.writeProgress();
+      await one.worker.whenIdle();
+
+      expect(bench.stored(jobId)).toMatchObject({
+        status: 'leased',
+        lease_expires_at: bench.leaseEnd(one.settings),
+      });
     });
   });
 });

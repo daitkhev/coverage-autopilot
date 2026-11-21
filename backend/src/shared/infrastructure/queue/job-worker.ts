@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import {
+  buryJob,
   type ClaimedRow,
   claimJob,
   type ClaimRequest,
@@ -25,7 +26,7 @@ import {
   type JobOutcome,
   type JobResult,
 } from '#ports/job-handler.port';
-import type { JobId } from '#ports/job-queue.port';
+import type { JobDocument, JobId } from '#ports/job-queue.port';
 import { LOGGER, type Logger } from '#ports/logger.port';
 import {
   TRANSACTION_MANAGER,
@@ -39,7 +40,8 @@ interface Claim {
 }
 
 interface RunningJob {
-  readonly lease: JobLease;
+  /** `null` for a job that cannot be read: nothing of it runs. */
+  readonly lease: JobLease | null;
   readonly serializationKey: string;
   /** Settles once the last write of the job is done. Never rejects. */
   readonly done: Promise<void>;
@@ -58,6 +60,15 @@ async function settle(handler: JobHandler, lease: JobLease): Promise<Settled> {
     return { result: await handler.execute(lease) };
   } catch (error) {
     return { error };
+  }
+}
+
+/** `null` for a payload that is not a document the queue could have stored. */
+function payloadOf(row: ClaimedRow): JobDocument | null {
+  try {
+    return jobDocumentOf(row.payload);
+  } catch {
+    return null;
   }
 }
 
@@ -177,9 +188,8 @@ export class JobWorker {
         this.start(claim);
       }
     } catch (error) {
-      // The database refused the claim, or a claimed row could not be
-      // read. The next poll claims again, and a job left leased is
-      // claimed again once its lease runs out.
+      // The database refused the claim. The next poll claims again, and a
+      // job left leased is claimed again once its lease runs out.
       this.log.claimRefused(error);
     }
   }
@@ -214,16 +224,27 @@ export class JobWorker {
   private start(claim: Claim): void {
     const { row } = claim;
     const handler = this.handlerOf(row);
-    const payload = jobDocumentOf(row.payload);
-    const lease = new JobLease({ ...row, payload }, this.tools);
-    const work = claim.spent
-      ? this.bury(lease, handler)
-      : this.run(row, { lease, handler });
+    const payload = payloadOf(row);
+    const lease =
+      payload === null ? null : new JobLease({ ...row, payload }, this.tools);
     this.running.set(row.id, {
       lease,
       serializationKey: row.serializationKey,
-      done: this.untilEnd(row, work),
+      done: this.untilEnd(row, this.workOf(claim, { lease, handler })),
     });
+  }
+
+  private async workOf(
+    claim: Claim,
+    job: { readonly lease: JobLease | null; readonly handler: JobHandler },
+  ): Promise<void> {
+    if (job.lease === null) {
+      return this.buryUnreadable(claim.row, job.handler);
+    }
+    if (claim.spent) {
+      return this.bury(job.lease, job.handler);
+    }
+    return this.run(claim.row, { lease: job.lease, handler: job.handler });
   }
 
   /** A claim takes only the kinds this worker has a handler for. */
@@ -295,7 +316,32 @@ export class JobWorker {
     await lease.bury();
   }
 
+  /**
+   * A payload that cannot be read stays so, however often the job is
+   * claimed. Left alone it would be claimed for ever, and once its runs
+   * were spent it would stand before every other job of the queue.
+   */
+  private async buryUnreadable(
+    row: ClaimedRow,
+    handler: JobHandler,
+  ): Promise<void> {
+    this.log.unreadable(row);
+    await handler.onRetriesExhausted({
+      jobId: row.id,
+      subjectId: row.subjectId,
+      payload: null,
+      runs: row.runs,
+    });
+    await this.transactions.run(async (transaction) => {
+      const held = { id: row.id, leaseToken: row.leaseToken };
+      buryJob(transaction, held, this.clock.now().toString());
+      return Promise.resolve();
+    });
+  }
+
   private leases(): JobLease[] {
-    return [...this.running.values()].map((run) => run.lease);
+    return [...this.running.values()].flatMap((run) =>
+      run.lease === null ? [] : [run.lease],
+    );
   }
 }

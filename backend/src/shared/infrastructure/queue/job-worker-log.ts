@@ -77,4 +77,11 @@ export class JobWorkerLog {
       ...fieldsOf(error),
     });
   }
+
+  public unreadable(row: ClaimedRow): void {
+    this.logger.error(
+      'The stored payload of a job cannot be read, so the job is dead.',
+      jobOf(row),
+    );
+  }
 }

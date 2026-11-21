@@ -38,11 +38,16 @@ export interface JobContext {
   reportProgress(progress: JobProgress): void;
 }
 
-/** A job whose runs are spent, already moved to `dead`. */
+/** A job that will not run again, about to be moved to `dead`. */
 export interface DeadJobContext {
   readonly jobId: JobId;
   readonly subjectId: string;
-  readonly payload: JobDocument;
+  /**
+   * `null` when the stored payload cannot be read. Such a job never ran,
+   * and the handler still hears of it, so that its object does not stay
+   * open for ever.
+   */
+  readonly payload: JobDocument | null;
   readonly runs: number;
 }
 
