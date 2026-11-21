@@ -141,3 +141,16 @@ Where this log and the plan differ, this log and the code are right.
   it by default and Node 25 does not, so a test passed on a desk and failed
   in CI.
 - Where: `backend/src/shared/infrastructure/database/sqlite-connection.ts`.
+
+### Two files read the environment, and one module parses TypeScript
+
+- `process.env` is read by the host of the gate and by the entry file of
+  the service, `backend/src/main.ts`, and by nothing else. The entry file
+  gives the variables to the loader of the configuration, which takes them
+  as an argument.
+- The `typescript` package may be imported in the adapters of the coverage
+  module and nowhere else in the service. It is there to parse source
+  files, not to compile them.
+- The desk and CI run the same Node, 26.13.1.
+- Where: `harness/eslint/config.ts`, `harness/policy/packages.json`,
+  `.nvmrc`.
