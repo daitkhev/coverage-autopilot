@@ -7,6 +7,10 @@ import { defineConfig } from 'vitest/config';
  *
  * What coverage counts is not here, and neither are the floors: the
  * coverage step measures one area at a time and gives both to Vitest.
+ *
+ * A test may take twenty seconds. An integration test starts real
+ * programs, such as git, and on a machine that runs several gates at once
+ * one of them took more than the five seconds Vitest gives by default.
  */
 export const treeTests = defineConfig({
   test: {
@@ -15,6 +19,7 @@ export const treeTests = defineConfig({
       '*/tests/integration/**/*.test.{ts,tsx}',
     ],
     environment: 'node',
+    testTimeout: 20_000,
     coverage: {
       provider: 'v8',
       reporter: ['json', 'text-summary'],

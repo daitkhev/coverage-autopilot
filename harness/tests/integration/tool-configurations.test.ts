@@ -111,6 +111,7 @@ describe('vitest.ts', () => {
           '*/tests/integration/**/*.test.{ts,tsx}',
         ],
         environment: 'node',
+        testTimeout: 20_000,
         coverage: {
           provider: 'v8',
           reporter: ['json', 'text-summary'],
