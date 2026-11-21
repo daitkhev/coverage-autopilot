@@ -19,7 +19,8 @@ export type SymbolName =
   | 'separator'
   | 'cursor'
   | 'up'
-  | 'down';
+  | 'down'
+  | 'added';
 
 /** A symbol and its ASCII replacement, each one terminal cell wide. */
 export interface Glyphs {
@@ -46,6 +47,7 @@ export const SYMBOLS: Readonly<Record<SymbolName, Glyphs>> = {
   cursor: { unicode: '█', ascii: '_' },
   up: { unicode: '↑', ascii: '^' },
   down: { unicode: '↓', ascii: 'v' },
+  added: { unicode: '+', ascii: '+' },
 };
 
 /** A symbol of the table, or the spinner, which moves. */

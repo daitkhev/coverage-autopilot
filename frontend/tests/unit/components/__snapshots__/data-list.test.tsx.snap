@@ -1,0 +1,10 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DataList > should draw the rows with the chosen one marked 1`] = `
+"  File
+› src/billing/invoice.ts
+  src/billing/tax.ts
+  src/api/webhook.ts
+  src/api/refund.ts
+  2 more below"
+`;
