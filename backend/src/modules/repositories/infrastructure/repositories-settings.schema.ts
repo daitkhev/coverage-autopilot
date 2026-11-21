@@ -9,6 +9,7 @@ const toolSettingsSchema = z.object({
   command: z.array(z.string().min(1)).min(1),
   environment: z.record(z.string(), z.string()),
   timeoutMs: z.int().positive(),
+  outputLimitBytes: z.int().positive().optional(),
 });
 
 /** What the settings must be for the module to work at all. */

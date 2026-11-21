@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { WorkingCopyId } from '#repositories/domain/value-objects/working-copy-id.vo';
 import { CommitNotFoundError } from '#repositories/infrastructure/errors/commit-not-found.error';
 import { ToolFailedError } from '#repositories/infrastructure/errors/tool-failed.error';
+import { ToolOutputTooLargeError } from '#repositories/infrastructure/errors/tool-output-too-large.error';
 import { ToolStoppedError } from '#repositories/infrastructure/errors/tool-stopped.error';
 import { WorkingCopyMissingError } from '#repositories/infrastructure/errors/working-copy-missing.error';
 import { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-copies.adapter';
@@ -209,6 +210,22 @@ describe('GitWorkingCopies', () => {
       it('should throw WorkingCopyMissingError', async () => {
         await expect(fixture.copies.extractPatch(COPY)).rejects.toThrow(
           WorkingCopyMissingError,
+        );
+      });
+    });
+
+    describe('when the diff is longer than the limit of output of git', () => {
+      it('should throw ToolOutputTooLargeError, not give a part of the patch', async () => {
+        const settings = fixture.host.settings;
+        const copies = new GitWorkingCopies({
+          ...settings,
+          git: { ...settings.git, outputLimitBytes: 4096 },
+        });
+        const path = await copies.create(fixture.requestFor(), NEVER);
+        writeFileSync(join(path, 'src/big.ts'), 'x\n'.repeat(50_000));
+
+        await expect(copies.extractPatch(COPY)).rejects.toThrow(
+          ToolOutputTooLargeError,
         );
       });
     });

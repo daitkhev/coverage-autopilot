@@ -10,6 +10,12 @@ export interface ToolSettings {
   readonly environment: Readonly<Record<string, string>>;
   /** A call that runs longer than this is stopped. */
   readonly timeoutMs: number;
+  /**
+   * The bytes a call may write to its two streams together, 64 MiB when
+   * not given. A call that writes more is stopped and fails, since a diff
+   * of a tree untrusted code wrote could otherwise fill the memory.
+   */
+  readonly outputLimitBytes?: number;
 }
 
 /** What the repositories module needs from the configuration. */

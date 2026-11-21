@@ -6,8 +6,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ToolFailedError } from '#repositories/infrastructure/errors/tool-failed.error';
 import { ToolMissingError } from '#repositories/infrastructure/errors/tool-missing.error';
+import { ToolOutputTooLargeError } from '#repositories/infrastructure/errors/tool-output-too-large.error';
 import { ToolStoppedError } from '#repositories/infrastructure/errors/tool-stopped.error';
 import { ToolTimedOutError } from '#repositories/infrastructure/errors/tool-timed-out.error';
+import type { ToolSettings } from '#repositories/infrastructure/repositories-settings';
 import { ToolRunner } from '#repositories/infrastructure/tools/tool-runner';
 
 const SECRET = 'not-a-real-secret-4711';
@@ -20,13 +22,17 @@ let folder: string;
  * A runner whose program is Node with a script of the test. After `--`,
  * an argument goes to the script and not to Node.
  */
-function runnerOf(script: string, timeoutMs = LONG_ENOUGH_MS): ToolRunner {
+function runnerOf(
+  script: string,
+  limits: Partial<Pick<ToolSettings, 'timeoutMs' | 'outputLimitBytes'>> = {},
+): ToolRunner {
   return new ToolRunner({
     name: 'tool',
     settings: {
       command: [process.execPath, '--eval', script, '--'],
       environment: { ONLY: 'this', SECRET },
-      timeoutMs,
+      timeoutMs: LONG_ENOUGH_MS,
+      ...limits,
     },
     secrets: [SECRET],
   });
@@ -180,12 +186,46 @@ describe('ToolRunner', () => {
 
     describe('when the program runs longer than its time limit', () => {
       it('should stop it and throw ToolTimedOutError', async () => {
-        const runner = runnerOf('setInterval(() => undefined, 1000)', 1);
+        const runner = runnerOf('setInterval(() => undefined, 1000)', {
+          timeoutMs: 1,
+        });
 
         await expect(
           runner.run({ arguments: ['fetch'], directory: folder }, NEVER),
         ).rejects.toThrow(ToolTimedOutError);
       });
+    });
+
+    describe('when the program writes more than its limit of output', () => {
+      it('should stop it and throw ToolOutputTooLargeError', async () => {
+        const runner = runnerOf(
+          'setInterval(() => process.stdout.write("x".repeat(4096)), 1)',
+          { outputLimitBytes: 10_000 },
+        );
+
+        await expect(
+          runner.run({ arguments: ['diff'], directory: folder }, NEVER),
+        ).rejects.toThrow('tool diff wrote more than 10000 bytes');
+      });
+
+      it('should count what it writes to the error stream too', async () => {
+        const runner = runnerOf(
+          'setInterval(() => process.stderr.write("x".repeat(4096)), 1)',
+          { outputLimitBytes: 10_000 },
+        );
+
+        await expect(
+          runner.run({ arguments: [], directory: folder }, NEVER),
+        ).rejects.toThrow(ToolOutputTooLargeError);
+      });
+    });
+
+    it('should give an output as long as its limit whole', async () => {
+      const run = await runnerOf('process.stdout.write("x".repeat(10000))', {
+        outputLimitBytes: 10_000,
+      }).run({ arguments: [], directory: folder }, NEVER);
+
+      expect(run.stdout).toHaveLength(10_000);
     });
 
     describe('when the signal of the caller aborts', () => {

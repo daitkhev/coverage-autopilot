@@ -3,12 +3,19 @@ import { kill } from 'node:process';
 
 import { ToolFailedError } from '#repositories/infrastructure/errors/tool-failed.error';
 import { ToolMissingError } from '#repositories/infrastructure/errors/tool-missing.error';
+import { ToolOutputTooLargeError } from '#repositories/infrastructure/errors/tool-output-too-large.error';
 import { ToolStoppedError } from '#repositories/infrastructure/errors/tool-stopped.error';
 import { ToolTimedOutError } from '#repositories/infrastructure/errors/tool-timed-out.error';
 import type { ToolSettings } from '#repositories/infrastructure/repositories-settings';
 
 /** The contract keeps no more of an answer than this, and a user reads less. */
 const KEPT_CHARACTERS = 4096;
+
+/**
+ * 64 MiB: far more than the patch of one improvement, and far less than
+ * the memory of a host.
+ */
+const DEFAULT_OUTPUT_LIMIT_BYTES = 67_108_864;
 
 /** What stands in an output where a secret was. */
 const HIDDEN = '[hidden]';
@@ -42,10 +49,12 @@ export interface ToolRunnerOptions {
   readonly secrets: readonly string[];
 }
 
-type StopReason = 'none' | 'timed_out' | 'stopped';
+type StopReason = 'none' | 'timed_out' | 'stopped' | 'too_large';
 
 interface Watch {
   readonly reason: () => StopReason;
+  /** Stops the program. The first reason given is the one kept. */
+  readonly end: (why: StopReason) => void;
   readonly release: () => void;
 }
 
@@ -54,14 +63,31 @@ interface Streams {
   readonly both: Buffer[];
 }
 
-function collect(child: ChildProcessWithoutNullStreams): Streams {
+/**
+ * The streams of the program up to the limit. Past it nothing more is
+ * kept and the program is stopped, so the memory it takes stays bounded.
+ */
+function collect(
+  child: ChildProcessWithoutNullStreams,
+  limitBytes: number,
+  overflow: () => void,
+): Streams {
   const streams: Streams = { stdout: [], both: [] };
-  child.stdout.on('data', (chunk: Buffer) => {
-    streams.stdout.push(chunk);
+  let bytes = 0;
+  const take = (chunk: Buffer, stdout: Buffer[] | null): void => {
+    bytes += chunk.length;
+    if (bytes > limitBytes) {
+      overflow();
+      return;
+    }
+    stdout?.push(chunk);
     streams.both.push(chunk);
+  };
+  child.stdout.on('data', (chunk: Buffer) => {
+    take(chunk, streams.stdout);
   });
   child.stderr.on('data', (chunk: Buffer) => {
-    streams.both.push(chunk);
+    take(chunk, null);
   });
   return streams;
 }
@@ -85,7 +111,9 @@ function watch(
 ): Watch {
   let reason: StopReason = 'none';
   const end = (why: StopReason): void => {
-    reason = why;
+    if (reason === 'none') {
+      reason = why;
+    }
     killGroup(child);
   };
   const timer = setTimeout(() => {
@@ -97,6 +125,7 @@ function watch(
   signal.addEventListener('abort', onAbort, { once: true });
   return {
     reason: () => reason,
+    end,
     release: () => {
       clearTimeout(timer);
       signal.removeEventListener('abort', onAbort);
@@ -120,8 +149,9 @@ function isNotFound(error: unknown): boolean {
 /**
  * Starts one program of the host with a list of arguments, never a line
  * for a shell, in an explicit folder, with exactly the variables of its
- * settings. It stops the program at its time limit or when the caller's
- * signal aborts, and tells a missing program from one that failed.
+ * settings. It stops the program at its time limit, past its limit of
+ * output or when the caller's signal aborts, and tells a missing program
+ * from one that failed.
  */
 export class ToolRunner {
   private readonly name: string;
@@ -140,8 +170,10 @@ export class ToolRunner {
       throw this.stoppedError(call);
     }
     const child = this.start(call);
-    const streams = collect(child);
     const watched = watch(child, signal, this.settings.timeoutMs);
+    const streams = collect(child, this.outputLimitBytes(), () => {
+      watched.end('too_large');
+    });
     let exitCode: number | null;
     try {
       exitCode = await exitOf(child);
@@ -203,6 +235,11 @@ export class ToolRunner {
         `${this.describe(call)} ran longer than ${String(this.settings.timeoutMs)} ms and was stopped.`,
       );
     }
+    if (reason === 'too_large') {
+      throw new ToolOutputTooLargeError(
+        `${this.describe(call)} wrote more than ${String(this.outputLimitBytes())} bytes and was stopped.`,
+      );
+    }
     const output = this.kept(Buffer.concat(ended.streams.both).toString());
     if (ended.exitCode === null) {
       throw new ToolFailedError(
@@ -228,6 +265,10 @@ export class ToolRunner {
     return new ToolStoppedError(
       `${this.describe(call)} was stopped by its caller.`,
     );
+  }
+
+  private outputLimitBytes(): number {
+    return this.settings.outputLimitBytes ?? DEFAULT_OUTPUT_LIMIT_BYTES;
   }
 
   private describe(call: ToolCall): string {
