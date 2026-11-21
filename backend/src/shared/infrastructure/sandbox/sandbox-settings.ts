@@ -1,0 +1,36 @@
+/** The program that starts the container engine, and how it is started. */
+export interface SandboxEngine {
+  /** The program and its own first arguments, such as `["docker"]`. */
+  readonly command: readonly [string, ...string[]];
+  /**
+   * The whole environment of that program. Nothing of the service is
+   * inherited, so no credential of the service reaches the engine.
+   */
+  readonly environment: Readonly<Record<string, string>>;
+}
+
+interface SandboxLimits {
+  readonly memoryMb: number;
+  readonly cpus: number;
+  /** Processes and threads at once, so a fork bomb stops at the limit. */
+  readonly processes: number;
+  /** The size of `/tmp`, which is kept in memory. */
+  readonly scratchMb: number;
+  /** How much of the output is kept, from its end. */
+  readonly outputBytes: number;
+}
+
+/** Everything a sandbox is started with, as one value of the settings. */
+export interface SandboxSettings {
+  readonly engine: SandboxEngine;
+  readonly image: string;
+  /**
+   * `<uid>:<gid>` the command runs as: never root, and the owner of the
+   * working copies, so that it can write into them.
+   */
+  readonly user: string;
+  readonly limits: SandboxLimits;
+}
+
+/** The injection token of the settings of the sandbox. */
+export const SANDBOX_SETTINGS = Symbol('SandboxSettings');
