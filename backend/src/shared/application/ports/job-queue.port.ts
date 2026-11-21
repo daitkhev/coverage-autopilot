@@ -93,6 +93,13 @@ export interface JobProgress {
   readonly steps: readonly ProgressStep[];
 }
 
+/**
+ * What the job of an object that has not started waits for. `moment`: the
+ * time it was told to wait for. `repository`: another job of its
+ * repository runs. `worker`: nothing but a free worker.
+ */
+export type JobWait = 'moment' | 'repository' | 'worker';
+
 export interface JobProgressDto extends JobProgress {
   readonly jobId: JobId;
   /** The client shows the age of an old value, so a stalled job shows. */
@@ -111,9 +118,16 @@ export interface JobQueue {
     transaction: Transaction,
   ): Promise<EnqueueJobResult>;
   cancel(jobId: JobId, transaction: Transaction): Promise<void>;
+  /**
+   * Cancels every job of an object that has not ended, for a caller that
+   * knows the object and not its jobs.
+   */
+  cancelSubject(subjectId: string, transaction: Transaction): Promise<void>;
   getJob(jobId: JobId): Promise<JobDto | null>;
   /** The progress of the leased job of an object. A finished job has none. */
   getProgress(subjectId: string): Promise<JobProgressDto | null>;
+  /** `null` when no job of the object is pending. */
+  getWait(subjectId: string): Promise<JobWait | null>;
 }
 
 /** The injection token of the job queue. */

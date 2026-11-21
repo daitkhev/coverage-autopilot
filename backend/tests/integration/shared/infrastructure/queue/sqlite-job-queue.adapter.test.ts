@@ -147,6 +147,88 @@ describe('SqliteJobQueue', () => {
     });
   });
 
+  describe('cancelSubject', () => {
+    it('should cancel every job of the subject that has not ended', async () => {
+      const first = await service.enqueue(SCAN);
+      const second = await service.enqueue({
+        ...SCAN,
+        idempotencyKey: 'scan:scan-1:again',
+      });
+      const other = await service.enqueue(scanOf(GADGETS, 'scan-2'));
+
+      await service.transactions.run(async (transaction) =>
+        service.queue.cancelSubject('scan-1', transaction),
+      );
+
+      expect(bench.stored(first.jobId)).toMatchObject({ status: 'cancelled' });
+      expect(bench.stored(second.jobId)).toMatchObject({ status: 'cancelled' });
+      expect(bench.stored(other.jobId)).toMatchObject({ status: 'pending' });
+    });
+
+    it('should stop a job of the subject that a worker runs', async () => {
+      const { jobId } = await service.enqueue(SCAN);
+      await service.worker.poll();
+
+      await service.transactions.run(async (transaction) =>
+        service.queue.cancelSubject('scan-1', transaction),
+      );
+
+      expect(bench.stored(jobId)).toMatchObject({
+        status: 'cancelled',
+        lease_expires_at: null,
+      });
+    });
+
+    it('should leave a job that has ended as it ended', async () => {
+      const jobId = new SchemaRows(bench.connection).job({
+        status: 'completed',
+        subject_id: 'scan-1',
+        serialization_key: WIDGETS.value,
+      });
+
+      await service.transactions.run(async (transaction) =>
+        service.queue.cancelSubject('scan-1', transaction),
+      );
+
+      expect(bench.stored(jobId)).toMatchObject({ status: 'completed' });
+    });
+  });
+
+  describe('getWait', () => {
+    it('should give null when no job of the subject is pending', async () => {
+      await service.enqueue(SCAN);
+      await service.worker.poll();
+
+      await expect(service.queue.getWait('scan-1')).resolves.toBeNull();
+      await expect(service.queue.getWait('scan-9')).resolves.toBeNull();
+    });
+
+    it('should name a worker when nothing else holds the job', async () => {
+      await service.enqueue(SCAN);
+
+      await expect(service.queue.getWait('scan-1')).resolves.toBe('worker');
+    });
+
+    it('should name the repository when another of its jobs runs', async () => {
+      await service.enqueue(scanOf(WIDGETS, 'scan-0'));
+      await service.worker.poll();
+      await service.enqueue(SCAN);
+
+      await expect(service.queue.getWait('scan-1')).resolves.toBe('repository');
+    });
+
+    it('should name the moment until it comes', async () => {
+      const notBefore = bench.clock.now().plusMilliseconds(WAIT_MS);
+      await service.enqueue({ ...SCAN, notBefore });
+
+      await expect(service.queue.getWait('scan-1')).resolves.toBe('moment');
+
+      bench.clock.advance(WAIT_MS);
+
+      await expect(service.queue.getWait('scan-1')).resolves.toBe('worker');
+    });
+  });
+
   describe('getJob', () => {
     it('should give null for a job that does not exist', async () => {
       expect(await service.queue.getJob('missing')).toBeNull();

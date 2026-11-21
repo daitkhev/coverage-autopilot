@@ -24,6 +24,7 @@ import type {
   JobId,
   JobProgressDto,
   JobQueue,
+  JobWait,
 } from '#ports/job-queue.port';
 
 /**
@@ -114,6 +115,17 @@ export class SqliteJobQueue implements JobQueue {
     return Promise.resolve();
   }
 
+  public async cancelSubject(
+    subjectId: string,
+    transaction: Transaction,
+  ): Promise<void> {
+    this.table.cancelSubject(transaction, {
+      subjectId,
+      now: this.clock.now().toString(),
+    });
+    return Promise.resolve();
+  }
+
   public async getJob(jobId: JobId): Promise<JobDto | null> {
     const row = this.table.find(jobId);
     return Promise.resolve(row === undefined ? null : jobDtoOf(row));
@@ -129,5 +141,20 @@ export class SqliteJobQueue implements JobQueue {
       updatedAt: Instant.parse(row.updatedAt),
       steps: jobProgressOf(row.progress).steps,
     });
+  }
+
+  public async getWait(subjectId: string): Promise<JobWait | null> {
+    const pending = this.table.pendingOf(subjectId);
+    if (pending === undefined) {
+      return Promise.resolve(null);
+    }
+    const { notBefore, repositoryBusy } = pending;
+    if (
+      notBefore !== null &&
+      this.clock.now().isBefore(Instant.parse(notBefore))
+    ) {
+      return Promise.resolve('moment');
+    }
+    return Promise.resolve(repositoryBusy ? 'repository' : 'worker');
   }
 }

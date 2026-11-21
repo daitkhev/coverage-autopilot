@@ -35,6 +35,13 @@ export interface JobRow extends JobFields {
   readonly outcome: string | null;
 }
 
+/** A pending job of a subject, as far as its wait goes. */
+export interface PendingRow {
+  readonly notBefore: string | null;
+  /** Whether another job of its repository is leased. */
+  readonly repositoryBusy: boolean;
+}
+
 /** The last progress a worker wrote for a leased job. */
 export interface ProgressRow {
   readonly jobId: string;
@@ -118,11 +125,50 @@ export class SqliteJobTable {
       .run({ ...change });
   }
 
+  /** Every job of the subject that has not ended. */
+  public cancelSubject(
+    transaction: Transaction,
+    change: { readonly subjectId: string; readonly now: string },
+  ): void {
+    SqliteTransaction.connectionOf(transaction)
+      .prepare(
+        `UPDATE jobs
+         SET status = 'cancelled', lease_expires_at = NULL, updated_at = :now
+         WHERE subject_id = :subjectId AND status IN ('pending', 'leased')`,
+      )
+      .run({ ...change });
+  }
+
   public find(id: string): JobRow | undefined {
     const record = this.connection
       .prepare(`SELECT ${JOB_COLUMNS} FROM jobs WHERE id = ?`)
       .get(id);
     return record === undefined ? undefined : jobRowOf(record);
+  }
+
+  /** The oldest pending job of the subject. */
+  public pendingOf(subjectId: string): PendingRow | undefined {
+    const record = this.connection
+      .prepare(
+        `SELECT not_before, EXISTS (
+           SELECT 1 FROM jobs AS running
+           WHERE running.status = 'leased'
+             AND running.serialization_key = waiting.serialization_key
+         ) AS repository_busy
+         FROM jobs AS waiting
+         WHERE subject_id = ? AND status = 'pending'
+         ORDER BY created_at, id
+         LIMIT 1`,
+      )
+      .get(subjectId);
+    if (record === undefined) {
+      return undefined;
+    }
+    const notBefore = record['not_before'] ?? null;
+    return {
+      notBefore: notBefore === null ? null : String(notBefore),
+      repositoryBusy: Number(record['repository_busy']) === 1,
+    };
   }
 
   /** A subject has one leased job at most, as its repository has. */

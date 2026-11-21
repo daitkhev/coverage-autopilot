@@ -30,8 +30,10 @@ export function recordingQueue(): RecordingQueue {
       return Promise.resolve(queue.answer);
     },
     cancel: refuse,
+    cancelSubject: refuse,
     getJob: refuse,
     getProgress: refuse,
+    getWait: refuse,
   };
   return queue;
 }
