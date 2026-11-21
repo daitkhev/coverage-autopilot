@@ -49,6 +49,7 @@ function expectedIn(rule: string, name: string): unknown {
  * while the file is loaded, and nothing of the ratchet runs then.
  */
 const RULE_IDS = [
+  'client-direction',
   'file-name',
   'import-cycle',
   'layer-direction',
@@ -59,6 +60,8 @@ const RULE_IDS = [
   'package-manifest',
   'package-placement',
   'relative-import',
+  'test-placement',
+  'unit-test-reach',
   'unknown-file',
   'unknown-layer',
   'unknown-module',

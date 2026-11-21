@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "client-direction",
+    "path": "frontend/src/api/client.ts",
+    "line": 1
+  }
+]

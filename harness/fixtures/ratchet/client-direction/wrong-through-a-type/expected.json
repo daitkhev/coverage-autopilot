@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "client-direction",
+    "path": "frontend/src/hooks/use-runs.ts",
+    "line": 1
+  }
+]

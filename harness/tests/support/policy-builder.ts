@@ -1,5 +1,10 @@
 import type { PackageRule } from '#harness/shared/packages';
-import type { Backend, Structure } from '#harness/shared/structure';
+import type {
+  Backend,
+  Frontend,
+  Structure,
+  TestRules,
+} from '#harness/shared/structure';
 
 /** Where the modules of the service used in the tests are. */
 export const MODULES = 'backend/src/modules';
@@ -49,6 +54,39 @@ export function backendOf(): Backend {
   };
 }
 
+/** A small client for the tests. Its folders follow the real policy. */
+export function frontendOf(): Frontend {
+  return {
+    source: 'frontend/src/',
+    root: ['app', 'commands'],
+    folders: new Map([
+      ['app', ['screens', 'components', 'hooks', 'theme', 'api']],
+      ['screens', ['components', 'hooks', 'theme', 'api']],
+      ['commands', ['api', 'theme']],
+      ['components', ['hooks', 'theme']],
+      ['hooks', ['theme']],
+      ['api', []],
+      ['theme', []],
+    ]),
+    apart: ['screens'],
+    noChain: new Map([
+      ['components', ['api']],
+      ['hooks', ['api']],
+    ]),
+  };
+}
+
+function testRulesOf(): TestRules {
+  return {
+    suffixes: ['.test.ts', '.test.tsx'],
+    kinds: ['unit', 'integration', 'e2e'],
+    mirrored: 'unit',
+    support: 'support',
+    ioLayers: ['infrastructure'],
+    ioModules: ['fs', 'net'],
+  };
+}
+
 export function structureOf(): Structure {
   return {
     extensions: ['.ts', '.tsx'],
@@ -79,6 +117,8 @@ export function structureOf(): Structure {
     ]),
     links: new Map([['.agent/settings.json', '../harness/settings.json']]),
     packageAliases: new Map([['pad-cjs', 'left-pad']]),
+    tests: testRulesOf(),
+    frontend: frontendOf(),
     backend: backendOf(),
   };
 }

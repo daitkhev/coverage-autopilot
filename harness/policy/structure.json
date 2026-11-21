@@ -73,6 +73,46 @@
     "strip-ansi-cjs": "strip-ansi",
     "wrap-ansi-cjs": "wrap-ansi"
   },
+  "tests": {
+    "suffixes": [".test.ts", ".test.tsx"],
+    "kinds": ["unit", "integration", "e2e", "stress"],
+    "mirrored": "unit",
+    "support": "support",
+    "ioLayers": ["infrastructure"],
+    "ioModules": [
+      "child_process",
+      "cluster",
+      "dgram",
+      "dns",
+      "fs",
+      "http",
+      "http2",
+      "https",
+      "net",
+      "readline",
+      "sqlite",
+      "tls",
+      "worker_threads"
+    ]
+  },
+  "frontend": {
+    "source": "frontend/src/",
+    "root": ["app", "commands"],
+    "folders": {
+      "app": ["screens", "components", "hooks", "theme", "api"],
+      "screens": ["components", "hooks", "theme", "api"],
+      "commands": ["api", "theme"],
+      "components": ["hooks", "theme"],
+      "hooks": ["theme"],
+      "api": [],
+      "theme": []
+    },
+    "apart": ["screens"],
+    "noChain": {
+      "components": ["api"],
+      "hooks": ["api"]
+    }
+  },
   "backend": {
     "source": "backend/src/",
     "migrations": "backend/migrations/",

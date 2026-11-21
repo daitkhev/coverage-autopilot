@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "test-placement",
+    "path": "backend/src/main.test.ts",
+    "line": 1
+  }
+]

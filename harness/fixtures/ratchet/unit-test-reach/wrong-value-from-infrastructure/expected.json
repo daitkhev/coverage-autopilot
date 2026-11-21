@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "unit-test-reach",
+    "path": "backend/tests/unit/modules/coverage/infrastructure/lcov.adapter.test.ts",
+    "line": 1
+  }
+]

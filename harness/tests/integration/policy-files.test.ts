@@ -49,6 +49,63 @@ describe('readStructure', () => {
     }
   });
 
+  it('should give the client the folders of the design, each importing one way', () => {
+    const { folders, root, apart, noChain } = readStructure().frontend;
+
+    expect(Object.fromEntries(folders)).toEqual({
+      app: ['screens', 'components', 'hooks', 'theme', 'api'],
+      screens: ['components', 'hooks', 'theme', 'api'],
+      commands: ['api', 'theme'],
+      components: ['hooks', 'theme'],
+      hooks: ['theme'],
+      api: [],
+      theme: [],
+    });
+    expect(root).toEqual(['app', 'commands']);
+    expect(apart).toEqual(['screens']);
+    expect(Object.fromEntries(noChain)).toEqual({
+      components: ['api'],
+      hooks: ['api'],
+    });
+  });
+
+  it('should let no folder of the client import one that imports it', () => {
+    const { folders } = readStructure().frontend;
+
+    for (const [folder, allowed] of folders) {
+      for (const other of allowed) {
+        expect(folders.get(other)).toBeDefined();
+        expect(folders.get(other)).not.toContain(folder);
+      }
+    }
+  });
+
+  it('should know the kinds of tests, and which of them repeats a path', () => {
+    const tests = readStructure().tests;
+
+    expect(tests.kinds).toEqual(['unit', 'integration', 'e2e', 'stress']);
+    expect(tests.mirrored).toBe('unit');
+    expect(tests.support).toBe('support');
+    expect(tests.suffixes).toEqual(['.test.ts', '.test.tsx']);
+  });
+
+  it('should take for I/O the layer and the modules a unit test may not reach', () => {
+    const tests = readStructure().tests;
+
+    expect(tests.ioLayers).toEqual(['infrastructure']);
+    expect(tests.ioModules).toEqual(
+      expect.arrayContaining([
+        'child_process',
+        'fs',
+        'http',
+        'net',
+        'sqlite',
+        'worker_threads',
+      ]),
+    );
+    expect(tests.ioModules).not.toContain('path');
+  });
+
   it('should keep the domain free of every other layer', () => {
     expect(readStructure().backend.layers.get('domain')).toEqual({
       layers: ['domain'],

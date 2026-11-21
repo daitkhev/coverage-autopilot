@@ -1,5 +1,6 @@
 import type { Policy } from '#harness/architecture/policy';
 import type { Rule } from '#harness/architecture/project';
+import { clientDirection } from '#harness/architecture/rules/client-direction';
 import { fileName } from '#harness/architecture/rules/file-name';
 import { importCycle } from '#harness/architecture/rules/import-cycle';
 import { layerDirection } from '#harness/architecture/rules/layer-direction';
@@ -10,6 +11,8 @@ import { moduleDirection } from '#harness/architecture/rules/module-direction';
 import { packageManifest } from '#harness/architecture/rules/package-manifest';
 import { packagePlacement } from '#harness/architecture/rules/package-placement';
 import { relativeImport } from '#harness/architecture/rules/relative-import';
+import { testPlacement } from '#harness/architecture/rules/test-placement';
+import { unitTestReach } from '#harness/architecture/rules/unit-test-reach';
 import { unknownFile } from '#harness/architecture/rules/unknown-file';
 import { unknownLayer } from '#harness/architecture/rules/unknown-layer';
 import { unknownModule } from '#harness/architecture/rules/unknown-module';
@@ -20,6 +23,7 @@ import { workspaceBoundary } from '#harness/architecture/rules/workspace-boundar
 export function rulesOf(policy: Policy): Rule[] {
   const { structure } = policy;
   return [
+    clientDirection(structure.frontend),
     fileName(structure.bannedNames),
     importCycle,
     layerDirection(structure.backend),
@@ -30,6 +34,8 @@ export function rulesOf(policy: Policy): Rule[] {
     packageManifest(structure),
     packagePlacement(policy),
     relativeImport,
+    testPlacement(structure),
+    unitTestReach(structure),
     unknownFile(structure),
     unknownLayer(structure.backend),
     unknownModule(structure.backend),

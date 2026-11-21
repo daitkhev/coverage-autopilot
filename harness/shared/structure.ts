@@ -34,6 +34,39 @@ export interface Backend {
   readonly suffixes: ReadonlyMap<string, readonly string[]>;
 }
 
+/**
+ * The shape of the client: its folders, and what each may import. The
+ * client has no layers of a domain, and its folders still import one way.
+ */
+export interface Frontend {
+  /** Where the source of the client is, with a slash at the end. */
+  readonly source: string;
+  /** The folders a file at the root of the source may import. */
+  readonly root: readonly string[];
+  /** Each folder, with the other folders it may import. */
+  readonly folders: ReadonlyMap<string, readonly string[]>;
+  /** Folders whose parts stand apart: one part never imports another. */
+  readonly apart: readonly string[];
+  /** Each folder, with the folders no chain of imports may lead it to. */
+  readonly noChain: ReadonlyMap<string, readonly string[]>;
+}
+
+/** Where the tests of a workspace are, and what a unit test may reach. */
+export interface TestRules {
+  /** The ends of the name of a file that holds tests. */
+  readonly suffixes: readonly string[];
+  /** The kinds of tests. Each has a folder under `tests/`. */
+  readonly kinds: readonly string[];
+  /** The kind whose tests repeat the path of their source file. */
+  readonly mirrored: string;
+  /** The folder under `tests/` for what tests share. It holds no test. */
+  readonly support: string;
+  /** The layers of the service that do I/O. */
+  readonly ioLayers: readonly string[];
+  /** The modules built into Node that do I/O, without `node:`. */
+  readonly ioModules: readonly string[];
+}
+
 export interface Structure {
   /** Extensions of the files the ratchet reads as source. */
   readonly extensions: readonly string[];
@@ -60,6 +93,8 @@ export interface Structure {
    * the package it stands for. A package of the registry asks for them.
    */
   readonly packageAliases: ReadonlyMap<string, string>;
+  readonly tests: TestRules;
+  readonly frontend: Frontend;
   readonly backend: Backend;
 }
 
@@ -92,6 +127,29 @@ function backendOf(file: JsonRecord): Backend {
   };
 }
 
+function frontendOf(file: JsonRecord): Frontend {
+  const frontend = recordAt(file, 'frontend');
+  return {
+    source: stringAt(frontend, 'source'),
+    root: stringListAt(frontend, 'root'),
+    folders: stringListsAt(frontend, 'folders'),
+    apart: stringListAt(frontend, 'apart'),
+    noChain: stringListsAt(frontend, 'noChain'),
+  };
+}
+
+function testsOf(file: JsonRecord): TestRules {
+  const tests = recordAt(file, 'tests');
+  return {
+    suffixes: stringListAt(tests, 'suffixes'),
+    kinds: stringListAt(tests, 'kinds'),
+    mirrored: stringAt(tests, 'mirrored'),
+    support: stringAt(tests, 'support'),
+    ioLayers: stringListAt(tests, 'ioLayers'),
+    ioModules: stringListAt(tests, 'ioModules'),
+  };
+}
+
 function workspacesOf(file: JsonRecord): Map<string, Map<string, string>> {
   const workspaces = recordAt(file, 'workspaces');
   return new Map(
@@ -120,6 +178,8 @@ export function readStructure(): Structure {
     workspaceFiles: workspaceFilesOf(file),
     links: stringsAt(file, 'links'),
     packageAliases: stringsAt(file, 'packageAliases'),
+    tests: testsOf(file),
+    frontend: frontendOf(file),
     backend: backendOf(file),
   };
 }
