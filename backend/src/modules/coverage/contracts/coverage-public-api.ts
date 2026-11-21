@@ -38,12 +38,12 @@ export interface CoverageThresholdDto {
   readonly percentage: number;
 }
 
-export interface LineRangeDto {
+interface LineRangeDto {
   readonly start: number;
   readonly end: number;
 }
 
-export interface UncoveredFunctionDto {
+interface UncoveredFunctionDto {
   readonly name: string;
   readonly line: number;
 }
@@ -60,7 +60,7 @@ export interface MeasuredFileDto {
 }
 
 /** A file of type declarations alone. It is never a target. */
-export interface NoCodeFileDto {
+interface NoCodeFileDto {
   readonly path: FilePath;
   readonly state: 'no_executable_code';
 }
@@ -115,7 +115,7 @@ export interface CoverageSnapshotDto {
   readonly testRunOutput: string | null;
 }
 
-export interface UnsupportedProjectDto {
+interface UnsupportedProjectDto {
   readonly outcome: 'unsupported';
   readonly reason: UnsupportedProjectReason;
   readonly detail: string;

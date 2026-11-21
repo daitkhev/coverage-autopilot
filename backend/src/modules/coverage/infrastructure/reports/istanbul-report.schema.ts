@@ -12,7 +12,7 @@ const hits = z.record(z.string(), z.int().nonnegative());
  * Jest and Vitest write with every provider. Fields the reader does not
  * use, such as the hash and the source map, are kept and ignored.
  */
-export const istanbulFileSchema = z.looseObject({
+const istanbulFileSchema = z.looseObject({
   statementMap: z.record(z.string(), span),
   fnMap: z.record(z.string(), z.looseObject({ name: z.string(), decl: span })),
   branchMap: z.record(z.string(), z.looseObject({ loc: span })),
