@@ -4,7 +4,24 @@
     "contracts": {
       "coverage": [],
       "improvement": [],
-      "repositories": [],
+      "repositories": [
+        "AccessCheckDto",
+        "ApplyPatchRequest",
+        "ApplyPatchResult",
+        "AssessRevisionRequest",
+        "CreateWorkingCopyRequest",
+        "ExtractPatchResult",
+        "PatchDto",
+        "PublishPatchRequest",
+        "PublishPatchResult",
+        "REPOSITORIES_PUBLIC_API",
+        "RepositoriesPublicApi",
+        "RepositoryDto",
+        "RepositoryRequest",
+        "RevisionAssessmentDto",
+        "WorkingCopyDto",
+        "WorkingCopyRequest"
+      ],
       "verification": []
     },
     "migrations": {
