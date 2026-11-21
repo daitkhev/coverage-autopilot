@@ -1,5 +1,5 @@
 /** The one secret of the generator: the variable the CLI logs in with. */
-interface GeneratorCredential {
+export interface GeneratorCredential {
   /** Such as `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`. */
   readonly variable: string;
   readonly value: string;
@@ -33,3 +33,6 @@ export interface GeneratorSettings {
   readonly environment: Readonly<Record<string, string>>;
   readonly scan: CredentialScan;
 }
+
+/** The injection token of the settings of the generator. */
+export const GENERATOR_SETTINGS = Symbol('GeneratorSettings');

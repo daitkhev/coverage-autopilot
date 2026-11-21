@@ -1,7 +1,7 @@
 import type { SandboxCommandResult } from '#ports/sandbox.port';
 
 /** One line of `--output-format stream-json`, written by hand. */
-type StreamEvent = Readonly<Record<string, unknown>>;
+export type StreamEvent = Readonly<Record<string, unknown>>;
 
 /** The tools of the protected start, as `--tools` names them. */
 export const ALLOWED_TOOLS: readonly string[] = [
@@ -14,6 +14,9 @@ export const ALLOWED_TOOLS: readonly string[] = [
 
 /** A moment of a reset in epoch seconds: 2026-11-21T15:00:00.000Z. */
 export const RESET_SECONDS = 1_795_273_200;
+
+/** The weekly window resets a day after the five-hour one. */
+const A_DAY_SECONDS = 86_400;
 
 /** The moment a test runs at, three hours before that reset. */
 export const TEST_NOW = '2026-11-21T12:00:00.000Z';
@@ -58,6 +61,25 @@ export function rateLimitEvent(info: StreamEvent): StreamEvent {
     rate_limit_info: info,
     uuid: 'uuid-1',
     session_id: 'session-1',
+  };
+}
+
+/** The two windows of a subscription, with the share used of each. */
+export function unifiedWindows(
+  fiveHour: number,
+  sevenDay: number,
+): StreamEvent {
+  return {
+    five_hour: {
+      utilization: fiveHour,
+      resetsAt: RESET_SECONDS,
+      status: fiveHour < 1 ? 'allowed' : 'rejected',
+    },
+    seven_day: {
+      utilization: sevenDay,
+      resetsAt: RESET_SECONDS + A_DAY_SECONDS,
+      status: sevenDay < 1 ? 'allowed' : 'rejected',
+    },
   };
 }
 
