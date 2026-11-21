@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
-import { WorkingCopyId } from '#repositories/domain/value-objects/working-copy-id.vo';
 import { WorkingCopyMissingError } from '#repositories/infrastructure/errors/working-copy-missing.error';
 import {
   COPY,
@@ -12,18 +11,10 @@ import {
   WorkingCopyFixture,
 } from '#tests/support/working-copy-fixture';
 
-const SOURCE = WorkingCopyId.fromPurpose('source');
 const BRANCH = BranchName.create('coverage/src-a-ts');
 const NEVER = new AbortController().signal;
 
 let fixture: WorkingCopyFixture;
-
-/** The patch of the changes a test makes in a copy of its own. */
-async function patchOf(change: (path: string) => void): Promise<string> {
-  change(await fixture.created(fixture.first, SOURCE));
-  const extracted = await fixture.copies.extractPatch(SOURCE);
-  return extracted.outcome === 'extracted' ? extracted.patch.text : '';
-}
 
 beforeEach(() => {
   fixture = new WorkingCopyFixture();
@@ -36,7 +27,7 @@ afterEach(() => {
 describe('GitWorkingCopies', () => {
   describe('applyPatch', () => {
     it('should apply the patch and name its files', async () => {
-      const text = await patchOf((path) => {
+      const text = await fixture.patchOf((path) => {
         writeFileSync(join(path, 'src/a.test.ts'), 'test();\n');
       });
       const path = await fixture.created();
@@ -53,7 +44,7 @@ describe('GitWorkingCopies', () => {
     });
 
     it('should name a removed file and a path with a tab', async () => {
-      const text = await patchOf((path) => {
+      const text = await fixture.patchOf((path) => {
         rmSync(join(path, 'src/b.ts'));
         writeFileSync(join(path, 'src/a\tb.test.ts'), 'test();\n');
       });
@@ -70,9 +61,9 @@ describe('GitWorkingCopies', () => {
     describe('when the patch renames a file', () => {
       it('should answer refused and leave the copy unchanged', async () => {
         const path = await fixture.created();
-        fixture.host.git(path, 'mv', 'src/b.ts', 'src/c.ts');
-        const text = fixture.host.git(path, 'diff', '--cached', '-M', 'HEAD');
-        fixture.host.git(path, 'reset', '--quiet', '--hard');
+        fixture.gitIn(COPY, 'mv', 'src/b.ts', 'src/c.ts');
+        const text = fixture.gitIn(COPY, 'diff', '--cached', '-M', 'HEAD');
+        fixture.gitIn(COPY, 'reset', '--quiet', '--hard');
 
         const applied = await fixture.copies.applyPatch(COPY, `${text}\n`);
 
@@ -85,7 +76,7 @@ describe('GitWorkingCopies', () => {
 
     describe('when git would not apply all of it', () => {
       it('should answer refused with the reason and leave the copy unchanged', async () => {
-        const text = await patchOf((path) => {
+        const text = await fixture.patchOf((path) => {
           writeFileSync(join(path, 'src/a.ts'), 'changed\n');
           writeFileSync(join(path, 'src/b.ts'), 'changed\n');
         });

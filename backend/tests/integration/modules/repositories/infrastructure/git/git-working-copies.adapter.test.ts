@@ -42,8 +42,8 @@ describe('GitWorkingCopies', () => {
       const path = await fixture.created();
 
       expect(path).toBe(fixture.pathOf());
-      expect(fixture.host.git(path, 'rev-parse', 'HEAD')).toBe(fixture.first);
-      expect(fixture.host.git(path, 'status', '--porcelain')).toBe('');
+      expect(fixture.gitIn(COPY, 'rev-parse', 'HEAD')).toBe(fixture.first);
+      expect(fixture.gitIn(COPY, 'status', '--porcelain')).toBe('');
       expect(readFileSync(join(path, 'src/a.ts'), 'utf8')).toBe(
         'export const a = 1;\n',
       );
@@ -70,11 +70,11 @@ describe('GitWorkingCopies', () => {
     });
 
     it('should keep objects of its own, with no link to the mirror', async () => {
-      const path = await fixture.created();
+      await fixture.created();
 
-      expect(existsSync(join(path, '.git/objects/info/alternates'))).toBe(
-        false,
-      );
+      expect(
+        existsSync(join(fixture.gitDirOf(), 'objects/info/alternates')),
+      ).toBe(false);
     });
 
     it('should bring a commit that is only on another branch', async () => {
@@ -85,9 +85,9 @@ describe('GitWorkingCopies', () => {
         { parent: fixture.first, branch: 'side' },
       );
 
-      const path = await fixture.created(side);
+      await fixture.created(side);
 
-      expect(fixture.host.git(path, 'rev-parse', 'HEAD')).toBe(side);
+      expect(fixture.gitIn(COPY, 'rev-parse', 'HEAD')).toBe(side);
     });
 
     describe('when the host does not have the commit', () => {
@@ -110,10 +110,10 @@ describe('GitWorkingCopies', () => {
     describe('when the checkout after the clone fails', () => {
       it('should remove what it made and throw', async () => {
         const refusingCheckout = [
-          'const [command, ...rest] = process.argv.slice(1);',
-          'if (command === "checkout") { process.exit(1); }',
+          'const args = process.argv.slice(1);',
+          'if (args.includes("checkout")) { process.exit(1); }',
           'const run = require("node:child_process").spawnSync(',
-          '  "git", [command, ...rest], { stdio: "inherit" });',
+          '  "git", args, { stdio: "inherit" });',
           'process.exit(run.status);',
         ].join('\n');
         const settings = fixture.host.settings;
@@ -129,6 +129,7 @@ describe('GitWorkingCopies', () => {
           copies.create(fixture.requestFor(), NEVER),
         ).rejects.toThrow(ToolFailedError);
         expect(existsSync(fixture.pathOf())).toBe(false);
+        expect(existsSync(fixture.gitDirOf())).toBe(false);
       });
     });
 

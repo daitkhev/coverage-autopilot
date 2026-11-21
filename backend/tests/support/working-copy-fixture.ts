@@ -14,6 +14,9 @@ export const WIDGETS = 'acme/widgets';
 /** The copy most tests work on. */
 export const COPY = WorkingCopyId.fromPurpose('scan:1');
 
+/** The copy a patch for another one is taken from. */
+const SOURCE = WorkingCopyId.fromPurpose('source');
+
 const REPOSITORY_ID = RepositoryId.create(
   '00000000-0000-4000-8000-000000000001',
 );
@@ -51,6 +54,28 @@ export class WorkingCopyFixture {
   /** Where the copy of an id is, whether it is there or not. */
   public pathOf(id = COPY): string {
     return join(this.host.settings.workingCopiesRoot, 'copies', id.value);
+  }
+
+  /** Where the git directory of the copy of an id is, outside its tree. */
+  public gitDirOf(id = COPY): string {
+    return join(this.host.settings.workingCopiesRoot, 'git-dirs', id.value);
+  }
+
+  /** Runs git of the host on the copy of an id and gives its output. */
+  public gitIn(id: WorkingCopyId, ...args: string[]): string {
+    return this.host.git(
+      this.pathOf(id),
+      `--git-dir=${this.gitDirOf(id)}`,
+      `--work-tree=${this.pathOf(id)}`,
+      ...args,
+    );
+  }
+
+  /** The patch of the changes a test makes in a copy of its own. */
+  public async patchOf(change: (path: string) => void): Promise<string> {
+    change(await this.created(this.first, SOURCE));
+    const extracted = await this.copies.extractPatch(SOURCE);
+    return extracted.outcome === 'extracted' ? extracted.patch.text : '';
   }
 
   public remove(): void {

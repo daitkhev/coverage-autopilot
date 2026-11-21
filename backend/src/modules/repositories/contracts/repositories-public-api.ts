@@ -170,6 +170,11 @@ export interface RepositoriesPublicApi {
   /** Removes the folder. A copy that is gone already is no fault. */
   disposeWorkingCopy(request: WorkingCopyRequest): Promise<void>;
 
+  /**
+   * A tree that holds a `.git` of its own, at any depth, was tampered
+   * with: this and `applyPatch` then throw `working_copy_tampered` and do
+   * not run git in it.
+   */
   extractPatch(request: WorkingCopyRequest): Promise<ExtractPatchResult>;
 
   applyPatch(request: ApplyPatchRequest): Promise<ApplyPatchResult>;

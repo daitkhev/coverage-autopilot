@@ -1,7 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync } from 'node:fs';
-import { mkdir, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir } from 'node:fs/promises';
 
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -15,30 +13,39 @@ import type {
   WorkingCopies,
 } from '#repositories/application/ports/working-copies.port';
 import type { WorkingCopyId } from '#repositories/domain/value-objects/working-copy-id.vo';
-import { WorkingCopyMissingError } from '#repositories/infrastructure/errors/working-copy-missing.error';
+import { WorkingCopyTamperedError } from '#repositories/infrastructure/errors/working-copy-tampered.error';
+import { gitEntriesIn } from '#repositories/infrastructure/git/git-entries';
 import { GitMirror } from '#repositories/infrastructure/git/git-mirror';
 import {
   numstatSchema,
   pathListSchema,
 } from '#repositories/infrastructure/git/git-output.schema';
 import {
+  hostGit,
+  isolatedGit,
+} from '#repositories/infrastructure/git/git-tool-settings';
+import {
+  type CopyFolders,
+  WorkingCopyFolders,
+} from '#repositories/infrastructure/git/working-copy-folders';
+import {
   REPOSITORIES_SETTINGS,
   type RepositoriesSettings,
   secretValuesOf,
 } from '#repositories/infrastructure/repositories-settings';
 import { parseToolOutput } from '#repositories/infrastructure/tools/tool-output';
-import { ToolRunner } from '#repositories/infrastructure/tools/tool-runner';
-
-/** The folder of the copies under the root of the working copies. */
-const COPIES = 'copies';
+import {
+  type ToolCall,
+  ToolRunner,
+} from '#repositories/infrastructure/tools/tool-runner';
 
 /** Local work on a copy is short, and the contract gives it no signal. */
 const UNSTOPPABLE = new AbortController().signal;
 
 /**
  * Options that keep the diff of a copy plain text that `git apply` takes
- * back: no colour, no program or conversion of the user's configuration,
- * a new file as a new file and not as a rename.
+ * back: no colour, no program of a configuration or conversion, a new
+ * file as a new file and not as a rename.
  */
 const PLAIN_DIFF = [
   'diff',
@@ -60,58 +67,79 @@ const MOVE_REFUSED =
   'The patch renames or copies a file. Only a patch that names every ' +
   'file it changes, as one without renames does, is applied.';
 
+/** git on a copy, with both of its folders named, so git looks for neither. */
+function inCopy(copy: CopyFolders, args: readonly string[]): ToolCall {
+  return {
+    arguments: [
+      `--git-dir=${copy.gitDir}`,
+      `--work-tree=${copy.tree}`,
+      ...args,
+    ],
+    directory: copy.tree,
+  };
+}
+
 /**
- * Working copies as clones of the mirror of their repository, each in the
- * folder its id names under one root.
+ * Working copies as clones of the mirror of their repository, each with a
+ * tree and a git directory of its own, the git directory outside the tree.
  */
 @Injectable()
 export class GitWorkingCopies implements WorkingCopies {
-  private readonly git: ToolRunner;
+  /** For the work on a copy: no configuration but the copy's own. */
+  private readonly local: ToolRunner;
+  /** For the mirror and the push, which need the operator's configuration. */
+  private readonly host: ToolRunner;
   private readonly mirror: GitMirror;
-  private readonly folder: string;
+  private readonly folders: WorkingCopyFolders;
 
   public constructor(
     @Inject(REPOSITORIES_SETTINGS) settings: RepositoriesSettings,
   ) {
-    this.git = new ToolRunner({
+    const secrets = secretValuesOf(settings);
+    this.local = new ToolRunner({
       name: 'git',
-      settings: settings.git,
-      secrets: secretValuesOf(settings),
+      settings: isolatedGit(settings.git),
+      secrets,
     });
-    this.mirror = new GitMirror(this.git, settings.workingCopiesRoot);
-    this.folder = join(settings.workingCopiesRoot, COPIES);
+    this.host = new ToolRunner({
+      name: 'git',
+      settings: hostGit(settings.git),
+      secrets,
+    });
+    this.mirror = new GitMirror(this.host, settings.workingCopiesRoot);
+    this.folders = new WorkingCopyFolders(settings.workingCopiesRoot);
   }
 
   public async create(
     request: CreateCopyRequest,
     signal: AbortSignal,
   ): Promise<string> {
-    const path = this.pathOf(request.id);
-    await rm(path, { recursive: true, force: true });
-    await mkdir(this.folder, { recursive: true });
+    const copy = this.folders.of(request.id);
+    await this.folders.remove(copy);
     await this.mirror.ensureCommit(request, signal);
     try {
-      await this.clone(request, path, signal);
+      await this.clone(request, copy, signal);
     } catch (error) {
-      await rm(path, { recursive: true, force: true });
+      await this.folders.remove(copy);
       throw error;
     }
-    return path;
+    return copy.tree;
   }
 
   public async dispose(id: WorkingCopyId): Promise<void> {
-    await rm(this.pathOf(id), { recursive: true, force: true });
+    await this.folders.remove(this.folders.of(id));
   }
 
   public async extractPatch(id: WorkingCopyId): Promise<CopyPatchResult> {
-    const path = this.existing(id);
-    await this.inCopy(path, ['add', '--all']);
-    const text = (await this.inCopy(path, [...PLAIN_DIFF, '--binary', 'HEAD']))
-      .stdout;
+    const copy = await this.untouched(id);
+    await this.runInCopy(copy, ['add', '--all']);
+    const text = (
+      await this.runInCopy(copy, [...PLAIN_DIFF, '--binary', 'HEAD'])
+    ).stdout;
     if (text === '') {
       return { outcome: 'empty' };
     }
-    const names = await this.inCopy(path, [
+    const names = await this.runInCopy(copy, [
       ...PLAIN_DIFF,
       '--name-only',
       '-z',
@@ -129,23 +157,19 @@ export class GitWorkingCopies implements WorkingCopies {
     id: WorkingCopyId,
     patchText: string,
   ): Promise<CopyApplyResult> {
-    const directory = this.existing(id);
+    const copy = await this.untouched(id);
     if (MOVE_HEADER.test(patchText)) {
       return { outcome: 'refused', reason: MOVE_REFUSED };
     }
-    const applied = await this.git.run(
-      {
-        arguments: ['apply', '--whitespace=nowarn'],
-        directory,
-        input: patchText,
-      },
+    const applied = await this.local.run(
+      { ...inCopy(copy, ['apply', '--whitespace=nowarn']), input: patchText },
       UNSTOPPABLE,
     );
     if (applied.exitCode !== 0) {
       return { outcome: 'refused', reason: applied.output };
     }
-    const stat = await this.git.runChecked(
-      { arguments: ['apply', '--numstat', '-z'], directory, input: patchText },
+    const stat = await this.local.runChecked(
+      { ...inCopy(copy, ['apply', '--numstat', '-z']), input: patchText },
       UNSTOPPABLE,
     );
     const files = parseToolOutput(numstatSchema, stat.stdout, 'git apply');
@@ -159,25 +183,25 @@ export class GitWorkingCopies implements WorkingCopies {
     request: PushRequest,
     signal: AbortSignal,
   ): Promise<PushResult> {
-    const directory = this.existing(request.id);
-    await this.inCopy(directory, ['add', '--all']);
-    await this.git.runChecked(
+    const copy = await this.untouched(request.id);
+    await this.runInCopy(copy, ['add', '--all']);
+    await this.local.runChecked(
       {
-        arguments: ['commit', '--quiet', '--file=-'],
-        directory,
+        ...inCopy(copy, ['commit', '--quiet', '--no-verify', '--file=-']),
         input: request.commitMessage,
       },
       signal,
     );
-    const pushed = await this.git.run(
+    const pushed = await this.host.run(
       {
         arguments: [
+          `--git-dir=${copy.gitDir}`,
           'push',
           '--quiet',
           request.url.value,
           `HEAD:${request.branch.ref}`,
         ],
-        directory,
+        directory: copy.gitDir,
       },
       signal,
     );
@@ -186,54 +210,59 @@ export class GitWorkingCopies implements WorkingCopies {
       : { outcome: 'refused', reason: pushed.output };
   }
 
-  /** Its own objects, so nothing done in the copy reaches the mirror. */
+  /**
+   * A bare clone with objects of its own and no template, so nothing done
+   * in the copy reaches the mirror and no hook comes with it, then the
+   * files of the commit in the tree.
+   */
   private async clone(
     request: CreateCopyRequest,
-    path: string,
+    copy: CopyFolders,
     signal: AbortSignal,
   ): Promise<void> {
-    const mirror = this.mirror.pathOf(request.repositoryId);
-    await this.git.runChecked(
+    await mkdir(this.folders.gitDirs, { recursive: true });
+    await this.local.runChecked(
       {
         arguments: [
           'clone',
           '--quiet',
+          '--bare',
           '--no-hardlinks',
-          '--no-checkout',
-          mirror,
-          path,
+          '--template=',
+          this.mirror.pathOf(request.repositoryId),
+          copy.gitDir,
         ],
-        directory: this.folder,
+        directory: this.folders.gitDirs,
       },
       signal,
     );
-    await this.git.runChecked(
-      {
-        arguments: ['checkout', '--quiet', '--detach', request.commit.value],
-        directory: path,
-      },
+    await mkdir(copy.tree, { recursive: true });
+    await this.local.runChecked(
+      inCopy(copy, ['checkout', '--quiet', '--detach', request.commit.value]),
       signal,
     );
   }
 
-  private async inCopy(
-    directory: string,
-    args: readonly string[],
-  ): Promise<{ readonly stdout: string }> {
-    return this.git.runChecked({ arguments: args, directory }, UNSTOPPABLE);
-  }
-
-  private existing(id: WorkingCopyId): string {
-    const path = this.pathOf(id);
-    if (!existsSync(path)) {
-      throw new WorkingCopyMissingError(
-        `No working copy has the id "${id.value}".`,
+  /**
+   * The copy, once its tree is known to hold no `.git`. git never looks
+   * for one, since every call names both folders, but a nested one would
+   * still be a repository git enters on its own when it adds the tree.
+   */
+  private async untouched(id: WorkingCopyId): Promise<CopyFolders> {
+    const copy = this.folders.existing(id);
+    const entries = await gitEntriesIn(copy.tree);
+    if (entries.length > 0) {
+      throw new WorkingCopyTamperedError(
+        `The tree of the working copy "${id.value}" holds ${String(entries.length)} .git of its own, such as ${JSON.stringify(entries[0])}. Something it was lent to wrote them, and git was not run in it.`,
       );
     }
-    return path;
+    return copy;
   }
 
-  private pathOf(id: WorkingCopyId): string {
-    return join(this.folder, id.value);
+  private async runInCopy(
+    copy: CopyFolders,
+    args: readonly string[],
+  ): Promise<{ readonly stdout: string }> {
+    return this.local.runChecked(inCopy(copy, args), UNSTOPPABLE);
   }
 }
