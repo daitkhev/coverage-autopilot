@@ -328,5 +328,23 @@ Where this log and the plan differ, this log and the code are right.
   the start in a container, a home under `/tmp` with a read-only root,
   and who pays as the CLI says it under each login.
 - The module that owns the improvement throws the working copy away
-  after every outcome but `generated`, and after a fault as well, and its
-  check of a patch refuses a path under `node_modules`.
+  after every outcome but `generated`, and after a fault as well.
+
+### The gate reads a patch strictly
+
+- A patch passes the first check only as text git itself writes for new
+  plain files: one `new file mode 100644` and one hunk of added lines for
+  each file, and no line outside a file, because `git apply` also takes a
+  section with no header. A path among the installed packages is refused.
+- The files git says it wrote must be exactly the files the text names.
+  A difference means git read the text in another way than the gate did.
+- The coverage check compares the counters of the target alone. A counter
+  that fell fails the check, whatever the others did.
+- The deadline is looked at before every step and every check. A call
+  into the coverage module has no time limit of the gate inside it: only
+  the limits of that module and the signal stop it. A limit that travels
+  with the call is owed to the wave that drives an improvement.
+- The module refuses settings that cannot work when the service starts.
+- Where: `backend/src/modules/verification/domain/services/`,
+  `backend/src/modules/verification/application/commands/verify-patch/`,
+  `backend/src/modules/verification/verification.module.ts`.
