@@ -1,0 +1,28 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AppShell > should draw the four zones of a screen 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                      ? 1 to review  ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Repositories 4 ───────────────────────────────────────────────╮ ╭─ example/payments ──────────────────────╮
+ │ › example/payments                                             │ │ main · 4f2a9c1 · scanned 2h ago         │
+ │   example/ledger                                               │ │                                         │
+ │   example/gateway                                              │ │                                         │
+ │   example/billing-api                                          │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+                                                                                     example/ledger was scanned
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ 4 repositories · updated 1s ago                                                                     row 1 of 4
+ ↑↓ move    enter open    q quit                                                                         ? help"
+`;
