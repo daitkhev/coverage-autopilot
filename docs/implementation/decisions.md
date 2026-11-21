@@ -301,3 +301,32 @@ Where this log and the plan differ, this log and the code are right.
   time. A stop in two steps is owed to the wave of the stress tests.
 - Where: `backend/src/modules/verification/application/ports/mutation-runner.port.ts`,
   `backend/src/modules/verification/infrastructure/mutation/`.
+
+### The start of the generator is checked after its run
+
+- The port of the sandbox runs a command to its end, so the adapter of
+  the generator cannot stop a run before the first call of the model. It
+  reads the report of the start afterwards: other tools than the allowed
+  ones, or any tool server, is a fault, and what the run wrote is thrown
+  away.
+- A file the run wrote is searched for the credential before anything
+  of the run leaves the adapter, and the credential is replaced in the
+  output that is kept. A credential in a written file wins over every
+  other way the run ended.
+- A spent five-hour window waits and every other spent limit fails. How
+  the CLI reports a spent limit, a failed login and a missing program was
+  never seen: the adapter follows the types of the CLI and keeps each
+  guess in one table.
+- Where: `backend/src/modules/improvement/infrastructure/generator/`.
+
+### Owed to the first real run of the generator
+
+- The image of the generator sandbox with the CLI in it, an output limit
+  large enough for the report of the start to survive, and the binding of
+  the second sandbox, the settings and the port.
+- One run with the consent of the owner: the arguments, the report of
+  the start in a container, a home under `/tmp` with a read-only root,
+  and who pays as the CLI says it under each login.
+- The module that owns the improvement throws the working copy away
+  after every outcome but `generated`, and after a fault as well, and its
+  check of a patch refuses a path under `node_modules`.
