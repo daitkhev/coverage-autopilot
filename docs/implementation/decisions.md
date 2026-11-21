@@ -154,3 +154,22 @@ Where this log and the plan differ, this log and the code are right.
 - The desk and CI run the same Node, 26.13.1.
 - Where: `harness/eslint/config.ts`, `harness/policy/packages.json`,
   `.nvmrc`.
+
+### Every way to read the environment is refused, and four files may
+
+- The lint ban holds the property by its name and by a text, on the global
+  and through `globalThis`, the object taken apart, and the process module
+  imported by a name, by its default or as a whole.
+- Four files may read it: the host of the gate, the entry file of the
+  service, the entry file of the client, and the stand-in of the container
+  engine in the tests, which is there to record what it was started with.
+- Where: `harness/eslint/restricted-syntax.ts`, `harness/eslint/config.ts`.
+
+### A sandboxed command runs as the user of the service
+
+- By default the user and the group of a container are those the service
+  runs as, so a command can write into a working copy the service made.
+  `AUTOPILOT_SANDBOX_UID` and `AUTOPILOT_SANDBOX_GID` each replace one of
+  them. A service that runs as root starts only when both are set.
+- The default image is `node:26-slim`, the Node the project itself uses.
+- Where: `backend/src/shared/infrastructure/config/`.
