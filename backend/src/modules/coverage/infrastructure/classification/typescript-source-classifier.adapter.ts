@@ -6,10 +6,7 @@ import ts from 'typescript';
 import type { SourceClassifier } from '#coverage/application/ports/source-classifier.port';
 import type { SourceReading } from '#coverage/domain/services/file-state.service';
 import { UnreadableSourceFileError } from '#coverage/infrastructure/errors/unreadable-source-file.error';
-import {
-  readCopyFile,
-  REFUSAL_WORDS,
-} from '#coverage/infrastructure/files/copy-file';
+import { readCopyFile, REFUSAL_WORDS } from '#infrastructure/files/copy-file';
 import type { FilePath } from '#kernel/primitives/file-path';
 
 const JSX_EXTENSION = '.tsx';

@@ -30,7 +30,7 @@ import {
   FILE_LIST_RULE,
   listSourceFiles,
 } from '#coverage/infrastructure/detection/source-file-list';
-import { readCopyFile } from '#coverage/infrastructure/files/copy-file';
+import { readCopyFile } from '#infrastructure/files/copy-file';
 import { FilePath } from '#kernel/primitives/file-path';
 
 const MANIFEST = 'package.json';

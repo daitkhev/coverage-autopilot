@@ -10,10 +10,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  readCopyFile,
-  REFUSAL_WORDS,
-} from '#coverage/infrastructure/files/copy-file';
+import { readCopyFile, REFUSAL_WORDS } from '#infrastructure/files/copy-file';
 
 let folder: string;
 let root: string;

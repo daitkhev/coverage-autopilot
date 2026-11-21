@@ -10,15 +10,12 @@ import type {
   CoverageReportRequest,
 } from '#coverage/application/ports/coverage-report-reader.port';
 import { UnreadableCoverageReportError } from '#coverage/infrastructure/errors/unreadable-coverage-report.error';
-import {
-  readCopyFile,
-  REFUSAL_WORDS,
-} from '#coverage/infrastructure/files/copy-file';
 import { reportedCoverageOf } from '#coverage/infrastructure/reports/istanbul-counting';
 import {
   type IstanbulFile,
   istanbulReportSchema,
 } from '#coverage/infrastructure/reports/istanbul-report.schema';
+import { readCopyFile, REFUSAL_WORDS } from '#infrastructure/files/copy-file';
 
 function parseReport(path: string, text: string): Record<string, IstanbulFile> {
   let json: unknown;
