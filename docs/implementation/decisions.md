@@ -205,3 +205,38 @@ Where this log and the plan differ, this log and the code are right.
 - A monorepo and a package manager other than npm are refused as an
   unsupported project, with the reason in words. That is a limit of the
   first version, stated in the scope.
+
+### git on a working copy reads no setting but its own
+
+- A working copy is two folders: the tree a sandbox is lent, and a git
+  directory beside it that only the service writes. Every call of git
+  names both, so git never looks for a repository.
+- A tree that holds an entry named `.git`, at any depth and in any
+  spelling a file system may open as that name, is refused with
+  `working_copy_tampered` before git runs in it. It is a fault and not a
+  result: a caller does not plan for it.
+- The work on a copy reads no global, system or environment
+  configuration, and starts no hook and no monitor. A `.gitattributes` of
+  the tree can name any driver, so no driver may be defined anywhere git
+  reads. The mirror and the push keep the configuration of the operator,
+  which holds the credentials, and read no tree.
+- The author of a commit therefore comes only from the variables the
+  settings give git, never from a `~/.gitconfig`.
+- A call of a tool that writes more than 64 MiB is stopped and fails. No
+  part of a patch is used.
+- Where: `backend/src/modules/repositories/infrastructure/git/`,
+  `backend/src/modules/repositories/infrastructure/tools/tool-runner.ts`.
+
+### Owed to the waves that lend a working copy and start the service
+
+- The module that lends a copy to a sandbox takes its patch only after
+  the sandbox has ended: the check for a `.git` runs right before git,
+  and a process that is still alive could write one after it.
+- A patch is published only when every file of it is a test file of the
+  target and a plain file. A link, a workflow or a `.gitattributes` in a
+  patch is refused by the module that owns the improvement.
+- The start of the service gives git its `PATH`, its `HOME` and the four
+  variables of the author and the committer, and the access check
+  refuses a git older than 2.36.
+- A tree a sandbox left unreadable is still removed: the sweep that
+  clears what a crash left behind restores the permissions first.
