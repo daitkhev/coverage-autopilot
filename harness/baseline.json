@@ -46,7 +46,28 @@
         "WorkingCopyDto",
         "WorkingCopyRequest"
       ],
-      "verification": []
+      "verification": [
+        "BaselineProgress",
+        "CheckName",
+        "CheckProgress",
+        "CheckResultDto",
+        "CheckStatus",
+        "MeasureBaselineRequest",
+        "MeasureBaselineResult",
+        "MutantCountsDto",
+        "MutantDto",
+        "MutationBaselineDto",
+        "ProgressObserver",
+        "QualityPolicyDto",
+        "SurvivingMutantDto",
+        "TargetCoverageDto",
+        "UndetectedMutantDto",
+        "VERIFICATION_PUBLIC_API",
+        "VerificationBaselineDto",
+        "VerificationPublicApi",
+        "VerificationReportDto",
+        "VerifyPatchRequest"
+      ]
     },
     "migrations": {
       "backend/migrations/0001-create-the-schema.sql": "7657cd6564bf8063459cba98cca9d0627118ef24f7b6efc6157be22c865569c3",
