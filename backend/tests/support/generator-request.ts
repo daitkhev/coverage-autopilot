@@ -1,8 +1,25 @@
 import type { GenerationRequest } from '#improvement/application/ports/test-generator.port';
+import type { GeneratorSettings } from '#improvement/infrastructure/generator/generator-settings';
 import { FilePath } from '#kernel/primitives/file-path';
+import { ALLOWED_TOOLS } from '#tests/support/generator-stream';
 
 /** The line of `src/price.ts` with a branch no test takes. */
 const BRANCH_LINE = 12;
+
+/** The value of the credential in a test. No real service knows it. */
+export const CREDENTIAL_VALUE = 'not-a-real-credential-4711';
+
+/** The settings of the generator in a test: a subscription login. */
+export const GENERATOR_TEST_SETTINGS: GeneratorSettings = {
+  command: ['claude'],
+  allowedTools: ALLOWED_TOOLS,
+  credential: {
+    variable: 'CLAUDE_CODE_OAUTH_TOKEN',
+    value: CREDENTIAL_VALUE,
+  },
+  environment: { PATH: '/usr/local/bin:/usr/bin:/bin' },
+  scan: { maxFiles: 50, maxFileBytes: 65_536 },
+};
 
 /** The first attempt at `src/price.ts`, in the working copy at `root`. */
 export function generationRequest(
