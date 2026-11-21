@@ -8,7 +8,7 @@ import type { StatusLook } from '#theme/status';
 import { GAP } from '#theme/widths';
 
 /** The words of the tool that refused, kept as it wrote them. */
-export interface ToolAnswer {
+interface ToolAnswer {
   /** Who answered, such as "THE TOOL SAID" or "GITHUB ANSWERED". */
   readonly heading: string;
   readonly text: string;

@@ -10,7 +10,7 @@ import { symbolOf } from '#theme/symbols';
 import { GAP } from '#theme/widths';
 
 /** A line below a finished step, such as the reason of a rejection. */
-export interface TimelineResult {
+interface TimelineResult {
   readonly text: string;
   readonly role?: Role;
 }
@@ -35,7 +35,7 @@ export interface TimelineStep {
  * The step line at the top of a screen, the history of the work with the
  * result of each step on the line below it, or the checks of an attempt.
  */
-export type TimelineVariant = 'line' | 'history' | 'checks';
+type TimelineVariant = 'line' | 'history' | 'checks';
 
 interface TimelineProps {
   readonly steps: readonly TimelineStep[];
