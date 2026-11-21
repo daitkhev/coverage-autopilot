@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   approveImprovementRequestSchema,
+  budgetSettingsSchema,
   improvementListQuerySchema,
   improvementListSchema,
   improvementPatchSchema,
@@ -38,8 +39,10 @@ const improvement = {
   budget: { attempts: 3, tokens: 200000, minutes: 45 },
   usage: { attempts: 2, tokens: 36000, seconds: 1210 },
   deadlineAt: '2026-11-21T10:45:00.000Z',
+  resumesAt: null,
+  limitWaits: 0,
   qualityPolicy: request.qualityPolicy,
-  generator: { ...request.generator, promptVersion: '3' },
+  generator: { ...request.generator, promptVersion: '3', billing: 'api_key' },
   attempts: [],
   progress: null,
   branch: null,
@@ -115,8 +118,34 @@ describe('improvementSchema', () => {
     expect(improvementSchema.safeParse(failed).success).toBe(true);
   });
 
+  it('should accept an improvement that waits for a window to open', () => {
+    const waiting = {
+      ...improvement,
+      status: 'waiting_for_limit',
+      waitingFor: 'limit',
+      resumesAt: '2026-11-21T14:30:00.000Z',
+      limitWaits: 1,
+      budget: { ...improvement.budget, tokens: null },
+      generator: { ...improvement.generator, billing: 'subscription' },
+    };
+
+    expect(improvementSchema.safeParse(waiting).success).toBe(true);
+  });
+
   it.each([
     ['a missing status', { ...improvement, status: undefined }],
+    ['a missing count of waits', { ...improvement, limitWaits: undefined }],
+    [
+      'an unknown way to pay',
+      {
+        ...improvement,
+        generator: { ...improvement.generator, billing: 'invoice' },
+      },
+    ],
+    [
+      'a budget in money',
+      { ...improvement, budget: { ...improvement.budget, dollars: 5 } },
+    ],
     ['a verdict as the status', { ...improvement, status: 'rejected' }],
     [
       'an unknown failure reason',
@@ -149,17 +178,52 @@ describe('improvementListSchema', () => {
 });
 
 describe('improvementListQuerySchema', () => {
-  it('should accept a filter by repository and status', () => {
-    const value = { repositoryId: 'r1', status: 'failed' };
+  it('should accept a filter by repository, status and file', () => {
+    const value = {
+      repositoryId: 'r1',
+      status: 'failed',
+      filePath: 'src/billing/invoice.ts',
+    };
 
     expect(improvementListQuerySchema.safeParse(value).success).toBe(true);
   });
 
   it.each([
     ['an unknown status', { status: 'done' }],
+    ['a file outside the repository', { filePath: '../a.ts' }],
     ['an unknown key', { file: 'src/a.ts' }],
   ])('should refuse %s', (_name, value) => {
     expect(improvementListQuerySchema.safeParse(value).success).toBe(false);
+  });
+});
+
+describe('budgetSettingsSchema', () => {
+  const settings = {
+    defaults: { attempts: 3, tokens: null, minutes: 30 },
+    maximums: { attempts: 10, tokens: null, minutes: 120 },
+  };
+
+  it('should accept the settings of a subscription, with no tokens', () => {
+    expect(budgetSettingsSchema.safeParse(settings).success).toBe(true);
+  });
+
+  it('should accept a limit of tokens for a key', () => {
+    const value = {
+      defaults: { ...settings.defaults, tokens: 200000 },
+      maximums: { ...settings.maximums, tokens: 1000000 },
+    };
+
+    expect(budgetSettingsSchema.safeParse(value).success).toBe(true);
+  });
+
+  it.each([
+    ['no maximums', { defaults: settings.defaults }],
+    [
+      'a default with no minutes',
+      { ...settings, defaults: { attempts: 3, tokens: null } },
+    ],
+  ])('should refuse %s', (_name, value) => {
+    expect(budgetSettingsSchema.safeParse(value).success).toBe(false);
   });
 });
 

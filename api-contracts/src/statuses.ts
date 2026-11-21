@@ -15,6 +15,7 @@ export const improvementStatusSchema = z.enum([
   'created',
   'analyzing',
   'generating',
+  'waiting_for_limit',
   'verifying',
   'awaiting_approval',
   'publishing',
@@ -66,10 +67,15 @@ export const stepStatusSchema = z.enum([
 
 export type StepStatus = z.infer<typeof stepStatusSchema>;
 
+/**
+ * A spent window of a subscription opens again within hours, so the
+ * improvement waits for it. A spent quota does not, so it fails.
+ */
 export const generationOutcomeSchema = z.enum([
   'generated',
   'no_changes',
   'limit_reached',
+  'window_exhausted',
   'quota_exhausted',
   'credential_exposed',
 ]);
@@ -136,9 +142,26 @@ export const improvementModeSchema = z.enum(['automatic', 'review']);
 export type ImprovementMode = z.infer<typeof improvementModeSchema>;
 
 /** The groups of the improvements screen: who has to act next. */
-export const waitingForSchema = z.enum(['approval', 'worker', 'repository']);
+export const waitingForSchema = z.enum([
+  'approval',
+  'worker',
+  'repository',
+  'limit',
+]);
 
 export type WaitingFor = z.infer<typeof waitingForSchema>;
+
+export const generatorCliSchema = z.enum(['claude_code']);
+
+export type GeneratorCli = z.infer<typeof generatorCliSchema>;
+
+/**
+ * Who pays for the generator. A subscription has windows of usage and no
+ * price of a call, so the client shows its limits and never money.
+ */
+export const billingSchema = z.enum(['subscription', 'api_key']);
+
+export type Billing = z.infer<typeof billingSchema>;
 
 export const accessCheckNameSchema = z.enum([
   'git_present',

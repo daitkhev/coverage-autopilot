@@ -5,7 +5,12 @@ import {
   accessCheckNameSchema,
   accessCheckStatusSchema,
 } from '#api-contracts/statuses';
-import { idSchema, textSchema, timestampSchema } from '#api-contracts/values';
+import {
+  commitShaSchema,
+  idSchema,
+  textSchema,
+  timestampSchema,
+} from '#api-contracts/values';
 
 const URL_MAX_LENGTH = 2048;
 
@@ -27,6 +32,10 @@ export const repositorySchema = z.strictObject({
   connectedAt: timestampSchema,
   latestSnapshot: snapshotSummarySchema.nullable(),
   activeScanId: idSchema.nullable(),
+  /** The head of the default branch, as the last access check saw it. */
+  headCommit: commitShaSchema.nullable(),
+  /** The head moved past the commit of the latest snapshot. */
+  outdated: z.boolean(),
 });
 
 export type Repository = z.infer<typeof repositorySchema>;
@@ -51,6 +60,8 @@ export const accessCheckSchema = z.strictObject({
   repositoryId: idSchema,
   checkedAt: timestampSchema,
   passed: z.boolean(),
+  /** Read with the last step, so a check that stopped early has none. */
+  headCommit: commitShaSchema.nullable(),
   steps: z.array(accessStepSchema),
 });
 

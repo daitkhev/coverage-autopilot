@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { attemptSchema } from '#api-contracts/attempts';
 import { progressSchema } from '#api-contracts/progress';
 import {
+  billingSchema,
   checkNameSchema,
+  generatorCliSchema,
   improvementFailureReasonSchema,
   improvementModeSchema,
   improvementStatusSchema,
@@ -22,13 +24,28 @@ import {
   timestampSchema,
 } from '#api-contracts/values';
 
+/**
+ * No limit of tokens is `null`: under a subscription its own windows of
+ * usage hold the generator, and a count of tokens says little.
+ */
 export const budgetSchema = z.strictObject({
   attempts: ordinalSchema,
-  tokens: ordinalSchema,
+  tokens: ordinalSchema.nullable(),
   minutes: ordinalSchema,
 });
 
 export type Budget = z.infer<typeof budgetSchema>;
+
+/**
+ * What the service fills a request with, and the most it accepts, so the
+ * dialog that starts an improvement holds no number of its own.
+ */
+export const budgetSettingsSchema = z.strictObject({
+  defaults: budgetSchema,
+  maximums: budgetSchema,
+});
+
+export type BudgetSettings = z.infer<typeof budgetSettingsSchema>;
 
 export const budgetUsageSchema = z.strictObject({
   attempts: countSchema,
@@ -45,10 +62,6 @@ export const qualityPolicySchema = z.strictObject({
 });
 
 export type QualityPolicy = z.infer<typeof qualityPolicySchema>;
-
-export const generatorCliSchema = z.enum(['claude_code']);
-
-export type GeneratorCli = z.infer<typeof generatorCliSchema>;
 
 const generatorChoiceShape = { cli: generatorCliSchema, model: textSchema };
 
@@ -70,9 +83,11 @@ export type StartImprovementRequest = z.infer<
   typeof startImprovementRequestSchema
 >;
 
+/** The service knows who pays from its own settings, not the request. */
 export const generatorConfigSchema = z.strictObject({
   ...generatorChoiceShape,
   promptVersion: textSchema,
+  billing: billingSchema,
 });
 
 export type GeneratorConfig = z.infer<typeof generatorConfigSchema>;
@@ -113,6 +128,10 @@ export const improvementSchema = z.strictObject({
   budget: budgetSchema,
   usage: budgetUsageSchema,
   deadlineAt: timestampSchema.nullable(),
+  /** When the window of the subscription opens. Set only while it waits. */
+  resumesAt: timestampSchema.nullable(),
+  /** A wait spends no attempt and no minute, so it has a count of its own. */
+  limitWaits: countSchema,
   qualityPolicy: qualityPolicySchema,
   generator: generatorConfigSchema,
   attempts: z.array(attemptSchema),
@@ -128,9 +147,11 @@ export const improvementSchema = z.strictObject({
 
 export type Improvement = z.infer<typeof improvementSchema>;
 
+/** The history of one file is the list filtered by its path. */
 export const improvementListQuerySchema = z.strictObject({
   repositoryId: idSchema.optional(),
   status: improvementStatusSchema.optional(),
+  filePath: filePathSchema.optional(),
 });
 
 export type ImprovementListQuery = z.infer<typeof improvementListQuerySchema>;

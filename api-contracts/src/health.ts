@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
+import { billingSchema, generatorCliSchema } from '#api-contracts/statuses';
 import {
   countSchema,
+  percentageSchema,
   textSchema,
   timestampSchema,
 } from '#api-contracts/values';
@@ -10,7 +12,7 @@ import {
  * Raised on every change of a schema in this package. A client that sees
  * another number restarts an idle service rather than talk to it.
  */
-export const CONTRACT_VERSION = 1;
+export const CONTRACT_VERSION = 2;
 
 export const toolVersionSchema = z.strictObject({
   name: textSchema,
@@ -35,6 +37,36 @@ export const activeWorkSchema = z.strictObject({
 
 export type ActiveWork = z.infer<typeof activeWorkSchema>;
 
+/** One window of usage of a subscription, as the generator reports it. */
+export const limitWindowSchema = z.strictObject({
+  usedPercent: percentageSchema,
+  resetsAt: timestampSchema,
+});
+
+export type LimitWindow = z.infer<typeof limitWindowSchema>;
+
+/**
+ * What the generator last said of the subscription. It is as old as the
+ * last call, so it carries the moment it was seen. A window the generator
+ * did not name is `null`.
+ */
+export const subscriptionLimitsSchema = z.strictObject({
+  observedAt: timestampSchema,
+  fiveHour: limitWindowSchema.nullable(),
+  sevenDay: limitWindowSchema.nullable(),
+});
+
+export type SubscriptionLimits = z.infer<typeof subscriptionLimitsSchema>;
+
+/** The limits are `null` with a key, and before the first call. */
+export const generatorAccountSchema = z.strictObject({
+  cli: generatorCliSchema,
+  billing: billingSchema,
+  limits: subscriptionLimitsSchema.nullable(),
+});
+
+export type GeneratorAccount = z.infer<typeof generatorAccountSchema>;
+
 /**
  * The version is any positive number, not this package's own, because the
  * client must read the answer of an older or a newer service.
@@ -45,9 +77,20 @@ export const healthSchema = z.strictObject({
   serviceVersion: textSchema,
   startedAt: timestampSchema,
   githubAccount: textSchema.nullable(),
+  generator: generatorAccountSchema,
   worker: workerStateSchema,
   activeWork: activeWorkSchema,
   tools: z.array(toolVersionSchema),
 });
 
 export type Health = z.infer<typeof healthSchema>;
+
+/**
+ * The answer of an idle service that was asked to stop. A service with
+ * running work refuses with a conflict, and nothing changes.
+ */
+export const stopServiceResultSchema = z.strictObject({
+  stopping: z.literal(true),
+});
+
+export type StopServiceResult = z.infer<typeof stopServiceResultSchema>;

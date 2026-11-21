@@ -28,6 +28,7 @@ export const IMPROVEMENT_STATUS: Readonly<
   created: { glyph: 'notStarted', word: 'WAIT', role: 'secondary' },
   analyzing: { glyph: 'spinner', word: 'RUN', role: 'running' },
   generating: { glyph: 'spinner', word: 'RUN', role: 'running' },
+  waiting_for_limit: { glyph: 'notStarted', word: 'WAIT', role: 'secondary' },
   verifying: { glyph: 'spinner', word: 'RUN', role: 'running' },
   publishing: { glyph: 'spinner', word: 'RUN', role: 'running' },
   awaiting_approval: { glyph: 'waiting', word: 'REVIEW', role: 'accent' },

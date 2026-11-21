@@ -15,6 +15,8 @@ const repository = {
   connectedAt: '2026-11-20T08:00:00.000Z',
   latestSnapshot: null,
   activeScanId: 'scan1',
+  headCommit: null,
+  outdated: false,
 };
 
 describe('connectRepositoryRequestSchema', () => {
@@ -42,8 +44,21 @@ describe('repositoryListSchema', () => {
     expect(repositoryListSchema.safeParse(value).success).toBe(true);
   });
 
+  it('should accept a repository whose head moved since the scan', () => {
+    const value = { ...repository, headCommit: 'a'.repeat(40), outdated: true };
+
+    expect(repositoryListSchema.safeParse({ items: [value] }).success).toBe(
+      true,
+    );
+  });
+
   it.each([
     ['a missing owner', { ...repository, owner: undefined }],
+    ['a short hash of the head', { ...repository, headCommit: 'a1b2c3d' }],
+    [
+      'no word on whether it is outdated',
+      { ...repository, outdated: undefined },
+    ],
     ['a time with no zone', { ...repository, connectedAt: '2026-11-20 08:00' }],
     ['an unknown key', { ...repository, stars: 3 }],
   ])('should refuse %s', (_name, value) => {
@@ -58,6 +73,7 @@ describe('accessCheckSchema', () => {
     repositoryId: 'r1',
     checkedAt: '2026-11-21T10:00:00.000Z',
     passed: false,
+    headCommit: null,
     steps: [
       {
         name: 'git_present',
