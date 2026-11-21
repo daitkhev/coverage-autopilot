@@ -1,10 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  accessCheckStatusSchema,
+  fileStateSchema,
+  improvementStatusSchema,
+  scanStatusSchema,
+  stepStatusSchema,
+  unmeasuredReasonSchema,
+  verdictSchema,
+} from '@coverage-autopilot/api-contracts/statuses';
+
+import {
+  ACCESS_CHECK_STATUS,
   ATTEMPT_VERDICT,
   CHECK_STATUS,
   FILE_STATE,
   IMPROVEMENT_STATUS,
+  SCAN_STATUS,
   SERVICE_STATE,
   type StatusLook,
   UNMEASURED_REASON,
@@ -12,6 +24,8 @@ import {
 
 const TABLES: Readonly<Record<string, Readonly<Record<string, StatusLook>>>> = {
   IMPROVEMENT_STATUS,
+  SCAN_STATUS,
+  ACCESS_CHECK_STATUS,
   ATTEMPT_VERDICT,
   CHECK_STATUS,
   FILE_STATE,
@@ -33,22 +47,39 @@ describe('the status tables', () => {
   );
 });
 
-describe('IMPROVEMENT_STATUS', () => {
-  it('should hold every status of an improvement', () => {
-    expect(Object.keys(IMPROVEMENT_STATUS)).toEqual([
-      'created',
-      'analyzing',
-      'generating',
-      'verifying',
-      'publishing',
-      'awaiting_approval',
-      'completed',
-      'failed',
-      'cancelled',
-      'skipped',
-    ]);
-  });
+/** A table of the client beside the list of the contract it draws. */
+const CONTRACT = [
+  {
+    table: 'IMPROVEMENT_STATUS',
+    rows: IMPROVEMENT_STATUS,
+    schema: improvementStatusSchema,
+  },
+  { table: 'SCAN_STATUS', rows: SCAN_STATUS, schema: scanStatusSchema },
+  {
+    table: 'ACCESS_CHECK_STATUS',
+    rows: ACCESS_CHECK_STATUS,
+    schema: accessCheckStatusSchema,
+  },
+  { table: 'ATTEMPT_VERDICT', rows: ATTEMPT_VERDICT, schema: verdictSchema },
+  { table: 'CHECK_STATUS', rows: CHECK_STATUS, schema: stepStatusSchema },
+  { table: 'FILE_STATE', rows: FILE_STATE, schema: fileStateSchema },
+  {
+    table: 'UNMEASURED_REASON',
+    rows: UNMEASURED_REASON,
+    schema: unmeasuredReasonSchema,
+  },
+];
 
+describe('the status tables and the contract', () => {
+  it.each(CONTRACT)(
+    'should hold in $table every value of the contract and no other',
+    ({ rows, schema }) => {
+      expect(Object.keys(rows).sort()).toEqual([...schema.options].sort());
+    },
+  );
+});
+
+describe('IMPROVEMENT_STATUS', () => {
   it('should tell a cancelled improvement from a skipped one', () => {
     const { cancelled, skipped } = IMPROVEMENT_STATUS;
 
@@ -62,6 +93,25 @@ describe('IMPROVEMENT_STATUS', () => {
       .map(([status]) => status);
 
     expect(red).toEqual(['failed']);
+  });
+});
+
+describe('SCAN_STATUS', () => {
+  it('should say a scan in the words of an improvement', () => {
+    const words = new Set(
+      Object.values(IMPROVEMENT_STATUS).map((look) => look.word),
+    );
+
+    for (const look of Object.values(SCAN_STATUS)) {
+      expect(words).toContain(look.word);
+    }
+  });
+});
+
+describe('ACCESS_CHECK_STATUS', () => {
+  it('should draw a refused step in red, and a step never reached dim', () => {
+    expect(ACCESS_CHECK_STATUS.failed.role).toBe('danger');
+    expect(ACCESS_CHECK_STATUS.not_run.role).toBe('secondary');
   });
 });
 

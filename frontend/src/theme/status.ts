@@ -1,3 +1,13 @@
+import type {
+  AccessCheckStatus,
+  FileState,
+  ImprovementStatus,
+  ScanStatus,
+  StepStatus,
+  UnmeasuredReason,
+  Verdict,
+} from '@coverage-autopilot/api-contracts/statuses';
+
 import type { Role } from '#theme/roles';
 import type { GlyphName } from '#theme/symbols';
 
@@ -8,18 +18,10 @@ export interface StatusLook {
   readonly role: Role;
 }
 
-export type ImprovementStatus =
-  | 'created'
-  | 'analyzing'
-  | 'generating'
-  | 'verifying'
-  | 'publishing'
-  | 'awaiting_approval'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
-  | 'skipped';
-
+/**
+ * The keys of every table but the last are the statuses of the contract,
+ * so a status the service adds or drops stops the build here.
+ */
 export const IMPROVEMENT_STATUS: Readonly<
   Record<ImprovementStatus, StatusLook>
 > = {
@@ -35,25 +37,33 @@ export const IMPROVEMENT_STATUS: Readonly<
   skipped: { glyph: 'skipped', word: 'SKIP', role: 'secondary' },
 };
 
-/** A rejected attempt is routine, so it is yellow and not red. */
-export type AttemptVerdict = 'accepted' | 'rejected' | 'inconclusive';
+/** A scan is said in the words of an improvement, so one list reads both. */
+export const SCAN_STATUS: Readonly<Record<ScanStatus, StatusLook>> = {
+  queued: { glyph: 'notStarted', word: 'WAIT', role: 'secondary' },
+  running: { glyph: 'spinner', word: 'RUN', role: 'running' },
+  completed: { glyph: 'passed', word: 'DONE', role: 'success' },
+  failed: { glyph: 'failed', word: 'FAIL', role: 'danger' },
+  cancelled: { glyph: 'cancelled', word: 'CANCEL', role: 'secondary' },
+};
 
-export const ATTEMPT_VERDICT: Readonly<Record<AttemptVerdict, StatusLook>> = {
+/** A refused step of the access check stops the work, so it is red. */
+export const ACCESS_CHECK_STATUS: Readonly<
+  Record<AccessCheckStatus, StatusLook>
+> = {
+  passed: { glyph: 'passed', word: 'passed', role: 'success' },
+  failed: { glyph: 'failed', word: 'failed', role: 'danger' },
+  not_run: { glyph: 'skipped', word: 'not checked', role: 'secondary' },
+};
+
+/** A rejected attempt is routine, so it is yellow and not red. */
+export const ATTEMPT_VERDICT: Readonly<Record<Verdict, StatusLook>> = {
   accepted: { glyph: 'passed', word: 'accepted', role: 'success' },
   rejected: { glyph: 'failed', word: 'rejected', role: 'warning' },
   inconclusive: { glyph: 'attention', word: 'runs again', role: 'warning' },
 };
 
-export type CheckStatus =
-  | 'pending'
-  | 'running'
-  | 'passed'
-  | 'failed'
-  | 'error'
-  | 'skipped'
-  | 'not_applicable';
-
-export const CHECK_STATUS: Readonly<Record<CheckStatus, StatusLook>> = {
+/** A check is drawn while it waits and runs too, so it is a step. */
+export const CHECK_STATUS: Readonly<Record<StepStatus, StatusLook>> = {
   pending: { glyph: 'notStarted', word: 'not started', role: 'secondary' },
   running: { glyph: 'spinner', word: 'running', role: 'running' },
   passed: { glyph: 'passed', word: 'passed', role: 'success' },
@@ -62,8 +72,6 @@ export const CHECK_STATUS: Readonly<Record<CheckStatus, StatusLook>> = {
   skipped: { glyph: 'skipped', word: 'off', role: 'secondary' },
   not_applicable: { glyph: 'skipped', word: 'n/a', role: 'secondary' },
 };
-
-export type FileState = 'measured' | 'no_executable_code' | 'unmeasured';
 
 /** A file without numbers has a figure in place of a percentage. */
 export interface FileLook extends StatusLook {
@@ -85,9 +93,6 @@ export const FILE_STATE: Readonly<Record<FileState, FileLook>> = {
     figure: 'N/A',
   },
 };
-
-export type UnmeasuredReason =
-  'parse_failed' | 'missing_from_report' | 'no_counters';
 
 /** Why a file has no numbers, in plain words, and the next step. */
 export interface ReasonWords {
@@ -112,6 +117,7 @@ export const UNMEASURED_REASON: Readonly<
   },
 };
 
+/** What the client sees of the service. The contract has no such list. */
 export type ServiceState = 'up' | 'starting' | 'unreachable';
 
 export const SERVICE_STATE: Readonly<Record<ServiceState, StatusLook>> = {

@@ -189,6 +189,10 @@ background, so it looks the same in a list, in a title and in a sentence.
 | `cancelled` | `■ CANCEL` | Dim | Who cancelled it and when |
 | `skipped` | `– SKIP` | Dim | The reason as a sentence |
 
+A scan is said in the same words: `queued` is `○ WAIT`, `running` is
+`⠹ RUN`, `completed` is `✓ DONE`, `failed` is `✕ FAIL` and `cancelled` is
+`■ CANCEL`.
+
 An improvement has no status "rejected". That word belongs to one attempt:
 
 | Verdict of an attempt | Shown as | Colour | What follows |
@@ -205,6 +209,12 @@ An improvement has no status "rejected". That word belongs to one attempt:
 | `failed` | `✕` | Yellow |
 | `error` | `!` with "runs again" | Yellow |
 | `skipped`, `not_applicable` | `–` with "off" or "n/a" | Dim |
+
+| Step of the access check | Shown as | Colour |
+| --- | --- | --- |
+| `passed` | `✓` | Green |
+| `failed` | `✕` | Red, because it stops the work |
+| `not_run` | `–` with "not checked" | Dim |
 
 | State of a file | Shown as |
 | --- | --- |
