@@ -1,4 +1,5 @@
 import type { RepositoryId } from '#kernel/primitives/repository-id';
+import type { Instant } from '#kernel/time/instant';
 import type { Transaction } from '#kernel/transaction/transaction';
 
 /** The id of a job: a text UUID from the id generator. */
@@ -90,7 +91,7 @@ export interface JobProgress {
 export interface JobProgressDto extends JobProgress {
   readonly jobId: JobId;
   /** The client shows the age of an old value, so a stalled job shows. */
-  readonly updatedAt: Date;
+  readonly updatedAt: Instant;
 }
 
 /**

@@ -538,7 +538,7 @@ the imports. These calls need no import, so ESLint holds them:
 
 | Banned | Allowed in | Held by | Tried |
 | --- | --- | --- | --- |
-| `new Date()`, `Date.now()` | The system clock adapter | `no-restricted-syntax` | ✓ |
+| `new Date()`, `Date.now()` | Nowhere. The system clock adapter reads the time without them, and a moment is an `Instant` of the kernel | `no-restricted-syntax` | ✓ |
 | `randomUUID()` | The id generator adapter | `no-restricted-syntax` | |
 | `process.env` | The configuration loader | `no-restricted-properties` | ✓ |
 | `console` | Nowhere in the service. The commands of the client print through one writer | `no-console` | ✓ |

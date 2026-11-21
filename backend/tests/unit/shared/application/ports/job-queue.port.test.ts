@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import type { Instant } from '#kernel/time/instant';
 import type { Transaction } from '#kernel/transaction/transaction';
 import {
   type EnqueueJobRequest,
@@ -61,6 +62,6 @@ describe('JobQueue', () => {
       | 'not_applicable'
       | 'error'
     >();
-    expectTypeOf<JobProgressDto['updatedAt']>().toEqualTypeOf<Date>();
+    expectTypeOf<JobProgressDto['updatedAt']>().toEqualTypeOf<Instant>();
   });
 });
