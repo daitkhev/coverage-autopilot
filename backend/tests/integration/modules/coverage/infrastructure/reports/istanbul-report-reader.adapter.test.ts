@@ -214,6 +214,33 @@ describe('IstanbulReportReader', () => {
       });
     });
 
+    describe('when a file has no count for a statement or a branch', () => {
+      it('should take the statement as never run and leave the branch out', async () => {
+        const path = `${folder.root}/src/used.ts`;
+        const report = await read(
+          JSON.stringify({
+            [path]: file(path, {
+              statementMap: statements([1, 5]),
+              fnMap: { '0': HALVE, '1': DOUBLE },
+              branchMap: { '0': IF_OF_HALVE },
+              s: hits([1]),
+              f: hits([0, 0]),
+              b: {},
+            }),
+          }),
+        );
+
+        expect(report?.get('src/used.ts')?.uncovered).toMatchObject({
+          lines: [{ start: 5, end: 5 }],
+          branchLines: [],
+          functions: [
+            { name: 'double', line: 1 },
+            { name: 'halve', line: 5 },
+          ],
+        });
+      });
+    });
+
     describe('when the runner wrote no report', () => {
       it('should answer with null', async () => {
         await expect(read(null)).resolves.toBeNull();

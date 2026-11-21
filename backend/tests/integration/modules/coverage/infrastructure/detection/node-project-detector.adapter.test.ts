@@ -183,6 +183,15 @@ describe('NodeProjectDetector', () => {
           );
         },
       );
+
+      it('should be ambiguous when there is no test script', async () => {
+        const files = both('');
+        files['package.json'] = manifest({
+          devDependencies: { jest: '30.5.2', vitest: '4.1.12' },
+        });
+
+        await expect(reasonOf(files)).resolves.toBe('ambiguous_test_runner');
+      });
     });
 
     describe('when the repository cannot be measured', () => {
