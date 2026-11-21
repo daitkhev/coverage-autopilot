@@ -22,12 +22,17 @@ describe('scanSchema', () => {
     expect(scanSchema.safeParse(running).success).toBe(true);
   });
 
-  it('should accept a scan that failed with a reason', () => {
+  it.each([
+    ['unsupported_project', 'The repository has no test runner.'],
+    ['install_failed', 'npm ci exited 1.'],
+    ['test_run_timed_out', 'The tests ran past 20 minutes.'],
+    ['retries_exhausted', 'The scan was tried 3 times.'],
+  ])('should accept a scan that failed with %s', (reason, message) => {
     const value = {
       ...running,
       status: 'failed',
       progress: null,
-      failure: { reason: 'install_failed', message: 'npm ci exited 1.' },
+      failure: { reason, message },
     };
 
     expect(scanSchema.safeParse(value).success).toBe(true);
