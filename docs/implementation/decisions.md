@@ -240,3 +240,34 @@ Where this log and the plan differ, this log and the code are right.
   refuses a git older than 2.36.
 - A tree a sandbox left unreadable is still removed: the sweep that
   clears what a crash left behind restores the permissions first.
+
+### A patch only adds new test files
+
+- A test patch may add new plain files whose names end like a test file,
+  and nothing else. It never changes or removes a file of the commit.
+- So the tests of the commit stay as they were, "the new tests" are the
+  files of the patch, and a patch cannot pass by weakening a test that
+  was there.
+- The endings come with the request, `.test.ts` and `.test.tsx` by
+  default. The generator is told the same endings.
+- Where: `VerifyPatchRequest.testFileSuffixes` in
+  `backend/src/modules/verification/contracts/verification-public-api.ts`,
+  `GenerationRequest.testFileSuffixes` in
+  `backend/src/modules/improvement/application/ports/test-generator.port.ts`.
+
+### The gate measures a commit once and is given the measure back
+
+- `measureBaseline` answers what the commit is like before any patch:
+  whether it type-checks, whether its tests pass, and which mutants of
+  the target nothing detects. The improvement keeps the answer and gives
+  it to every `verifyPatch`.
+- A check that has nothing to compare with is `not_applicable`: the type
+  check when the commit did not type-check, the existing tests when they
+  did not pass. A test run answers only whether it passed, not which
+  tests did, so a commit with a failing test cannot show what a patch
+  broke.
+- The mutation tool is installed into the working copy of the gate while
+  the network is open and no script runs. The copy of the gate is never
+  the source of a patch.
+- The generator runs in a second instance of the sandbox, with an image
+  of its own and an open network. The port of the sandbox is the same.
