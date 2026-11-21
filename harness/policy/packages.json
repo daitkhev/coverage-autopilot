@@ -69,6 +69,10 @@
       ]
     },
     {
+      "packages": ["typescript"],
+      "in": ["backend/src/modules/coverage/infrastructure/"]
+    },
+    {
       "packages": ["@coverage-autopilot/api-contracts"],
       "in": ["backend/src/modules/*/presentation/", "frontend/src/"]
     },
