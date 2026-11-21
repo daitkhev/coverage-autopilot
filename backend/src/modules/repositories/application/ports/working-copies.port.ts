@@ -14,7 +14,7 @@ export interface CreateCopyRequest {
   readonly commit: CommitSha;
 }
 
-export interface ExtractedPatch {
+interface ExtractedPatch {
   readonly text: string;
   /** The SHA-256 of the text, in lower-case hex. */
   readonly hash: string;
