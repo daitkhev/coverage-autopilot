@@ -173,3 +173,18 @@ Where this log and the plan differ, this log and the code are right.
   them. A service that runs as root starts only when both are set.
 - The default image is `node:26-slim`, the Node the project itself uses.
 - Where: `backend/src/shared/infrastructure/config/`.
+
+### A working copy has one path, in the sandbox and on the host
+
+- The sandbox mounts a working copy at the path it has on the host. A
+  coverage report and a mutation report name files by absolute paths, and
+  the service reads them by the same paths with no translation.
+- The git directory of a working copy is kept outside it. A sandboxed
+  command can write anything into the copy, and the service runs `git` on
+  the copy afterwards, so nothing in the copy may be read as a setting of
+  git.
+- A source file is classified by the parser of the TypeScript compiler,
+  and a link in the place of a source is refused.
+- Where: `backend/src/shared/infrastructure/sandbox/container-arguments.ts`,
+  `backend/src/modules/repositories/infrastructure/git/`,
+  `backend/src/modules/coverage/infrastructure/classification/`.
