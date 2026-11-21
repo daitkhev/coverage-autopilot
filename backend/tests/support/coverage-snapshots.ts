@@ -9,7 +9,7 @@ import { FileCoverage } from '#coverage/domain/value-objects/file-coverage.vo';
 import { ScanParameters } from '#coverage/domain/value-objects/scan-parameters.vo';
 import { SnapshotId } from '#coverage/domain/value-objects/snapshot-id.vo';
 import { UncoveredCode } from '#coverage/domain/value-objects/uncovered-code.vo';
-import type { UnmeasuredFile } from '#coverage/domain/value-objects/unmeasured-file.vo';
+import { UnmeasuredFile } from '#coverage/domain/value-objects/unmeasured-file.vo';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
 import { RepositoryId } from '#kernel/primitives/repository-id';
@@ -50,6 +50,61 @@ export function measuredFile(path: string, spec: CounterSpec): FileCoverage {
     path: FilePath.create(path),
     counters: countersOf(spec),
     uncovered: UncoveredCode.none(),
+  });
+}
+
+/** The files of the fixture projects, one in each state a snapshot knows. */
+export interface FixtureFiles {
+  /** Imported by a test that calls one of its two functions. */
+  readonly used: FileCoverage;
+  /** Imported by no test, so listed at zero. */
+  readonly unused: FileCoverage;
+  /** Type declarations alone. */
+  readonly types: FileCoverage;
+  /** A syntax error. */
+  readonly broken: UnmeasuredFile;
+}
+
+/** The line of the `if` in `halve` of `src/used.ts`. */
+const OPEN_BRANCH_LINE = 6;
+
+export function fixtureFiles(): FixtureFiles {
+  return {
+    used: FileCoverage.measured({
+      path: FilePath.create('src/used.ts'),
+      counters: CoverageCounters.create({
+        statements: CoverageCounter.create({ covered: 2, total: 6 }),
+        branches: CoverageCounter.create({ covered: 1, total: 2 }),
+        functions: CoverageCounter.create({ covered: 1, total: 2 }),
+        lines: CoverageCounter.create({ covered: 2, total: 5 }),
+      }),
+      uncovered: UncoveredCode.create({
+        lines: [{ start: 6, end: 9 }],
+        branchLines: [OPEN_BRANCH_LINE],
+        functions: [{ name: 'halve', line: 5 }],
+      }),
+    }),
+    unused: measuredFile('src/unused.ts', {
+      statements: [0, 1],
+      functions: [0, 1],
+      lines: [0, 1],
+    }),
+    types: FileCoverage.noExecutableCode(FilePath.create('src/types.ts')),
+    broken: UnmeasuredFile.create({
+      path: FilePath.create('src/broken.ts'),
+      reason: 'parse_failed',
+      toolMessage: "')' expected.",
+    }),
+  };
+}
+
+/** A snapshot of the fixture project: one file in each state. */
+export function fixtureSnapshot(spec: SnapshotSpec = {}): CoverageSnapshot {
+  const { used, unused, types, broken } = fixtureFiles();
+  return snapshotOf({
+    files: [used, unused, types],
+    unmeasured: [broken],
+    ...spec,
   });
 }
 

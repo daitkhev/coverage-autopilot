@@ -1,16 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
-import { FileCoverage } from '#coverage/domain/value-objects/file-coverage.vo';
 import { SnapshotId } from '#coverage/domain/value-objects/snapshot-id.vo';
-import { UncoveredCode } from '#coverage/domain/value-objects/uncovered-code.vo';
-import { UnmeasuredFile } from '#coverage/domain/value-objects/unmeasured-file.vo';
 import { SqliteCoverageSnapshotRepository } from '#coverage/infrastructure/persistence/sqlite-coverage-snapshot.repository';
 import { SqliteTransactionRunner } from '#infrastructure/database/sqlite-transaction-runner.adapter';
-import { FilePath } from '#kernel/primitives/file-path';
 import {
-  countersOf,
-  measuredFile,
+  fixtureFiles,
+  fixtureSnapshot,
   REPOSITORY_ID,
   SNAPSHOT_ID,
   snapshotOf,
@@ -23,36 +19,9 @@ import {
 
 const OTHER_ID = '00000000-0000-4000-8000-0000000000cc';
 
-const used = FileCoverage.measured({
-  path: FilePath.create('src/used.ts'),
-  counters: countersOf({
-    statements: [2, 6],
-    branches: [1, 2],
-    functions: [1, 2],
-    lines: [2, 5],
-  }),
-  uncovered: UncoveredCode.create({
-    lines: [{ start: 6, end: 9 }],
-    branchLines: [6],
-    functions: [{ name: 'halve', line: 5 }],
-  }),
-});
-const unused = measuredFile('src/unused.ts', {
-  statements: [0, 1],
-  functions: [0, 1],
-  lines: [0, 1],
-});
-const types = FileCoverage.noExecutableCode(FilePath.create('src/types.ts'));
-const broken = UnmeasuredFile.create({
-  path: FilePath.create('src/broken.ts'),
-  reason: 'parse_failed',
-  toolMessage: "')' expected.",
-});
+const { unused } = fixtureFiles();
 
-const snapshot = snapshotOf({
-  files: [used, unused, types],
-  unmeasured: [broken],
-});
+const snapshot = fixtureSnapshot();
 
 let database: TemporaryDatabase;
 let repository: SqliteCoverageSnapshotRepository;

@@ -3,37 +3,20 @@ import { describe, expect, it } from 'vitest';
 import { InvalidCoverageSnapshotError } from '#coverage/domain/errors/invalid-coverage-snapshot.error';
 import { CoverageCounters } from '#coverage/domain/value-objects/coverage-counters.vo';
 import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-threshold.vo';
-import { FileCoverage } from '#coverage/domain/value-objects/file-coverage.vo';
 import { SnapshotId } from '#coverage/domain/value-objects/snapshot-id.vo';
 import { UnmeasuredFile } from '#coverage/domain/value-objects/unmeasured-file.vo';
 import { FilePath } from '#kernel/primitives/file-path';
 import {
   CAPTURED_AT,
   countersOf,
-  measuredFile,
+  fixtureFiles,
   REPOSITORY_ID,
   SNAPSHOT_COMMIT,
   SNAPSHOT_ID,
   snapshotOf,
 } from '#tests/support/coverage-snapshots';
 
-const used = measuredFile('src/used.ts', {
-  statements: [2, 6],
-  branches: [1, 2],
-  functions: [1, 2],
-  lines: [2, 5],
-});
-const unused = measuredFile('src/unused.ts', {
-  statements: [0, 1],
-  functions: [0, 1],
-  lines: [0, 1],
-});
-const types = FileCoverage.noExecutableCode(FilePath.create('src/types.ts'));
-const broken = UnmeasuredFile.create({
-  path: FilePath.create('src/broken.ts'),
-  reason: 'parse_failed',
-  toolMessage: "')' expected.",
-});
+const { used, unused, types, broken } = fixtureFiles();
 
 const snapshot = snapshotOf({
   files: [used, unused, types],
