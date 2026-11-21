@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { harnessTests, runnerTests } from '#harness/configs/vitest';
+import { eslintConfig } from '#harness/eslint/config';
 import { FIXTURE_PACKAGES, TOOL_PLUGINS, TOOLS } from '#harness/gate/tools';
 import { isRecord, readJsonRecord, recordAt } from '#harness/shared/json';
 import { readMutationRuns } from '#harness/shared/mutation-policy';
@@ -28,6 +29,28 @@ describe('the tools of the gate', () => {
     expect(declared).toEqual(
       expect.arrayContaining([...Object.keys(TOOLS), ...TOOL_PLUGINS]),
     );
+  });
+});
+
+/**
+ * An agent that works beside others gets a tree of its own under this
+ * folder. It is another copy of the repository, on another branch, and
+ * it is judged where it stands, never as a part of the first tree.
+ */
+describe('the folder of the linked trees', () => {
+  const LINKED_TREES = '.claude/worktrees/';
+
+  it.each(['.gitignore', '.prettierignore'])(
+    'should be left out by %s',
+    (name) => {
+      const lines = readFileSync(join(REPOSITORY_ROOT, name), 'utf8');
+
+      expect(lines.split('\n')).toContain(LINKED_TREES);
+    },
+  );
+
+  it('should be left out by the linter', () => {
+    expect(eslintConfig[0]?.ignores).toContain(LINKED_TREES);
   });
 });
 

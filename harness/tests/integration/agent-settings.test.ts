@@ -79,6 +79,18 @@ describe('the hooks of Claude Code', () => {
   const start = (name: string): string =>
     `\${CLAUDE_PROJECT_DIR}/${HOOKS}/${name}`;
 
+  /** An agent that stops is judged, and so is a helper it started. */
+  const judged = {
+    hooks: [
+      {
+        type: 'command',
+        command: 'node',
+        args: [start('done.ts')],
+        timeout: 300,
+      },
+    ],
+  };
+
   it('should start the shared hooks as Node with a list of arguments', () => {
     expect(hooksOf(CLAUDE)).toEqual({
       PreToolUse: [
@@ -103,18 +115,8 @@ describe('the hooks of Claude Code', () => {
           ],
         },
       ],
-      Stop: [
-        {
-          hooks: [
-            {
-              type: 'command',
-              command: 'node',
-              args: [start('done.ts')],
-              timeout: 300,
-            },
-          ],
-        },
-      ],
+      Stop: [judged],
+      SubagentStop: [judged],
     });
   });
 

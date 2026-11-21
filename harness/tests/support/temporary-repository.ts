@@ -22,6 +22,11 @@ export interface TemporaryRepository {
   readonly remove: (path: string) => void;
   /** Commits everything and gives the name of the commit. */
   readonly commit: () => string;
+  /**
+   * Links a second tree to the repository, on a new branch, and gives its
+   * root. Git needs a commit to start the branch from.
+   */
+  readonly link: (folder: string, branch: string) => string;
   readonly dispose: () => void;
 }
 
@@ -48,6 +53,10 @@ export function temporaryRepository(): TemporaryRepository {
       git(root, 'add', '--all');
       git(root, 'commit', '--quiet', '--allow-empty', '--message', 'state');
       return git(root, 'rev-parse', 'HEAD');
+    },
+    link: (folder, branch) => {
+      git(root, 'worktree', 'add', '--quiet', '-b', branch, folder);
+      return join(root, folder);
     },
     dispose: () => {
       rmSync(root, { recursive: true, force: true });

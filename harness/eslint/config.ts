@@ -136,6 +136,7 @@ export const eslintConfig: Linter.Config[] = defineConfig(
       'dist/',
       'docs/',
       'harness/fixtures/',
+      '.claude/worktrees/',
     ],
   },
   ...lintPolicy,

@@ -131,6 +131,64 @@ describe('beforeEdit, for an agent that names one file', () => {
   });
 });
 
+describe('beforeEdit, in a tree that git linked to the first one', () => {
+  const LINKED = '.claude/worktrees/agent-a';
+  const first = (): string => bench.repository.root;
+  const refusing = (reason: string): string =>
+    answer('deny', `${reason} Stop and ask the owner.`);
+
+  /** A second tree of the repository, where an agent works. */
+  function linked(): string {
+    bench.repository.commit();
+    return bench.repository.link(LINKED, 'feat/a');
+  }
+
+  /** What the hook of this tree prints for an edit of a file. */
+  function edit(file: string, home = first()): string {
+    const call = { tool_name: 'Edit', tool_input: { file_path: file } };
+    return beforeEdit(JSON.stringify(call), home, 'ask');
+  }
+
+  it.each(['harness/policy/limits.json', 'package.json', '.claude/a.json'])(
+    'should refuse an edit of %s, and not ask a person who is not there',
+    (path) => {
+      expect(edit(join(linked(), path))).toBe(
+        refusing(`${path}${POLICY_REASON}`),
+      );
+    },
+  );
+
+  it.each(['backend/src/main.ts', 'README.md', 'docs/plan/harness.md'])(
+    'should say nothing about an edit of %s',
+    (path) => {
+      expect(edit(join(linked(), path))).toBe('');
+    },
+  );
+
+  it('should judge the same way when the hook runs from the linked tree', () => {
+    const tree = linked();
+
+    expect(edit(join(tree, 'tsconfig.json'), tree)).toBe(
+      refusing(`tsconfig.json${POLICY_REASON}`),
+    );
+    expect(edit(join(tree, 'backend/src/main.ts'), tree)).toBe('');
+  });
+
+  it('should still ask about the policy of the first tree', () => {
+    const tree = linked();
+
+    expect(edit(join(first(), 'package.json'), tree)).toBe(
+      asking(`package.json${POLICY_REASON}`),
+    );
+  });
+
+  it('should hold the folder of a tree that is linked no more', () => {
+    const path = `${LINKED}/backend/src/main.ts`;
+
+    expect(edit(join(first(), path))).toBe(asking(`${path}${POLICY_REASON}`));
+  });
+});
+
 describe('beforeEdit, for an agent that gives a patch', () => {
   const root = (): string => bench.repository.root;
   const refusing = (reason: string): string =>

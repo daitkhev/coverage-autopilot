@@ -38,6 +38,18 @@
           }
         ]
       }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/harness/agents/hooks/done.ts"],
+            "timeout": 300
+          }
+        ]
+      }
     ]
   }
 }

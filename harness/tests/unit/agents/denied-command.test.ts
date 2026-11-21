@@ -198,6 +198,7 @@ describe('reasonToDeny', () => {
 });
 
 describe('beforeCommand', () => {
+  const HOME = '/the/first/tree';
   const call = (command: unknown): string =>
     JSON.stringify({ tool_name: 'Bash', tool_input: { command } });
   const refusing = (reason: string): string =>
@@ -210,19 +211,62 @@ describe('beforeCommand', () => {
     });
 
   it('should say nothing about a command that may run', () => {
-    expect(beforeCommand(call('git push origin dev'), () => 'dev')).toBe('');
+    expect(beforeCommand(call('git push origin dev'), HOME, () => 'dev')).toBe(
+      '',
+    );
   });
 
   it('should refuse a denied command with its reason', () => {
-    expect(beforeCommand(call('gh pr merge 3'), () => 'dev')).toBe(
+    expect(beforeCommand(call('gh pr merge 3'), HOME, () => 'dev')).toBe(
       refusing(MERGE),
     );
   });
 
   it('should give the branch of the tree to the rule that needs it', () => {
-    expect(beforeCommand(call('git push'), () => 'main')).toBe(
+    expect(beforeCommand(call('git push'), HOME, () => 'main')).toBe(
       refusing(PROTECTED),
     );
+  });
+
+  it('should ask for the branch in the folder the command runs in', () => {
+    const asked: string[] = [];
+    const input = JSON.stringify({
+      cwd: '/a/linked/tree',
+      tool_input: { command: 'git push' },
+    });
+
+    beforeCommand(input, HOME, (folder) => {
+      asked.push(folder);
+      return 'dev';
+    });
+
+    expect(asked).toEqual(['/a/linked/tree']);
+  });
+
+  it.each([
+    ['names no folder', {}],
+    ['names a folder that is not text', { cwd: 1 }],
+  ])('should ask in the first tree when the call %s', (_, place) => {
+    const asked: string[] = [];
+    const input = JSON.stringify({
+      ...place,
+      tool_input: { command: 'git push' },
+    });
+
+    beforeCommand(input, HOME, (folder) => {
+      asked.push(folder);
+      return 'dev';
+    });
+
+    expect(asked).toEqual([HOME]);
+  });
+
+  it('should not ask for the branch when no rule needs it', () => {
+    const printed = beforeCommand(call('git status'), HOME, () => {
+      throw new Error('asked');
+    });
+
+    expect(printed).toBe('');
   });
 
   it.each([
@@ -231,7 +275,7 @@ describe('beforeCommand', () => {
     ['no call', '{}', '"tool_input" must be an object.'],
     ['a command that is not text', call(1), '"command" must be a string.'],
   ])('should refuse when the input holds %s', (_, input, fault) => {
-    const printed = beforeCommand(input, () => 'dev');
+    const printed = beforeCommand(input, HOME, () => 'dev');
 
     expect(printed).toContain('"permissionDecision":"deny"');
     expect(printed).toContain('The hook could not read the command: ');
@@ -239,7 +283,7 @@ describe('beforeCommand', () => {
   });
 
   it('should refuse when the branch cannot be found', () => {
-    const printed = beforeCommand(call('git push'), () => {
+    const printed = beforeCommand(call('git push'), HOME, () => {
       throw new Error('no git here');
     });
 
