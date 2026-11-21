@@ -97,6 +97,7 @@ export class SqliteJobQueue implements JobQueue {
       subjectId: request.subjectId,
       payload,
       createdAt: this.clock.now().toString(),
+      notBefore: request.notBefore?.toString() ?? null,
     });
     return Promise.resolve({ outcome: 'enqueued', jobId });
   }

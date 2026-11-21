@@ -11,6 +11,8 @@ import {
 
 const TOOLS = RepositoryId.create('00000000-0000-4000-8000-00000000a003');
 
+const WAIT_MS = 60_000;
+
 let bench: QueueBench;
 
 function leasedRows(): unknown[] {
@@ -84,6 +86,39 @@ describe('JobWorker', () => {
       await service.worker.poll();
 
       expect(subjectsOf(service)).toEqual(['older']);
+    });
+
+    describe('when a job waits for a moment', () => {
+      it('should leave it until the moment comes', async () => {
+        const service = await bench.open();
+        await service.enqueue({
+          ...scanOf(WIDGETS, 'later'),
+          notBefore: bench.clock.now().plusMilliseconds(WAIT_MS),
+        });
+        await service.enqueue(scanOf(GADGETS, 'now'));
+
+        await service.worker.poll();
+
+        expect(subjectsOf(service)).toEqual(['now']);
+
+        bench.clock.advance(WAIT_MS);
+        await service.worker.poll();
+
+        expect(subjectsOf(service)).toEqual(['now', 'later']);
+      });
+
+      it('should not hold its repository meanwhile', async () => {
+        const service = await bench.open();
+        await service.enqueue({
+          ...scanOf(WIDGETS, 'later'),
+          notBefore: bench.clock.now().plusMilliseconds(WAIT_MS),
+        });
+        await service.enqueue(scanOf(WIDGETS, 'now'));
+
+        await service.worker.poll();
+
+        expect(subjectsOf(service)).toEqual(['now']);
+      });
     });
 
     it('should take no job of a kind it has no handler for', async () => {

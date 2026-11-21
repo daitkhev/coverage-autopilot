@@ -18,6 +18,8 @@ const SCAN = scanOf(WIDGETS, 'scan-1');
 
 const ROLLBACK = 'The caller failed after the';
 
+const WAIT_MS = 60_000;
+
 beforeEach(async () => {
   bench = new QueueBench();
   service = await bench.open();
@@ -45,6 +47,18 @@ describe('SqliteJobQueue', () => {
         progress_updated_at: null,
         outcome: null,
       });
+    });
+
+    it('should keep the moment the job waits for', async () => {
+      const notBefore = bench.clock.now().plusMilliseconds(WAIT_MS);
+
+      const { jobId } = await service.enqueue({ ...SCAN, notBefore });
+
+      expect(
+        bench.connection
+          .prepare('SELECT not_before FROM jobs WHERE id = ?')
+          .get(jobId),
+      ).toEqual({ not_before: notBefore.toString() });
     });
 
     describe('when the key is taken', () => {

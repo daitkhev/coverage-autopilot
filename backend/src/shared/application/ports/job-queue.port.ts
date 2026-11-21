@@ -38,6 +38,11 @@ export interface EnqueueJobRequest {
   /** The id of the object the job works on. The queue never reads it. */
   readonly subjectId: string;
   readonly payload: JobDocument;
+  /**
+   * No worker takes the job before this moment. Left out, the job may
+   * start at once. It is no part of what makes two requests the same.
+   */
+  readonly notBefore?: Instant;
 }
 
 /**

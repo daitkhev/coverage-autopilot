@@ -15,6 +15,8 @@ export interface NewJobRow {
   readonly subjectId: string;
   readonly payload: string;
   readonly createdAt: string;
+  /** `null` for a job that may start at once. */
+  readonly notBefore: string | null;
 }
 
 /** What every read of a job gives, with its payload as JSON text. */
@@ -82,10 +84,11 @@ export class SqliteJobTable {
     SqliteTransaction.connectionOf(transaction)
       .prepare(
         `INSERT INTO jobs (id, kind, serialization_key, idempotency_key,
-           subject_id, payload, status, runs, lease_token, created_at,
-           updated_at)
+           subject_id, payload, status, runs, lease_token, not_before,
+           created_at, updated_at)
          VALUES (:id, :kind, :serializationKey, :idempotencyKey,
-           :subjectId, :payload, 'pending', 0, 0, :createdAt, :createdAt)`,
+           :subjectId, :payload, 'pending', 0, 0, :notBefore, :createdAt,
+           :createdAt)`,
       )
       .run({ ...row });
   }
