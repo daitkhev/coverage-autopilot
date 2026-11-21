@@ -5,5 +5,11 @@
   "type": "module",
   "imports": {
     "#api-contracts/*": "./src/*.ts"
+  },
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
   }
 }
