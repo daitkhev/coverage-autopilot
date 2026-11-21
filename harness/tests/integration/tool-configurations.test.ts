@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { harnessTests, runnerTests } from '#harness/configs/vitest';
+import { runnerTests, treeTests } from '#harness/configs/vitest';
 import { eslintConfig } from '#harness/eslint/config';
 import { FIXTURE_PACKAGES, TOOL_PLUGINS, TOOLS } from '#harness/gate/tools';
 import { isRecord, readJsonRecord, recordAt } from '#harness/shared/json';
@@ -103,19 +103,16 @@ describe('jscpd.json', () => {
 });
 
 describe('vitest.ts', () => {
-  it('should run the unit and the integration tests, and measure the harness', () => {
-    expect(harnessTests).toEqual({
+  it('should run the unit and the integration tests of every area', () => {
+    expect(treeTests).toEqual({
       test: {
         include: [
-          'harness/tests/unit/**/*.test.ts',
-          'harness/tests/integration/**/*.test.ts',
+          '*/tests/unit/**/*.test.{ts,tsx}',
+          '*/tests/integration/**/*.test.{ts,tsx}',
         ],
         environment: 'node',
         coverage: {
           provider: 'v8',
-          include: ['harness/**/*.ts'],
-          exclude: [FIXTURES, 'harness/tests/**'],
-          reportsDirectory: 'coverage/harness',
           reporter: ['json', 'text-summary'],
         },
       },
@@ -132,7 +129,7 @@ describe('vitest.ts', () => {
   });
 
   it.each([
-    ['vitest.config.mjs', 'harnessTests'],
+    ['vitest.config.mjs', 'treeTests'],
     ['vitest.runners.config.mjs', 'runnerTests'],
   ])('should be what %s at the root points to', (pointer, name) => {
     const text = readFileSync(join(REPOSITORY_ROOT, pointer), 'utf8');

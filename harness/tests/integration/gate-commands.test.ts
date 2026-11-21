@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { runRatchetCommand } from '#harness/architecture/ratchet-command';
-import { COVERAGE_REPORT, runCoverage } from '#harness/gate/run-coverage';
+import type { NodeCommand } from '#harness/gate/host';
+import { runCoverage } from '#harness/gate/run-coverage';
 import { runDocuments } from '#harness/gate/run-documents';
 import {
   duplicationCommand,
@@ -114,17 +115,35 @@ describe('runDuplication', () => {
 });
 
 describe('runCoverage', () => {
+  const REPORT = 'coverage/harness/coverage-final.json';
+  const NOT_YET = [
+    'coverage: api-contracts has no source yet',
+    'coverage: backend has no source yet',
+    'coverage: frontend has no source yet',
+  ];
+
   function report(...paths: string[]): string {
     const entries = paths.map((path) => [`${repository.root}/${path}`, {}]);
     return JSON.stringify(Object.fromEntries(entries));
   }
 
-  /** A host whose Jest passes and leaves this report behind. */
-  function hostWriting(text: string): FakeHost {
+  /** The area a started Vitest measures: the folder of its report. */
+  function areaOf(command: NodeCommand): string {
+    const option = '--coverage.reportsDirectory=coverage/';
+    const folder = command.arguments.find((word) => word.startsWith(option));
+    return (folder ?? option).slice(option.length);
+  }
+
+  /** A host whose Vitest passes and leaves the report of each area behind. */
+  function hostWriting(reports: Readonly<Record<string, string>>): FakeHost {
     return fakeHost({
       root: repository.root,
-      passes: () => {
-        repository.write(COVERAGE_REPORT, text);
+      passes: (command) => {
+        const area = areaOf(command);
+        repository.write(
+          `coverage/${area}/coverage-final.json`,
+          reports[area] ?? '{}',
+        );
         return true;
       },
     });
@@ -137,38 +156,97 @@ describe('runCoverage', () => {
   });
 
   it('should pass when the report has every file that runs something', () => {
-    const jest = hostWriting(report('harness/gate/steps.ts'));
+    const vitest = hostWriting({ harness: report('harness/gate/steps.ts') });
 
-    expect(runCoverage(jest)).toBe(0);
-    expect(jest.printed).toEqual([
-      'coverage: every source file is in the report',
+    expect(runCoverage(vitest)).toBe(0);
+    expect(vitest.printed).toEqual([
+      'coverage: harness: every source file is in the report',
+      ...NOT_YET,
     ]);
+  });
+
+  it('should not ask for a file that git knows and that is gone', () => {
+    repository.write('harness/gate/gone.ts', 'export const a = 1;\n');
+    repository.commit();
+    repository.remove('harness/gate/gone.ts');
+    const vitest = hostWriting({ harness: report('harness/gate/steps.ts') });
+
+    expect(runCoverage(vitest)).toBe(0);
   });
 
   it('should fail when a source file is not in the report', () => {
     repository.write('harness/gate/left-out.ts', 'export const a = 1;\n');
-    const jest = hostWriting(report('harness/gate/steps.ts'));
+    const vitest = hostWriting({ harness: report('harness/gate/steps.ts') });
 
-    expect(runCoverage(jest)).toBe(1);
-    expect(jest.printed).toEqual([
+    expect(runCoverage(vitest)).toBe(1);
+    expect(vitest.printed).toEqual([
       'coverage: harness/gate/left-out.ts is not in the report.',
-      'coverage: 1 file(s) left out',
+      'coverage: harness: 1 file(s) left out',
     ]);
   });
 
-  it('should fail and read no report when Jest fails', () => {
-    const jest = fakeHost({ root: repository.root, passes: () => false });
+  it('should fail and read no report when Vitest fails', () => {
+    const vitest = fakeHost({ root: repository.root, passes: () => false });
 
-    expect(runCoverage(jest)).toBe(1);
-    expect(jest.printed).toEqual([]);
+    expect(runCoverage(vitest)).toBe(1);
+    expect(vitest.printed).toEqual([]);
   });
 
   it('should not trust a report that an earlier run left behind', () => {
-    repository.write(COVERAGE_REPORT, report('harness/gate/steps.ts'));
+    repository.write(REPORT, report('harness/gate/steps.ts'));
 
     expect(runCoverage(host)).toBe(1);
-    expect(host.printed).toEqual([
-      `coverage: ${COVERAGE_REPORT} was not written.`,
+    expect(host.printed).toEqual([`coverage: ${REPORT} was not written.`]);
+  });
+
+  it('should measure a workspace from the moment it holds code that runs', () => {
+    repository.write('backend/src/main.ts', 'export const a = 1;\n');
+    repository.write('backend/src/a.dto.ts', 'export interface A {}\n');
+    repository.write('frontend/src/app/a.ts', 'export type A = 1;\n');
+    const vitest = hostWriting({
+      harness: report('harness/gate/steps.ts'),
+      backend: report('backend/src/main.ts'),
+    });
+
+    expect(runCoverage(vitest)).toBe(0);
+    expect(vitest.started.map(areaOf)).toEqual(['harness', 'backend']);
+    expect(vitest.printed).toEqual([
+      'coverage: harness: every source file is in the report',
+      'coverage: api-contracts has no source yet',
+      'coverage: backend: every source file is in the report',
+      'coverage: frontend has no source yet',
+    ]);
+  });
+
+  it('should hold each area by its own tests, and stop at the first red one', () => {
+    repository.write('backend/src/main.ts', 'export const a = 1;\n');
+    repository.write('frontend/src/main.tsx', 'export const a = 1;\n');
+    const vitest = fakeHost({
+      root: repository.root,
+      passes: (command) => {
+        repository.write(REPORT, report('harness/gate/steps.ts'));
+        return areaOf(command) !== 'backend';
+      },
+    });
+
+    expect(runCoverage(vitest)).toBe(1);
+    expect(vitest.started.map(areaOf)).toEqual(['harness', 'backend']);
+    expect(vitest.started[1]?.arguments.slice(-2)).toEqual([
+      'backend/tests/unit',
+      'backend/tests/integration',
+    ]);
+  });
+
+  it('should not take the report of one area for the report of another', () => {
+    repository.write('backend/src/main.ts', 'export const a = 1;\n');
+    const vitest = hostWriting({
+      harness: report('harness/gate/steps.ts', 'backend/src/main.ts'),
+    });
+
+    expect(runCoverage(vitest)).toBe(1);
+    expect(vitest.printed.slice(-2)).toEqual([
+      'coverage: backend/src/main.ts is not in the report.',
+      'coverage: backend: 1 file(s) left out',
     ]);
   });
 });

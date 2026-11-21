@@ -1,6 +1,8 @@
+import { areasOf, TEST_KINDS, testFolders } from '#harness/gate/areas';
 import type { NodeCommand } from '#harness/gate/host';
 import { RUNNERS_CONFIG, TESTS_CONFIG, TOOLS } from '#harness/gate/tools';
 import { HarnessError } from '#harness/shared/harness.error';
+import { readStructure } from '#harness/shared/structure';
 
 /** One check of the gate: a name, and the program that Node runs for it. */
 export interface Step extends NodeCommand {
@@ -17,12 +19,21 @@ function tool(name: string, script: string, ...rest: string[]): Step {
   return { name, nodeOptions: [], script, arguments: rest };
 }
 
-function tests(name: string, folder: string): Step {
+const AREAS = areasOf(readStructure());
+
+/** The tests of one kind, of the harness and of every workspace. */
+function tests(kind: (typeof TEST_KINDS)[number]): Step {
   return {
-    name,
+    name: kind,
     nodeOptions: [],
     script: TOOLS.vitest,
-    arguments: ['run', '--config', TESTS_CONFIG, NO_NEW_SNAPSHOT, folder],
+    arguments: [
+      'run',
+      '--config',
+      TESTS_CONFIG,
+      NO_NEW_SNAPSHOT,
+      ...testFolders(AREAS, kind),
+    ],
   };
 }
 
@@ -64,8 +75,7 @@ export const STEPS: readonly Step[] = [
     '--no-config-hints',
   ),
   tool('duplication', 'harness/bin/duplication.ts'),
-  tests('unit', 'harness/tests/unit'),
-  tests('integration', 'harness/tests/integration'),
+  ...TEST_KINDS.map(tests),
   tool('coverage', 'harness/bin/coverage.ts'),
   tool('documents', 'harness/bin/documents.ts'),
   tool('secrets', 'harness/bin/secrets.ts'),

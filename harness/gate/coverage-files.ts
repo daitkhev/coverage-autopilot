@@ -2,22 +2,27 @@ import { posix } from 'node:path';
 
 import ts from 'typescript';
 
+import type { Area } from '#harness/gate/areas';
 import type { Structure } from '#harness/shared/structure';
 
-/** What coverage is measured on, and what is left out of it. */
-const MEASURED = 'harness/';
-const TESTS = 'harness/tests/';
+/** The folders under the source of an area that coverage does not count. */
+export function leftOutOf(area: Area, structure: Structure): string[] {
+  return [...area.leftOut, ...structure.excluded].filter((prefix) =>
+    prefix.startsWith(area.source),
+  );
+}
 
-/** The source files that must be in the coverage report of the harness. */
+/** The source files that must be in the coverage report of an area. */
 export function measuredFiles(
   files: readonly string[],
+  area: Area,
   structure: Structure,
 ): string[] {
+  const leftOut = leftOutOf(area, structure);
   return files.filter(
     (path) =>
-      path.startsWith(MEASURED) &&
-      !path.startsWith(TESTS) &&
-      !structure.excluded.some((prefix) => path.startsWith(prefix)) &&
+      path.startsWith(area.source) &&
+      !leftOut.some((prefix) => path.startsWith(prefix)) &&
       structure.extensions.includes(posix.extname(path)),
   );
 }

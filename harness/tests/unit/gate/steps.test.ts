@@ -75,6 +75,18 @@ describe('STEPS', () => {
     );
   });
 
+  it.each(['unit', 'integration'])(
+    'should run the %s tests of the harness and of every workspace',
+    (kind) => {
+      expect(planFor(kind)[0]?.arguments.slice(-4)).toEqual([
+        `harness/tests/${kind}`,
+        `api-contracts/tests/${kind}`,
+        `backend/tests/${kind}`,
+        `frontend/tests/${kind}`,
+      ]);
+    },
+  );
+
   it('should compare a tree on a desk with the commit it stands on', () => {
     expect(planFor('compare')[0]?.arguments).toEqual(['--compare', 'HEAD']);
   });

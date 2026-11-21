@@ -1,22 +1,22 @@
 import { defineConfig } from 'vitest/config';
 
 /**
- * The unit and the integration tests of the harness, and what coverage
- * counts. The floors are not here: the coverage step takes them from the
- * policy.
+ * The unit and the integration tests of the harness and of every
+ * workspace. A folder of tests is one level below the root, so the tests
+ * of a fixture project and of a linked tree are not among them.
+ *
+ * What coverage counts is not here, and neither are the floors: the
+ * coverage step measures one area at a time and gives both to Vitest.
  */
-export const harnessTests = defineConfig({
+export const treeTests = defineConfig({
   test: {
     include: [
-      'harness/tests/unit/**/*.test.ts',
-      'harness/tests/integration/**/*.test.ts',
+      '*/tests/unit/**/*.test.{ts,tsx}',
+      '*/tests/integration/**/*.test.{ts,tsx}',
     ],
     environment: 'node',
     coverage: {
       provider: 'v8',
-      include: ['harness/**/*.ts'],
-      exclude: ['harness/fixtures/**', 'harness/tests/**'],
-      reportsDirectory: 'coverage/harness',
       reporter: ['json', 'text-summary'],
     },
   },

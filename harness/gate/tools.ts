@@ -26,7 +26,7 @@ export const TOOL_PLUGINS = [
 /** Packages the Jest fixture project loads when Jest is started on it. */
 export const FIXTURE_PACKAGES = ['@jest/globals', '@swc/core', '@swc/jest'];
 
-/** The unit and the integration tests of the harness. */
+/** The unit and the integration tests of the harness and the workspaces. */
 export const TESTS_CONFIG = 'vitest.config.mjs';
 
 /** The tests that start the real runners on the fixture projects. */

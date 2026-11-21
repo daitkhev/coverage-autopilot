@@ -1,1 +1,1 @@
-export { harnessTests as default } from '#harness/configs/vitest';
+export { treeTests as default } from '#harness/configs/vitest';
