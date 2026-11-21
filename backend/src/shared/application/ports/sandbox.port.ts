@@ -7,9 +7,10 @@ type SandboxNetwork = 'none' | 'open';
 
 export interface SandboxCommandRequest {
   /**
-   * The root of a working copy, as an absolute path. The command sees it,
-   * can write into it, and starts in it. It sees nothing else of the host:
-   * not the data of the service, not its socket, not a credential.
+   * The root of a working copy, as an absolute path. The command sees it
+   * at this same path, can write into it, and starts in it, so a path in
+   * what a tool writes is a path of the host. It sees nothing else of the
+   * host: not the data of the service, not its socket, not a credential.
    */
   readonly workingCopyPath: string;
   /** The program and its arguments. Never a line for a shell. */

@@ -1,9 +1,6 @@
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
 import type { SandboxCommandRequest } from '#ports/sandbox.port';
 
-/** Where the working copy is in the container, and where the command starts. */
-const WORKSPACE = '/workspace';
-
 /** The engine reads the variables of the command from what it is given. */
 const VARIABLES_FROM_INPUT = '/dev/stdin';
 
@@ -22,7 +19,9 @@ function megabytes(value: number): string {
  * The arguments of one `run`. The container has no capability, cannot
  * gain a privilege, runs as a user that is not root, and writes only to
  * the working copy and to a scratch folder in memory. The working copy is
- * its only mount: no socket of the engine, no data of the service.
+ * its only mount: no socket of the engine, no data of the service. It is
+ * mounted at the path it has on the host, so a path a tool writes into a
+ * report is the path the service reads the report by.
  * Without `--network`, the engine gives its default network.
  */
 export function runArguments(
@@ -32,6 +31,7 @@ export function runArguments(
 ): string[] {
   const { limits } = settings;
   const network = request.network === 'none' ? ['--network', 'none'] : [];
+  const copy = request.workingCopyPath;
   return [
     ...['run', '--name', name, '--rm', '--init', ...network],
     ...['--cap-drop', 'ALL', '--security-opt', 'no-new-privileges'],
@@ -42,8 +42,8 @@ export function runArguments(
     ...['--cpus', String(limits.cpus)],
     ...['--pids-limit', String(limits.processes)],
     '--mount',
-    `type=bind,source=${request.workingCopyPath},target=${WORKSPACE}`,
-    ...['--workdir', WORKSPACE, '--env-file', VARIABLES_FROM_INPUT],
+    `type=bind,source=${copy},target=${copy}`,
+    ...['--workdir', copy, '--env-file', VARIABLES_FROM_INPUT],
     settings.image,
     ...request.command,
   ];
