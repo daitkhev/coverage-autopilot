@@ -258,6 +258,9 @@ describe('StrykerMutationRunner', () => {
       controller.abort(new Error('user_cancelled'));
 
       await expect(
+        bench.runner.installTool(bench.request(), controller.signal),
+      ).rejects.toThrow('user_cancelled');
+      await expect(
         bench.runner.measureBaseline(bench.request(), controller.signal),
       ).rejects.toThrow('user_cancelled');
       expect(bench.tool.sandbox.requests).toEqual([]);

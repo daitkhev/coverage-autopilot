@@ -111,6 +111,27 @@ describe('StrykerMutationRunner', () => {
       });
     });
 
+    it('should never open the network or install by itself', async () => {
+      await bench.runner.measureBaseline(
+        bench.request(),
+        new AbortController().signal,
+      );
+      await bench.runner.measureWithPatch(
+        { ...bench.request(), baselineCacheReference: null },
+        new AbortController().signal,
+      );
+
+      expect(
+        bench.tool.sandbox.requests.map(({ command, network }) => [
+          command[0],
+          network,
+        ]),
+      ).toEqual([
+        ['node', 'none'],
+        ['node', 'none'],
+      ]);
+    });
+
     it('should open the network for the install alone', async () => {
       await bench.measureBaseline();
 
@@ -293,12 +314,13 @@ describe('StrykerMutationRunner', () => {
       }).compile();
       const runner = module.get<MutationRunner>(MUTATION_RUNNER);
 
-      const result = await runner.measureBaseline(
-        bench.request(),
-        new AbortController().signal,
-      );
+      const signal = new AbortController().signal;
+
+      const installed = await runner.installTool(bench.request(), signal);
+      const result = await runner.measureBaseline(bench.request(), signal);
 
       expect(runner).toBeInstanceOf(StrykerMutationRunner);
+      expect(installed).toEqual({ outcome: 'installed' });
       expect(result.outcome).toBe('completed');
       expect(bench.tool.sandbox.requests).toHaveLength(2);
     });

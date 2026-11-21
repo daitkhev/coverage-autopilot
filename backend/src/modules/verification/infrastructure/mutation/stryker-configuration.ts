@@ -1,5 +1,8 @@
 import type { FilePath } from '#kernel/primitives/file-path';
-import type { MutationRunRequest } from '#verification/application/ports/mutation-runner.port';
+import type {
+  MutationRunRequest,
+  MutationToolRequest,
+} from '#verification/application/ports/mutation-runner.port';
 import type { MutationSettings } from '#verification/infrastructure/mutation/mutation-settings';
 
 /**
@@ -48,7 +51,7 @@ export function mutatePatternOf(path: FilePath): string {
  * project are left as they are.
  */
 export function installCommandOf(
-  request: MutationRunRequest,
+  request: MutationToolRequest,
   settings: MutationSettings,
 ): string[] {
   const version = settings.toolVersion;

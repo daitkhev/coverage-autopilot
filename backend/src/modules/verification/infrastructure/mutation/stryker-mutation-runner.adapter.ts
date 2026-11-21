@@ -10,6 +10,8 @@ import type {
   MutationRunner,
   MutationRunRequest,
   MutationRunResult,
+  MutationToolRequest,
+  MutationToolResult,
   PatchedMutationRunRequest,
 } from '#verification/application/ports/mutation-runner.port';
 import { UnreadableMutationReportError } from '#verification/infrastructure/errors/unreadable-mutation-report.error';
@@ -109,12 +111,13 @@ function stoppedEarly(
 }
 
 /**
- * Runs StrykerJS on one file in the sandbox: installs it into the lent
- * working copy while the network is open and no script runs, writes a
- * configuration of its own, runs it with no network, and reads what it
- * wrote. A run with a patch starts from the cache of the baseline. The
- * whole run is limited by the time of the request, because the tool
- * limits only the time of one mutant.
+ * Runs StrykerJS on one file in the sandbox. The install is a call of its
+ * own, with the network open and no script, made before code of the
+ * repository runs in the copy. A run writes a configuration of its own,
+ * runs the tool with no network and reads what it wrote. A run with a
+ * patch starts from the cache of the baseline. The whole run is limited
+ * by the time of the request, because the tool limits only the time of
+ * one mutant.
  */
 @Injectable()
 export class StrykerMutationRunner implements MutationRunner {
@@ -130,6 +133,26 @@ export class StrykerMutationRunner implements MutationRunner {
     this.sandbox = sandbox;
     this.artifacts = artifacts;
     this.settings = settings;
+  }
+
+  public async installTool(
+    request: MutationToolRequest,
+    signal: AbortSignal,
+  ): Promise<MutationToolResult> {
+    signal.throwIfAborted();
+    const result = await this.sandbox.run(
+      {
+        workingCopyPath: request.workingCopyPath,
+        command: installCommandOf(request, this.settings),
+        environment: this.settings.commandEnvironment,
+        network: 'open',
+        timeoutMs: this.settings.installTimeoutMs,
+      },
+      signal,
+    );
+    return succeeded(result)
+      ? { outcome: 'installed' }
+      : this.notInstalled(request, result);
   }
 
   public async measureBaseline(
@@ -153,35 +176,16 @@ export class StrykerMutationRunner implements MutationRunner {
   ): Promise<MutationRunResult> {
     signal.throwIfAborted();
     const run: Run = { request, scrub: scrubberOf(request.workingCopyPath) };
-    const refusal = await this.install(run, signal);
-    if (refusal !== null) {
-      return refusal;
-    }
     await this.prepare(request, baselineCache);
     const result = await this.runTool(request, signal);
     return this.conclude(run, result);
   }
 
-  /** `null` when the tool is installed, or the reason it is not. */
-  private async install(
-    run: Run,
-    signal: AbortSignal,
-  ): Promise<MutationRunResult | null> {
-    const { request } = run;
-    const result = await this.sandbox.run(
-      {
-        workingCopyPath: request.workingCopyPath,
-        command: installCommandOf(request, this.settings),
-        environment: this.settings.commandEnvironment,
-        network: 'open',
-        timeoutMs: this.settings.installTimeoutMs,
-      },
-      signal,
-    );
-    if (succeeded(result)) {
-      return null;
-    }
-    const output = run.scrub(result.output);
+  private async notInstalled(
+    request: MutationToolRequest,
+    result: SandboxCommandResult,
+  ): Promise<MutationToolResult> {
+    const output = scrubberOf(request.workingCopyPath)(result.output);
     const summary =
       `${TOOL_NAME} ${this.settings.toolVersion} and its ` +
       `${request.testRunner} runner could not be installed: ${endingOf(result)}`;
@@ -275,7 +279,7 @@ export class StrykerMutationRunner implements MutationRunner {
   }
 
   private async keep(
-    request: MutationRunRequest,
+    request: MutationToolRequest,
     label: string,
     content: string,
   ): Promise<string> {

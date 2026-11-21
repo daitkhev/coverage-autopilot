@@ -7,6 +7,8 @@ import {
   type MutationRunner,
   type MutationRunRequest,
   type MutationRunResult,
+  type MutationToolRequest,
+  type MutationToolResult,
   type PatchedMutationRunRequest,
   type TestReference,
 } from '#verification/application/ports/mutation-runner.port';
@@ -28,7 +30,23 @@ describe('MutationRunner', () => {
     expectTypeOf<PatchedMutationRunRequest>().toExtend<MutationRunRequest>();
   });
 
+  it('should install the tool by a call of its own, before a measure', () => {
+    expectTypeOf<MutationRunner['installTool']>()
+      .parameter(0)
+      .toEqualTypeOf<MutationToolRequest>();
+    expectTypeOf<
+      MutationRunner['installTool']
+    >().returns.resolves.toEqualTypeOf<MutationToolResult>();
+    expectTypeOf<MutationToolResult['outcome']>().toEqualTypeOf<
+      'installed' | 'unsupported'
+    >();
+    expectTypeOf<MutationRunRequest>().toExtend<MutationToolRequest>();
+  });
+
   it('should take a signal that stops the run', () => {
+    expectTypeOf<MutationRunner['installTool']>()
+      .parameter(1)
+      .toEqualTypeOf<AbortSignal>();
     expectTypeOf<MutationRunner['measureBaseline']>()
       .parameter(1)
       .toEqualTypeOf<AbortSignal>();

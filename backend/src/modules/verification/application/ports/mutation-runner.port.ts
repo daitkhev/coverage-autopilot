@@ -21,7 +21,7 @@ export interface MutantResult extends MutantDto {
   readonly killedBy: readonly TestReference[];
 }
 
-export interface MutationRunRequest {
+export interface MutationToolRequest {
   /**
    * The root of a working copy with its packages installed, lent for one
    * call. The runner may write into it and keeps no reference.
@@ -29,9 +29,21 @@ export interface MutationRunRequest {
   readonly workingCopyPath: string;
   /** Whose output the raw text of the tool is, such as `improvement:<id>`. */
   readonly owner: string;
+  readonly testRunner: 'jest' | 'vitest';
+}
+
+/** `unsupported`: the tool cannot be installed beside the runner. */
+export type MutationToolResult =
+  | { readonly outcome: 'installed' }
+  | {
+      readonly outcome: 'unsupported';
+      readonly detail: string;
+      readonly outputReference: string | null;
+    };
+
+export interface MutationRunRequest extends MutationToolRequest {
   /** Only this file is mutated. */
   readonly targetFile: FilePath;
-  readonly testRunner: 'jest' | 'vitest';
   /** The whole run is stopped from outside when it takes longer. */
   readonly timeoutMs: number;
 }
@@ -60,9 +72,9 @@ export interface CompletedMutationRun {
 }
 
 /**
- * `unsupported`: the tool cannot run on the project, such as when it
- * cannot be installed beside the runner or the tests fail before any
- * mutant. `timed_out`: stopped at the time limit, with what it cached.
+ * `unsupported`: the tool cannot run on the project, such as when the
+ * tests fail before any mutant or the tool is not installed in the copy.
+ * `timed_out`: stopped at the time limit, with what it cached.
  */
 export type MutationRunResult =
   | CompletedMutationRun
@@ -84,7 +96,20 @@ export type MutationRunResult =
  * and a `retryable` flag. An aborted signal stops the run and throws.
  */
 export interface MutationRunner {
-  /** The mutants of the target under the tests of the commit. */
+  /**
+   * Installs the tool into the copy. It is the one step with an open
+   * network, so it is called before any code of the repository runs in
+   * the copy: right after the packages of the project are installed.
+   */
+  installTool(
+    request: MutationToolRequest,
+    signal: AbortSignal,
+  ): Promise<MutationToolResult>;
+
+  /**
+   * The mutants of the target under the tests of the commit. The tool is
+   * installed in the copy already, and no call here opens the network.
+   */
   measureBaseline(
     request: MutationRunRequest,
     signal: AbortSignal,

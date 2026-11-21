@@ -31,7 +31,8 @@ const NEVER = new AbortController().signal;
 /**
  * The adapter over a working copy in a temporary folder, a stand-in of
  * the sandbox and tool output in memory. By default the tool writes the
- * baseline report and the same text as its cache.
+ * baseline report and the same text as its cache. A measure installs the
+ * tool first, as the gate does, and goes no further when that fails.
  */
 export class MutationBench {
   public readonly folder: ProjectFolder = createProjectFolder();
@@ -66,16 +67,20 @@ export class MutationBench {
   public async measureBaseline(
     request: MutationRunRequest = this.request(),
   ): Promise<MutationRunResult> {
-    return this.runner.measureBaseline(request, NEVER);
+    const installed = await this.runner.installTool(request, NEVER);
+    return installed.outcome === 'installed'
+      ? this.runner.measureBaseline(request, NEVER)
+      : installed;
   }
 
   public async measureWithPatch(
     baselineCacheReference: string | null,
   ): Promise<MutationRunResult> {
-    return this.runner.measureWithPatch(
-      { ...this.request(), baselineCacheReference },
-      NEVER,
-    );
+    const request = { ...this.request(), baselineCacheReference };
+    const installed = await this.runner.installTool(request, NEVER);
+    return installed.outcome === 'installed'
+      ? this.runner.measureWithPatch(request, NEVER)
+      : installed;
   }
 
   public remove(): void {
