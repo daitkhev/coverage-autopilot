@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Dialog > should draw a question with its answers and keys 1`] = `
+"╭─ Cancel this improvement? ───────────────────────────╮
+│ Attempt 2 is being verified. 84,000 tokens are       │
+│ already spent and will not come back.                │
+│                                                      │
+│ › 1. Keep it running                                 │
+│   2. Cancel the improvement                          │
+│                                                      │
+│ ↑↓ choose · enter confirm · esc keep                 │
+╰──────────────────────────────────────────────────────╯"
+`;

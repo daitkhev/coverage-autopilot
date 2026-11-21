@@ -41,3 +41,6 @@ export const LEFT_PANEL_SHARE = '60%';
 
 /** A question is narrow, the list of commands wider. Both fit in 80. */
 export const DIALOG_WIDTH = { question: 56, palette: 72 } as const;
+
+/** The share of a row of the command palette that the title takes. */
+export const COMMAND_TITLE_SHARE = '45%';

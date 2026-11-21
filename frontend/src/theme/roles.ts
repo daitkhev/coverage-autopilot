@@ -60,6 +60,13 @@ export function textStyleOf(role: Role, settings: ThemeSettings): TextStyle {
     : style;
 }
 
+/**
+ * What a dialog is filled with, so the screen behind it does not show
+ * through. Ink fills a box that has a background with spaces, and a name
+ * it does not know as a colour adds no colour: nothing gets a background.
+ */
+export const BLANK_FILL = 'blank';
+
 /** How the terminal draws a border of a role. */
 export interface BorderColour {
   readonly borderColor?: TerminalColour;
