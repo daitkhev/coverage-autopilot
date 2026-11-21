@@ -17,15 +17,19 @@ export interface NewJobRow {
   readonly createdAt: string;
 }
 
-/** A stored job, with its documents as JSON text. */
-export interface JobRow {
+/** What every read of a job gives, with its payload as JSON text. */
+export interface JobFields {
   readonly id: string;
   readonly kind: string;
   readonly serializationKey: string;
   readonly subjectId: string;
   readonly payload: string;
-  readonly status: string;
   readonly runs: number;
+}
+
+/** A stored job, with its documents as JSON text. */
+export interface JobRow extends JobFields {
+  readonly status: string;
   readonly outcome: string | null;
 }
 
@@ -39,16 +43,24 @@ export interface ProgressRow {
 const JOB_COLUMNS =
   'id, kind, serialization_key, subject_id, payload, status, runs, outcome';
 
-function jobRowOf(record: Readonly<Record<string, SQLOutputValue>>): JobRow {
-  const outcome = record['outcome'] ?? null;
+type StoredRecord = Readonly<Record<string, SQLOutputValue>>;
+
+export function jobFieldsOf(record: StoredRecord): JobFields {
   return {
     id: String(record['id']),
     kind: String(record['kind']),
     serializationKey: String(record['serialization_key']),
     subjectId: String(record['subject_id']),
     payload: String(record['payload']),
-    status: String(record['status']),
     runs: Number(record['runs']),
+  };
+}
+
+function jobRowOf(record: StoredRecord): JobRow {
+  const outcome = record['outcome'] ?? null;
+  return {
+    ...jobFieldsOf(record),
+    status: String(record['status']),
     outcome: outcome === null ? null : String(outcome),
   };
 }

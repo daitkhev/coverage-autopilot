@@ -163,4 +163,22 @@ describe('SqliteJobQueue', () => {
       );
     });
   });
+
+  describe('when a stored document has a version the queue does not know', () => {
+    it('should store and give back the payload and the outcome as they are', async () => {
+      const payload = { version: 99, shape: { added: ['later'] } };
+      const outcome = { version: 42, found: null };
+      const { jobId } = await service.enqueue({ ...SCAN, payload });
+
+      await service.worker.poll();
+      expect(service.handler.latest().context.payload).toEqual(payload);
+      service.handler.latest().finish(outcome);
+      await service.worker.whenIdle();
+
+      expect(await service.queue.getJob(jobId)).toMatchObject({
+        status: 'completed',
+        outcome,
+      });
+    });
+  });
 });
