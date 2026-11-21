@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import {
   PACKAGE_MANAGERS,
-  TEST_RUNNERS,
+  TEST_RUNNER_NAMES,
 } from '#coverage/domain/value-objects/detected-project.vo';
 import { UNMEASURED_REASONS } from '#coverage/domain/value-objects/unmeasured-file.vo';
 import { InvalidStoredDocumentError } from '#coverage/infrastructure/errors/invalid-stored-document.error';
@@ -23,7 +23,7 @@ const counterSchema = z.strictObject({ covered: count, total: count });
 
 export const detectedProjectDocumentSchema = z.strictObject({
   version: z.literal(DOCUMENT_VERSION),
-  testRunner: z.enum(TEST_RUNNERS),
+  testRunner: z.enum(TEST_RUNNER_NAMES),
   testRunnerVersion: word,
   packageManager: z.enum(PACKAGE_MANAGERS),
   configFile: z.string().nullable(),
@@ -31,7 +31,7 @@ export const detectedProjectDocumentSchema = z.strictObject({
 
 export const scanParametersDocumentSchema = z.strictObject({
   version: z.literal(DOCUMENT_VERSION),
-  testRunner: z.enum(TEST_RUNNERS),
+  testRunner: z.enum(TEST_RUNNER_NAMES),
   testRunnerVersion: word,
   coverageProvider: word,
   fileListRule: word,

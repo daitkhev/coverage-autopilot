@@ -3,9 +3,9 @@ import type { FilePath } from '#kernel/primitives/file-path';
 import { ValueObject } from '#kernel/primitives/value-object';
 
 /** The two runners the service supports. */
-export const TEST_RUNNERS = ['jest', 'vitest'] as const;
+export const TEST_RUNNER_NAMES = ['jest', 'vitest'] as const;
 
-export type TestRunnerName = (typeof TEST_RUNNERS)[number];
+export type TestRunnerName = (typeof TEST_RUNNER_NAMES)[number];
 
 /** The one package manager the service installs with. */
 export const PACKAGE_MANAGERS = ['npm'] as const;
