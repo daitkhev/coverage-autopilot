@@ -16,10 +16,13 @@ const WRITE_AHEAD_LOG = 'wal';
 
 /**
  * Opens the database file with the settings every connection needs:
- * foreign keys on, a write-ahead log, and a wait for a busy database.
+ * foreign keys on, a write-ahead log, a wait for a busy database, and no
+ * edit of the table that holds the schema. Node 26 refuses such an edit by
+ * default and Node 25 does not, so it is said here.
  */
 export function openSqliteConnection(path: string): DatabaseSync {
   const connection = new DatabaseSync(path, {
+    defensive: true,
     enableForeignKeyConstraints: true,
     timeout: BUSY_TIMEOUT_MS,
   });

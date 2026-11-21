@@ -35,6 +35,17 @@ describe('openSqliteConnection', () => {
     expect(pragma('busy_timeout')).toBe(5_000);
   });
 
+  it('should refuse an edit of the table that holds the schema', () => {
+    database.connection.exec('CREATE TABLE notes (text TEXT) STRICT');
+
+    expect(() => {
+      database.connection.exec(`
+        PRAGMA writable_schema = ON;
+        UPDATE sqlite_schema SET sql = 'damaged' WHERE name = 'notes';
+      `);
+    }).toThrow('table sqlite_master may not be modified');
+  });
+
   it('should keep the settings for the next connection to the file', () => {
     database.connection.close();
     const again = openSqliteConnection(database.path);
