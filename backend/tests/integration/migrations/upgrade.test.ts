@@ -88,4 +88,18 @@ describe('a database of the first version', () => {
       rows.attempt('no-such-improvement');
     }).toThrow(FOREIGN_KEY);
   });
+
+  it('should leave a repository with no head until a check reads one', () => {
+    const repositoryId = writeFirstVersion();
+
+    migrateDatabase(database.connection, MIGRATIONS);
+
+    expect(
+      database.connection
+        .prepare(
+          'SELECT head_commit, head_checked_at FROM repositories WHERE id = ?',
+        )
+        .get(repositoryId),
+    ).toEqual({ head_commit: null, head_checked_at: null });
+  });
 });
