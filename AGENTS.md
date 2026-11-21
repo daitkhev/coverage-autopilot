@@ -15,8 +15,10 @@ with one command:
 git config core.hooksPath harness/git
 ```
 
-From then on git runs `fast` before a commit. Before a push it refuses a
-push to `main` and a push that rewrites history, and it runs `full`.
+From then on git runs `fast` before a commit and holds the message of the
+commit to the rules in `harness/configs/commitlint.json`. Before a push it
+refuses a push to `main` and a push that rewrites history, and it runs
+`full`.
 
 ## The gate
 
@@ -29,8 +31,8 @@ node harness/bin/check.ts fast
 | Profile | When | What it runs |
 | --- | --- | --- |
 | `fast` | After each small group of edits | Format, lint, types and the architecture |
-| `full` | Before you say that the work is done | `fast`, then the comparison with the last commit, unused code, copy and paste, the tests, coverage and the documents |
-| `ci` | In CI. On a desk only when a person asks | `full`, then the runners and the mutation tests, which take minutes |
+| `full` | Before you say that the work is done | `fast`, then the comparison with the last commit, unused code, copy and paste, the tests, coverage, the documents and the search for secrets |
+| `ci` | In CI. On a desk only when a person asks | `full`, then the workflows, the runners and the mutation tests, which take minutes |
 
 - A red step is fixed in the code. No check is switched off, no number is
   moved and no rule is edited to get a green gate.

@@ -70,11 +70,16 @@ coverage-autopilot/
 │   ├── eslint/
 │   ├── configs/
 │   ├── agents/
+│   ├── git/
 │   ├── fixtures/
 │   └── tests/
 │
 ├── docs/
 │   └── plan/
+├── .github/
+│   ├── workflows/
+│   ├── CODEOWNERS
+│   └── dependabot.yml
 ├── .claude/
 │   └── settings.json
 ├── .codex/
@@ -110,6 +115,8 @@ coverage-autopilot/
   `.codex/hooks.json` are links to the settings in `harness/`, because
   each agent reads its settings from its own folder only. They are
   described in [Harness](harness.md#the-ai-agent).
+- `.github/` holds the two workflows, the gate and the check of frozen
+  files, the owner of the policy files and the file of Dependabot.
 - `.env.example` lists the settings of one machine, such as how much
   memory a mutation run may take. A person copies it to `.env`, which is
   never committed. The settings are described in

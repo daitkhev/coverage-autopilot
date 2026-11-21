@@ -50,12 +50,17 @@ harness/
 │   ├── documents.ts
 │   ├── mutation.ts
 │   ├── before-push.ts
+│   ├── commit-messages.ts
+│   ├── branch-name.ts
+│   ├── secrets.ts
+│   ├── workflows.ts
 │   └── guard.ts
 ├── policy/
 │   ├── structure.json
 │   ├── packages.json
 │   ├── mutation.json
 │   ├── frozen.json
+│   ├── tools.json
 │   └── limits.json
 ├── baseline.json
 ├── architecture/
@@ -89,7 +94,15 @@ harness/
 │   ├── coverage-files.ts
 │   ├── run-duplication.ts
 │   ├── run-documents.ts
-│   └── run-mutation.ts
+│   ├── run-mutation.ts
+│   ├── run-guard.ts
+│   ├── run-commit-messages.ts
+│   ├── run-branch-name.ts
+│   ├── commit-rules.ts
+│   ├── run-secrets.ts
+│   ├── run-workflows.ts
+│   ├── outside-program.ts
+│   └── tree-copy.ts
 ├── documents/
 │   └── links.ts
 ├── mutation/
@@ -128,6 +141,7 @@ harness/
 │       └── hooks.json
 ├── git/
 │   ├── pre-commit
+│   ├── commit-msg
 │   └── pre-push
 ├── fixtures/
 └── tests/
@@ -139,8 +153,8 @@ harness/
 
 | Part | Holds |
 | --- | --- |
-| `bin/` | What a person, a hook or CI starts. `check.ts` is the gate. `ratchet.ts` is the architecture linter. `types.ts` runs the compiler on the root and on every workspace that has source. `coverage.ts` measures coverage and checks the report. `documents.ts` lints the documents and checks their links. Each of these files is one line that calls a function, so the code behind it is tested in the same process. `mutation.ts` reads the report of a mutation run and gives the verdict. `before-push.ts` is what git runs before a push. `guard.ts` sorts the files of a change into policy and the rest |
-| `policy/` | The rules as data, written by hand. `structure.json` has the modules, the layers, who may import whom and which folder a file suffix belongs to. `packages.json` has every outside package and where it may be imported. `mutation.json` has the runs of the mutation engine and the areas each report is read for. `frozen.json` names the files that are policy. `limits.json` has every number |
+| `bin/` | What a person, a hook or CI starts. `check.ts` is the gate. `ratchet.ts` is the architecture linter. `types.ts` runs the compiler on the root and on every workspace that has source. `coverage.ts` measures coverage and checks the report. `documents.ts` lints the documents and checks their links. Each of these files is one line that calls a function, so the code behind it is tested in the same process. `mutation.ts` reads the report of a mutation run and gives the verdict. `before-push.ts` is what git runs before a push. `guard.ts` sorts the files of a change into policy and the rest. `commit-messages.ts` holds the message of a commit to its rules, and `branch-name.ts` the name of a branch. `secrets.ts` searches for credentials, and `workflows.ts` holds the workflows |
+| `policy/` | The rules as data, written by hand. `structure.json` has the modules, the layers, who may import whom and which folder a file suffix belongs to. `packages.json` has every outside package and where it may be imported. `mutation.json` has the runs of the mutation engine and the areas each report is read for. `frozen.json` names the files that are policy. `tools.json` names the tools that are programs, each with its version and the checksum of its archive. `limits.json` has every number |
 | `baseline.json` | The lists the ratchet recorded last. Written by the ratchet and never by hand |
 | `architecture/` | The code of the ratchet. `rules.ts` is the list of rules, and a rule that is not in it does not run. `commands.ts` holds check, write and compare |
 | `gate/` | The steps of the gate and its profiles, as data that a test can read. `tools.ts` has the path of every tool. `host.ts` is what a command needs from the machine: a tree, a way to start a program, a way to print, its settings and the number of its processors. It is the only file that reads the environment. A test gives a stand-in |
@@ -148,9 +162,9 @@ harness/
 | `mutation/` | Reading a report of the mutation engine, the kill rate and the verdict of an area. `resources.ts` works out how many test runners a machine starts |
 | `shared/` | Reading the files of `policy/`, the answer to whether a file is policy, and the one error class of the harness |
 | `eslint/` | The lint configuration and the project's own lint rules |
-| `configs/` | The configuration of every other tool: TypeScript base, Prettier, Knip, Vitest, StrykerJS, jscpd, commitlint, markdownlint |
+| `configs/` | The configuration of every other tool: TypeScript base, Prettier, Knip, Vitest, StrykerJS, jscpd, commitlint, markdownlint, gitleaks, actionlint, zizmor |
 | `agents/` | What holds whoever changes the tree: an agent of any maker, or a person. The checks are written once and know no agent. `hooks/` has the three files of one line that an agent starts. `claude/` and `codex/` hold nothing but the settings file of that agent, which names those hooks |
-| `git/` | The hooks of git: before a commit and before a push. They hold a person and an agent alike |
+| `git/` | The hooks of git: before a commit, on its message and before a push. They hold a person and an agent alike |
 | `fixtures/` | Small repositories, some wrong on purpose and some right. The harness is tested on them. `projects/` has one small project for Jest and one for Vitest, each with a file no test imports, a file of types alone and a file that cannot be parsed |
 | `tests/` | The tests of the harness itself. `runners/` starts the real test runners on the fixture projects. Those tests run no code of the harness, so coverage and mutation leave them out |
 
@@ -199,14 +213,15 @@ The gate has three profiles. Each one holds the one before it.
 | Coverage | Vitest over the unit and the integration tests, then a check of the report | A counter is below its floor, or a source file is not in the report | `full` |
 | Build | `tsc` | The build fails | `full` |
 | Documents | markdownlint, a link check that stays offline | A rule is broken, or a link or an anchor points nowhere | `full` |
-| Secrets | gitleaks | Something that looks like a credential is in the diff | `full` |
+| Secrets | gitleaks | Something that looks like a credential is in a commit the tree stands on, or in a file git sees | `full` |
 | End-to-end tests | Vitest | A test fails | `ci` |
 | Stress tests | Vitest | An invariant is broken | `ci` |
 | Runners | Jest and Vitest, started on the fixture projects | A runner no longer reports coverage the way the design relies on | `ci` |
 | Mutation tests | StrykerJS with its Vitest runner, `mutation.ts` | A kill rate is below its floor, or the report is not complete | `ci` |
-| Workflows | actionlint, zizmor | An action is not pinned to a commit, or a job has more permissions than it uses | `ci` |
+| Workflows | actionlint, zizmor | A workflow is not valid, an action is not pinned to a commit, a job has more permissions than it uses, or a script takes a value of the event | `ci` |
 | Frozen files | A workflow that GitHub takes from the default branch | A change touches the policy and something else | `ci` |
 | Commit message | commitlint | The message is not a Conventional Commit | On commit, `ci` |
+| Branch name | `branch-name.ts` | The branch of a pull request is not named `type/short-description` | `ci` |
 
 - `node harness/bin/check.ts fast` runs the steps of a profile in this
   order and stops at the first red one. It can also run one step by name,
@@ -239,8 +254,50 @@ One tool holds one concern. A second tool for the same concern is not added.
 | Copy and paste | jscpd | 5.4.3 |
 | Documents | markdownlint-cli2, and the harness's own link check | 0.24.2 |
 | Focused and skipped tests | `@vitest/eslint-plugin` | 1.6.28 |
-| Commit messages | commitlint | Not tried yet |
-| Git hooks | Two files of the project's own in `harness/git/` | None |
+| Commit messages | commitlint | 21.2.4 |
+| Git hooks | Three files of the project's own in `harness/git/` | None |
+| Secrets | gitleaks, a program | 8.30.1 |
+| Workflows | actionlint and zizmor, programs | 1.7.12 and 1.32.0 |
+
+### Tools that are programs
+
+gitleaks, actionlint and zizmor are not packages of npm. `npm ci` does not
+bring them and the lockfile does not hold them. `tools.json` holds them:
+one version of each, and for each kind of machine the address of its
+archive and the checksum of that archive.
+
+- The step that needs a tool downloads the archive once, over https, into
+  `node_modules/.cache/`. It unpacks an archive only when its checksum is
+  the one of the policy, and takes out the one file that is the program.
+- A kept program is in a folder named by its version and its checksum.
+  Another version or another checksum is another folder, so an old
+  program is never taken for a new one.
+- Two kinds of machine are listed: `darwin-arm64`, where the harness was
+  written, and `linux-x64`, where CI runs. On any other the step is red
+  and says which archive is missing.
+- The first run of such a step needs the network. Later runs need none.
+- Dependabot does not know these tools. A new version is a change of
+  `tools.json` by hand.
+
+The search for secrets runs twice, and both runs must pass:
+
+- Over every commit the tree stands on. A secret that was committed and
+  then removed is still in the history, and a push sends the history.
+  A clone with a part of its history is refused, so CI fetches all of it.
+- Over a copy of the files git sees now, for work that is not committed
+  yet. gitleaks reads a folder with the files git ignores as well, so a
+  `.env` of one machine would change the verdict. The copy has only what
+  git sees.
+- The rules and the list of accepted findings come from
+  `harness/configs/`, never from the tree that is searched. A comment in
+  a file accepts nothing. A secret that was found is never printed.
+
+The workflows are held by two tools. actionlint reads what a workflow
+says, with its two helpers off: shellcheck and pyflakes are other
+programs, and a machine that has them would give another verdict. zizmor
+reads what a workflow is allowed to do. It runs offline and at its
+strictest level. One finding is accepted, in its configuration: the event
+of the frozen files check, in that one file.
 
 ## The ratchet
 
@@ -305,8 +362,8 @@ it, in the trial run or in a fixture of the repository.
 | `workspace-boundary` | An alias leads from one workspace into another, or between a workspace and the root. As a package only `api-contracts` is listed, so `package-placement` refuses the other ways across | Design | ✓ |
 | `client-direction` | A folder of the client imports one that the table in [Project structure](project-structure.md#frontend-folders) does not allow: a command imports a screen, `api/` imports a component, a screen imports another screen. Or a component reaches `api/` through a chain of imports | Design | |
 | `package-manifest` | The `package.json` of a workspace has a field the policy does not list, such as `scripts` or `overrides`. Or its aliases differ from the alias table, or a version is not one exact number. Or a workspace has a second `package.json` below its root | | ✓ |
-| `lockfile-source` | An entry of the lockfile does not come from the npm registry under its own name and version, or has no checksum. A `file:` path, a `git` address and a bare archive address are refused | | |
-| `unknown-file` | A workspace holds a file of a kind that `structure.json` does not list for that place, such as a second configuration of a tool. Or the repository holds a symbolic link that the policy does not list with its target | | |
+| `lockfile-source` | An entry of the lockfile does not come from the npm registry under its own name and version, or has no checksum. A `file:` path, a `git` address and a bare archive address are refused. So is a name that stands for another package, unless `structure.json` lists it | | ✓ |
+| `unknown-file` | A workspace holds a file of a kind that `structure.json` does not list for that place, such as a second configuration of a tool. Or the repository holds a symbolic link that the policy does not list with its target | | ✓ |
 | `test-placement` | A `.test.ts` file is outside `tests/`, a file under `tests/unit/` has no source file on the same path, or `tests/support/` holds a test | | |
 | `unit-test-reach` | A unit test reaches, through any chain of imports, a file of `infrastructure` or a `node:` module that does I/O | Runtime | |
 
@@ -329,6 +386,11 @@ it, in the trial run or in a fixture of the repository.
 downloaded is what the lockfile names. It does not say that the package is
 safe. A harmful version that the policy allowed is still harmful. This rule
 is not a scan of dependencies, and the project has none.
+
+A package of the registry may ask for another package under a second
+name. Five entries of the lockfile are such names today, and
+`structure.json` lists each with the package it stands for. A name that is
+not in the list is a finding, so no tool is swapped by a name.
 
 `package-placement` holds several rules of
 [Project structure](project-structure.md#dependency-rules) at once. In
@@ -836,7 +898,7 @@ program to start at which moment.
 | Moment | Program | Claude Code | Codex |
 | --- | --- | --- | --- |
 | Before a shell command | `hooks/before-command.ts` | On | On |
-| Before an edit | `hooks/before-edit.ts` | Waits for the last stage | Waits for the last stage |
+| Before an edit | `hooks/before-edit.ts` | On, and puts the question to the person | On, and refuses |
 | When the agent says it is done | `hooks/done.ts` | On | On |
 
 What differs between the two is small, and it is the only code that knows
@@ -895,8 +957,8 @@ person with the reason, and Codex is refused and told to ask.
 - An edit that the hook cannot read waits as well. A check that did not
   run has failed.
 
-The hook is built and tested, and no settings file starts it yet. It is
-switched on as the last step of the last stage.
+The hook was built in stage five and switched on as the last step of
+stage six. Until then the harness was built in the open, change by change.
 
 ### The hook when the agent says it is done
 
@@ -942,7 +1004,9 @@ four kinds, and only the first is frozen:
 
 The first row is written as data in `harness/policy/frozen.json`: the
 frozen places, the names that are frozen in any folder, and the files
-inside them that are free.
+inside them that are free. Two of the free files may land with a change
+of the policy as well, the baseline and the lockfile: a new rule can move
+the first, and a new tool moves the second.
 
 The baseline is written from the tree and checked against the tree, so it
 cannot say anything the code does not. That is why it may travel with the
@@ -977,6 +1041,7 @@ ways I know, and what closes each:
 | A comment switches a tool off for a line or a file | The rule in [Text](#text) |
 | A script of a package runs at install time and edits a tool or the harness, before any check starts | Install scripts are off for everyone: `.npmrc`, which is policy, says so. A workspace has no `scripts` |
 | A test edits a tool, and a later step uses it | In CI every step is a job on a fresh machine. On a developer's machine this is not held |
+| A kept program of a tool is swapped in `node_modules/.cache/` | In CI every job downloads the program anew and holds its archive to the checksum. On a developer's machine this is not held |
 
 | Guard | Holds | Does not hold |
 | --- | --- | --- |
@@ -1001,14 +1066,21 @@ The frozen files check must not belong to the change it judges:
   default branch, whatever branch the pull request targets and whatever
   the pull request contains.
 - It asks the API of GitHub for the files of the pull request and compares
-  their names with the list of policy paths, which is written in the
-  workflow itself. A test holds that it is the list of `frozen.json`, which
-  the hook before an edit reads. A renamed file counts under both names,
-  and a deleted file counts.
+  their names with `frozen.json` of the default branch, the list that the
+  hook before an edit reads. A renamed file counts under both names, and
+  a deleted file counts.
+- The list comes with the number of files the pull request has. The API
+  gives 3000 files at most, and a list of another length than the change
+  is not judged at all: the check is red.
 - It never checks the change out and never runs a line of it. What it runs
   is `harness/bin/guard.ts` of the default branch, which imports no
   package, so nothing is installed. Its token can read the pull request and
-  nothing else.
+  nothing else. A test of the runners starts it in a copy of the harness
+  that has no package beside it.
+- The pull request that brings `dev` into `main` is not judged. It carries
+  changes that landed one by one, so it always holds the policy and the
+  code together. Until `dev` takes changes through a pull request only, a
+  push to `dev` is held by the hooks and not by this check.
 - It is a required check.
 - It stays this small: a list of names, a comparison, an exit code. What
   needs the content of a file is the ratchet's work, not the guard's.
@@ -1032,12 +1104,12 @@ What stays outside the repository is listed under
 | Moment | Runs | Started by |
 | --- | --- | --- |
 | Before a commit | `fast` | The hook of git, `pre-commit` |
-| On the commit message | commitlint | A hook of git, when commitlint is added |
+| On the commit message | commitlint | The hook of git, `commit-msg` |
 | Before a push | The refusal of a push to `main` and of a rewritten history, then `full` | The hook of git, `pre-push` |
 | Before a shell command of an agent | The denied commands | The hook in the agent settings |
 | When an agent says it is done | `full` | The hook in the agent settings |
-| On a pull request | `ci` but the mutation tests, one job per step, and the frozen files check | GitHub Actions |
-| On a push to `dev` or `main` | `ci` but the mutation tests | GitHub Actions |
+| On a pull request | `ci` but the mutation tests, one job per step. The messages of its commits, the name of its branch, and the frozen files check | GitHub Actions |
+| On a push to `dev` or `main` | `ci` but the mutation tests, and the messages of the pushed commits | GitHub Actions |
 | On a pull request into `main`, or when a person starts the workflow | The mutation tests as well | GitHub Actions |
 
 These are three different things, and only the last one forbids:
@@ -1167,10 +1239,12 @@ Still not tried there: a whole screen of the client, and a resize.
 ### Not tried and not claimed
 
 Vitest for the service, NestJS under Vitest, a whole screen of the client
-under Vitest, StrykerJS on the code of the service, commitlint,
-actionlint, zizmor, gitleaks, the workflows, the frozen files check and
-the policy that allows its event, `guard.ts`, every row of the table of
-ways around except the install scripts, running the script of one named
+under Vitest, StrykerJS on the code of the service, the three tools that
+are programs on Linux, the new jobs of `ci` on GitHub, the frozen files
+check on GitHub and the policy that allows its event, Dependabot with its
+file,
+`CODEOWNERS` with a required review, every row of the table of ways
+around except the install scripts, running the script of one named
 package, Linux, and every row without a tick. For the agent: the hook
 before an edit inside a live session, what Claude Code does with its
 question when no person is there to answer, and a new session that finds
@@ -1202,8 +1276,10 @@ repository can hold them. They are set by hand, once:
   `dev` gets the same rule when work moves to feature branches.
 - The jobs of `ci` and the frozen files check are required.
 - `pull_request_target` is allowed for the one workflow of the frozen
-  files check. From December 2026 GitHub blocks this event in public
-  repositories unless a policy of the repository allows it.
+  files check. From 2 December 2026 GitHub blocks this event in public
+  repositories unless a policy of the repository allows it. The policy is
+  under Settings, Actions, Policies: an event rule that names
+  `.github/workflows/frozen.yml` and allows this one event.
 - A review by the code owner is required for frozen files. An author
   cannot approve their own pull request, so this rule works only when the
   agent has an identity of its own. Until then the owner's merge is the
@@ -1215,15 +1291,17 @@ The harness is built by priority. A small gate runs in CI from the first
 stage, and the last stage only makes CI strict.
 
 The first five stages are built, the third, the fourth and the fifth as
-far as they go without product code. What the harness holds today:
+far as they go without product code. The sixth is built but for the
+settings on GitHub, which are not files. What the harness holds today:
 
-- The ratchet with 13 of its 18 rules. Stage one gave `file-name`,
+- The ratchet with 15 of its 18 rules. Stage one gave `file-name`,
   `relative-import`, `unresolved-import` and `import-cycle`. Stage two
   gave `unknown-module`, `unknown-layer`, `misplaced-file`,
   `layer-direction`, `module-boundary`, `module-direction`,
-  `package-placement`, `workspace-boundary` and `package-manifest`. Each
-  has fixtures of both kinds, 56 small repositories in all, and they are
-  judged by the real policy.
+  `package-placement`, `workspace-boundary` and `package-manifest`. Stage
+  six gave `lockfile-source` and `unknown-file`. Each has fixtures of both
+  kinds, 70 small repositories in all, and they are judged by the real
+  policy.
 - `structure.json` with the four modules, the five layers, the shared
   folders, the role suffixes and the alias table of each workspace.
   `packages.json` with every allowed package and its places. No ORM and
@@ -1239,13 +1317,14 @@ far as they go without product code. What the harness holds today:
 - The lint policy with the rules that need no layers. Each of the 26 rules
   it adds has a wrong file and a right file in `harness/fixtures/lint/`,
   and a test fails when a rule has none.
-- `check.ts` with `fast`, and with `full` but two of its steps: compare,
-  unused code, copy and paste, the unit and integration tests, coverage
-  and the documents. The build waits for something to build, and the
-  search for secrets for the stage that makes CI strict. Formatting and
-  lint look at the whole tree, not at staged files, and no passed tree is
-  remembered. `ci` adds two steps so far: the runners and the mutation
-  tests.
+- `check.ts` with `fast`, and with `full` but one of its steps: compare,
+  unused code, copy and paste, the unit and integration tests, coverage,
+  the documents and the search for secrets. The build waits for something
+  to build. Formatting and lint look at the whole tree, not at staged
+  files, and no passed tree is remembered. `ci` adds three steps so far:
+  the workflows, the runners and the mutation tests.
+- The three tools that are programs, in `tools.json`, and the code that
+  downloads each one by its checksum.
 - Coverage of the harness is held at the floor of 95 for all four
   counters. It stands at 99% of statements, 97% of branches and 100% of
   functions. The floors go to Vitest from `limits.json`, and its
@@ -1266,14 +1345,22 @@ far as they go without product code. What the harness holds today:
 - Two fixture projects, one for Jest and one for Vitest, with the same
   four source files. The tests in `tests/runners/` start the real runners
   on them and hold what each one writes in its coverage report.
-- The hooks of git, `pre-commit` and `pre-push`, which hold a person and
-  an agent alike.
+- The hooks of git, `pre-commit`, `commit-msg` and `pre-push`, which hold
+  a person and an agent alike.
+- The rules of a commit message, held by commitlint on every commit and
+  in CI on every pushed one. The name of the branch of a pull request,
+  held in CI and read from the same list of types.
+- `guard.ts` and the workflow of the frozen files check, `CODEOWNERS`
+  with the places of `frozen.json`, and the file of Dependabot. Tests
+  read the workflows as text: every action is pinned to a commit, no
+  token writes, no script takes a value but through its environment, and
+  the matrix of `ci` has every step of the profile.
 - The agent. `AGENTS.md` at the root. One set of hooks in
   `harness/agents/`, and a settings file for Claude Code and for Codex
   that names them, each reached through a link. On: the hook before a
   shell command, and the hook that runs `full` when the agent says it is
-  done. The hook before an edit, with `frozen.json` as its list of policy
-  files, is built and tested and not switched on.
+  done. On since stage six: the hook before an edit, with `frozen.json`
+  as its list of policy files.
 - Things were switched off on purpose, one at a time. In stage one: a lint
   rule, type-aware lint, a rule of the ratchet, and the pattern of a banned
   shape. In stage two: a rule taken out of the list, `domain` allowed to
@@ -1290,8 +1377,24 @@ far as they go without product code. What the harness holds today:
   agent for ever, an edit or a command the hook cannot read let through,
   a push to `main` let through by the hook of git, a hook of git that is
   no program any more, a gate allowed to start a gate, and a profile
-  removed from `AGENTS.md`. Each time
-  a test of the harness or the gate went red.
+  removed from `AGENTS.md`. In stage six: a lockfile whose addresses,
+  checksums, links or version nobody compares, a workspace that takes any
+  file, any kind and any folder, a link that is followed or may lead
+  anywhere, either rule taken out of the list, a guard that drops the
+  earlier name of a moved file, judges a part of the list or passes a
+  mixed change, the documents allowed to go with the policy, a scope, a
+  warning and a wider header in the rules of a commit, a hook on the
+  message that holds nothing, a branch of any type or any description, an
+  action named by its tag, a value written into a script, a token that
+  writes, the change checked out or packages installed by the frozen
+  files check, a step taken out of the matrix, a place with no owner, a
+  day of waiting for Dependabot, a tool unpacked whatever its checksum, a
+  program kept in one folder for every version, a search that skips the
+  history or the files or reads the folder itself, a part of a history
+  taken for all of it, a comment that passes a secret, zizmor made mild
+  or let onto the network, a rule of it switched off, and either step
+  taken out of its profile. Each time a test of the harness or the gate
+  went red.
 - CI runs on Node 26.13.1. The harness was written and run on 25.2.1, so
   `engines` allows both lines until the workflow has passed.
 
@@ -1564,6 +1667,91 @@ What stage five showed and changed:
   inside a live session, because it is not switched on. Codex was not
   run. The commit message is held by nothing yet. Nothing tells a person
   that the hooks of git are not switched on in a clone.
+
+What stage six showed and changed:
+
+- `lockfile-source` had five findings on its first run, all of one kind:
+  a name that stands for another package, such as `string-width-cjs` for
+  `string-width`. Packages of the registry ask for them, so they cannot
+  be removed. The policy lists each name with its package, and the rule
+  takes no other. It passed the lockfile again after commitlint added 49
+  packages.
+- `unknown-file` needed what the model of the ratchet did not have: every
+  path of the tree and not the source files alone, and the links with
+  their targets. A `package.json` is left to `package-manifest`, so one
+  file has one rule.
+- The list of policy paths is not written in the workflow. The workflow
+  checks the default branch out, and `guard.ts` reads `frozen.json` there
+  through the function the hook before an edit uses. There is one list,
+  and a change cannot touch the copy that judges it.
+- The baseline and the lockfile go with either kind of change. Without
+  that no tool could be added: the root `package.json` is policy and the
+  lockfile is not.
+- A document is not policy. A change of the harness and its record in
+  this document are two pull requests from the moment the check runs.
+- What `gh api` gives for the files of a pull request was read on a
+  public pull request of another repository: one object a line, with
+  `previous_filename` empty for a file that was not moved.
+- commitlint has its rules written out in `harness/configs/`, with no
+  shared set behind them. The usual set holds the lines of a body to a
+  width, and the notes of a dependency update are wider.
+- The history shaped two rules. A subject all in lower case refused
+  `README` and `GitHub` in two old commits, so the rule refuses a subject
+  that starts with a capital instead. One old header has 76 characters,
+  so the limit is 80, the width of a line of code. All 63 commits pass.
+- A scope is refused but `deps` and `deps-dev`, which Dependabot writes.
+  `feat!:` is refused: the parser reads the mark only with a preset, and
+  none is loaded.
+- The hook on the message ran on a real commit in a scratch copy. A test
+  of the runners gives it 17 messages through real commitlint.
+- gitleaks, actionlint and zizmor are programs and not packages. The
+  harness downloads each one itself and holds the archive to a checksum
+  of the policy, so a desk and CI run the same file. How it does that is
+  in [Tools that are programs](#tools-that-are-programs).
+- gitleaks reads a folder with the files git ignores. A made-up token in
+  `.env` and one in `reports/` were both found. So the step gives it a
+  copy of the files git sees and never the folder itself.
+- A token that was committed and then removed was found in the history
+  and not in the files. A token in a file that was not committed was
+  found in the files and not in the history. So both are searched.
+- gitleaks takes its rules from a `.gitleaks.toml` of the folder it reads
+  and passes a line that ends in its own comment. The step names the
+  rules of the harness and switches the comment off. A test plants both
+  in a tree, and the token is still found.
+- actionlint found nothing in the workflows. zizmor found two things. The
+  event of the frozen files check is what the check is built on, and it
+  is accepted in the configuration for that one file. A permission had no
+  word on why, and it has one now.
+- A checksum of the policy was changed in its last digit, and the step
+  still took the kept program: the folder was named by the start of the
+  checksum. It is named by the whole of it now.
+- The real tools run in the tests of the runners on small trees: seven
+  for gitleaks, ten for the two tools of the workflows.
+- All 69 things switched off went red.
+- The kill rate of the harness after this stage is 91.46%: 3364 killed,
+  265 survived, 37 not reached by any test and 12 timed out. The run took
+  6 minutes with four test runners and 2.8 GB at most. Of the 503 mutants
+  in the eleven new source files of this stage 462 were killed, and none
+  survived in `lockfile-source`, the search for secrets or the check of
+  workflows. 18 of the 37 that no test reaches are the lines that start
+  `curl`: the tests give a stand-in for the network, and the real
+  download is run by the steps and by the tests of the runners, which the
+  mutation run leaves out. An earlier run showed a branch of the guard
+  that nothing could reach and a reader with an untested refusal. Both
+  were mended, and tests were added for reading links and the lockfile
+  from a disk.
+- The hook before an edit is on for both agents, as the last change of
+  the stage. Given the input each agent sends, it puts the question for a
+  file of the policy, refuses for Codex, and says nothing for a document.
+  One file of the policy was edited after it was switched on. From inside
+  the session it cannot be seen whether the person was asked, so the hook
+  in a live session stays in the list of what was not tried.
+- Not done in this stage. Nothing on GitHub was set: the rule of `main`,
+  the required checks, the policy that allows `pull_request_target`, the
+  review by the code owner. No new workflow has run on GitHub, and the
+  frozen files check cannot until its file is on `main`. The three tools
+  have run on one kind of machine only, and CI will be their first run on
+  Linux.
 
 1. **A gate that runs.** The root `package.json` with exact versions,
    Prettier, the TypeScript configuration, ESLint, the ratchet with its
