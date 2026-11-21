@@ -188,3 +188,20 @@ Where this log and the plan differ, this log and the code are right.
 - Where: `backend/src/shared/infrastructure/sandbox/container-arguments.ts`,
   `backend/src/modules/repositories/infrastructure/git/`,
   `backend/src/modules/coverage/infrastructure/classification/`.
+
+### The four counters of a file are columns
+
+- `file_coverages` has a column for each counter of statements, branches,
+  functions and lines. The document of a file holds what never ran and no
+  number.
+- Where: `backend/migrations/0004-count-the-statements-and-functions-of-a-file.sql`,
+  `backend/src/modules/coverage/infrastructure/persistence/`.
+
+### Owed to the wave that adds the routes
+
+- A scan that ended in `test_run_timed_out` is answered with the reason
+  of the same name, which the contract has since this day. The route of a
+  scan maps it, and its test shows the answer.
+- A monorepo and a package manager other than npm are refused as an
+  unsupported project, with the reason in words. That is a limit of the
+  first version, stated in the scope.
