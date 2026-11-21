@@ -26,9 +26,11 @@ import {
   JOB_QUEUE,
   type JobQueue,
 } from '#ports/job-queue.port';
+import { LOGGER } from '#ports/logger.port';
 import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
 import { FaultyTransactions } from '#tests/support/faulty-transactions';
 import { FixedClock } from '#tests/support/fixed-clock';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import { ScriptedJobHandler } from '#tests/support/scripted-job-handler';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
 import {
@@ -55,6 +57,8 @@ export interface QueueProcess {
   readonly transactions: FaultyTransactions;
   /** Runs every job of the kind `scan`. */
   readonly handler: ScriptedJobHandler;
+  /** Every line the worker wrote. */
+  readonly logger: RecordingLogger;
   readonly settings: JobWorkerSettings;
   /** Enqueues in a transaction of its own. */
   readonly enqueue: (request: EnqueueJobRequest) => Promise<EnqueueJobResult>;
@@ -95,6 +99,7 @@ export class QueueBench {
     settings: Partial<JobWorkerSettings> = {},
   ): Promise<QueueProcess> {
     const handler = new ScriptedJobHandler('scan');
+    const logger = new RecordingLogger();
     const all = { ...DEFAULT_JOB_WORKER_SETTINGS, ...settings };
     const module = await Test.createTestingModule({
       providers: [
@@ -110,6 +115,7 @@ export class QueueBench {
         { provide: ID_GENERATOR, useValue: this.ids },
         { provide: JOB_HANDLERS, useValue: [handler] },
         { provide: JOB_WORKER_SETTINGS, useValue: all },
+        { provide: LOGGER, useValue: logger },
         SqliteJobTable,
         { provide: JOB_QUEUE, useClass: SqliteJobQueue },
         JobWorker,
@@ -124,6 +130,7 @@ export class QueueBench {
       scheduler: module.get(JobWorkerScheduler),
       transactions,
       handler,
+      logger,
       settings: all,
       enqueue: async (request) =>
         transactions.run(async (transaction) =>

@@ -8,6 +8,7 @@ import {
 } from '#infrastructure/database/sqlite-job-leases';
 import { InvalidStoredJobError } from '#infrastructure/queue/errors/invalid-stored-job.error';
 import { JobLease, type LeaseTools } from '#infrastructure/queue/job-lease';
+import { JobWorkerLog } from '#infrastructure/queue/job-worker-log';
 import {
   JOB_WORKER_SETTINGS,
   type JobWorkerSettings,
@@ -25,6 +26,7 @@ import {
   type JobResult,
 } from '#ports/job-handler.port';
 import type { JobId } from '#ports/job-queue.port';
+import { LOGGER, type Logger } from '#ports/logger.port';
 import {
   TRANSACTION_MANAGER,
   type TransactionManager,
@@ -104,6 +106,7 @@ export class JobWorker {
   private readonly settings: JobWorkerSettings;
   private readonly handlers: ReadonlyMap<string, JobHandler>;
   private readonly tools: LeaseTools;
+  private readonly log: JobWorkerLog;
   private readonly running = new Map<JobId, RunningJob>();
   private polling: Promise<void> | undefined;
   private stopping = false;
@@ -113,12 +116,14 @@ export class JobWorker {
     @Inject(CLOCK) clock: Clock,
     @Inject(JOB_HANDLERS) handlers: readonly JobHandler[],
     @Inject(JOB_WORKER_SETTINGS) settings: JobWorkerSettings,
+    @Inject(LOGGER) logger: Logger,
   ) {
     this.transactions = transactions;
     this.clock = clock;
     this.settings = settings;
     this.handlers = new Map(handlers.map((handler) => [handler.kind, handler]));
     this.tools = { transactions, clock, leaseMs: settings.leaseMs };
+    this.log = new JobWorkerLog(logger);
   }
 
   /**
@@ -171,10 +176,11 @@ export class JobWorker {
         }
         this.start(claim);
       }
-    } catch {
+    } catch (error) {
       // The database refused the claim, or a claimed row could not be
       // read. The next poll claims again, and a job left leased is
       // claimed again once its lease runs out.
+      this.log.claimRefused(error);
     }
   }
 
@@ -206,16 +212,17 @@ export class JobWorker {
   }
 
   private start(claim: Claim): void {
-    const handler = this.handlerOf(claim.row);
-    const payload = jobDocumentOf(claim.row.payload);
-    const lease = new JobLease({ ...claim.row, payload }, this.tools);
+    const { row } = claim;
+    const handler = this.handlerOf(row);
+    const payload = jobDocumentOf(row.payload);
+    const lease = new JobLease({ ...row, payload }, this.tools);
     const work = claim.spent
       ? this.bury(lease, handler)
-      : this.run(lease, handler);
-    this.running.set(lease.jobId, {
+      : this.run(row, { lease, handler });
+    this.running.set(row.id, {
       lease,
-      serializationKey: claim.row.serializationKey,
-      done: this.untilEnd(lease.jobId, work),
+      serializationKey: row.serializationKey,
+      done: this.untilEnd(row, work),
     });
   }
 
@@ -231,21 +238,31 @@ export class JobWorker {
     return handler;
   }
 
-  private async untilEnd(jobId: JobId, work: Promise<void>): Promise<void> {
+  private async untilEnd(row: ClaimedRow, work: Promise<void>): Promise<void> {
     try {
       await work;
-    } catch {
+    } catch (error) {
       // A write the database refused, or a handler that failed to hear
       // that the runs are spent. The lease runs out and the job is claimed
       // again, which every handler allows.
+      this.log.endNotWritten(row, error);
     } finally {
-      this.running.delete(jobId);
+      this.running.delete(row.id);
     }
   }
 
-  private async run(lease: JobLease, handler: JobHandler): Promise<void> {
-    const settled = await settle(handler, lease);
-    await this.end(lease, handler, endingOf(settled, lease.stopReason));
+  private async run(
+    row: ClaimedRow,
+    job: { readonly lease: JobLease; readonly handler: JobHandler },
+  ): Promise<void> {
+    this.log.started(row);
+    const settled = await settle(job.handler, job.lease);
+    if ('error' in settled && job.lease.stopReason === null) {
+      this.log.failed(row, settled.error);
+    }
+    const ending = endingOf(settled, job.lease.stopReason);
+    await this.end(job.lease, job.handler, ending);
+    this.log.ended(row, ending.step);
   }
 
   private async end(
