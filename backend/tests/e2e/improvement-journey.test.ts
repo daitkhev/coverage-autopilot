@@ -3,8 +3,10 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { errorSchema } from '@coverage-autopilot/api-contracts/errors';
 import {
   type Improvement,
+  improvementListSchema,
   improvementSchema,
 } from '@coverage-autopilot/api-contracts/improvements';
 import { repositorySchema } from '@coverage-autopilot/api-contracts/repositories';
@@ -252,5 +254,29 @@ describe('the built service, from a repository to a pull request', () => {
       [],
     );
     expect(filesHolding(service.paths.directory, CREDENTIAL)).toEqual([]);
+  });
+
+  describe('when the key of the first request is used again for another file', () => {
+    it('should refuse it with 409 and name the first improvement', async () => {
+      const { improvement } = journey;
+
+      const refused = await send('/improvements', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': FIRST_KEY },
+        body: { snapshotId: improvement.sourceSnapshotId, filePath: COVERED },
+      });
+      const listed = await send('/improvements');
+      const body = errorSchema.parse(refused.body);
+
+      expect(refused.status).toBe(409);
+      expect(body).toMatchObject({
+        error: 'request_key_reused',
+        improvementId: improvement.id,
+      });
+      expect(body.message).toContain(improvement.id);
+      expect(
+        improvementListSchema.parse(listed.body).items.map((item) => item.id),
+      ).toEqual([improvement.id]);
+    });
   });
 });
