@@ -8,6 +8,7 @@ import {
   serveProcess,
   type ServiceProcess,
 } from '#composition/service-process';
+import { WORK_WAIT } from '#tests/support/hosted-service';
 import {
   askOver,
   SERVICE_VERSION,
@@ -35,11 +36,15 @@ function processOf(change: Partial<ServiceProcess> = {}): ServiceProcess {
   };
 }
 
-/** Waits until the service listens for a signal, which it does last. */
+/**
+ * Waits until the service listens for a signal, which it does last. A
+ * start asks the engine and the database first, which takes seconds under
+ * the load of a whole gate.
+ */
 async function served(signals: EventEmitter): Promise<void> {
   await vi.waitFor(() => {
     expect(signals.listenerCount('SIGTERM')).toBe(1);
-  });
+  }, WORK_WAIT);
 }
 
 beforeEach(() => {
