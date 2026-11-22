@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PatchView > should show the patch, its evidence and the question 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Patch 9c1e7ab ────────────────────────────────────────────────╮ ╭─ Evidence ──────────────────────────────╮
+ │ new file  src/billing/sum.test.ts                        +7 -0 │ │ ✓ ACCEPTED  attempt 1 · patch 9c1e7ab   │
+ │   1 + import { sumTaxes } from './sum';                        │ │                                         │
+ │   2 +                                                          │ │ COVERAGE OF THE FILE ────────────────── │
+ │   3 + describe('sumTaxes', () => {                             │ │ Lines       41.2% → 88.2%               │
+ │   4 +   it('should add the tax of every line', () => {         │ │ Branches    25.0% → 25.0%               │
+ │   5 +     expect(sumTaxes([{ net: 100, rate: 0.2 }])).toBe(20… │ │                                         │
+ │   6 +   });                                                    │ │ MUTANTS ─────────────────────────────── │
+ │   7 + });                                                      │ │ 11 of 14 now detected by the new tests  │
+ │                                                                │ │                                         │
+ │                                                                │ │ CHECKS ──────────────────────────────── │
+ │                                                                │ │ ✓ only test files changed          0.2s │
+ │                                                                │ │ ✓ project type-checks               14s │
+ │                                                                │ │ ✓ new tests pass                     9s │
+ │                                                                │ │ ✓ earlier tests still pass       1m 48s │
+ │                                                                │ │ ✓ new tests pass on repeated runs   27s │
+ │                                                                │ │ ✓ coverage of the file went up      12s │
+ │                                                                │ │ ✓ mutants detected               5m 41s │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ╭─ Your decision ────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ? Approve the patch and open the pull request?                              to example/payments, base main │
+ │ › 1. Decide later                                                                                          │
+ │   2. Approve and open the pull request                                                                     │
+ │   3. Reject the patch and cancel the improvement                                                           │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Improvements › example/payments › src/billing/sum.ts · waiting for approval for 3h                 line 1 of 7
+ ↑↓ choose    enter confirm    pgdn scroll    tab evidence    esc later                                  ? help"
+`;
