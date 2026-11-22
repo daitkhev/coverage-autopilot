@@ -8,6 +8,7 @@ import {
   takeSpentJob,
 } from '#infrastructure/database/sqlite-job-leases';
 import { InvalidStoredJobError } from '#infrastructure/queue/errors/invalid-stored-job.error';
+import { handlersByKind } from '#infrastructure/queue/job-handlers';
 import { JobLease, type LeaseTools } from '#infrastructure/queue/job-lease';
 import { JobWorkerLog } from '#infrastructure/queue/job-worker-log';
 import {
@@ -132,7 +133,7 @@ export class JobWorker {
     this.transactions = transactions;
     this.clock = clock;
     this.settings = settings;
-    this.handlers = new Map(handlers.map((handler) => [handler.kind, handler]));
+    this.handlers = handlersByKind(handlers);
     this.tools = { transactions, clock, leaseMs: settings.leaseMs };
     this.log = new JobWorkerLog(logger);
   }
