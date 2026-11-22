@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`FilesBrowser > when another list is chosen > should explain a file that could not be measured 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  example/payments · 4f2a9c1 · scanned 2h ago                       Lines 71.4%  Branches 61.3%  threshold 80.0%
@@ -38,7 +38,7 @@ exports[`FilesBrowser > when another list is chosen > should explain a file that
 `;
 
 exports[`FilesBrowser > when i is pressed > should open the dialog over the screen, which takes every key 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  example/payments · 4f2a9c1 · scanned 2h ago                       Lines 71.4%  Branches 61.3%  threshold 80.0%

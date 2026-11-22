@@ -1,4 +1,4 @@
-import { cleanup, render } from 'ink-testing-library';
+import { cleanup } from 'ink-testing-library';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { ImprovementList } from '@coverage-autopilot/api-contracts/improvements';
@@ -12,12 +12,17 @@ import {
   refused,
 } from '#tests/support/fake-service-api';
 import { KEYS, PATIENT, press, screenOf } from '#tests/support/keys';
+import {
+  NARROW,
+  sampleFrame,
+  SECTION,
+  WIDE,
+} from '#tests/support/sample-frame';
 import { IMPROVEMENT_LIST } from '#tests/support/sample-improvements';
-import { LIVE_SIZE, sampleFrame } from '#tests/support/sample-lists-frame';
 import { REPOSITORY_LIST } from '#tests/support/sample-repositories';
+import { renderAt } from '#tests/support/wide-terminal';
 import type { TerminalSize } from '#theme/widths';
 
-const IMPROVEMENTS = 1;
 const SOCKET = '/tmp/service.sock';
 
 function sessionOf(list: ImprovementList = IMPROVEMENT_LIST): FakeSession {
@@ -28,16 +33,17 @@ function sessionOf(list: ImprovementList = IMPROVEMENT_LIST): FakeSession {
 }
 
 /** Shows the screen, and the ids it was asked to open. */
-function show(session: FakeSession, size: TerminalSize = LIVE_SIZE) {
+function show(session: FakeSession, size: TerminalSize = WIDE) {
   const opened: string[] = [];
-  const terminal = render(
+  const terminal = renderAt(
     <ImprovementsScreen
       session={session}
-      frame={sampleFrame(size, IMPROVEMENTS)}
+      frame={sampleFrame(size, SECTION.improvements)}
       onOpenImprovement={(id) => {
         opened.push(id);
       }}
     />,
+    size,
   );
   return { terminal, opened };
 }
@@ -92,8 +98,7 @@ describe('ImprovementsScreen', () => {
 
   describe('when the window has room for one panel', () => {
     it('should show the chosen improvement in its place and back', async () => {
-      const size = { ...LIVE_SIZE, columns: 80 };
-      const { terminal } = await shown(sessionOf(), size);
+      const { terminal } = await shown(sessionOf(), NARROW);
 
       await press(terminal, KEYS.right);
       expect(screenOf(terminal)).toContain('WAITING FOR YOU');

@@ -11,6 +11,7 @@ import {
   refused,
 } from '#tests/support/fake-service-api';
 import { KEYS, PATIENT, press } from '#tests/support/keys';
+import { NARROW } from '#tests/support/sample-frame';
 import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
 import {
   ACCESS_PASSED,
@@ -19,7 +20,6 @@ import {
   PAYMENTS_SNAPSHOT,
   SCANNED_REPOSITORY,
 } from '#tests/support/sample-repositories';
-import { NARROW } from '#tests/support/sample-work-frame';
 import { drawnWith, widestLine } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
 

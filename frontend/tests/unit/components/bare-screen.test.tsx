@@ -8,7 +8,8 @@ import {
   FRESH_ANSWER,
   NARROW,
   sampleFrame,
-} from '#tests/support/sample-work-frame';
+  SECTION,
+} from '#tests/support/sample-frame';
 import { drawnWith } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
 
@@ -16,7 +17,7 @@ function shown(stale: { readonly stale: boolean }) {
   const log: string[] = [];
   const screen = (
     <BareScreen
-      frame={sampleFrame(NARROW)}
+      frame={sampleFrame(NARROW, SECTION.repositories)}
       path={['Improvements', 'example/payments']}
       body={<Text>Nothing to show</Text>}
       freshness={{ ...FRESH_ANSWER, ...stale }}

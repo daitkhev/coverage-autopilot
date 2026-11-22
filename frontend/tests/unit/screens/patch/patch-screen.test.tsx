@@ -10,12 +10,12 @@ import {
   refused,
 } from '#tests/support/fake-service-api';
 import { KEYS, PATIENT, press } from '#tests/support/keys';
+import { sampleFrame, SECTION, WIDE } from '#tests/support/sample-frame';
 import {
   IMPROVEMENT_BY_STATUS,
   PATCH_AWAITING_APPROVAL,
 } from '#tests/support/sample-improvements';
 import { SCANNED_REPOSITORY } from '#tests/support/sample-repositories';
-import { sampleFrame, WIDE } from '#tests/support/sample-work-frame';
 import { NEWER_PATCH } from '#tests/support/sample-work-patch';
 import { drawnWith } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
@@ -35,7 +35,7 @@ function shown(scripted: Partial<ServiceApi>) {
   const screen = (
     <PatchScreen
       session={session}
-      frame={sampleFrame(WIDE)}
+      frame={sampleFrame(WIDE, SECTION.improvements)}
       improvementId={WAITING.id}
       onBack={() => {
         log.push('back');

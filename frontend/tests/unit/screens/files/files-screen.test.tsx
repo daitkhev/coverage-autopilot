@@ -12,15 +12,16 @@ import {
 import { KEYS, PATIENT, press } from '#tests/support/keys';
 import { PAYMENTS_FILES } from '#tests/support/sample-files';
 import {
+  NARROW,
+  sampleFrame,
+  SECTION,
+  SIZES,
+  WIDE,
+} from '#tests/support/sample-frame';
+import {
   NEVER_SCANNED_REPOSITORY,
   SCANNED_REPOSITORY,
 } from '#tests/support/sample-repositories';
-import {
-  NARROW,
-  sampleFrame,
-  SIZES,
-  WIDE,
-} from '#tests/support/sample-work-frame';
 import { screenLog } from '#tests/support/sample-work-log';
 import { drawnWith, widestLine } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
@@ -61,7 +62,7 @@ function shown(
   const screen = (
     <FilesScreen
       session={fakeSession(scripted)}
-      frame={sampleFrame(size)}
+      frame={sampleFrame(size, SECTION.repositories)}
       repositoryId={SCANNED_REPOSITORY.id}
       onOpenImprovement={noted.onOpenImprovement}
       onBack={noted.onBack}

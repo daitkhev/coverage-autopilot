@@ -16,8 +16,14 @@ import {
   fakeServiceApi,
   SAMPLE_NOW,
 } from '#tests/support/fake-service-api';
+import {
+  NARROW,
+  sampleFrame,
+  SECTION,
+  SIZES,
+  WIDE,
+} from '#tests/support/sample-frame';
 import { IMPROVEMENT_LIST } from '#tests/support/sample-improvements';
-import { sampleFrame, USUAL_SIZE } from '#tests/support/sample-lists-frame';
 import { REPOSITORY_LIST } from '#tests/support/sample-repositories';
 import {
   drawnAt,
@@ -26,7 +32,6 @@ import {
   styledAt,
   USUAL_COLUMNS,
   widestLine,
-  WIDTHS,
 } from '#tests/support/terminal-text';
 import type { TerminalSize } from '#theme/widths';
 
@@ -41,7 +46,6 @@ afterAll(() => {
 const ESCAPE = '\u001B';
 const COLOUR_CODE = new RegExp(`${ESCAPE}\\[(3[0-9]|9[0-7])m`, 'u');
 const SECOND_AGO = '2026-11-21T14:04:59.000Z';
-const IMPROVEMENTS = 1;
 
 /** Every sample improvement in the order of its group, as the list asks. */
 let grouped: readonly Improvement[] = [];
@@ -76,7 +80,7 @@ function view({
   listing = answered(),
   problem,
   index = 0,
-  size = USUAL_SIZE,
+  size = WIDE,
   focused = 'list',
 }: {
   readonly listing?: DatedRequest<Listing>;
@@ -87,7 +91,7 @@ function view({
 }): ReactNode {
   return (
     <ImprovementsView
-      frame={sampleFrame(size, IMPROVEMENTS)}
+      frame={sampleFrame(size, SECTION.improvements)}
       listing={listing}
       problem={problem}
       moment={{ now: SAMPLE_NOW, timeZone: 'UTC' }}
@@ -170,7 +174,7 @@ describe('ImprovementsView', () => {
 
   describe('when the list is longer than the window', () => {
     it('should say how many improvements are below', () => {
-      const size = { ...USUAL_SIZE, rows: 24 };
+      const size = { ...WIDE, rows: 24 };
       const drawn = draw({ size });
 
       expect(drawn).toContain('5 more below');
@@ -244,7 +248,7 @@ describe('ImprovementsView', () => {
   describe('when the window has room for one panel', () => {
     it('should show the chosen improvement in place of the list', () => {
       const drawn = draw({
-        size: { ...USUAL_SIZE, columns: 80 },
+        size: NARROW,
         focused: 'details',
       });
 
@@ -276,14 +280,14 @@ describe('ImprovementsView', () => {
     });
   });
 
-  it.each(WIDTHS)('should fit in %i columns', (columns) => {
+  it.each(SIZES)('should fit in $columns by $rows', (size) => {
     const drawn = draw({
-      size: { ...USUAL_SIZE, columns },
+      size,
       listing: { ...answered(), stale: true },
       problem: { kind: 'fault', fault: new Error('x'.repeat(300)) },
     });
 
-    expect(widestLine(drawn)).toBeLessThanOrEqual(columns);
-    expect(drawn.split('\n').length).toBeLessThanOrEqual(USUAL_SIZE.rows);
+    expect(widestLine(drawn)).toBeLessThanOrEqual(size.columns);
+    expect(drawn.split('\n').length).toBeLessThanOrEqual(size.rows);
   });
 });

@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`PatchView > should show the patch, its evidence and the question 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  ╭─ Patch 9c1e7ab ────────────────────────────────────────────────╮ ╭─ Evidence ──────────────────────────────╮
  │ new file  src/billing/sum.test.ts                        +7 -0 │ │ ✓ ACCEPTED  attempt 1 · patch 9c1e7ab   │

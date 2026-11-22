@@ -7,17 +7,18 @@ import { answered, fakeSession } from '#tests/support/fake-service-api';
 import { KEYS, PATIENT, press } from '#tests/support/keys';
 import { PAYMENTS_FILES } from '#tests/support/sample-files';
 import {
+  FRESH_ANSWER,
+  NARROW,
+  sampleFrame,
+  SECTION,
+  WIDE,
+} from '#tests/support/sample-frame';
+import {
   ACCESS_PASSED,
   BUDGET_SETTINGS,
   PAYMENTS_SNAPSHOT,
   SCANNED_REPOSITORY,
 } from '#tests/support/sample-repositories';
-import {
-  FRESH_ANSWER,
-  NARROW,
-  sampleFrame,
-  WIDE,
-} from '#tests/support/sample-work-frame';
 import { screenLog } from '#tests/support/sample-work-log';
 import { drawnWith } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
@@ -37,7 +38,7 @@ function browsing(
   readonly log: string[];
 } {
   const noted = screenLog();
-  const frame = sampleFrame(size, {
+  const frame = sampleFrame(size, SECTION.repositories, {
     q: () => {
       noted.log.push('quit');
     },

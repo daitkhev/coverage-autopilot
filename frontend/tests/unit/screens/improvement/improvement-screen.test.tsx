@@ -10,14 +10,15 @@ import {
   refused,
 } from '#tests/support/fake-service-api';
 import { KEYS, PATIENT, press } from '#tests/support/keys';
-import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
-import { SCANNED_REPOSITORY } from '#tests/support/sample-repositories';
 import {
   NARROW,
   sampleFrame,
+  SECTION,
   SIZES,
   WIDE,
-} from '#tests/support/sample-work-frame';
+} from '#tests/support/sample-frame';
+import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
+import { SCANNED_REPOSITORY } from '#tests/support/sample-repositories';
 import { screenLog } from '#tests/support/sample-work-log';
 import { drawnWith, widestLine } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
@@ -50,7 +51,7 @@ function shown(scripted: Partial<ServiceApi>, size: TerminalSize = WIDE) {
   const screen = (
     <ImprovementScreen
       session={fakeSession(scripted)}
-      frame={sampleFrame(size)}
+      frame={sampleFrame(size, SECTION.improvements)}
       improvementId={verifying.id}
       onOpenPatch={noted.onOpenPatch}
       onBack={noted.onBack}

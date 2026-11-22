@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`ImprovementScreen > should say that it asks the service before the first answer 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  ╭─ Improvement ──────────────────────────────────────────────────────────────────────────────────────────────╮
  │ ⠋ Asking the service                                                                                       │
@@ -38,7 +38,7 @@ exports[`ImprovementScreen > should say that it asks the service before the firs
 `;
 
 exports[`ImprovementScreen > when the service stops answering > should keep the last answer and say that it is not fresh 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  ✓ Analyze ━━ ✕ Attempt 1 ━━ ⠋ Attempt 2 ── ○ Attempt 3 ── ○ Publish                             ⠋ RUN  15m 00s

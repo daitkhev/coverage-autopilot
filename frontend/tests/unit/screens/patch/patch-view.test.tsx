@@ -16,17 +16,18 @@ import {
 import { KEYS, PATIENT, press } from '#tests/support/keys';
 import { ACCEPTED_HASH } from '#tests/support/sample-attempts';
 import {
+  FRESH_ANSWER,
+  NARROW,
+  sampleFrame,
+  SECTION,
+  SIZES,
+  WIDE,
+} from '#tests/support/sample-frame';
+import {
   IMPROVEMENT_BY_STATUS,
   PATCH_AWAITING_APPROVAL,
 } from '#tests/support/sample-improvements';
 import { SCANNED_REPOSITORY } from '#tests/support/sample-repositories';
-import {
-  FRESH_ANSWER,
-  NARROW,
-  sampleFrame,
-  SIZES,
-  WIDE,
-} from '#tests/support/sample-work-frame';
 import { LONG_PATCH, TWO_FILE_PATCH } from '#tests/support/sample-work-patch';
 import { drawnWith, widestLine } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
@@ -56,7 +57,7 @@ function reviewing(options: Reviewing = {}) {
   const view = (
     <PatchView
       session={session}
-      frame={sampleFrame(size)}
+      frame={sampleFrame(size, SECTION.improvements)}
       shown={shown}
       freshness={FRESH_ANSWER}
       onReload={() => {

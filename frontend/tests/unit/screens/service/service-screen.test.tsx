@@ -1,4 +1,4 @@
-import { cleanup, render } from 'ink-testing-library';
+import { cleanup } from 'ink-testing-library';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type {
@@ -16,17 +16,26 @@ import {
   refused,
 } from '#tests/support/fake-service-api';
 import { KEYS, PATIENT, press, screenOf } from '#tests/support/keys';
-import { LIVE_SIZE, sampleFrame } from '#tests/support/sample-lists-frame';
+import {
+  NARROW,
+  sampleFrame,
+  SECTION,
+  WIDE,
+} from '#tests/support/sample-frame';
 import { BUSY_HEALTH, IDLE_HEALTH } from '#tests/support/sample-repositories';
+import { renderAt } from '#tests/support/wide-terminal';
 import type { TerminalSize } from '#theme/widths';
 
-const SERVICE = 2;
 const ACCEPTED = 202;
 const SOCKET = '/tmp/service.sock';
 
-function show(session: FakeSession, size: TerminalSize = LIVE_SIZE) {
-  return render(
-    <ServiceScreen session={session} frame={sampleFrame(size, SERVICE)} />,
+function show(session: FakeSession, size: TerminalSize = WIDE) {
+  return renderAt(
+    <ServiceScreen
+      session={session}
+      frame={sampleFrame(size, SECTION.service)}
+    />,
+    size,
   );
 }
 
@@ -130,10 +139,7 @@ describe('ServiceScreen', () => {
 
   describe('when the window has room for one panel', () => {
     it('should show the other panel on tab', async () => {
-      const terminal = show(fakeSession({ health: healthy() }), {
-        ...LIVE_SIZE,
-        columns: 80,
-      });
+      const terminal = show(fakeSession({ health: healthy() }), NARROW);
       await expect
         .poll(() => screenOf(terminal), PATIENT)
         .toContain('ENVIRONMENT');

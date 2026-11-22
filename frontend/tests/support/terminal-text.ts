@@ -41,7 +41,7 @@ const COMPACT_COLUMNS = 96;
 const WIDE_COLUMNS = 112;
 
 /** The widths every part is checked at, one of each layout. */
-export const WIDTHS = [NARROW_COLUMNS, COMPACT_COLUMNS, WIDE_COLUMNS];
+export const WIDTHS = [NARROW_COLUMNS, COMPACT_COLUMNS, WIDE_COLUMNS] as const;
 
 /** The width a part is kept at, as one frame of text. */
 export const USUAL_COLUMNS = WIDE_COLUMNS;

@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`FilesScreen > should say that it asks the service before the first answer 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  ╭─ Files ────────────────────────────────────────────────────────────────────────────────────────────────────╮
  │ ⠋ Asking the service                                                                                       │
@@ -38,7 +38,7 @@ exports[`FilesScreen > should say that it asks the service before the first answ
 `;
 
 exports[`FilesScreen > should show the files below the threshold, the first one chosen 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  example/payments · 4f2a9c1 · scanned 2h ago                       Lines 71.4%  Branches 61.3%  threshold 80.0%
@@ -75,7 +75,7 @@ exports[`FilesScreen > should show the files below the threshold, the first one 
 `;
 
 exports[`FilesScreen > when the service stops answering > should keep the last answer and say that it is not fresh 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  example/payments · 4f2a9c1 · scanned 2h ago                       Lines 71.4%  Branches 61.3%  threshold 80.0%

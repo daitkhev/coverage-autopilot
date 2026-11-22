@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`PatchScreen > should say that it asks the service before the first answer 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  ╭─ Patch ────────────────────────────────────────────────────────────────────────────────────────────────────╮
  │ ⠋ Asking the service                                                                                       │
@@ -38,7 +38,7 @@ exports[`PatchScreen > should say that it asks the service before the first answ
 `;
 
 exports[`PatchScreen > when the service stops answering > should keep the last patch and say that it is not fresh 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  ╭─ Patch 9c1e7ab ────────────────────────────────────────────────╮ ╭─ Evidence ──────────────────────────────╮
  │ new file  src/billing/sum.test.ts                        +7 -0 │ │ ✓ ACCEPTED  attempt 1 · patch 9c1e7ab   │

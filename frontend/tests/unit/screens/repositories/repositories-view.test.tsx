@@ -18,8 +18,14 @@ import {
   answered as serviceAnswered,
   SAMPLE_NOW,
 } from '#tests/support/fake-service-api';
+import {
+  NARROW,
+  sampleFrame,
+  SECTION,
+  SIZES,
+  WIDE,
+} from '#tests/support/sample-frame';
 import { IMPROVEMENT_LIST } from '#tests/support/sample-improvements';
-import { sampleFrame, USUAL_SIZE } from '#tests/support/sample-lists-frame';
 import {
   ACCESS_REFUSED,
   NEVER_SCANNED_REPOSITORY,
@@ -35,7 +41,6 @@ import {
   styledAt,
   USUAL_COLUMNS,
   widestLine,
-  WIDTHS,
 } from '#tests/support/terminal-text';
 import type { TerminalSize } from '#theme/widths';
 
@@ -50,7 +55,6 @@ afterAll(() => {
 const ESCAPE = '\u001B';
 const COLOUR_CODE = new RegExp(`${ESCAPE}\\[(3[0-9]|9[0-7])m`, 'u');
 const SECOND_AGO = '2026-11-21T14:04:59.000Z';
-const REPOSITORIES = 0;
 const NO_START: ReadonlySet<string> = new Set();
 
 const ROWS: readonly RepositoryRow[] = [
@@ -85,7 +89,7 @@ function view({
   work = PAYMENTS_WORK,
   problem,
   index = 0,
-  size = USUAL_SIZE,
+  size = WIDE,
   focused = 'list',
   starting = NO_START,
   notice,
@@ -103,7 +107,7 @@ function view({
 }): ReactNode {
   return (
     <RepositoriesView
-      frame={sampleFrame(size, REPOSITORIES)}
+      frame={sampleFrame(size, SECTION.repositories)}
       listing={listing}
       work={work}
       problem={problem}
@@ -296,7 +300,7 @@ describe('RepositoriesView', () => {
   describe('when the window has room for one panel', () => {
     it('should show the chosen repository in place of the list', () => {
       const drawn = draw({
-        size: { ...USUAL_SIZE, columns: 80 },
+        size: NARROW,
         focused: 'details',
       });
 
@@ -325,14 +329,14 @@ describe('RepositoriesView', () => {
     });
   });
 
-  it.each(WIDTHS)('should fit in %i columns', (columns) => {
+  it.each(SIZES)('should fit in $columns by $rows', (size) => {
     const drawn = draw({
-      size: { ...USUAL_SIZE, columns },
+      size,
       listing: { ...answered(), stale: true },
       problem: { kind: 'fault', fault: new Error('x'.repeat(300)) },
     });
 
-    expect(widestLine(drawn)).toBeLessThanOrEqual(columns);
-    expect(drawn.split('\n').length).toBeLessThanOrEqual(USUAL_SIZE.rows);
+    expect(widestLine(drawn)).toBeLessThanOrEqual(size.columns);
+    expect(drawn.split('\n').length).toBeLessThanOrEqual(size.rows);
   });
 });

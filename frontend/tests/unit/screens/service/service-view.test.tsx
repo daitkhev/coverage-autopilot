@@ -7,7 +7,7 @@ import type { DatedRequest } from '#hooks/use-dated-request';
 import type { Restart } from '#screens/service/restart';
 import { ServiceView } from '#screens/service/service-view';
 import { refused, SAMPLE_NOW } from '#tests/support/fake-service-api';
-import { sampleFrame, USUAL_SIZE } from '#tests/support/sample-lists-frame';
+import { sampleFrame, SECTION, WIDE } from '#tests/support/sample-frame';
 import { BUSY_HEALTH, IDLE_HEALTH } from '#tests/support/sample-repositories';
 import {
   drawnAt,
@@ -30,7 +30,6 @@ afterAll(() => {
 const ESCAPE = '\u001B';
 const COLOUR_CODE = new RegExp(`${ESCAPE}\\[(3[0-9]|9[0-7])m`, 'u');
 const SECOND_AGO = '2026-11-21T14:04:59.000Z';
-const SERVICE = 2;
 
 function answered(health: Health): DatedRequest<Health> {
   return {
@@ -56,7 +55,7 @@ function view({
 }): string {
   return drawnAt(
     <ServiceView
-      frame={sampleFrame({ ...USUAL_SIZE, columns }, SERVICE)}
+      frame={sampleFrame({ ...WIDE, columns }, SECTION.service)}
       health={health}
       problem={problem}
       moment={{ now: SAMPLE_NOW, timeZone: 'UTC' }}
@@ -222,7 +221,7 @@ describe('ServiceView', () => {
         drawnWith(
           { colour: false },
           <ServiceView
-            frame={sampleFrame(USUAL_SIZE, SERVICE)}
+            frame={sampleFrame(WIDE, SECTION.service)}
             health={answered(IDLE_HEALTH)}
             problem={undefined}
             moment={{ now: SAMPLE_NOW, timeZone: 'UTC' }}

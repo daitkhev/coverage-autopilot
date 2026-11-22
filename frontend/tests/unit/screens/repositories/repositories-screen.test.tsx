@@ -1,4 +1,4 @@
-import { cleanup, render } from 'ink-testing-library';
+import { cleanup } from 'ink-testing-library';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { RepositoryList } from '@coverage-autopilot/api-contracts/repositories';
@@ -14,17 +14,22 @@ import {
   refused,
 } from '#tests/support/fake-service-api';
 import { KEYS, PATIENT, press, screenOf } from '#tests/support/keys';
+import {
+  NARROW,
+  sampleFrame,
+  SECTION,
+  WIDE,
+} from '#tests/support/sample-frame';
 import { IMPROVEMENT_LIST } from '#tests/support/sample-improvements';
-import { LIVE_SIZE, sampleFrame } from '#tests/support/sample-lists-frame';
 import {
   ACCESS_PASSED,
   NEVER_SCANNED_REPOSITORY,
   REPOSITORY_LIST,
   SCAN_BY_STATUS,
 } from '#tests/support/sample-repositories';
+import { renderAt } from '#tests/support/wide-terminal';
 import type { TerminalSize } from '#theme/widths';
 
-const REPOSITORIES = 0;
 const ACCEPTED = 202;
 const SOCKET = '/tmp/service.sock';
 const ADDRESS = 'https://github.com/example/notifier';
@@ -42,16 +47,17 @@ function sessionOf(
 }
 
 /** Shows the screen, and the repositories it was asked to open. */
-function show(session: FakeSession, size: TerminalSize = LIVE_SIZE) {
+function show(session: FakeSession, size: TerminalSize = WIDE) {
   const opened: string[] = [];
-  const terminal = render(
+  const terminal = renderAt(
     <RepositoriesScreen
       session={session}
-      frame={sampleFrame(size, REPOSITORIES)}
+      frame={sampleFrame(size, SECTION.repositories)}
       onOpenFiles={(id) => {
         opened.push(id);
       }}
     />,
+    size,
   );
   return { terminal, opened };
 }
@@ -313,8 +319,7 @@ describe('RepositoriesScreen', () => {
 
   describe('when the window has room for one panel', () => {
     it('should show the chosen repository in its place and back', async () => {
-      const size = { ...LIVE_SIZE, columns: 80 };
-      const { terminal } = await shown(sessionOf(), size);
+      const { terminal } = await shown(sessionOf(), NARROW);
 
       await press(terminal, KEYS.right);
       expect(screenOf(terminal)).toContain('COVERAGE');

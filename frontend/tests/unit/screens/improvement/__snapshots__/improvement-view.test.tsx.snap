@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`ImprovementView > should show the history, the running checks and the facts 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  ✓ Analyze ━━ ✕ Attempt 1 ━━ ⠋ Attempt 2 ── ○ Attempt 3 ── ○ Publish                             ⠋ RUN  15m 00s
@@ -38,7 +38,7 @@ exports[`ImprovementView > should show the history, the running checks and the f
 `;
 
 exports[`ImprovementView > when c is pressed > should ask first, with the answer that keeps the work chosen 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  ✓ Analyze ━━ ✕ Attempt 1 ━━ ⠋ Attempt 2 ── ○ Attempt 3 ── ○ Publish                             ⠋ RUN  15m 00s
@@ -75,7 +75,7 @@ exports[`ImprovementView > when c is pressed > should ask first, with the answer
 `;
 
 exports[`ImprovementView > when the improvement cancelled > should show how it ended 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  ✓ Analyze ━━ – Attempt 1 ━━ ○ Publish                                                        ■ CANCEL  11m 00s
@@ -112,7 +112,7 @@ exports[`ImprovementView > when the improvement cancelled > should show how it e
 `;
 
 exports[`ImprovementView > when the improvement completed > should show how it ended 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  ✓ Analyze ━━ ✕ Attempt 1 ━━ ✓ Attempt 2 ━━ ✓ Published                                            ✓ DONE  0.0s
@@ -149,7 +149,7 @@ exports[`ImprovementView > when the improvement completed > should show how it e
 `;
 
 exports[`ImprovementView > when the improvement failed > should show how it ended 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  ✓ Analyze ━━ ✕ Attempt 1 ━━ ✕ Attempt 2 ━━ ✕ Attempt 3 ━━ ○ Publish                            ✕ FAIL  14m 59s
@@ -186,7 +186,7 @@ exports[`ImprovementView > when the improvement failed > should show how it ende
 `;
 
 exports[`ImprovementView > when the improvement skipped > should show how it ended 1`] = `
-" coverage-autopilot   Repositories   Improvements   Service
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
  – Analyze ── ○ Publish                                                                            – SKIP  0.0s

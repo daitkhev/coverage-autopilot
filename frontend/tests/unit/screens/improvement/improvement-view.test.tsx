@@ -8,15 +8,16 @@ import { ImprovementView } from '#screens/improvement/improvement-view';
 import { fakeSession, SAMPLE_NOW } from '#tests/support/fake-service-api';
 import { KEYS, press } from '#tests/support/keys';
 import { ACCEPTED_ATTEMPT } from '#tests/support/sample-attempts';
-import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
-import { SCANNED_REPOSITORY } from '#tests/support/sample-repositories';
 import {
   FRESH_ANSWER,
   NARROW,
   sampleFrame,
+  SECTION,
   SIZES,
   WIDE,
-} from '#tests/support/sample-work-frame';
+} from '#tests/support/sample-frame';
+import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
+import { SCANNED_REPOSITORY } from '#tests/support/sample-repositories';
 import { screenLog } from '#tests/support/sample-work-log';
 import { drawnWith, widestLine } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
@@ -37,7 +38,7 @@ function viewing(improvement: Improvement, options: Viewing = {}) {
   const view = (
     <ImprovementView
       session={session}
-      frame={sampleFrame(size)}
+      frame={sampleFrame(size, SECTION.improvements)}
       improvement={improvement}
       repository={SCANNED_REPOSITORY}
       freshness={FRESH_ANSWER}
