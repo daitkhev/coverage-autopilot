@@ -30,7 +30,7 @@ export type CopyApplyResult =
   | { readonly outcome: 'refused'; readonly reason: string };
 
 /** A branch that points at a commit the copy holds. */
-export interface BranchAt {
+interface BranchAt {
   readonly branch: BranchName;
   readonly commit: CommitSha;
 }

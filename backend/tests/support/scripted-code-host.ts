@@ -12,7 +12,7 @@ import type {
 import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
 
 /** The account the scripted host is logged in with, and its fork. */
-export const SCRIPTED_ACCOUNT = 'acme-bot';
+const SCRIPTED_ACCOUNT = 'acme-bot';
 export const SCRIPTED_FORK = RepositoryUrl.parse(
   'https://github.com/acme-bot/widgets',
 );
