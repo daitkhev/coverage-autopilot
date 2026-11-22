@@ -70,7 +70,7 @@ export interface StressStage {
 }
 
 /** The work is over once no job holds its repository any more. */
-async function untilIdle(stage: StressStage, wait: Wait): Promise<void> {
+export async function untilIdle(stage: StressStage, wait: Wait): Promise<void> {
   await vi.waitFor(async () => {
     const answer = await stage.service.send('/health');
     const { activeWork } = healthSchema.parse(answer.body);
