@@ -25,6 +25,13 @@ type Terminal = ReturnType<typeof render>;
 /** Ink reads a lone escape only after a short wait for more of a sequence. */
 const SETTLE_MS = 30;
 
+/**
+ * How long a test waits for what the terminal shows, and how often it
+ * looks. A loaded machine draws late, so a fixed pause proves nothing
+ * about a thing that is going to happen: only about one that must not.
+ */
+export const PATIENT = { timeout: 5000, interval: 10 } as const;
+
 /** Lets the real timers run for a while. */
 export function pause(ms: number): Promise<void> {
   return new Promise((resolve) => {

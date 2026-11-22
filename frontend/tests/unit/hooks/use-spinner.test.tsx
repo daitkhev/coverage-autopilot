@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { useSpinner } from '#hooks/use-spinner';
 import { ThemeContext } from '#hooks/use-theme';
-import { pause, screenOf } from '#tests/support/keys';
+import { PATIENT, pause, screenOf } from '#tests/support/keys';
 import { FULL_THEME } from '#theme/settings';
 import { SPINNER_FRAMES } from '#theme/symbols';
 
@@ -19,11 +19,12 @@ describe('useSpinner', () => {
   it('should turn every spinner together on one timer', async () => {
     const terminal = render(<Spinners />);
 
-    await pause(200);
+    await expect
+      .poll(() => screenOf(terminal).split(' ')[0], PATIENT)
+      .not.toBe(SPINNER_FRAMES.unicode[0]);
 
     const [left, right] = screenOf(terminal).split(' ');
     expect(left).toBe(right);
-    expect(left).not.toBe(SPINNER_FRAMES.unicode[0]);
   });
 
   describe('when animation is turned off', () => {
