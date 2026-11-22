@@ -2,7 +2,8 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { dirname } from 'node:path';
 import { execPath } from 'node:process';
-import { text } from 'node:stream/consumers';
+import type { Readable } from 'node:stream';
+import { finished } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 
 import type { InstancePaths } from '#infrastructure/config/instance-paths';
@@ -30,6 +31,8 @@ export interface BuiltService {
   readonly exitCode: Promise<number | null>;
   /** Everything the process wrote to its standard error until it ended. */
   readonly errors: Promise<string>;
+  /** What the process wrote to its standard error so far: its log. */
+  log(): string;
   /** Ends a process that still runs, and removes the instance it made. */
   close(): Promise<void>;
 }
@@ -37,6 +40,28 @@ export interface BuiltService {
 async function exitCodeOf(child: ChildProcess): Promise<number | null> {
   const [code] = (await once(child, 'exit')) as [number | null];
   return code;
+}
+
+/** The text of a stream as it comes, and the whole of it once it ends. */
+interface Written {
+  soFar(): string;
+  readonly whole: Promise<string>;
+}
+
+function writtenTo(stream: Readable): Written {
+  const chunks: string[] = [];
+  stream.setEncoding('utf8');
+  stream.on('data', (chunk: string) => {
+    chunks.push(chunk);
+  });
+  const soFar = (): string => chunks.join('');
+  return {
+    soFar,
+    whole: (async () => {
+      await finished(stream);
+      return soFar();
+    })(),
+  };
 }
 
 /**
@@ -60,6 +85,7 @@ export function startBuiltService(
     stdio: ['ignore', 'ignore', 'pipe'],
   });
   const exitCode = exitCodeOf(child);
+  const errors = writtenTo(child.stderr);
   return {
     paths: folder.paths,
     send: async (path, asked) => askOver(folder.paths.socket, path, asked),
@@ -67,7 +93,8 @@ export function startBuiltService(
       child.kill(name);
     },
     exitCode,
-    errors: text(child.stderr),
+    errors: errors.whole,
+    log: () => errors.soFar(),
     close: async () => {
       if (child.exitCode === null && child.signalCode === null) {
         child.kill('SIGKILL');
