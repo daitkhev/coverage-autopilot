@@ -1,33 +1,6 @@
 import type { ClaimedRow } from '#infrastructure/database/sqlite-job-leases';
-import { ApplicationError } from '#kernel/errors/application.error';
-import { DomainError } from '#kernel/errors/domain.error';
-import { InfrastructureError } from '#kernel/errors/infrastructure.error';
+import { faultFieldsOf } from '#infrastructure/logging/fault-fields';
 import type { LogFields, Logger } from '#ports/logger.port';
-
-/** A message of an error can hold the output of a tool, which is long. */
-const MESSAGE_CHARACTERS = 2_000;
-
-/** The code of an error nobody foresaw. */
-const UNEXPECTED = 'unexpected';
-
-function isTyped(
-  error: unknown,
-): error is DomainError | ApplicationError | InfrastructureError {
-  return (
-    error instanceof DomainError ||
-    error instanceof ApplicationError ||
-    error instanceof InfrastructureError
-  );
-}
-
-/** An error as fields of a line: its code and the start of its message. */
-function fieldsOf(error: unknown): LogFields {
-  const message = error instanceof Error ? error.message : String(error);
-  return {
-    errorCode: isTyped(error) ? error.code : UNEXPECTED,
-    errorMessage: message.slice(0, MESSAGE_CHARACTERS),
-  };
-}
 
 function jobOf(row: ClaimedRow): LogFields {
   return {
@@ -51,7 +24,7 @@ export class JobWorkerLog {
   }
 
   public claimRefused(error: unknown): void {
-    this.logger.warn('No job could be claimed.', fieldsOf(error));
+    this.logger.warn('No job could be claimed.', faultFieldsOf(error));
   }
 
   public started(row: ClaimedRow): void {
@@ -66,7 +39,7 @@ export class JobWorkerLog {
   public failed(row: ClaimedRow, error: unknown): void {
     this.logger.error('The handler of a job failed.', {
       ...jobOf(row),
-      ...fieldsOf(error),
+      ...faultFieldsOf(error),
     });
   }
 
@@ -74,7 +47,7 @@ export class JobWorkerLog {
   public endNotWritten(row: ClaimedRow, error: unknown): void {
     this.logger.error('The end of a job could not be written.', {
       ...jobOf(row),
-      ...fieldsOf(error),
+      ...faultFieldsOf(error),
     });
   }
 
