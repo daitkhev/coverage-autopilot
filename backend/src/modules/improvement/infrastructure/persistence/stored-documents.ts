@@ -6,6 +6,7 @@ import {
   VerificationReport,
 } from '#improvement/domain/value-objects/verification-report.vo';
 import {
+  BASELINE_DOCUMENT_VERSION,
   DOCUMENT_VERSION,
   documentOf,
   generationOutputDocumentSchema,
@@ -85,27 +86,32 @@ export function generatorConfigFrom(json: string): GeneratorConfig {
 export function verificationBaselineText(
   baseline: VerificationBaseline,
 ): string {
-  const { mutation } = baseline;
-  return written({
-    commit: baseline.commit.value,
-    targetFile: baseline.targetFile.value,
-    typeCheck: baseline.typeCheck,
-    existingTests: baseline.existingTests,
-    mutation:
-      mutation === null
-        ? null
-        : { ...mutation, undetected: mutation.undetected.map(withText) },
-  });
+  const { mutation, failingTests } = baseline;
+  return written(
+    {
+      commit: baseline.commit.value,
+      targetFile: baseline.targetFile.value,
+      typeCheck: baseline.typeCheck,
+      existingTests: baseline.existingTests,
+      failingTests: failingTests?.map(withText) ?? null,
+      mutation:
+        mutation === null
+          ? null
+          : { ...mutation, undetected: mutation.undetected.map(withText) },
+    },
+    BASELINE_DOCUMENT_VERSION,
+  );
 }
 
 export function verificationBaselineFrom(json: string): VerificationBaseline {
   const document = documentOf(json, verificationBaselineDocumentSchema);
-  const { mutation } = document;
+  const { mutation, failingTests } = document;
   return VerificationBaseline.create({
     commit: CommitSha.create(document.commit),
     targetFile: FilePath.create(document.targetFile),
     typeCheck: document.typeCheck,
     existingTests: document.existingTests,
+    failingTests: failingTests?.map(withPath) ?? null,
     mutation:
       mutation === null
         ? null

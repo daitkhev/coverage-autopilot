@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { verificationBaselineOf } from '#improvement/application/commands/run-improvement/analysis-baseline';
 import { InvalidImprovementValueError } from '#improvement/domain/errors/invalid-improvement-value.error';
 import { gateBaselineOf } from '#tests/support/improvement-handler-modules';
-import { baselineOf, mutationOf } from '#tests/support/improvement-values';
+import {
+  baselineOf,
+  FAILING_TESTS,
+  mutationOf,
+} from '#tests/support/improvement-values';
 
 describe('verificationBaselineOf', () => {
   it('should keep what the gate measured', () => {
@@ -17,6 +21,29 @@ describe('verificationBaselineOf', () => {
 
     expect(baseline.mutation?.undetected).not.toBe(dto.mutation?.undetected);
     expect(baseline.mutation?.tool).not.toBe(dto.mutation?.tool);
+  });
+
+  it('should hold a copy of its own of the tests that failed', () => {
+    const dto = {
+      ...gateBaselineOf(),
+      existingTests: 'failed',
+      failingTests: FAILING_TESTS,
+    } as const;
+
+    const baseline = verificationBaselineOf(dto);
+
+    expect(baseline.failingTests).toEqual(FAILING_TESTS);
+    expect(baseline.failingTests?.[0]).not.toBe(FAILING_TESTS[0]);
+  });
+
+  it('should keep tests that are not known as such', () => {
+    const baseline = verificationBaselineOf({
+      ...gateBaselineOf(),
+      existingTests: 'timed_out',
+      failingTests: null,
+    });
+
+    expect(baseline.failingTests).toBeNull();
   });
 
   it('should keep a baseline with no mutants as one', () => {

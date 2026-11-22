@@ -210,6 +210,28 @@ describe('measureEnding', () => {
     });
   });
 
+  it('should fail with existing_tests_fail, in the words of the gate, when the tests of the commit fail', () => {
+    const detail =
+      '33 of 53 tests of the repository fail in the sandbox. The first is ' +
+      '"api > reads the feed" in tests/api.test.ts.';
+
+    const ending = measureEnding(
+      {
+        outcome: 'unsupported',
+        reason: 'existing_tests_fail',
+        detail,
+        outputReference: 'artifact-3',
+      },
+      analyzing,
+    );
+
+    expect(endingOf(ending)).toEqual({
+      status: 'failed',
+      reason: 'existing_tests_fail',
+      message: detail,
+    });
+  });
+
   it('should fail with verification_error for any other reason', () => {
     const ending = measureEnding(
       {

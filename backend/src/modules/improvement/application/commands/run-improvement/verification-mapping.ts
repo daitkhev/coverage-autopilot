@@ -17,6 +17,7 @@ export function verificationBaselineDtoOf(
     targetFile: baseline.targetFile,
     typeCheck: baseline.typeCheck,
     existingTests: baseline.existingTests,
+    failingTests: baseline.failingTests,
     mutation: baseline.mutation,
   };
 }

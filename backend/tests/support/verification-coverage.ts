@@ -1,6 +1,7 @@
 import type {
   CoverageCounterDto,
   CoverageSnapshotDto,
+  FailingTestDto,
   FileCoverageDto,
   MeasuredFileDto,
   RunCoverageDto,
@@ -115,6 +116,30 @@ function testRunDtoOf(status: TestRunDto['status']): TestRunDto {
     outputReference: `test-run-${status}`,
     firstFailure: null,
     outcomes: status === 'passed' ? { ran: RAN, failing: [] } : null,
+  };
+}
+
+/** A test of the repository that fails, and a file of it that cannot run. */
+export const FAILING_TESTS: readonly FailingTestDto[] = [
+  {
+    file: FilePath.create('tests/feed.test.ts'),
+    test: 'feed > reads the feed',
+  },
+  { file: FilePath.create('tests/clock.test.ts'), test: null },
+];
+
+/** A run of all the tests in which these failed, of the ones that ran. */
+export function failingRunOf(
+  failing: readonly FailingTestDto[] = FAILING_TESTS,
+): RunTestsResult {
+  return {
+    outcome: 'completed',
+    testRun: {
+      ...testRunDtoOf('failed'),
+      exitCode: 1,
+      outcomes: { ran: RAN, failing },
+    },
+    coverage: null,
   };
 }
 

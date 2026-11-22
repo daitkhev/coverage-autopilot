@@ -75,6 +75,16 @@ export interface MutationBaselineDto {
 }
 
 /**
+ * A test that failed, by its file and its full name: every `describe`
+ * around it, then the test. A file that failed to run has no name and
+ * counts as one test.
+ */
+export interface FailingTestDto {
+  readonly file: FilePath;
+  readonly test: string | null;
+}
+
+/**
  * What the commit is like before any patch. It is measured once for an
  * improvement and every attempt is compared with it, so the caller keeps
  * it and gives it back unchanged.
@@ -85,6 +95,12 @@ export interface VerificationBaselineDto {
   /** `absent`: the project has no compiler or no configuration of one. */
   readonly typeCheck: 'passes' | 'fails' | 'absent';
   readonly existingTests: 'passed' | 'failed' | 'timed_out';
+  /**
+   * The tests that failed before any patch, each once: the gate leaves
+   * them out. Empty when none did. `null` when they are not known, such
+   * as after a run that timed out.
+   */
+  readonly failingTests: readonly FailingTestDto[] | null;
   /** `null` when the policy does not require the mutation check. */
   readonly mutation: MutationBaselineDto | null;
 }
@@ -125,7 +141,9 @@ export interface MeasureBaselineRequest {
 
 /**
  * `unsupported`: the commit cannot be verified at all, and no token should
- * be spent on it. `timed_out`: the deadline passed before the end.
+ * be spent on it. `existing_tests_fail`: tests of the commit fail in the
+ * sandbox, and the settings say they must pass, or the runner did not say
+ * which failed. `timed_out`: the deadline passed before the end.
  */
 export type MeasureBaselineResult =
   | {
@@ -135,7 +153,10 @@ export type MeasureBaselineResult =
   | {
       readonly outcome: 'unsupported';
       readonly reason:
-        'project_unsupported' | 'install_failed' | 'mutation_unsupported';
+        | 'project_unsupported'
+        | 'install_failed'
+        | 'existing_tests_fail'
+        | 'mutation_unsupported';
       readonly detail: string;
       readonly outputReference: string | null;
     }

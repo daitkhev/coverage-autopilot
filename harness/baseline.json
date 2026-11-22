@@ -68,6 +68,7 @@
         "CheckProgress",
         "CheckResultDto",
         "CheckStatus",
+        "FailingTestDto",
         "MeasureBaselineRequest",
         "MeasureBaselineResult",
         "MutantCountsDto",

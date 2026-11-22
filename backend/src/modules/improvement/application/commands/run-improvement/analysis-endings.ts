@@ -140,6 +140,28 @@ function measuredEnding(
   };
 }
 
+type Unsupported = Extract<
+  MeasureBaselineResult,
+  { readonly outcome: 'unsupported' }
+>;
+
+/**
+ * Tests of the repository that fail in the sandbox are a cause of their
+ * own, which the detail names, and no fault of the gate.
+ */
+function unsupportedEnding(result: Unsupported): Change {
+  if (result.reason === 'existing_tests_fail') {
+    return failedWith('existing_tests_fail', result.detail);
+  }
+  return failedWith(
+    result.reason === 'mutation_unsupported'
+      ? 'mutation_unsupported'
+      : 'verification_error',
+    `The gate cannot measure the commit, for the reason ` +
+      `${result.reason}: ${result.detail}`,
+  );
+}
+
 /** How the measure of the gate ends the analysis. */
 export function measureEnding(
   result: MeasureBaselineResult,
@@ -149,13 +171,7 @@ export function measureEnding(
     case 'measured':
       return measuredEnding(result.baseline, improvement);
     case 'unsupported':
-      return failedWith(
-        result.reason === 'mutation_unsupported'
-          ? 'mutation_unsupported'
-          : 'verification_error',
-        `The gate cannot measure the commit, for the reason ` +
-          `${result.reason}: ${result.detail}`,
-      );
+      return unsupportedEnding(result);
     case 'timed_out':
       return budgetExhausted(improvement);
   }

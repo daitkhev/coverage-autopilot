@@ -8,13 +8,18 @@ import { InvalidImprovementValueError } from '#improvement/domain/errors/invalid
 import {
   baselineOf,
   checkOf,
+  FAILING_TESTS,
   reportPropsOf,
 } from '#tests/support/improvement-values';
 import type { VerificationReportDto } from '#verification/application/contracts/verification-public-api';
 
 describe('verificationBaselineDtoOf', () => {
   it('should keep every part of the baseline', () => {
-    const baseline = baselineOf({ typeCheck: 'absent' });
+    const baseline = baselineOf({
+      typeCheck: 'absent',
+      existingTests: 'failed',
+      failingTests: FAILING_TESTS,
+    });
 
     const dto = verificationBaselineDtoOf(baseline);
 
@@ -22,7 +27,8 @@ describe('verificationBaselineDtoOf', () => {
       commit: baseline.commit,
       targetFile: baseline.targetFile,
       typeCheck: 'absent',
-      existingTests: 'passed',
+      existingTests: 'failed',
+      failingTests: FAILING_TESTS,
       mutation: baseline.mutation,
     });
   });

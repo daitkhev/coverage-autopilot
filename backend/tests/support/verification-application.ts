@@ -39,6 +39,7 @@ import { VerifyPatchHandler } from '#verification/application/commands/verify-pa
 import type { CheckProgress } from '#verification/application/contracts/verification-public-api';
 import { Deadline } from '#verification/application/deadline';
 import { mutationBaselineOf } from '#verification/application/dto/verification-dto-mapping';
+import type { VerificationSettings } from '#verification/application/verification-settings';
 import { QualityPolicy } from '#verification/domain/value-objects/quality-policy.vo';
 
 /** Every stand-in of the gate, and the parts wired over them. */
@@ -79,7 +80,9 @@ function sequenceOf(parts: StandIns): CheckSequence {
  * test that passes, covers more and kills every undetected mutant. A test
  * changes a stand-in to take another path.
  */
-export function verificationApplication(): VerificationApplication {
+export function verificationApplication(
+  settings: VerificationSettings = VERIFICATION_TEST_SETTINGS,
+): VerificationApplication {
   const parts: StandIns = {
     clock: new FixedClock(NOW),
     repositories: patchingRepositories(),
@@ -94,7 +97,7 @@ export function verificationApplication(): VerificationApplication {
     parts.coverage,
     parts.typeChecker,
     parts.mutationRunner,
-    VERIFICATION_TEST_SETTINGS,
+    settings,
   );
   const verification = new PatchVerification(
     parts.repositories,

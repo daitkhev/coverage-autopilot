@@ -48,6 +48,10 @@ export const FAILURE_WORDS: Readonly<
     headline: 'The work failed too many times',
     next: 'Open the raw output to see why, then start it again.',
   },
+  existing_tests_fail: {
+    headline: 'The tests of the repository fail in the sandbox',
+    next: 'Let them fail with AUTOPILOT_BASELINE_TESTS=may_fail, or fix them.',
+  },
   mutation_unsupported: {
     headline: 'Mutants cannot be measured in this project',
     next: 'Check that the mutation tool runs with the tests of this project.',

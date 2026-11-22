@@ -4,14 +4,26 @@ import {
   COVERAGE_PUBLIC_API,
   type CoveragePublicApi,
   type DetectedProjectDto,
-  type PrepareProjectResult,
   type WorkingCopyLoan,
 } from '#coverage/application/contracts/coverage-public-api';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
 } from '#repositories/application/contracts/repositories-public-api';
+import {
+  type BaselineTests,
+  baselineTestsOf,
+} from '#verification/application/commands/measure-baseline/baseline-tests';
 import type { MeasureBaselineCommand } from '#verification/application/commands/measure-baseline/measure-baseline.command';
+import {
+  done,
+  refusalOf,
+  type Step,
+  stopped,
+  testsStepOf,
+  TIMED_OUT,
+  unsupportedProject,
+} from '#verification/application/commands/measure-baseline/measurement-step';
 import type {
   BaselineProgress,
   MeasureBaselineResult,
@@ -49,51 +61,6 @@ export interface Measurement {
 
 interface InCopy extends Measurement {
   readonly loan: WorkingCopyLoan;
-}
-
-/** A step either gives its value or ends the whole measurement. */
-type Step<Value> =
-  | { readonly outcome: 'done'; readonly value: Value }
-  | { readonly outcome: 'stopped'; readonly result: MeasureBaselineResult };
-
-const TIMED_OUT: Step<never> = {
-  outcome: 'stopped',
-  result: { outcome: 'timed_out' },
-};
-
-function done<Value>(value: Value): Step<Value> {
-  return { outcome: 'done', value };
-}
-
-function stopped(result: MeasureBaselineResult): Step<never> {
-  return { outcome: 'stopped', result };
-}
-
-function unsupportedProject(detail: string): Step<never> {
-  return stopped({
-    outcome: 'unsupported',
-    reason: 'project_unsupported',
-    detail,
-    outputReference: null,
-  });
-}
-
-function refusalOf(
-  preparation: Exclude<PrepareProjectResult, { outcome: 'ready' }>,
-): Step<never> {
-  if (preparation.outcome === 'unsupported') {
-    return unsupportedProject(preparation.detail);
-  }
-  const { exitCode, outputReference } = preparation;
-  return stopped({
-    outcome: 'unsupported',
-    reason: 'install_failed',
-    detail:
-      exitCode === null
-        ? 'The install of the packages ran out of time.'
-        : `The install of the packages ended with exit code ${String(exitCode)}.`,
-    outputReference,
-  });
 }
 
 function baselineOfRun(run: CompletedMutationRun): MutationBaselineDto {
@@ -182,7 +149,7 @@ export class BaselineMeasurement {
       commit: measurement.command.commit,
       targetFile: measurement.command.targetFile,
       typeCheck: typeCheck.value,
-      existingTests: tests.value,
+      ...tests.value,
       mutation: mutation.value,
     };
     return { outcome: 'measured', baseline };
@@ -257,7 +224,7 @@ export class BaselineMeasurement {
   private async existingTests(
     measurement: InCopy,
     signal: AbortSignal,
-  ): Promise<Step<VerificationBaselineDto['existingTests']>> {
+  ): Promise<Step<BaselineTests>> {
     const result = await this.inStep(measurement, 'existing_tests', async () =>
       this.coverage.runTests(
         { ...measurement.loan, testFiles: [], withCoverage: false },
@@ -268,7 +235,9 @@ export class BaselineMeasurement {
       return TIMED_OUT;
     }
     return result.outcome === 'completed'
-      ? done(result.testRun.status)
+      ? testsStepOf(
+          baselineTestsOf(result.testRun, this.settings.baselineTests),
+        )
       : unsupportedProject(result.detail);
   }
 

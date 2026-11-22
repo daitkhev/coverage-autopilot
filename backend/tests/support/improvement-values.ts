@@ -19,6 +19,7 @@ import { RequestKey } from '#improvement/domain/value-objects/request-key.vo';
 import { SnapshotId } from '#improvement/domain/value-objects/snapshot-id.vo';
 import { TestPatch } from '#improvement/domain/value-objects/test-patch.vo';
 import {
+  type FailingTest,
   type MutationBaseline,
   VerificationBaseline,
   type VerificationBaselineProps,
@@ -176,6 +177,15 @@ export function mutationOf(): MutationBaseline {
   };
 }
 
+/** A test that failed before the patch, and a file that failed to run. */
+export const FAILING_TESTS: readonly FailingTest[] = [
+  {
+    file: FilePath.create('tests/feed.test.ts'),
+    test: 'feed > reads the feed',
+  },
+  { file: FilePath.create('tests/clock.test.ts'), test: null },
+];
+
 /** The baseline of the gate at the base commit, with one missed mutant. */
 export function baselineOf(
   spec: Partial<VerificationBaselineProps> = {},
@@ -185,6 +195,7 @@ export function baselineOf(
     targetFile: FilePath.create(TARGET_FILE),
     typeCheck: 'passes',
     existingTests: 'passed',
+    failingTests: [],
     mutation: mutationOf(),
     ...spec,
   });

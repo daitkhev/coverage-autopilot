@@ -27,11 +27,25 @@ export interface MutationBaseline {
   readonly cacheReference: string | null;
 }
 
+/**
+ * A test that failed before any patch, by its file and its full name. A
+ * file that failed to run has no name and counts as one test.
+ */
+export interface FailingTest {
+  readonly file: FilePath;
+  readonly test: string | null;
+}
+
 export interface VerificationBaselineProps {
   readonly commit: CommitSha;
   readonly targetFile: FilePath;
   readonly typeCheck: (typeof TYPE_CHECK_STATES)[number];
   readonly existingTests: (typeof TEST_RUN_STATES)[number];
+  /**
+   * The tests the gate leaves out, since they failed before any patch.
+   * `null` when they are not known.
+   */
+  readonly failingTests: readonly FailingTest[] | null;
   /** `null` when the policy does not require the mutation check. */
   readonly mutation: MutationBaseline | null;
 }
@@ -42,6 +56,11 @@ function holdsItsMutants(mutation: MutationBaseline | null): boolean {
     (Number.isInteger(mutation.totalMutants) &&
       mutation.undetected.length <= mutation.totalMutants)
   );
+}
+
+/** Tests that all passed leave no test out. */
+function holdsItsTests(props: VerificationBaselineProps): boolean {
+  return props.existingTests !== 'passed' || props.failingTests?.length === 0;
 }
 
 /**
@@ -62,6 +81,11 @@ export class VerificationBaseline extends ValueObject<VerificationBaselineProps>
           'undetected.',
       );
     }
+    if (!holdsItsTests(props)) {
+      throw new InvalidImprovementValueError(
+        'A baseline whose tests passed names no failing test, and knows it.',
+      );
+    }
     return new VerificationBaseline(props);
   }
 
@@ -79,6 +103,10 @@ export class VerificationBaseline extends ValueObject<VerificationBaselineProps>
 
   public get existingTests(): VerificationBaselineProps['existingTests'] {
     return this.props.existingTests;
+  }
+
+  public get failingTests(): readonly FailingTest[] | null {
+    return this.props.failingTests;
   }
 
   public get mutation(): MutationBaseline | null {

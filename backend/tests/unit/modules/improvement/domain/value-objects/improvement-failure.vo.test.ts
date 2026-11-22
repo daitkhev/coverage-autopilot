@@ -15,6 +15,7 @@ describe('ImprovementFailure', () => {
       'stale_snapshot',
       'verification_error',
       'retries_exhausted',
+      'existing_tests_fail',
       'mutation_unsupported',
       'quota_exhausted',
       'credential_exposed',

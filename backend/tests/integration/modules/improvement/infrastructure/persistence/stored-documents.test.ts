@@ -2,15 +2,33 @@ import { describe, expect, it } from 'vitest';
 
 import { VerificationReport } from '#improvement/domain/value-objects/verification-report.vo';
 import {
+  verificationBaselineFrom,
+  verificationBaselineText,
   verificationReportFrom,
   verificationReportText,
 } from '#improvement/infrastructure/persistence/stored-documents';
 import {
+  BASE_COMMIT,
+  baselineOf,
   failedRunReportProps,
+  FAILING_TESTS,
   hashOf,
   reportOf,
   RUN_FAILURE,
+  TARGET_FILE,
 } from '#tests/support/improvement-values';
+
+/** A baseline as the service stored it before it kept failing tests. */
+function firstBaseline(existingTests: string): string {
+  return JSON.stringify({
+    version: 1,
+    commit: BASE_COMMIT,
+    targetFile: TARGET_FILE,
+    typeCheck: 'passes',
+    existingTests,
+    mutation: null,
+  });
+}
 
 /** A report as the service stored it before a check kept a failure. */
 const FIRST_VERSION = JSON.stringify({
@@ -53,6 +71,72 @@ function withFirstCheck(json: string, change: object): string {
 }
 
 describe('stored documents', () => {
+  describe('verificationBaselineText', () => {
+    it('should write the second version, with the tests that failed', () => {
+      const baseline = baselineOf({
+        existingTests: 'failed',
+        failingTests: FAILING_TESTS,
+      });
+
+      expect(JSON.parse(verificationBaselineText(baseline))).toMatchObject({
+        version: 2,
+        failingTests: [
+          { file: 'tests/feed.test.ts', test: 'feed > reads the feed' },
+          { file: 'tests/clock.test.ts', test: null },
+        ],
+      });
+    });
+  });
+
+  describe('verificationBaselineFrom', () => {
+    it.each([
+      ['tests that failed', FAILING_TESTS],
+      ['no test that failed', []],
+      ['tests that are not known', null],
+    ])('should give back the baseline it wrote, with %s', (_case, failing) => {
+      const baseline = baselineOf({
+        existingTests: failing?.length === 0 ? 'passed' : 'failed',
+        failingTests: failing,
+      });
+
+      expect(
+        verificationBaselineFrom(verificationBaselineText(baseline)),
+      ).toEqual(baseline);
+    });
+
+    it.each([
+      ['passed', []],
+      ['failed', null],
+      ['timed_out', null],
+    ])(
+      'should read a baseline of the first version whose tests %s',
+      (existingTests, failingTests) => {
+        const baseline = verificationBaselineFrom(firstBaseline(existingTests));
+
+        expect(baseline.existingTests).toBe(existingTests);
+        expect(baseline.failingTests).toEqual(failingTests);
+      },
+    );
+
+    it.each([
+      [
+        'a baseline of the first version that names failing tests',
+        JSON.stringify({
+          ...JSON.parse(firstBaseline('failed')),
+          failingTests: [],
+        }),
+      ],
+      [
+        'a baseline of the second version that does not',
+        JSON.stringify({ ...JSON.parse(firstBaseline('failed')), version: 2 }),
+      ],
+    ])('should refuse %s', (_case, json) => {
+      expect(() => verificationBaselineFrom(json)).toThrow(
+        expect.objectContaining({ name: 'ZodError' }),
+      );
+    });
+  });
+
   describe('verificationReportText', () => {
     it('should write the second version, with the failure of each check', () => {
       const text = verificationReportText(

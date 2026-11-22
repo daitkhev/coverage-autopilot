@@ -9,6 +9,7 @@ import {
 import {
   BASE_COMMIT,
   baselineOf,
+  FAILING_TESTS,
   mutationOf,
   TARGET_FILE,
 } from '#tests/support/improvement-values';
@@ -35,6 +36,38 @@ describe('VerificationBaseline', () => {
 
     it('should keep a baseline with no mutants, as a policy without them has', () => {
       expect(baselineOf({ mutation: null }).mutation).toBeNull();
+    });
+
+    it('should keep the tests that failed before any patch', () => {
+      const baseline = baselineOf({
+        existingTests: 'failed',
+        failingTests: FAILING_TESTS,
+      });
+
+      expect(baseline.failingTests).toEqual(FAILING_TESTS);
+    });
+
+    it('should keep a run that timed out, whose failing tests are not known', () => {
+      const baseline = baselineOf({
+        existingTests: 'timed_out',
+        failingTests: null,
+      });
+
+      expect(baseline.failingTests).toBeNull();
+    });
+
+    describe('when its tests passed and it names failing tests, or none it knows', () => {
+      it.each([[FAILING_TESTS], [null]])(
+        'should throw InvalidImprovementValueError for %j',
+        (failingTests) => {
+          expect(() => baselineOf({ failingTests })).toThrow(
+            new InvalidImprovementValueError(
+              'A baseline whose tests passed names no failing test, and ' +
+                'knows it.',
+            ),
+          );
+        },
+      );
     });
 
     describe('when it lists more undetected mutants than it counts', () => {

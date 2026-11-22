@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   checkNameSchema,
+  improvementFailureReasonSchema,
   improvementStatusSchema,
   stepStatusSchema,
 } from '#api-contracts/statuses';
@@ -31,6 +32,14 @@ describe('stepStatusSchema', () => {
       'not_applicable',
       'error',
     ]);
+  });
+});
+
+describe('improvementFailureReasonSchema', () => {
+  it('should name tests that fail in the sandbox as a cause of their own', () => {
+    expect(
+      improvementFailureReasonSchema.safeParse('existing_tests_fail').success,
+    ).toBe(true);
   });
 });
 

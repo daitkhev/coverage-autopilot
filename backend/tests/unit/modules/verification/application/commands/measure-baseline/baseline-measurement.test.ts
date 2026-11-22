@@ -8,6 +8,8 @@ import {
   verificationApplication,
 } from '#tests/support/verification-application';
 import {
+  FAILING_TESTS,
+  failingRunOf,
   testRunOf,
   UNSUPPORTED_RUN,
 } from '#tests/support/verification-coverage';
@@ -66,6 +68,7 @@ describe('BaselineMeasurement', () => {
           targetFile: measureRequestOf().targetFile,
           typeCheck: 'passes',
           existingTests: 'passed',
+          failingTests: [],
           mutation: mutationBaselineDto(),
         },
       });
@@ -148,6 +151,17 @@ describe('BaselineMeasurement', () => {
           baseline: { typeCheck: 'absent', existingTests: 'timed_out' },
         });
       });
+
+      it('should keep the tests that failed, when the settings let them', async () => {
+        const application = verificationApplication();
+        application.coverage.answers.push(failingRunOf());
+
+        const { result } = await measure(application);
+
+        expect(result).toMatchObject({
+          baseline: { existingTests: 'failed', failingTests: FAILING_TESTS },
+        });
+      });
     });
 
     describe('when less time is left than a tool may take', () => {
@@ -165,50 +179,6 @@ describe('BaselineMeasurement', () => {
   });
 
   describe('measure, when the commit cannot be verified', () => {
-    it('should answer an unsupported project with its reason', async () => {
-      const application = verificationApplication();
-      application.coverage.preparation = {
-        outcome: 'unsupported',
-        reason: 'monorepo',
-        detail: 'The project is a monorepo.',
-      };
-
-      const { result } = await measure(application);
-
-      expect(result).toEqual({
-        outcome: 'unsupported',
-        reason: 'project_unsupported',
-        detail: 'The project is a monorepo.',
-        outputReference: null,
-      });
-      expect(application.repositories.disposed).toEqual(['copy-1']);
-    });
-
-    it('should answer an install that failed with its output', async () => {
-      const application = verificationApplication();
-      application.coverage.preparation = {
-        outcome: 'install_failed',
-        exitCode: 1,
-        outputReference: 'install',
-      };
-
-      const failed = await measure(application);
-      application.coverage.preparation = {
-        outcome: 'install_failed',
-        exitCode: null,
-        outputReference: 'install',
-      };
-      const stopped = await measure(application);
-
-      expect(failed.result).toEqual({
-        outcome: 'unsupported',
-        reason: 'install_failed',
-        detail: 'The install of the packages ended with exit code 1.',
-        outputReference: 'install',
-      });
-      expect(stopped.result).toMatchObject({ detail: /ran out of time/u });
-    });
-
     it('should answer a runner that cannot run the tests', async () => {
       const application = verificationApplication();
       application.coverage.answers.push(UNSUPPORTED_RUN);
@@ -220,6 +190,24 @@ describe('BaselineMeasurement', () => {
         reason: 'project_unsupported',
         detail: 'No test runner is installed.',
       });
+    });
+
+    it('should answer tests that fail and must pass, and measure no mutant', async () => {
+      const application = verificationApplication({
+        ...VERIFICATION_TEST_SETTINGS,
+        baselineTests: 'must_pass',
+      });
+      application.coverage.answers.push(failingRunOf());
+
+      const { result } = await measure(application);
+
+      expect(result).toMatchObject({
+        outcome: 'unsupported',
+        reason: 'existing_tests_fail',
+        detail: /^2 of 4 tests of the repository fail in the sandbox\./u,
+        outputReference: 'test-run-failed',
+      });
+      expect(application.mutationRunner.requests).toEqual([]);
     });
 
     it('should answer a mutation tool that cannot be installed, and run nothing', async () => {

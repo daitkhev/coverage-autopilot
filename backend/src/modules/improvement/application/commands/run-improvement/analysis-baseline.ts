@@ -30,6 +30,10 @@ export function verificationBaselineOf(
     targetFile: dto.targetFile,
     typeCheck: dto.typeCheck,
     existingTests: dto.existingTests,
+    failingTests:
+      dto.failingTests === null
+        ? null
+        : dto.failingTests.map((test) => ({ ...test })),
     mutation: dto.mutation === null ? null : mutationOf(dto.mutation),
   });
 }

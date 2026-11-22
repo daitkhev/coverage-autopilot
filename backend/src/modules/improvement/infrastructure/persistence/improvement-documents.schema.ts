@@ -34,6 +34,12 @@ export const DOCUMENT_VERSION = 1;
  */
 export const REPORT_DOCUMENT_VERSION = 2;
 
+/**
+ * The version the baseline of the gate is written with. The second keeps
+ * the tests that failed before any patch, which the gate leaves out.
+ */
+export const BASELINE_DOCUMENT_VERSION = 2;
+
 const count = z.int().nonnegative();
 const text = z.string();
 const optionalText = z.string().nullable();
@@ -66,7 +72,7 @@ const mutantShape = {
   replacement: text,
 };
 
-export const verificationBaselineDocumentSchema = versioned({
+const baselineShape = {
   commit: text,
   targetFile: text,
   typeCheck: z.enum(TYPE_CHECK_STATES),
@@ -82,7 +88,39 @@ export const verificationBaselineDocumentSchema = versioned({
       cacheReference: optionalText,
     })
     .nullable(),
+};
+
+const failingTests = z
+  .array(z.strictObject({ file: text, test: optionalText }))
+  .nullable();
+
+type FailingTests = z.infer<typeof failingTests>;
+
+const NONE: FailingTests = [];
+
+/**
+ * The first version, read as the second. Its gate stopped on any failing
+ * test, so tests that passed left none out, and the failing ones of a run
+ * that did not pass were never named.
+ */
+const firstBaselineDocumentSchema = versioned(baselineShape).transform(
+  (document) => ({
+    ...document,
+    failingTests: document.existingTests === 'passed' ? NONE : null,
+  }),
+);
+
+const secondBaselineDocumentSchema = z.strictObject({
+  version: z.literal(BASELINE_DOCUMENT_VERSION),
+  ...baselineShape,
+  failingTests,
 });
+
+/** A baseline of either version, in the shape of the second. */
+export const verificationBaselineDocumentSchema = z.union([
+  secondBaselineDocumentSchema,
+  firstBaselineDocumentSchema,
+]);
 
 const coverageCount = z.strictObject({ covered: count, total: count });
 

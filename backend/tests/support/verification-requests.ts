@@ -102,6 +102,7 @@ export function baselineOf(
     targetFile: FilePath.create(TARGET_FILE),
     typeCheck: 'passes',
     existingTests: 'passed',
+    failingTests: [],
     mutation: null,
     ...overrides,
   };
