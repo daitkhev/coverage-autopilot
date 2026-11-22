@@ -24,6 +24,7 @@ import { GetBudgetSettingsHandler } from '#improvement/application/queries/get-b
 import { GetImprovementHandler } from '#improvement/application/queries/get-improvement/get-improvement.handler';
 import { GetImprovementPatchHandler } from '#improvement/application/queries/get-improvement-patch/get-improvement-patch.handler';
 import { ListImprovementsHandler } from '#improvement/application/queries/list-improvements/list-improvements.handler';
+import { ListSnapshotFilesHandler } from '#improvement/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { IMPROVEMENT_REPOSITORY } from '#improvement/domain/repositories/improvement.repository';
 import { ClaudeCodeGenerator } from '#improvement/infrastructure/generator/claude-code-generator.adapter';
 import {
@@ -33,6 +34,12 @@ import {
 import { Sha256RequestHasher } from '#improvement/infrastructure/hashing/sha256-request-hasher.adapter';
 import { checkImprovementSettings } from '#improvement/infrastructure/improvement-settings.schema';
 import { SqliteImprovementRepository } from '#improvement/infrastructure/persistence/sqlite-improvement.repository';
+import { AnswerStatus } from '#improvement/presentation/http/answer-status';
+import { BudgetSettingsController } from '#improvement/presentation/http/budget-settings.controller';
+import { ImprovementDecisionsController } from '#improvement/presentation/http/improvement-decisions.controller';
+import { ImprovementRequestsController } from '#improvement/presentation/http/improvement-requests.controller';
+import { ImprovementsController } from '#improvement/presentation/http/improvements.controller';
+import { SnapshotFilesController } from '#improvement/presentation/http/snapshot-files.controller';
 
 /** One step for each status that has work, in the order of the path. */
 const STEPS = [AnalyzingStep, GeneratingStep, VerifyingStep, PublishingStep];
@@ -40,7 +47,9 @@ const STEPS = [AnalyzingStep, GeneratingStep, VerifyingStep, PublishingStep];
 /**
  * An improvement of one file: the request for it, the job that runs it
  * from status to status, the generator that writes the test, and what a
- * person sees and decides on the way.
+ * person sees and decides on the way. Its routes are those of
+ * improvements, of the files of a snapshot with the work on each, and of
+ * the settings of a budget.
  *
  * It takes from the modules around it: the contracts of `repositories`,
  * `coverage` and `verification`, the queue, the transaction manager, the
@@ -50,6 +59,13 @@ const STEPS = [AnalyzingStep, GeneratingStep, VerifyingStep, PublishingStep];
  * among the handlers of its worker.
  */
 @Module({
+  controllers: [
+    ImprovementRequestsController,
+    ImprovementsController,
+    ImprovementDecisionsController,
+    SnapshotFilesController,
+    BudgetSettingsController,
+  ],
   providers: [
     { provide: IMPROVEMENT_REPOSITORY, useClass: SqliteImprovementRepository },
     { provide: TEST_GENERATOR, useClass: ClaudeCodeGenerator },
@@ -70,6 +86,8 @@ const STEPS = [AnalyzingStep, GeneratingStep, VerifyingStep, PublishingStep];
     ListImprovementsHandler,
     GetImprovementPatchHandler,
     GetBudgetSettingsHandler,
+    ListSnapshotFilesHandler,
+    AnswerStatus,
   ],
   exports: [RunImprovementHandler],
 })

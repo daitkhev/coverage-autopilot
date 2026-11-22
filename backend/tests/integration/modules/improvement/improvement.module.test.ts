@@ -1,23 +1,26 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { improvementSchema } from '@coverage-autopilot/api-contracts/improvements';
+
 import { ApproveImprovementHandler } from '#improvement/application/commands/approve-improvement/approve-improvement.handler';
 import { CancelImprovementHandler } from '#improvement/application/commands/cancel-improvement/cancel-improvement.handler';
 import {
   IMPROVEMENT_STEPS,
   type ImprovementStep,
 } from '#improvement/application/commands/run-improvement/improvement-step';
-import type { StartImprovementCommand } from '#improvement/application/commands/start-improvement/start-improvement.command';
-import { StartImprovementHandler } from '#improvement/application/commands/start-improvement/start-improvement.handler';
-import type { ImprovementDto } from '#improvement/application/dto/improvement.dto';
 import { REQUEST_HASHER } from '#improvement/application/ports/request-hasher.port';
 import { TEST_GENERATOR } from '#improvement/application/ports/test-generator.port';
-import { GetImprovementHandler } from '#improvement/application/queries/get-improvement/get-improvement.handler';
 import { GetImprovementPatchHandler } from '#improvement/application/queries/get-improvement-patch/get-improvement-patch.handler';
 import { IMPROVEMENT_REPOSITORY } from '#improvement/domain/repositories/improvement.repository';
 import { InvalidImprovementSettingsError } from '#improvement/infrastructure/errors/invalid-improvement-settings.error';
 import { ClaudeCodeGenerator } from '#improvement/infrastructure/generator/claude-code-generator.adapter';
 import { Sha256RequestHasher } from '#improvement/infrastructure/hashing/sha256-request-hasher.adapter';
 import { SqliteImprovementRepository } from '#improvement/infrastructure/persistence/sqlite-improvement.repository';
+import { BudgetSettingsController } from '#improvement/presentation/http/budget-settings.controller';
+import { ImprovementDecisionsController } from '#improvement/presentation/http/improvement-decisions.controller';
+import { ImprovementRequestsController } from '#improvement/presentation/http/improvement-requests.controller';
+import { ImprovementsController } from '#improvement/presentation/http/improvements.controller';
+import { SnapshotFilesController } from '#improvement/presentation/http/snapshot-files.controller';
 import { GENERATOR_TEST_SETTINGS } from '#tests/support/generator-request';
 import {
   CALL_REPORT,
@@ -30,15 +33,15 @@ import {
   type ImprovementWorld,
   improvementWorld,
 } from '#tests/support/improvement-module-world';
-import { startCommandOf } from '#tests/support/improvement-request-stand-ins';
+import { FIRST_KEY } from '#tests/support/improvement-routes';
 import {
   checkOf,
   hashOf,
   reportPropsOf,
+  SOURCE_SNAPSHOT_ID,
+  TARGET_FILE,
   TEST_SETTINGS,
 } from '#tests/support/improvement-values';
-
-const NEVER = new AbortController().signal;
 
 let world: ImprovementWorld | undefined;
 
@@ -49,49 +52,8 @@ async function open(
   return world;
 }
 
-/** Asks for the improvement of the target and gives what was made. */
-async function start(
-  spec: Partial<StartImprovementCommand> = {},
-): Promise<ImprovementDto> {
-  const result = await opened()
-    .module.get(StartImprovementHandler)
-    .execute(startCommandOf(spec), NEVER);
-  if (result.outcome === 'refused') {
-    throw new Error(`The request was refused: ${result.reason}.`);
-  }
-  return result.improvement;
-}
-
-function opened(): ImprovementWorld {
-  if (world === undefined) {
-    throw new Error('The test has opened no world yet.');
-  }
-  return world;
-}
-
-async function read(improvementId: string): Promise<ImprovementDto> {
-  const improvement = await opened()
-    .module.get(GetImprovementHandler)
-    .execute({ improvementId });
-  if (improvement === null) {
-    throw new Error(`The improvement ${improvementId} is not stored.`);
-  }
-  return improvement;
-}
-
-/** The status and the outcome of every job of the improvement, in order. */
-function jobsOf(improvementId: string): [unknown, unknown][] {
-  return opened()
-    .connection.prepare(
-      `SELECT status, outcome FROM jobs WHERE subject_id = ?
-       ORDER BY created_at, id`,
-    )
-    .all(improvementId)
-    .map((row): [unknown, unknown] => [row['status'], row['outcome']]);
-}
-
 afterEach(async () => {
-  await world?.module.close();
+  await world?.close();
   world = undefined;
 });
 
@@ -112,7 +74,8 @@ describe('ImprovementModule', () => {
   });
 
   it('should take a request through one job to a pull request', async () => {
-    const { work, generator, gate, publisher } = await open();
+    const { work, generator, gate, publisher, start, read, jobsOf } =
+      await open();
     const created = await start();
 
     expect(created).toMatchObject({ status: 'created', waitingFor: 'worker' });
@@ -146,9 +109,45 @@ describe('ImprovementModule', () => {
     ]);
   });
 
+  it('should bind the routes of improvements, of snapshot files and of a budget', async () => {
+    const { module } = await open();
+    const routes = [
+      ImprovementRequestsController,
+      ImprovementsController,
+      ImprovementDecisionsController,
+      SnapshotFilesController,
+      BudgetSettingsController,
+    ];
+
+    expect(routes.map((route) => module.get(route))).toEqual(
+      routes.map((route) => expect.any(route) as unknown),
+    );
+  });
+
+  it('should take a request over its route to a pull request a client can read', async () => {
+    const { work, listen } = await open();
+    const send = await listen();
+
+    const asked = await send('POST', '/improvements', {
+      body: { snapshotId: SOURCE_SNAPSHOT_ID, filePath: TARGET_FILE },
+      headers: FIRST_KEY,
+    });
+    expect(asked.status).toBe(202);
+    const { id } = improvementSchema.parse(asked.body);
+
+    await work();
+
+    const shown = await send('GET', `/improvements/${id}`);
+    expect(shown.status).toBe(200);
+    expect(improvementSchema.parse(shown.body)).toMatchObject({
+      status: 'completed',
+      pullRequest: { number: 42 },
+    });
+  });
+
   describe('when the gate rejects the first patch', () => {
     it('should tell the generator why and accept the second attempt', async () => {
-      const { work, generator, gate } = await open();
+      const { work, generator, gate, start, read } = await open();
       gate.answers.push(reportPropsOf('rejected'));
       const { id } = await start();
 
@@ -169,7 +168,7 @@ describe('ImprovementModule', () => {
 
   describe('when the generator wrote a .git into its working copy', () => {
     it('should fail as a credential exposed and count the tokens it was paid', async () => {
-      const { work, copies } = await open();
+      const { work, copies, start, read } = await open();
       copies.extraction = tamperedCopyFault();
       const { id } = await start();
 
@@ -186,7 +185,7 @@ describe('ImprovementModule', () => {
 
   describe('when a patch reaches publishing', () => {
     it('should publish byte for byte the text the gate read with the endings of the settings', async () => {
-      const { work, gate, publisher } = await open();
+      const { work, gate, publisher, start } = await open();
       await start();
 
       await work();
@@ -202,7 +201,7 @@ describe('ImprovementModule', () => {
 
   describe('when the gate refuses the files of every patch', () => {
     it('should publish none of them', async () => {
-      const { work, gate, publisher } = await open();
+      const { work, gate, publisher, start, read } = await open();
       const reason = 'The patch adds .gitattributes, not a test file.';
       const refused = {
         ...reportPropsOf('rejected'),
@@ -226,7 +225,7 @@ describe('ImprovementModule', () => {
 
   describe('in review mode', () => {
     it('should wait for a person and publish the patch they approved', async () => {
-      const { work, module, publisher } = await open();
+      const { work, module, publisher, start, read, jobsOf } = await open();
       const { id } = await start({ mode: 'review' });
       await work();
 
@@ -259,7 +258,7 @@ describe('ImprovementModule', () => {
 
   describe('when the window of the subscription is spent', () => {
     it('should wait with a job of its own and go on when the window opens', async () => {
-      const { work, generator, clock } = await open();
+      const { work, generator, clock, start, read, jobsOf } = await open();
       generator.answer = windowSpent(null);
       const { id } = await start();
       await work();
@@ -293,7 +292,7 @@ describe('ImprovementModule', () => {
 
   describe('when a person cancels before a worker took the job', () => {
     it('should end the improvement and its job, and start no work', async () => {
-      const { work, module, generator } = await open();
+      const { work, module, generator, start, jobsOf } = await open();
       const { id } = await start();
 
       const cancelled = await module

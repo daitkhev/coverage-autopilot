@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 
-import type { Provider } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { INestApplication, Provider } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 
 import {
   COVERAGE_PUBLIC_API,
@@ -21,6 +21,7 @@ import {
 } from '#improvement/infrastructure/generator/generator-settings';
 import { SQLITE_CONNECTION } from '#infrastructure/database/sqlite-connection';
 import { SqliteJobTable } from '#infrastructure/database/sqlite-job-table';
+import { API_ERROR_FILTER } from '#infrastructure/http/api-error.filter';
 import { JobWorker } from '#infrastructure/queue/job-worker';
 import {
   DEFAULT_JOB_WORKER_SETTINGS,
@@ -49,6 +50,14 @@ import {
 } from '#tests/support/improvement-generation-stand-ins';
 import { ManualAlarm } from '#tests/support/improvement-handler-alarm';
 import { analysisModules } from '#tests/support/improvement-handler-modules';
+import {
+  type ModuleRoutes,
+  moduleRoutes,
+} from '#tests/support/improvement-module-routes';
+import {
+  type ModuleSteps,
+  moduleSteps,
+} from '#tests/support/improvement-module-steps';
 import { sourceCoverage } from '#tests/support/improvement-request-stand-ins';
 import { seedImprovementRows } from '#tests/support/improvement-stores';
 import {
@@ -89,13 +98,14 @@ export interface WorldSpec {
   readonly realGenerator?: boolean;
 }
 
-/** The module on a real database and a real queue, with one worker. */
-export interface ImprovementWorld extends ModulesBelow {
-  readonly module: TestingModule;
+/**
+ * The module on a real database and a real queue, with one worker, as an
+ * application whose routes listen only when a test asks.
+ */
+export interface ImprovementWorld
+  extends ModulesBelow, ModuleSteps, ModuleRoutes {
+  readonly module: INestApplication;
   readonly clock: FixedClock;
-  readonly connection: DatabaseSync;
-  /** Runs every job that may start now, each to its end. */
-  readonly work: () => Promise<void>;
 }
 
 /**
@@ -135,7 +145,7 @@ function contractsOf(below: ModulesBelow): Provider[] {
 }
 
 /** What the service gives the module, with a worker that runs its jobs. */
-function serviceOf(spec: WorldSpec): Provider[] {
+function serviceOf(spec: WorldSpec, logger: RecordingLogger): Provider[] {
   return [
     {
       provide: IMPROVEMENT_SETTINGS,
@@ -148,7 +158,7 @@ function serviceOf(spec: WorldSpec): Provider[] {
     { provide: GENERATOR_SANDBOX, useValue: new RecordingSandbox() },
     { provide: ARTIFACT_STORE, useValue: inMemoryArtifacts() },
     { provide: ALARM, useValue: new ManualAlarm() },
-    { provide: LOGGER, useValue: new RecordingLogger() },
+    { provide: LOGGER, useValue: logger },
     SqliteJobTable,
     { provide: JOB_QUEUE, useClass: SqliteJobQueue },
     { provide: JOB_WORKER_SETTINGS, useValue: DEFAULT_JOB_WORKER_SETTINGS },
@@ -162,8 +172,9 @@ function serviceOf(spec: WorldSpec): Provider[] {
 }
 
 /**
- * Compiles the module of the improvement as the service would, over a
- * migrated database with the rows an improvement of the tests refers to.
+ * Builds the module of the improvement as the service would, behind the
+ * error filter of the service, over a migrated database with the rows an
+ * improvement of the tests refers to.
  */
 export async function improvementWorld(
   spec: WorldSpec = {},
@@ -174,28 +185,28 @@ export async function improvementWorld(
     gate: standInGate(),
     publisher: standInPublisher(),
   };
-  const providers = [...contractsOf(below), ...serviceOf(spec)];
+  const logger = new RecordingLogger();
+  const providers = [...contractsOf(below), ...serviceOf(spec, logger)];
   const building = Test.createTestingModule({
     imports: [
       SharedTestModule.create(),
       { module: ImprovementModule, providers },
     ],
+    providers: [{ provide: LOGGER, useValue: logger }, API_ERROR_FILTER],
   });
   if (spec.realGenerator !== true) {
     building.overrideProvider(TEST_GENERATOR).useValue(below.generator);
   }
-  const module = await (await building.compile()).init();
+  const module = (await building.compile()).createNestApplication();
+  module.useLogger(false);
+  await module.init();
   const connection = module.get<DatabaseSync>(SQLITE_CONNECTION);
   seedImprovementRows(new SchemaRows(connection));
-  const worker = module.get(JobWorker);
   return {
     ...below,
+    ...moduleSteps(module, connection),
+    ...moduleRoutes(module),
     module,
-    connection,
     clock: module.get<FixedClock>(CLOCK),
-    work: async () => {
-      await worker.poll();
-      await worker.whenIdle();
-    },
   };
 }
