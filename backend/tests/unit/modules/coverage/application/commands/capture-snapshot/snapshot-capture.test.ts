@@ -127,6 +127,7 @@ describe('SnapshotCapture', () => {
       it('should answer test_run_timed_out with its output', async () => {
         const { capture, runner } = coverageApplication();
         runner.output = {
+          ...runner.output,
           result: { ...PASSED, outcome: 'timed_out', exitCode: null },
           reportPath: null,
         };

@@ -2,6 +2,7 @@ import type { TestRunRequest } from '#coverage/application/ports/test-runner.por
 import {
   exactGlob,
   REPORT_FOLDER,
+  resultsPathOf,
   type RunnerCommand,
 } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
 
@@ -40,6 +41,18 @@ function coverageArguments(request: TestRunRequest): string[] {
 }
 
 /**
+ * A reporter named on the command line replaces those of the
+ * configuration, so the usual one is named beside the JSON one.
+ */
+function resultsArguments(request: TestRunRequest): string[] {
+  return [
+    '--reporter=default',
+    '--reporter=json',
+    `--outputFile.json=${resultsPathOf(request)}`,
+  ];
+}
+
+/**
  * Vitest with the file list: without `--coverage.include` it leaves out
  * every file that no test imports.
  */
@@ -51,6 +64,7 @@ export const VITEST_COMMAND: RunnerCommand = {
     'run',
     ...configArguments(request),
     ...coverageArguments(request),
+    ...resultsArguments(request),
     ...request.testFiles.map((path) => path.value),
   ],
 };

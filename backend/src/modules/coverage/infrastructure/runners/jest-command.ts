@@ -2,6 +2,7 @@ import type { TestRunRequest } from '#coverage/application/ports/test-runner.por
 import {
   exactGlob,
   REPORT_FOLDER,
+  resultsPathOf,
   type RunnerCommand,
 } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
 
@@ -31,6 +32,14 @@ function coverageArguments(request: TestRunRequest): string[] {
   ];
 }
 
+/**
+ * With a file, `--json` writes the results there and leaves the usual
+ * output as it is, on the standard error.
+ */
+function resultsArguments(request: TestRunRequest): string[] {
+  return ['--json', `--outputFile=${resultsPathOf(request)}`];
+}
+
 function testArguments(request: TestRunRequest): string[] {
   const paths = request.testFiles.map((path) => path.value);
   return paths.length === 0 ? [] : ['--runTestsByPath', ...paths];
@@ -49,6 +58,7 @@ export const JEST_COMMAND: RunnerCommand = {
     '--ci',
     ...configArguments(request),
     ...coverageArguments(request),
+    ...resultsArguments(request),
     ...testArguments(request),
   ],
 };

@@ -9,6 +9,11 @@ import type {
 } from '#coverage/application/ports/project-detector.port';
 import type { SourceClassifier } from '#coverage/application/ports/source-classifier.port';
 import type {
+  TestFailure,
+  TestReportReader,
+  TestReportRequest,
+} from '#coverage/application/ports/test-report-reader.port';
+import type {
   TestRunner,
   TestRunOutput,
   TestRunRequest,
@@ -151,12 +156,19 @@ export interface RecordingRunner extends TestRunner {
 export const REPORT_PATH =
   '/work/acme-widgets/node_modules/.cache/report/coverage-final.json';
 
+/** Where a stand-in runner says it wrote the report of its tests. */
+export const RESULTS_PATH = '/work/acme-widgets/node_modules/results.json';
+
 /** A runner that starts nothing, keeps every request and answers `output`. */
 export function recordingRunner(): RecordingRunner {
   const runner: RecordingRunner = {
     testRunner: 'jest',
     requests: [],
-    output: { result: PASSED, reportPath: REPORT_PATH },
+    output: {
+      result: PASSED,
+      reportPath: REPORT_PATH,
+      resultsPath: RESULTS_PATH,
+    },
     run: async (request, signal) => {
       signal.throwIfAborted();
       runner.requests.push(request);
@@ -170,6 +182,25 @@ export interface FixedReportReader extends CoverageReportReader {
   readonly requests: CoverageReportRequest[];
   /** `null` when the runner wrote no report. */
   report: CoverageReport | null;
+}
+
+export interface FixedTestReportReader extends TestReportReader {
+  readonly requests: TestReportRequest[];
+  /** `null` when the report names no failure. */
+  failure: TestFailure | null;
+}
+
+/** Keeps every request and answers the failure a test sets. */
+export function fixedTestReportReader(): FixedTestReportReader {
+  const reader: FixedTestReportReader = {
+    requests: [],
+    failure: null,
+    firstFailure: async (request) => {
+      reader.requests.push(request);
+      return Promise.resolve(reader.failure);
+    },
+  };
+  return reader;
 }
 
 /** Keeps every request and answers the report a test sets. */

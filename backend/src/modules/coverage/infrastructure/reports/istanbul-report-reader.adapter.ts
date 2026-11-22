@@ -1,6 +1,3 @@
-import { realpathSync } from 'node:fs';
-import { isAbsolute, relative } from 'node:path';
-
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
@@ -10,6 +7,7 @@ import type {
   CoverageReportRequest,
 } from '#coverage/application/ports/coverage-report-reader.port';
 import { UnreadableCoverageReportError } from '#coverage/infrastructure/errors/unreadable-coverage-report.error';
+import { insideOf, rootsOf } from '#coverage/infrastructure/reports/copy-paths';
 import { reportedCoverageOf } from '#coverage/infrastructure/reports/istanbul-counting';
 import {
   type IstanbulFile,
@@ -35,21 +33,6 @@ function parseReport(path: string, text: string): Record<string, IstanbulFile> {
     );
   }
   return parsed.data;
-}
-
-/**
- * The root as given and as the file system resolves it: a runner reports
- * the resolved path, such as `/private/var` for `/var` on macOS.
- */
-function rootsOf(workingCopyPath: string): string[] {
-  return [...new Set([workingCopyPath, realpathSync(workingCopyPath)])];
-}
-
-function insideOf(roots: readonly string[], path: string): string | null {
-  const inside = roots
-    .map((root) => relative(root, path))
-    .find((rest) => rest !== '' && !rest.startsWith('..') && !isAbsolute(rest));
-  return inside ?? null;
 }
 
 /**

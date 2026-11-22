@@ -9,6 +9,7 @@ import {
 import type {
   RunCoverageDto,
   RunTestsResult,
+  TestFailureDto,
   TestRunDto,
 } from '#coverage/application/contracts/coverage-public-api';
 import {
@@ -19,6 +20,10 @@ import {
   PROJECT_DETECTOR,
   type ProjectDetector,
 } from '#coverage/application/ports/project-detector.port';
+import {
+  TEST_REPORT_READER,
+  type TestReportReader,
+} from '#coverage/application/ports/test-report-reader.port';
 
 function coverageDtoOf(
   record: TestRunRecord,
@@ -33,33 +38,32 @@ function coverageDtoOf(
   return { parameters: parametersDtoOf(record.detection.parameters), files };
 }
 
-function testRunDtoOf(record: TestRunRecord): TestRunDto {
+function statusOf(record: TestRunRecord): TestRunDto['status'] {
   const { result } = record.output;
   const passed = result.exitCode === 0 ? 'passed' : 'failed';
-  return {
-    status: result.outcome === 'timed_out' ? 'timed_out' : passed,
-    exitCode: result.exitCode,
-    durationMs: result.durationMs,
-    outputReference: record.outputReference,
-  };
+  return result.outcome === 'timed_out' ? 'timed_out' : passed;
 }
 
 /**
  * Runs tests in a working copy another module lends, for the gate of a
  * patch. Nothing is stored: the caller keeps what it needs. The files are
- * judged by no threshold, since the copy names no repository.
+ * judged by no threshold, since the copy names no repository. A run that
+ * failed tells its first failure, so the next attempt can learn from it.
  */
 @Injectable()
 export class RunTestsHandler {
   private readonly detector: ProjectDetector;
   private readonly tests: TestExecution;
+  private readonly reports: TestReportReader;
 
   public constructor(
     @Inject(PROJECT_DETECTOR) detector: ProjectDetector,
     @Inject(TestExecution) tests: TestExecution,
+    @Inject(TEST_REPORT_READER) reports: TestReportReader,
   ) {
     this.detector = detector;
     this.tests = tests;
+    this.reports = reports;
   }
 
   public async execute(
@@ -77,8 +81,29 @@ export class RunTestsHandler {
         : null;
     return {
       outcome: 'completed',
-      testRun: testRunDtoOf(record),
+      testRun: await this.testRunDtoOf(record),
       coverage: measured === null ? null : coverageDtoOf(record, measured),
     };
+  }
+
+  private async testRunDtoOf(record: TestRunRecord): Promise<TestRunDto> {
+    const { result } = record.output;
+    const status = statusOf(record);
+    return {
+      status,
+      exitCode: result.exitCode,
+      durationMs: result.durationMs,
+      outputReference: record.outputReference,
+      firstFailure: status === 'failed' ? await this.failureOf(record) : null,
+    };
+  }
+
+  private async failureOf(
+    record: TestRunRecord,
+  ): Promise<TestFailureDto | null> {
+    return this.reports.firstFailure({
+      workingCopyPath: record.workingCopyPath,
+      reportPath: record.output.resultsPath,
+    });
   }
 }

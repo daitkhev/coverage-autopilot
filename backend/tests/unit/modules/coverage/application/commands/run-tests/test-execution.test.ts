@@ -137,6 +137,7 @@ describe('TestExecution', () => {
       it('should leave each file with code missing from the report', async () => {
         const { tests, runner } = coverageApplication();
         runner.output = {
+          ...runner.output,
           result: { ...PASSED, exitCode: 1, output: ' FAIL  src/used.ts \n' },
           reportPath: null,
         };

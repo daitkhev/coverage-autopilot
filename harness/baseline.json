@@ -28,6 +28,7 @@
         "RunTestsResult",
         "ScanParametersDto",
         "SnapshotRequest",
+        "TestFailureDto",
         "TestRunDto",
         "UnmeasuredFileDto",
         "UnsupportedProjectReason",

@@ -25,6 +25,7 @@ import { TestRunnerUnavailableError } from '#coverage/application/errors/test-ru
 import { COVERAGE_REPORT_READER } from '#coverage/application/ports/coverage-report-reader.port';
 import { PROJECT_DETECTOR } from '#coverage/application/ports/project-detector.port';
 import { SOURCE_CLASSIFIER } from '#coverage/application/ports/source-classifier.port';
+import { TEST_REPORT_READER } from '#coverage/application/ports/test-report-reader.port';
 import {
   TEST_RUNNERS,
   type TestRunner,
@@ -45,6 +46,7 @@ import { ScansController } from '#coverage/infrastructure/http/scans.controller'
 import { SnapshotFilesController } from '#coverage/infrastructure/http/snapshot-files.controller';
 import { SqliteCoverageSnapshotRepository } from '#coverage/infrastructure/persistence/sqlite-coverage-snapshot.repository';
 import { IstanbulReportReader } from '#coverage/infrastructure/reports/istanbul-report-reader.adapter';
+import { JsonTestReportReader } from '#coverage/infrastructure/reports/json-test-report-reader.adapter';
 import { JEST_COMMAND } from '#coverage/infrastructure/runners/jest-command';
 import { SandboxedTestRunner } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
 import { VITEST_COMMAND } from '#coverage/infrastructure/runners/vitest-command';
@@ -79,6 +81,7 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
     },
     { provide: PROJECT_DETECTOR, useClass: NodeProjectDetector },
     { provide: COVERAGE_REPORT_READER, useClass: IstanbulReportReader },
+    { provide: TEST_REPORT_READER, useClass: JsonTestReportReader },
     { provide: SOURCE_CLASSIFIER, useClass: TypescriptSourceClassifier },
     {
       provide: TEST_RUNNERS,

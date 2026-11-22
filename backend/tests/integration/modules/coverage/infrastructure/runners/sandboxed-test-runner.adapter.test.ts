@@ -27,6 +27,11 @@ import {
 } from '#tests/support/recording-sandbox';
 
 const REPORT_FOLDER = 'node_modules/.cache/coverage-autopilot/coverage';
+const RESULTS_FILE = 'node_modules/.coverage-autopilot-test-results.json';
+
+function resultsFile(): string {
+  return join(folder.root, RESULTS_FILE);
+}
 
 const COMMANDS: Readonly<Record<TestRunnerName, RunnerCommand>> = {
   jest: JEST_COMMAND,
@@ -118,6 +123,28 @@ describe('SandboxedTestRunner', () => {
       );
     });
 
+    it('should say where the report of the tests is, with coverage or not', async () => {
+      const runner = new SandboxedTestRunner(
+        VITEST_COMMAND,
+        sandbox,
+        COVERAGE_TEST_SETTINGS,
+      );
+      const signal = new AbortController().signal;
+
+      const outputs = [
+        await runner.run(requestOf({ runner: 'vitest' }), signal),
+        await runner.run(
+          requestOf({ runner: 'vitest', withCoverage: false }),
+          signal,
+        ),
+      ];
+
+      expect(outputs.map((output) => output.resultsPath)).toEqual([
+        resultsFile(),
+        resultsFile(),
+      ]);
+    });
+
     it('should give a failing run back as a result', async () => {
       const failed: SandboxCommandResult = {
         outcome: 'exited',
@@ -142,11 +169,13 @@ describe('SandboxedTestRunner', () => {
       expect(output.result).toEqual(failed);
     });
 
-    it('should remove the report of an earlier run before it starts', async () => {
+    it('should remove the reports of an earlier run before it starts', async () => {
       const stale = `${REPORT_FOLDER}/coverage-final.json`;
       folder.write(stale, '{}');
+      folder.write(RESULTS_FILE, '{}');
       sandbox.onRun(() => {
         expect(existsSync(join(folder.root, stale))).toBe(false);
+        expect(existsSync(resultsFile())).toBe(false);
       });
 
       await run({ runner: 'vitest' });
@@ -184,6 +213,8 @@ describe('JEST_COMMAND', () => {
         `--coverageDirectory=${REPORT_FOLDER}`,
         '--collectCoverageFrom=src/used.ts',
         '--collectCoverageFrom=src/\\[id\\].ts',
+        '--json',
+        `--outputFile=${resultsFile()}`,
       ],
     ]);
   });
@@ -202,6 +233,8 @@ describe('JEST_COMMAND', () => {
         'node_modules/jest/bin/jest.js',
         '--ci',
         '--coverage=false',
+        '--json',
+        `--outputFile=${resultsFile()}`,
         '--runTestsByPath',
         'tests/used.test.ts',
       ],
@@ -227,6 +260,9 @@ describe('VITEST_COMMAND', () => {
         `--coverage.reportsDirectory=${REPORT_FOLDER}`,
         '--coverage.include=src/used.ts',
         '--coverage.include=src/\\[id\\].ts',
+        '--reporter=default',
+        '--reporter=json',
+        `--outputFile.json=${resultsFile()}`,
       ],
     ]);
   });
@@ -244,6 +280,9 @@ describe('VITEST_COMMAND', () => {
         'node_modules/vitest/vitest.mjs',
         'run',
         '--coverage.enabled=false',
+        '--reporter=default',
+        '--reporter=json',
+        `--outputFile.json=${resultsFile()}`,
         'tests/used.test.ts',
       ],
     ]);

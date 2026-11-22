@@ -25,6 +25,11 @@ export interface TestRunOutput {
   readonly result: SandboxCommandResult;
   /** Where the runner was told to write its JSON report, or `null`. */
   readonly reportPath: string | null;
+  /**
+   * Where the runner was told to write the JSON report of its tests. A
+   * runner that stopped before its end may have written none.
+   */
+  readonly resultsPath: string;
 }
 
 /** Runs the tests of one runner in the sandbox, with no network. */

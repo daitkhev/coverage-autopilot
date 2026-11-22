@@ -26,7 +26,7 @@ function apiOf(application: CoverageApplication): CoverageApi {
   return new CoverageApi(
     new CaptureSnapshotHandler(snapshots, capture, transactions, thresholds),
     application.preparation,
-    new RunTestsHandler(detector, tests),
+    new RunTestsHandler(detector, tests, application.testReports),
     new GetSnapshotHandler(snapshots, thresholds),
     new GetFileCoverageHandler(snapshots, thresholds),
   );

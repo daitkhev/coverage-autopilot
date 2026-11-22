@@ -113,6 +113,7 @@ export function testRunOf(
       exitCode: status === 'passed' ? 0 : null,
       durationMs: 900,
       outputReference: `test-run-${status}`,
+      firstFailure: null,
     },
     coverage,
   };

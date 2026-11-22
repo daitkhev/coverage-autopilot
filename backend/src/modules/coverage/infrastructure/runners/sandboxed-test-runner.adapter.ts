@@ -20,6 +20,22 @@ export const REPORT_FOLDER = 'node_modules/.cache/coverage-autopilot/coverage';
 
 const REPORT_FILE = 'coverage-final.json';
 
+/**
+ * Where a runner writes the JSON report of its tests, relative to the
+ * working copy. Right in `node_modules`, which is there before any run:
+ * Jest does not make the folder of the file, and stops when it is missing.
+ */
+const RESULTS_FILE = 'node_modules/.coverage-autopilot-test-results.json';
+
+/**
+ * The JSON report of the tests of a run, as an absolute path: Vitest
+ * reads a relative one from the root of its configuration, which a
+ * repository may move.
+ */
+export function resultsPathOf(request: TestRunRequest): string {
+  return join(request.workingCopyPath, RESULTS_FILE);
+}
+
 /** Characters a glob of Jest or Vitest reads as a pattern. */
 const GLOB_CHARACTERS = /[*?[\]{}()!+@]/gu;
 
@@ -40,7 +56,7 @@ export interface RunnerCommand {
 /**
  * Runs the tests of one runner in the sandbox: no network, the variables
  * of the settings and nothing else, and the time limit of a test run. The
- * report of an earlier run in the same copy is removed first, so a run
+ * reports of an earlier run in the same copy are removed first, so a run
  * that writes none is never read as one that did.
  */
 export class SandboxedTestRunner implements TestRunner {
@@ -65,7 +81,9 @@ export class SandboxedTestRunner implements TestRunner {
     signal: AbortSignal,
   ): Promise<TestRunOutput> {
     const folder = join(request.workingCopyPath, REPORT_FOLDER);
+    const resultsPath = resultsPathOf(request);
     rmSync(folder, { recursive: true, force: true });
+    rmSync(resultsPath, { recursive: true, force: true });
     const result = await this.sandbox.run(
       {
         workingCopyPath: request.workingCopyPath,
@@ -77,6 +95,10 @@ export class SandboxedTestRunner implements TestRunner {
       signal,
     );
     const measured = request.coverageFiles !== null;
-    return { result, reportPath: measured ? join(folder, REPORT_FILE) : null };
+    return {
+      result,
+      reportPath: measured ? join(folder, REPORT_FILE) : null,
+      resultsPath,
+    };
   }
 }

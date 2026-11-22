@@ -193,6 +193,20 @@ export interface RunTestsRequest extends WorkingCopyLoan {
 }
 
 /**
+ * The first failure a runner reported, as its JSON report of the tests
+ * holds it: text of the repository, without the codes of a terminal and
+ * the path of the working copy, cut to a few short lines.
+ */
+export interface TestFailureDto {
+  /** The test file the failure is in. */
+  readonly file: FilePath;
+  /** The names of the test that failed, `null` when the file failed to run. */
+  readonly test: string | null;
+  /** The first lines the runner wrote about it, at least one. */
+  readonly lines: readonly string[];
+}
+
+/**
  * `failed` is a result, not a fault: some test failed, or the runner
  * stopped with an error of its own.
  */
@@ -201,6 +215,11 @@ export interface TestRunDto {
   readonly exitCode: number | null;
   readonly durationMs: number;
   readonly outputReference: string | null;
+  /**
+   * Of a `failed` run, the failure to tell first. `null` for any other
+   * run, and when the runner wrote no report that names one.
+   */
+  readonly firstFailure: TestFailureDto | null;
 }
 
 /**

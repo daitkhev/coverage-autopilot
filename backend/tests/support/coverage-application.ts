@@ -21,6 +21,8 @@ import {
   fixedDetector,
   type FixedReportReader,
   fixedReportReader,
+  type FixedTestReportReader,
+  fixedTestReportReader,
   type InMemoryArtifacts,
   inMemoryArtifacts,
   type InMemorySnapshots,
@@ -85,6 +87,7 @@ export interface CoverageApplication {
   readonly detector: FixedDetector;
   readonly runner: RecordingRunner;
   readonly reader: FixedReportReader;
+  readonly testReports: FixedTestReportReader;
   readonly preparation: PrepareProjectHandler;
   readonly tests: TestExecution;
   readonly capture: SnapshotCapture;
@@ -132,6 +135,7 @@ export function coverageApplication(): CoverageApplication {
     detector,
     runner,
     reader,
+    testReports: fixedTestReportReader(),
     preparation,
     tests,
     capture,
