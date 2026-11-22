@@ -1411,3 +1411,45 @@ fails the improvement as an exposed credential and keeps its tokens.
   the lock of its instance, and no other process changes its mirrors.
 - Where: `backend/src/modules/repositories/infrastructure/git/mirror-turns.ts`,
   `backend/src/modules/repositories/infrastructure/git/git-mirror.ts`.
+
+### A repository keeps a threshold of its own
+
+- The default of the service is `AUTOPILOT_COVERAGE_THRESHOLD`, a whole
+  percent of lines from 1 to 100, and 80 when it is not set. The 80 is
+  written once, as the fallback of the variable. The metric stays lines,
+  set where the service is composed. 0 is refused, since it would make
+  no file a target.
+- A repository may keep a whole percent of its own in
+  `repositories.threshold_percentage`, added by migration 0009. Empty
+  means the default of the service. The column holds the percent alone,
+  and the metric is the one of the service.
+- The repositories module owns the threshold. Its contract gives each
+  repository the threshold in effect with `isDefault`, and the answer of
+  a repository has it as `threshold`. `POST /repositories/:id/threshold`
+  with `{ "percentage": 90 }` sets it and `{ "percentage": null }` clears
+  it. The answer is the repository as its files are judged from then on.
+- The coverage module keeps no threshold in its settings. It asks the
+  repositories module each time it judges a file, so `belowThreshold`,
+  the split of a snapshot, the next file of the client and the ending
+  `threshold_met` of an improvement follow a change at once, for the
+  snapshots taken before it too. The port `REPOSITORY_COVERAGE` is given
+  the repository as it was read, so the split matches the threshold the
+  same answer shows.
+- A run of tests in a working copy names no repository, so its files
+  carry no `belowThreshold`. The gate compares their numbers with a
+  snapshot and never read it.
+- A look at the head reads the repository again in its transaction
+  before it saves, as the change of a threshold does: both save the
+  repository whole, and the host may take seconds to answer.
+- The client: `repo threshold <repo> <percent>`, with `default` in place
+  of the percent, and `t` on the screen of the repositories. The command
+  checks the shape alone and leaves the range to the service. `files`
+  prints the percent beside `below`, and the screens write
+  `own threshold` for a threshold of its own.
+- Owed: `.env.example` does not name the variable yet, since it is a
+  file of the policy.
+- Where: `backend/src/modules/repositories/application/commands/change-threshold/`,
+  `backend/src/modules/repositories/application/dto/repository-dtos.ts`,
+  `backend/src/modules/coverage/application/repository-thresholds.ts`,
+  `frontend/src/commands/repo-threshold.ts`,
+  `frontend/src/screens/repositories/threshold-dialog.tsx`.
