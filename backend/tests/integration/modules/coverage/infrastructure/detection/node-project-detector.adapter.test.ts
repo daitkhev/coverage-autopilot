@@ -82,7 +82,7 @@ describe('NodeProjectDetector', () => {
             testRunner: 'jest',
             testRunnerVersion: '30.5.2',
             coverageProvider: 'babel',
-            fileListRule: 'typescript-sources-v1',
+            fileListRule: 'typescript-sources-v2',
           }),
           install: {
             command: [

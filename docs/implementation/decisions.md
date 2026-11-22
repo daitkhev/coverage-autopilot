@@ -1765,3 +1765,30 @@ fails the improvement as an exposed credential and keeps its tokens.
   `backend/src/modules/improvement/infrastructure/generator/generation-prompt.ts`,
   `api-contracts/src/attempts.ts`,
   `frontend/src/screens/improvement/attempt-words.tsx`.
+
+### A scan leaves out the code that only calls the product
+
+- The owner decided that a scan leaves out folders of examples. A folder
+  is left out at any depth by its exact name: `examples`, `example`,
+  `demos`, `demo`, `samples` and `sample` show how the product is called,
+  `benchmarks`, `benchmark` and `bench` time it, and `fixtures` and
+  `__fixtures__` feed its tests. Such code calls the product from
+  outside and nobody tests it, so each of its files counted below the
+  threshold, and one was picked to be improved.
+- `docs` and `scripts` stay listed. Either can hold the product itself,
+  such as a module that serves its documentation or the commands a
+  package ships. A file of the product left out is missed in silence,
+  and a file listed too many is seen.
+- The price of a list with no setting: a module of the product with one
+  of those names, such as `src/samples` of an app that keeps samples, is
+  left out as well.
+- The rule is named `typescript-sources-v2` now, so a snapshot of the new
+  list never compares with one of the old. A stored snapshot keeps the
+  name it was listed by and reads as before.
+- The runner is asked to measure the listed files alone, and its report
+  is read for them alone, so a left-out file reaches neither the files
+  of a snapshot nor its totals. An improvement of such a file is refused
+  with `target_not_measured`, as a file that is no source is.
+- Where: `backend/src/modules/coverage/infrastructure/detection/source-file-list.ts`,
+  `readCoverage` in
+  `backend/src/modules/coverage/application/commands/run-tests/test-execution.ts`.

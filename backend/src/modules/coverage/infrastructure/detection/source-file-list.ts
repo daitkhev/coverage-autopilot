@@ -8,10 +8,10 @@ import { FilePath } from '#kernel/primitives/file-path';
  * rule takes a new name, because the same files under two rules give two
  * sets of numbers that do not compare.
  */
-export const FILE_LIST_RULE = 'typescript-sources-v1';
+export const FILE_LIST_RULE = 'typescript-sources-v2';
 
 /** Folders of packages, of output, of tests and of tools. */
-const SKIPPED_FOLDERS = new Set([
+const NOT_SOURCES = [
   'node_modules',
   'dist',
   'build',
@@ -21,7 +21,29 @@ const SKIPPED_FOLDERS = new Set([
   'tests',
   '__tests__',
   '__mocks__',
-]);
+];
+
+/**
+ * Folders of code that calls the product from outside, to show it, to
+ * time it or to feed its tests. Nobody tests such code, so each of its
+ * files would count below the threshold beside the files of the product,
+ * and could be picked to be improved in their place.
+ */
+const OUTSIDE_THE_PRODUCT = [
+  'examples',
+  'example',
+  'demos',
+  'demo',
+  'samples',
+  'sample',
+  'benchmarks',
+  'benchmark',
+  'bench',
+  'fixtures',
+  '__fixtures__',
+];
+
+const SKIPPED_FOLDERS = new Set([...NOT_SOURCES, ...OUTSIDE_THE_PRODUCT]);
 
 const SOURCE = /\.(?:ts|tsx|mts|cts)$/u;
 
