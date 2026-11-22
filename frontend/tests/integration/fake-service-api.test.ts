@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
-import type { BudgetSettings } from '@coverage-autopilot/api-contracts/improvements';
 
 import {
   answered,
@@ -12,11 +11,7 @@ import {
   refused,
   SAMPLE_NOW,
 } from '#tests/support/fake-service-api';
-
-const BUDGET: BudgetSettings = {
-  defaults: { attempts: 3, tokens: null, minutes: 30 },
-  maximums: { attempts: 10, tokens: null, minutes: 120 },
-};
+import { BUDGET_SETTINGS as BUDGET } from '#tests/support/sample-repositories';
 
 const KEY = 'key-1';
 
