@@ -24,6 +24,7 @@ import {
   type HostedBuiltService,
   hostedBuiltService,
 } from '#tests/support/hosted-built-service';
+import { journeyIn } from '#tests/support/journey-lines';
 import { NEW_TESTS, TARGET } from '#tests/support/mutation-reports';
 import { LOGIN_LINE } from '#tests/support/playing-engine';
 import { TemporaryCodeHost } from '#tests/support/temporary-code-host';
@@ -45,6 +46,12 @@ const START_WAIT = { timeout: 30_000, interval: 50 };
  * steps beside them makes every process of the journey slower.
  */
 const WORK_WAIT = { timeout: 120_000, interval: 100 };
+
+/**
+ * The last lines of a job are written just after the end the service
+ * answers, so a test waits for them well within its own time.
+ */
+const LAST_LINES_WAIT = { timeout: 30_000, interval: 100 };
 
 /** The whole journey, with both waits and the start. */
 const JOURNEY_TIMEOUT_MS = 300_000;
@@ -254,6 +261,30 @@ describe('the built service, from a repository to a pull request', () => {
       [],
     );
     expect(filesHolding(service.paths.directory, CREDENTIAL)).toEqual([]);
+  });
+
+  it('should tell the journey of the improvement at info, step by step', async () => {
+    const { id } = journey.improvement;
+    const told = (): string[] =>
+      journeyIn(
+        running().service.log(),
+        (fields) =>
+          fields['subjectId'] === id || fields['improvementId'] === id,
+      );
+
+    await expect.poll(told, LAST_LINES_WAIT).toEqual([
+      'A job was taken.',
+      'A step of an improvement started. analyzing',
+      'A step of an improvement ended. analyzing generating',
+      'A step of an improvement started. generating',
+      'A step of an improvement ended. generating verifying',
+      'A step of an improvement started. verifying',
+      'A step of an improvement ended. verifying publishing',
+      'A step of an improvement started. publishing',
+      'A step of an improvement ended. publishing completed',
+      // The job completed, and the improvement it ran with it.
+      'A job ended. completed completed',
+    ]);
   });
 
   describe('when the key of the first request is used again for another file', () => {

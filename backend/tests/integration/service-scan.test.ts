@@ -10,7 +10,9 @@ import {
   hostedService,
   WORK_WAIT,
 } from '#tests/support/hosted-service';
+import { journeyIn } from '#tests/support/journey-lines';
 import { giveBackFolders } from '#tests/support/locked-tree';
+import { SECRET_TOKEN } from '#tests/support/temporary-code-host';
 
 const ENDED = new Set(['completed', 'failed', 'cancelled']);
 
@@ -43,6 +45,14 @@ async function scanned(): Promise<Scan> {
   return scan;
 }
 
+/** The lines at info of a scan, whose job has the id of the scan. */
+function journeyOf(scanId: string): string[] {
+  return journeyIn(
+    hosted.bench.logText(),
+    (fields) => fields['jobId'] === scanId,
+  );
+}
+
 /** The program and the arguments each container was started with. */
 function containerCommands(): string[][] {
   return hosted
@@ -71,6 +81,36 @@ describe('a scan asked over the socket', () => {
         snapshotId: null,
         failure: { reason: 'coverage_report_missing' },
       });
+    });
+  });
+
+  describe('when the log is read after the scan', () => {
+    it('should tell its journey at info, and each program it started at debug, with no secret', async () => {
+      hosted = hostedService({ exitCode: 0 }, { AUTOPILOT_LOG_LEVEL: 'debug' });
+
+      const scan = await scanned();
+
+      const ended = 'A job ended. completed coverage_report_missing';
+      await expect.poll(() => journeyOf(scan.id).at(-1), WORK_WAIT).toBe(ended);
+      expect(journeyOf(scan.id)).toEqual([
+        'A job was taken.',
+        'A step of a scan started. clone',
+        'A step of a scan ended. clone passed',
+        'A step of a scan started. install',
+        'A step of a scan ended. install passed',
+        'A step of a scan started. test_run',
+        'A step of a scan ended. test_run passed',
+        'A step of a scan started. read_report',
+        'A step of a scan ended. read_report failed',
+        ended,
+      ]);
+      const programs = hosted.bench
+        .logLines()
+        .filter((line) => line.message === 'A program ended.')
+        .map((line) => line.fields['program']);
+      expect(programs).toContain('git');
+      expect(programs).toContain(hosted.bench.config.sandbox.engine.command[0]);
+      expect(hosted.bench.logText()).not.toContain(SECRET_TOKEN);
     });
   });
 

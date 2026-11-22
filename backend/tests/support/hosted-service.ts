@@ -111,13 +111,19 @@ function hostedConfig(config: ServiceConfig, stand: Stand): ServiceConfig {
   };
 }
 
-/** A service over a new code host, whose engine plays `play` on a run. */
-export function hostedService(play: EnginePlay): HostedService {
+/**
+ * A service over a new code host, whose engine plays `play` on a run, and
+ * whose configuration has the `variables` a test sets.
+ */
+export function hostedService(
+  play: EnginePlay,
+  variables: Record<string, string> = {},
+): HostedService {
   const host = new TemporaryCodeHost();
   host.gh.answer({});
   const record = join(host.folder, 'engine.jsonl');
   const engine = standInEngine(record, play);
-  const bench = serviceBench(QUICK_POLL, (config) =>
+  const bench = serviceBench({ ...QUICK_POLL, ...variables }, (config) =>
     hostedConfig(config, { host, engine }),
   );
   return {
