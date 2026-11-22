@@ -723,9 +723,15 @@ Where this log and the plan differ, this log and the code are right.
 
 ### The build and the end-to-end tests are steps of the gate
 
-- `build` writes `backend/dist/main.js` with the bundler the test runner
-  already brings, and a warning fails it. The file is beside the
-  migrations, as the entry file is.
+- `build` writes the package a person installs into `dist/`, with the
+  bundler the test runner already brings, and a warning fails it:
+  `bin/service.js`, the migrations and one `package.json`. The manifest
+  takes its name, version and Node from the root manifest, and its
+  dependencies are those of every workspace together; one package asked
+  for at two versions stops the build. A program is in `bin/`, so it
+  finds the migrations and the manifest one step up, as the entry file
+  does in its workspace. The program of the client joins `bin/` when the
+  client has its entry file.
 - `e2e` builds for itself and then runs the tests of `tests/e2e/`, which
   start the built file as a process of its own with an explicit list of
   variables and reach it only through its socket. Coverage does not count
