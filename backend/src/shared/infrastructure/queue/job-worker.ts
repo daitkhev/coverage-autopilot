@@ -10,7 +10,10 @@ import {
 import { InvalidStoredJobError } from '#infrastructure/queue/errors/invalid-stored-job.error';
 import { handlersByKind } from '#infrastructure/queue/job-handlers';
 import { JobLease, type LeaseTools } from '#infrastructure/queue/job-lease';
-import { JobWorkerLog } from '#infrastructure/queue/job-worker-log';
+import {
+  type JobEnd,
+  JobWorkerLog,
+} from '#infrastructure/queue/job-worker-log';
 import {
   JOB_WORKER_SETTINGS,
   type JobWorkerSettings,
@@ -54,7 +57,20 @@ type Settled = { readonly result: JobResult } | { readonly error: unknown };
 /** What the worker writes once the handler is done. */
 type Ending =
   | { readonly step: 'complete'; readonly outcome: JobOutcome }
-  | { readonly step: 'retry' | 'bury' | 'release' | 'none' };
+  /** `reason` is the code of the retry, or of the error that may pass. */
+  | { readonly step: 'retry'; readonly reason: string }
+  | { readonly step: 'none'; readonly reason: JobStopReason }
+  | { readonly step: 'bury' | 'release' };
+
+/** A job this worker runs: its row, its lease and its handler. */
+interface HeldJob {
+  readonly row: ClaimedRow;
+  readonly lease: JobLease;
+  readonly handler: JobHandler;
+}
+
+const PUT_BACK: JobEnd = { outcome: 'put_back' };
+const GIVEN_UP: JobEnd = { outcome: 'given_up' };
 
 async function settle(handler: JobHandler, lease: JobLease): Promise<Settled> {
   try {
@@ -73,13 +89,21 @@ function payloadOf(row: ClaimedRow): JobDocument | null {
   }
 }
 
-function isRetryable(error: unknown): boolean {
-  return (
-    (error instanceof DomainError ||
-      error instanceof ApplicationError ||
-      error instanceof InfrastructureError) &&
-    error.retryable
-  );
+/**
+ * The code of a retry the handler asked for, or of an error that may
+ * pass, and `null` for an error that will not.
+ */
+function retryReasonOf(settled: Settled): string | null {
+  if ('result' in settled) {
+    const { result } = settled;
+    return result.status === 'retry' ? result.reason.code : null;
+  }
+  const { error } = settled;
+  const typed =
+    error instanceof DomainError ||
+    error instanceof ApplicationError ||
+    error instanceof InfrastructureError;
+  return typed && error.retryable ? error.code : null;
 }
 
 /**
@@ -96,12 +120,10 @@ function endingOf(settled: Settled, stopReason: JobStopReason | null): Ending {
     return { step: 'release' };
   }
   if (stopReason !== null) {
-    return { step: 'none' };
+    return { step: 'none', reason: stopReason };
   }
-  if ('result' in settled || isRetryable(settled.error)) {
-    return { step: 'retry' };
-  }
-  return { step: 'bury' };
+  const reason = retryReasonOf(settled);
+  return reason === null ? { step: 'bury' } : { step: 'retry', reason };
 }
 
 /**
@@ -228,6 +250,7 @@ export class JobWorker {
     const payload = payloadOf(row);
     const lease =
       payload === null ? null : new JobLease({ ...row, payload }, this.tools);
+    this.log.taken(row);
     this.running.set(row.id, {
       lease,
       serializationKey: row.serializationKey,
@@ -238,14 +261,13 @@ export class JobWorker {
   private async workOf(
     claim: Claim,
     job: { readonly lease: JobLease | null; readonly handler: JobHandler },
-  ): Promise<void> {
+  ): Promise<JobEnd> {
     if (job.lease === null) {
-      return this.buryUnreadable(claim.row, job.handler);
+      await this.buryUnreadable(claim.row, job.handler);
+      return GIVEN_UP;
     }
-    if (claim.spent) {
-      return this.bury(job.lease, job.handler);
-    }
-    return this.run(claim.row, { lease: job.lease, handler: job.handler });
+    const held = { row: claim.row, lease: job.lease, handler: job.handler };
+    return claim.spent ? this.giveUp(held) : this.run(held);
   }
 
   /** A claim takes only the kinds this worker has a handler for. */
@@ -260,9 +282,15 @@ export class JobWorker {
     return handler;
   }
 
-  private async untilEnd(row: ClaimedRow, work: Promise<void>): Promise<void> {
+  private async untilEnd(
+    row: ClaimedRow,
+    work: Promise<JobEnd>,
+  ): Promise<void> {
+    const takenAt = this.clock.now().epochMilliseconds;
     try {
-      await work;
+      const end = await work;
+      const durationMs = this.clock.now().epochMilliseconds - takenAt;
+      this.log.ended(row, end, durationMs);
     } catch (error) {
       // A write the database refused, or a handler that failed to hear
       // that the runs are spent. The lease runs out and the job is claimed
@@ -273,48 +301,50 @@ export class JobWorker {
     }
   }
 
-  private async run(
-    row: ClaimedRow,
-    job: { readonly lease: JobLease; readonly handler: JobHandler },
-  ): Promise<void> {
-    this.log.started(row);
+  private async run(job: HeldJob): Promise<JobEnd> {
     const settled = await settle(job.handler, job.lease);
     if ('error' in settled && job.lease.stopReason === null) {
-      this.log.failed(row, settled.error);
+      this.log.failed(job.row, settled.error);
     }
-    const ending = endingOf(settled, job.lease.stopReason);
-    await this.end(job.lease, job.handler, ending);
-    this.log.ended(row, ending.step);
+    return this.end(job, endingOf(settled, job.lease.stopReason));
   }
 
-  private async end(
-    lease: JobLease,
-    handler: JobHandler,
-    ending: Ending,
-  ): Promise<void> {
+  /** Writes the ending, and says what was written. */
+  private async end(job: HeldJob, ending: Ending): Promise<JobEnd> {
     switch (ending.step) {
       case 'complete':
-        return lease.complete(ending.outcome);
+        await job.lease.complete(ending.outcome);
+        return { outcome: 'completed', result: ending.outcome };
       case 'release':
-        return lease.release();
+        await job.lease.release();
+        this.log.putBack(job.row, 'worker_shutdown');
+        return PUT_BACK;
       case 'retry':
-        return lease.runs < this.settings.maxRuns
-          ? lease.retry()
-          : this.bury(lease, handler);
+        return job.lease.runs < this.settings.maxRuns
+          ? this.putBack(job, ending.reason)
+          : this.giveUp(job);
       case 'bury':
-        return this.bury(lease, handler);
+        return this.giveUp(job);
       case 'none':
-        return Promise.resolve();
+        return { outcome: 'stopped', reason: ending.reason };
     }
+  }
+
+  private async putBack(job: HeldJob, reason: string): Promise<JobEnd> {
+    await job.lease.retry();
+    this.log.putBack(job.row, reason);
+    return PUT_BACK;
   }
 
   /**
    * The handler hears it first and the job is dead after, so a crash in
    * between makes the next worker tell the handler again, which it allows.
    */
-  private async bury(lease: JobLease, handler: JobHandler): Promise<void> {
-    await handler.onRetriesExhausted(lease.deadContext());
-    await lease.bury();
+  private async giveUp(job: HeldJob): Promise<JobEnd> {
+    await job.handler.onRetriesExhausted(job.lease.deadContext());
+    await job.lease.bury();
+    this.log.givenUp(job.row);
+    return GIVEN_UP;
   }
 
   /**

@@ -15,18 +15,34 @@ class ToolBusyError extends InfrastructureError {
 }
 
 const SCAN = scanOf(WIDGETS, 'scan-1');
-const JOB_FIELDS = { component: 'job-worker', kind: 'scan', run: 1 };
 const LONGEST_MESSAGE = 2_000;
+const RUN_MS = 1_500;
 
 let bench: QueueBench;
 let one: QueueProcess;
 let jobId: string;
+
+/** The fields every line of the job carries, at its first attempt. */
+function jobFields(attempt = 1): Record<string, unknown> {
+  return {
+    component: 'job-worker',
+    jobId,
+    kind: 'scan',
+    subjectId: 'scan-1',
+    repositoryId: WIDGETS.value,
+    attempt,
+  };
+}
 
 /** A payload the queue would never store: a document with no version. */
 function corruptPayload(id: string): void {
   bench.connection
     .prepare(`UPDATE jobs SET payload = '{"branch":"main"}' WHERE id = ?`)
     .run(id);
+}
+
+function messages(): string[] {
+  return one.logger.lines.map((line) => line.message);
 }
 
 beforeEach(async () => {
@@ -41,33 +57,49 @@ afterEach(() => {
 
 describe('JobWorker', () => {
   describe('when a job runs to its end', () => {
-    it('should write its start and what it wrote at its end', async () => {
+    it('should write that it was taken, and its end with what it took', async () => {
       await one.worker.poll();
-      one.handler.latest().finish();
+      bench.clock.advance(RUN_MS);
+      one.handler.latest().finish({ version: 1, outcome: 'captured' });
       await one.worker.whenIdle();
 
       expect(one.logger.lines).toEqual([
-        {
-          level: 'info',
-          message: 'A job started.',
-          fields: { ...JOB_FIELDS, jobId, subjectId: 'scan-1' },
-        },
+        { level: 'info', message: 'A job was taken.', fields: jobFields() },
         {
           level: 'info',
           message: 'A job ended.',
           fields: {
-            ...JOB_FIELDS,
-            jobId,
-            subjectId: 'scan-1',
-            step: 'complete',
+            ...jobFields(),
+            outcome: 'completed',
+            result: 'captured',
+            durationMs: RUN_MS,
           },
         },
       ]);
     });
   });
 
+  describe('when the handler asks for a retry', () => {
+    it('should write that the job was put back, with the code of the retry', async () => {
+      await one.worker.poll();
+      one.handler.latest().retry();
+      await one.worker.whenIdle();
+
+      expect(one.logger.at('warn')).toEqual([
+        {
+          level: 'warn',
+          message: 'A job was put back in the queue.',
+          fields: { ...jobFields(), reason: 'tool_busy' },
+        },
+      ]);
+      expect(one.logger.lines.at(-1)?.fields).toMatchObject({
+        outcome: 'put_back',
+      });
+    });
+  });
+
   describe('when the handler throws', () => {
-    it('should write the code and the message of a typed error', async () => {
+    it('should write the fault, and put back a job a rerun can help', async () => {
       await one.worker.poll();
       one.handler.latest().fail(new ToolBusyError('The runner was busy.'));
       await one.worker.whenIdle();
@@ -77,31 +109,42 @@ describe('JobWorker', () => {
           level: 'error',
           message: 'The handler of a job failed.',
           fields: {
-            ...JOB_FIELDS,
-            jobId,
-            subjectId: 'scan-1',
+            ...jobFields(),
             errorCode: 'tool_busy',
             errorMessage: 'The runner was busy.',
           },
         },
       ]);
-      expect(one.logger.lines.at(-1)?.fields).toMatchObject({ step: 'retry' });
+      expect(one.logger.at('warn')[0]?.fields).toMatchObject({
+        reason: 'tool_busy',
+      });
     });
 
     it.each([
       ['an error of no typed kind', new Error('Nobody foresaw it.')],
       ['a thrown text', 'Nobody foresaw it.'],
-    ])('should write %s as unexpected', async (_, error) => {
-      await one.worker.poll();
-      one.handler.latest().fail(error);
-      await one.worker.whenIdle();
+    ])(
+      'should write %s as unexpected and give the job up',
+      async (_, error) => {
+        await one.worker.poll();
+        one.handler.latest().fail(error);
+        await one.worker.whenIdle();
 
-      expect(one.logger.at('error')[0]?.fields).toMatchObject({
-        errorCode: 'unexpected',
-        errorMessage: 'Nobody foresaw it.',
-      });
-      expect(one.logger.lines.at(-1)?.fields).toMatchObject({ step: 'bury' });
-    });
+        expect(one.logger.at('error')[0]?.fields).toMatchObject({
+          errorCode: 'unexpected',
+          errorMessage: 'Nobody foresaw it.',
+        });
+        expect(messages()).toEqual([
+          'A job was taken.',
+          'The handler of a job failed.',
+          'A job was given up: it will not run again.',
+          'A job ended.',
+        ]);
+        expect(one.logger.lines.at(-1)?.fields).toMatchObject({
+          outcome: 'given_up',
+        });
+      },
+    );
 
     it('should keep only the start of a long message', async () => {
       await one.worker.poll();
@@ -114,16 +157,54 @@ describe('JobWorker', () => {
     });
   });
 
+  describe('when the runs of a job are spent', () => {
+    it('should write that it was given up at its last attempt', async () => {
+      const last = await bench.open({ maxRuns: 1 });
+      await last.worker.poll();
+      last.handler.latest().retry();
+      await last.worker.whenIdle();
+
+      expect(last.logger.lines.map((line) => line.message)).toEqual([
+        'A job was taken.',
+        'A job was given up: it will not run again.',
+        'A job ended.',
+      ]);
+      expect(last.logger.at('error')[0]?.fields).toEqual(jobFields());
+    });
+  });
+
   describe('when the worker itself stopped the job', () => {
-    it('should not write the abort as a failure of the handler', async () => {
+    it('should write it as put back, and not as a failure', async () => {
       one.handler.stopWhenAborted();
       await one.worker.poll();
 
       await one.worker.stop();
 
       expect(one.logger.at('error')).toEqual([]);
+      expect(one.logger.at('warn')[0]?.fields).toMatchObject({
+        reason: 'worker_shutdown',
+      });
       expect(one.logger.lines.at(-1)?.fields).toMatchObject({
-        step: 'release',
+        outcome: 'put_back',
+      });
+    });
+  });
+
+  describe('when the job lost its lease while it ran', () => {
+    it('should write that it stopped, and why', async () => {
+      one.handler.stopWhenAborted();
+      await one.worker.poll();
+      const two = await bench.open();
+      bench.clock.advance(one.settings.leaseMs);
+      await two.worker.poll();
+
+      await one.worker.heartbeat();
+      await one.worker.whenIdle();
+
+      expect(one.logger.at('error')).toEqual([]);
+      expect(one.logger.lines.at(-1)).toMatchObject({
+        message: 'A job ended.',
+        fields: { outcome: 'stopped', reason: 'lease_lost' },
       });
     });
   });
@@ -163,14 +244,13 @@ describe('JobWorker', () => {
           level: 'error',
           message: 'The end of a job could not be written.',
           fields: {
-            ...JOB_FIELDS,
-            jobId,
-            subjectId: 'scan-1',
+            ...jobFields(),
             errorCode: 'unexpected',
             errorMessage: 'database is locked',
           },
         },
       ]);
+      expect(messages()).not.toContain('A job ended.');
     });
   });
 
@@ -194,9 +274,12 @@ describe('JobWorker', () => {
           level: 'error',
           message:
             'The stored payload of a job cannot be read, so the job is dead.',
-          fields: { ...JOB_FIELDS, jobId, subjectId: 'scan-1' },
+          fields: jobFields(),
         },
       ]);
+      expect(one.logger.lines.at(-1)?.fields).toMatchObject({
+        outcome: 'given_up',
+      });
     });
 
     it('should go on with the jobs behind it', async () => {

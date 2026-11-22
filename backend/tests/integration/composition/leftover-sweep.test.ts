@@ -183,7 +183,7 @@ describe('sweepLeftovers', () => {
       const messages = hosted.bench.logLines().map((line) => line.message);
       expect(messages.indexOf(SWEPT)).toBeGreaterThan(-1);
       expect(messages.indexOf(SWEPT)).toBeLessThan(
-        messages.lastIndexOf('A job started.'),
+        messages.lastIndexOf('A job was taken.'),
       );
     });
   });
