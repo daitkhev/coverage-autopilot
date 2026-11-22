@@ -1,4 +1,4 @@
-import { Box, Text } from 'ink';
+import { Box } from 'ink';
 import type { ReactNode } from 'react';
 
 import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
@@ -8,14 +8,12 @@ import type { AccessCheck } from '@coverage-autopilot/api-contracts/repositories
 import type { ServiceAnswer } from '#api/service-api';
 import { AccessSteps } from '#components/access-steps';
 import { ErrorDetails } from '#components/error-details';
-import { Glyph } from '#components/glyph';
+import { BusyLine, FaultLine, RefusalLine } from '#components/outcome-line';
 import { faultWords } from '#components/problem-details';
-import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
 import type { ActionState } from '#hooks/use-action';
 import type { StartFacts } from '#screens/files/start-limits';
 import { ACCESS_CHECK_STATUS } from '#theme/status';
-import { GAP } from '#theme/widths';
 
 /** Where the dialog is before anything can start. */
 export type Stage =
@@ -42,39 +40,9 @@ export function stageOf(state: ActionState<ServiceAnswer<StartFacts>>): Stage {
     : { kind: 'blocked', access: answer.value.access };
 }
 
-/** One line that says what went wrong, with the stable code beside it. */
-function Problem({
-  sentence,
-  code,
-}: {
-  readonly sentence: string;
-  readonly code?: string;
-}): ReactNode {
-  return (
-    <Box gap={GAP} marginTop={1}>
-      <Text>
-        <Glyph name="attention" role="warning" />{' '}
-        <RoleText role="warning">{sentence}</RoleText>
-      </Text>
-      {code === undefined ? null : <RoleText role="secondary">{code}</RoleText>}
-    </Box>
-  );
-}
-
-/** The refusal of a request, said with its sentence and its code. */
-function Refusal({ error }: { readonly error: ErrorBody }): ReactNode {
-  return <Problem sentence={error.message} code={error.error} />;
-}
-
-/** Something runs and the dialog waits for it. */
-function Busy({ doing }: { readonly doing: string }): ReactNode {
-  return (
-    <Box marginTop={1}>
-      <Text>
-        <Glyph name="spinner" role="running" /> <RoleText>{doing}</RoleText>
-      </Text>
-    </Box>
-  );
+/** The line of an outcome stands apart from the form above it. */
+function Below({ children }: { readonly children: ReactNode }): ReactNode {
+  return <Box marginTop={1}>{children}</Box>;
 }
 
 /**
@@ -118,16 +86,24 @@ export function StartOutcome({
 }): ReactNode {
   switch (state.phase) {
     case 'running':
-      return <Busy doing="Starting the improvement" />;
+      return (
+        <Below>
+          <BusyLine doing="Starting the improvement" />
+        </Below>
+      );
     case 'failed':
       return (
-        <Problem
-          sentence={`Nothing answered the start: ${faultWords(state.failure)} Press enter to try again.`}
-        />
+        <Below>
+          <FaultLine
+            sentence={`Nothing answered the start: ${faultWords(state.failure)} Press enter to try again.`}
+          />
+        </Below>
       );
     case 'ended':
       return state.outcome.outcome === 'refused' ? (
-        <Refusal error={state.outcome.error} />
+        <Below>
+          <RefusalLine error={state.outcome.error} />
+        </Below>
       ) : null;
     case 'idle':
       return null;
@@ -142,15 +118,25 @@ export function StageContent({
 }): ReactNode {
   switch (stage.kind) {
     case 'preparing':
-      return <Busy doing="Checking the access and reading the limits" />;
+      return (
+        <Below>
+          <BusyLine doing="Checking the access and reading the limits" />
+        </Below>
+      );
     case 'unanswered':
       return (
-        <Problem
-          sentence={`The service did not answer: ${faultWords(stage.failure)}`}
-        />
+        <Below>
+          <FaultLine
+            sentence={`The service did not answer: ${faultWords(stage.failure)}`}
+          />
+        </Below>
       );
     case 'refused':
-      return <Refusal error={stage.error} />;
+      return (
+        <Below>
+          <RefusalLine error={stage.error} />
+        </Below>
+      );
     case 'blocked':
       return <AccessRefused access={stage.access} />;
   }

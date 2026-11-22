@@ -7,6 +7,7 @@ import type { Repository } from '@coverage-autopilot/api-contracts/repositories'
 import type { ServiceAnswer, ServiceApi } from '#api/service-api';
 import { type Answer, AnswerList } from '#components/answer-list';
 import { Glyph } from '#components/glyph';
+import { BusyLine, FaultLine, RefusalLine } from '#components/outcome-line';
 import { Panel } from '#components/panel';
 import { faultWords } from '#components/problem-details';
 import { RoleText } from '#components/role-text';
@@ -95,25 +96,18 @@ function Outcome({
   readonly state: ActionState<Decided>;
 }): ReactNode {
   if (state.phase === 'running') {
-    return (
-      <Text>
-        <Glyph name="spinner" role="running" />{' '}
-        <RoleText>Sending your decision</RoleText>
-      </Text>
-    );
+    return <BusyLine doing="Sending your decision" />;
   }
   if (state.phase === 'failed') {
     return (
-      <RoleText role="danger">{`Nothing answered the decision: ${faultWords(state.failure)}`}</RoleText>
+      <FaultLine
+        sentence={`Nothing answered the decision: ${faultWords(state.failure)}`}
+      />
     );
   }
   const reply = state.phase === 'ended' ? state.outcome.reply : undefined;
   return reply?.outcome !== 'refused' || wasChanged(state) ? null : (
-    <Text>
-      <Glyph name="attention" role="warning" />{' '}
-      <RoleText role="warning">{reply.error.message}</RoleText>{' '}
-      <RoleText role="secondary">{reply.error.error}</RoleText>
-    </Text>
+    <RefusalLine error={reply.error} />
   );
 }
 

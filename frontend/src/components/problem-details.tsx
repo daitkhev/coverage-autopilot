@@ -65,14 +65,18 @@ interface Said {
 }
 
 /** A refusal is an expected outcome, so it warns and is not red. */
-const REFUSED: StatusLook = {
+export const REFUSED: StatusLook = {
   glyph: 'attention',
   word: 'refused',
   role: 'warning',
 };
 
 /** A fault is failed work of the client, so it is red. */
-const FAULT: StatusLook = { glyph: 'failed', word: 'fault', role: 'danger' };
+export const FAULT: StatusLook = {
+  glyph: 'failed',
+  word: 'fault',
+  role: 'danger',
+};
 
 /** What a fault says, which may be no error at all. */
 export function faultWords(fault: unknown): string {

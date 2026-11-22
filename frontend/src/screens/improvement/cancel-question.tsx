@@ -1,4 +1,4 @@
-import { Box, Text } from 'ink';
+import { Box } from 'ink';
 import type { ReactNode } from 'react';
 
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
@@ -7,8 +7,8 @@ import type { ClientSession } from '#api/client-session';
 import type { ServiceAnswer } from '#api/service-api';
 import type { Answer } from '#components/answer-list';
 import { Dialog } from '#components/dialog';
-import { Glyph } from '#components/glyph';
 import type { KeyHint } from '#components/key-hints';
+import { BusyLine, FaultLine, RefusalLine } from '#components/outcome-line';
 import { faultWords } from '#components/problem-details';
 import { RoleText } from '#components/role-text';
 import { type ActionState, useAction } from '#hooks/use-action';
@@ -39,23 +39,16 @@ function Outcome({ state }: { readonly state: Cancelling }): ReactNode {
     case 'idle':
       return null;
     case 'running':
-      return (
-        <Text>
-          <Glyph name="spinner" role="running" />{' '}
-          <RoleText>Cancelling the improvement</RoleText>
-        </Text>
-      );
+      return <BusyLine doing="Cancelling the improvement" />;
     case 'failed':
       return (
-        <RoleText role="danger">{`Nothing answered the cancel: ${faultWords(state.failure)}`}</RoleText>
+        <FaultLine
+          sentence={`Nothing answered the cancel: ${faultWords(state.failure)}`}
+        />
       );
     case 'ended':
       return state.outcome.outcome === 'refused' ? (
-        <Text>
-          <Glyph name="attention" role="warning" />{' '}
-          <RoleText role="warning">{state.outcome.error.message}</RoleText>{' '}
-          <RoleText role="secondary">{state.outcome.error.error}</RoleText>
-        </Text>
+        <RefusalLine error={state.outcome.error} />
       ) : null;
   }
 }

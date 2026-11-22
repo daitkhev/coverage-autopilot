@@ -103,7 +103,7 @@ describe('CancelQuestion', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('! No improvement has this id. not_found');
+        .toContain('! No improvement has this id.  not_found');
       expect(log).toEqual([]);
     });
   });

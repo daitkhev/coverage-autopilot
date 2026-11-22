@@ -175,7 +175,7 @@ describe('PatchView', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('! The improvement waits for no approval. status_conflict');
+        .toContain('! The improvement waits for no approval.  status_conflict');
     });
   });
 
