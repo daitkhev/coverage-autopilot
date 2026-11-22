@@ -1,39 +1,12 @@
-import { Box, Text } from 'ink';
+import { Text } from 'ink';
 import type { ReactNode } from 'react';
 
 import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
 
+import { Headline } from '#components/error-details';
 import { Glyph } from '#components/glyph';
 import { FAULT, REFUSED } from '#components/problem-details';
 import { RoleText } from '#components/role-text';
-import type { StatusLook } from '#theme/status';
-import { GAP } from '#theme/widths';
-
-/** A sentence in the colour of its look, its symbol first, a code beside. */
-function LookLine({
-  look,
-  sentence,
-  code,
-}: {
-  readonly look: StatusLook;
-  readonly sentence: string;
-  readonly code?: string;
-}): ReactNode {
-  return (
-    <Box gap={GAP}>
-      <Text>
-        <Glyph name={look.glyph} role={look.role} />{' '}
-        <RoleText role={look.role}>{sentence}</RoleText>
-      </Text>
-      {code === undefined ? null : (
-        // The code is searched for as it is written, so it is never cut.
-        <Box flexShrink={0}>
-          <RoleText role="secondary">{code}</RoleText>
-        </Box>
-      )}
-    </Box>
-  );
-}
 
 /** Something runs and the screen waits for it: `⠋ Sending your decision`. */
 export function BusyLine({ doing }: { readonly doing: string }): ReactNode {
@@ -51,7 +24,7 @@ export function RefusalLine({
   readonly error: ErrorBody;
 }): ReactNode {
   return (
-    <LookLine look={REFUSED} sentence={error.message} code={error.error} />
+    <Headline look={REFUSED} headline={error.message} code={error.error} />
   );
 }
 
@@ -61,5 +34,5 @@ export function FaultLine({
 }: {
   readonly sentence: string;
 }): ReactNode {
-  return <LookLine look={FAULT} sentence={sentence} />;
+  return <Headline look={FAULT} headline={sentence} />;
 }
