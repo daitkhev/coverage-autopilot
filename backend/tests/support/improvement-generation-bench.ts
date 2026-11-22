@@ -1,13 +1,13 @@
 import { GeneratingStep } from '#improvement/application/commands/run-improvement/generating.step';
 import type { StepResult } from '#improvement/application/commands/run-improvement/improvement-step';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
-import { GENERATION_TEST_SETTINGS } from '#tests/support/improvement-generation-inputs';
 import {
   generationCoverage,
   generationRepositories,
   scriptedGenerator,
 } from '#tests/support/improvement-generation-stand-ins';
 import { ImprovementRunBench } from '#tests/support/improvement-run-bench';
+import { TEST_SETTINGS } from '#tests/support/improvement-values';
 import { recordingQueue } from '#tests/support/recording-queue';
 
 /**
@@ -26,7 +26,7 @@ export class GeneratingStepBench {
     this.coverage,
     this.generator,
     this.queue,
-    GENERATION_TEST_SETTINGS,
+    TEST_SETTINGS,
   );
 
   /** Stores the improvement and runs the step on it once. */

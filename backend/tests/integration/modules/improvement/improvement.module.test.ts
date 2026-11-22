@@ -30,14 +30,12 @@ import {
   type ImprovementWorld,
   improvementWorld,
 } from '#tests/support/improvement-module-world';
-import {
-  REQUEST_SETTINGS,
-  startCommandOf,
-} from '#tests/support/improvement-request-stand-ins';
+import { startCommandOf } from '#tests/support/improvement-request-stand-ins';
 import {
   checkOf,
   hashOf,
   reportPropsOf,
+  TEST_SETTINGS,
 } from '#tests/support/improvement-values';
 
 const NEVER = new AbortController().signal;
@@ -194,7 +192,7 @@ describe('ImprovementModule', () => {
       await work();
 
       const { text } = patchDtoOf();
-      const { testFileSuffixes } = REQUEST_SETTINGS;
+      const { testFileSuffixes } = TEST_SETTINGS;
       expect(gate.requests).toMatchObject([
         { patch: { text }, testFileSuffixes },
       ]);
@@ -271,7 +269,7 @@ describe('ImprovementModule', () => {
         status: 'waiting_for_limit',
         waitingFor: 'limit',
         limitWaits: 1,
-        resumesAt: clock.now().plusMilliseconds(REQUEST_SETTINGS.limitWaitMs),
+        resumesAt: clock.now().plusMilliseconds(TEST_SETTINGS.limitWaitMs),
       });
 
       await work();
@@ -279,7 +277,7 @@ describe('ImprovementModule', () => {
       expect(generator.requests).toHaveLength(1);
 
       generator.answer = resultOf('generated');
-      clock.advance(REQUEST_SETTINGS.limitWaitMs);
+      clock.advance(TEST_SETTINGS.limitWaitMs);
       await work();
 
       const done = await read(id);
@@ -314,7 +312,7 @@ describe('ImprovementModule', () => {
 
   it('should not start with settings that cannot work', async () => {
     const start = open({
-      settings: { ...REQUEST_SETTINGS, testFileSuffixes: [], limitWaitMs: 0 },
+      settings: { ...TEST_SETTINGS, testFileSuffixes: [], limitWaitMs: 0 },
       generatorSettings: {
         ...GENERATOR_TEST_SETTINGS,
         credential: { variable: 'a token', value: '' },
@@ -334,8 +332,8 @@ describe('ImprovementModule', () => {
   it('should not start when the budget and the billing disagree', async () => {
     const start = open({
       settings: {
-        ...REQUEST_SETTINGS,
-        generation: { ...REQUEST_SETTINGS.generation, maxCostUsd: 2 },
+        ...TEST_SETTINGS,
+        generation: { ...TEST_SETTINGS.generation, maxCostUsd: 2 },
       },
     });
 

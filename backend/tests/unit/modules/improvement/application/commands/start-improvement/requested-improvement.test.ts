@@ -12,16 +12,14 @@ import { RequestFingerprint } from '#improvement/domain/value-objects/request-fi
 import { InvalidFilePathError } from '#kernel/errors/invalid-file-path.error';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { RepositoryId } from '#kernel/primitives/repository-id';
-import {
-  REQUEST_SETTINGS,
-  startCommandOf,
-} from '#tests/support/improvement-request-stand-ins';
+import { startCommandOf } from '#tests/support/improvement-request-stand-ins';
 import {
   BASE_COMMIT,
   hashOf,
   REPOSITORY_ID,
   SOURCE_SNAPSHOT_ID,
   TARGET_FILE,
+  TEST_SETTINGS,
 } from '#tests/support/improvement-values';
 
 const SOURCE: SourceOfWork = {
@@ -36,7 +34,7 @@ const POLICY = {
 } as const;
 
 function askedOf(spec: Parameters<typeof startCommandOf>[0] = {}) {
-  return askedImprovementOf(startCommandOf(spec), REQUEST_SETTINGS);
+  return askedImprovementOf(startCommandOf(spec), TEST_SETTINGS);
 }
 
 describe('askedImprovementOf', () => {
@@ -47,9 +45,9 @@ describe('askedImprovementOf', () => {
     expect(asked.snapshotId.value).toBe(SOURCE_SNAPSHOT_ID);
     expect(asked.targetFile.value).toBe(TARGET_FILE);
     expect(asked.mode).toBe('automatic');
-    expect(asked.budget).toEqual(REQUEST_SETTINGS.budget.defaults);
-    expect(asked.policy).toBe(REQUEST_SETTINGS.policy);
-    expect(asked.generator).toBe(REQUEST_SETTINGS.generator);
+    expect(asked.budget).toEqual(TEST_SETTINGS.budget.defaults);
+    expect(asked.policy).toBe(TEST_SETTINGS.policy);
+    expect(asked.generator).toBe(TEST_SETTINGS.generator);
   });
 
   it('should keep the choices of the command, within the maximums', () => {

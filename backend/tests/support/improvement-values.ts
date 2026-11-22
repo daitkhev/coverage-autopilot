@@ -1,7 +1,9 @@
+import type { ImprovementSettings } from '#improvement/application/improvement-settings';
 import {
   Budget,
   type BudgetLimits,
 } from '#improvement/domain/value-objects/budget.vo';
+import { BudgetSettings } from '#improvement/domain/value-objects/budget-settings.vo';
 import type { Generation } from '#improvement/domain/value-objects/generation.vo';
 import {
   type Billing,
@@ -88,6 +90,24 @@ export function generatorOf(
     billing,
   });
 }
+
+/**
+ * The settings of the improvement module in every test, those of the
+ * decisions: 3 attempts of 10 and 30 minutes of 120 by default, under a
+ * subscription, so with no limit of tokens and no price of a call.
+ */
+export const TEST_SETTINGS: ImprovementSettings = {
+  budget: BudgetSettings.create({
+    defaults: budgetOf(),
+    maximums: budgetOf({ attempts: 10, minutes: 120 }),
+  }),
+  mode: 'automatic',
+  policy: policyOf(),
+  generator: generatorOf(),
+  generation: { maxTurns: 12, maxCostUsd: null, timeoutMs: 600_000 },
+  testFileSuffixes: ['.test.ts', '.test.tsx'],
+  limitWaitMs: 3_600_000,
+};
 
 /** What a request may change in a test. The rest is a fixed request. */
 export interface RequestSpec {

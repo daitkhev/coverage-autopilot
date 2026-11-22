@@ -49,12 +49,12 @@ import {
 } from '#tests/support/improvement-generation-stand-ins';
 import { ManualAlarm } from '#tests/support/improvement-handler-alarm';
 import { analysisModules } from '#tests/support/improvement-handler-modules';
-import {
-  REQUEST_SETTINGS,
-  sourceCoverage,
-} from '#tests/support/improvement-request-stand-ins';
+import { sourceCoverage } from '#tests/support/improvement-request-stand-ins';
 import { seedImprovementRows } from '#tests/support/improvement-stores';
-import { SOURCE_SNAPSHOT_ID } from '#tests/support/improvement-values';
+import {
+  SOURCE_SNAPSHOT_ID,
+  TEST_SETTINGS,
+} from '#tests/support/improvement-values';
 import {
   type StandInGate,
   standInGate,
@@ -139,7 +139,7 @@ function serviceOf(spec: WorldSpec): Provider[] {
   return [
     {
       provide: IMPROVEMENT_SETTINGS,
-      useValue: spec.settings ?? REQUEST_SETTINGS,
+      useValue: spec.settings ?? TEST_SETTINGS,
     },
     {
       provide: GENERATOR_SETTINGS,

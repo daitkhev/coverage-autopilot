@@ -7,10 +7,7 @@ import {
 } from '#improvement/application/commands/run-improvement/generation-request';
 import { Improvement } from '#improvement/domain/entities/improvement.entity';
 import { FilePath } from '#kernel/primitives/file-path';
-import {
-  GENERATION_TEST_SETTINGS,
-  measuredPrice,
-} from '#tests/support/improvement-generation-inputs';
+import { measuredPrice } from '#tests/support/improvement-generation-inputs';
 import { improvementIn } from '#tests/support/improvement-journeys';
 import {
   baselineOf,
@@ -18,6 +15,7 @@ import {
   minutesIn,
   reportOf,
   TARGET_FILE,
+  TEST_SETTINGS,
 } from '#tests/support/improvement-values';
 
 const OWNER = `improvement:${IMPROVEMENT_ID}:attempt:1`;
@@ -39,7 +37,7 @@ function partsOf(
     subject: { testRunner: 'jest', file: measuredPrice() },
     owner: OWNER,
     workingCopyPath: COPY_PATH,
-    settings: GENERATION_TEST_SETTINGS,
+    settings: TEST_SETTINGS,
     now: minutesIn(10),
     ...change,
   };
@@ -59,7 +57,7 @@ describe('generationRequestOf', () => {
       workingCopyPath: COPY_PATH,
       owner: OWNER,
       testRunner: 'jest',
-      testFileSuffixes: GENERATION_TEST_SETTINGS.testFileSuffixes,
+      testFileSuffixes: TEST_SETTINGS.testFileSuffixes,
       generator: {
         cli: 'claude_code',
         model: 'claude-sonnet',

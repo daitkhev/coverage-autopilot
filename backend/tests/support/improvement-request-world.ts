@@ -11,10 +11,9 @@ import { FixedClock } from '#tests/support/fixed-clock';
 import {
   assessingRepositories,
   recordingHasher,
-  REQUEST_SETTINGS,
   sourceCoverage,
 } from '#tests/support/improvement-request-stand-ins';
-import { minutesIn } from '#tests/support/improvement-values';
+import { minutesIn, TEST_SETTINGS } from '#tests/support/improvement-values';
 import { InMemoryImprovementRepository } from '#tests/support/in-memory-improvement-repository';
 import { InlineTransactions } from '#tests/support/inline-transactions';
 import { recordingQueue } from '#tests/support/recording-queue';
@@ -53,7 +52,7 @@ export class ImprovementRequestWorld {
     this.hasher,
     this.registration,
     this.views,
-    REQUEST_SETTINGS,
+    TEST_SETTINGS,
   );
   public readonly approve = new ApproveImprovementHandler(
     this.improvements,

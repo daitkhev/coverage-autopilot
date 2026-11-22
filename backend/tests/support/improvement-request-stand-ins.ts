@@ -6,9 +6,7 @@ import type {
   SnapshotRequest,
 } from '#coverage/contracts/coverage-public-api';
 import type { StartImprovementCommand } from '#improvement/application/commands/start-improvement/start-improvement.command';
-import type { ImprovementSettings } from '#improvement/application/improvement-settings';
 import type { RequestHasher } from '#improvement/application/ports/request-hasher.port';
-import { BudgetSettings } from '#improvement/domain/value-objects/budget-settings.vo';
 import { RequestFingerprint } from '#improvement/domain/value-objects/request-fingerprint.vo';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
@@ -20,10 +18,7 @@ import type {
 } from '#repositories/contracts/repositories-public-api';
 import {
   BASE_COMMIT,
-  budgetOf,
-  generatorOf,
   hashOf,
-  policyOf,
   REPOSITORY_ID,
   SOURCE_SNAPSHOT_ID,
   TARGET_FILE,
@@ -35,23 +30,6 @@ import {
 
 /** The head of the default branch once it moved past the snapshot. */
 const MOVED_HEAD = 'd'.repeat(BASE_COMMIT.length);
-
-/**
- * The settings of the decisions: 3 attempts of 10 and 30 minutes of 120
- * by default, under a subscription, so with no limit of tokens.
- */
-export const REQUEST_SETTINGS: ImprovementSettings = {
-  budget: BudgetSettings.create({
-    defaults: budgetOf(),
-    maximums: budgetOf({ attempts: 10, minutes: 120 }),
-  }),
-  mode: 'automatic',
-  policy: policyOf(),
-  generator: generatorOf(),
-  generation: { maxTurns: 25, maxCostUsd: null, timeoutMs: 900_000 },
-  testFileSuffixes: ['.test.ts', '.test.tsx'],
-  limitWaitMs: 3_600_000,
-};
 
 /** A request for the target of the source snapshot, the rest left out. */
 export function startCommandOf(
