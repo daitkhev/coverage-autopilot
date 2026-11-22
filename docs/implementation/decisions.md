@@ -761,9 +761,15 @@ Where this log and the plan differ, this log and the code are right.
 
 - The worker should record its last poll, so health can say when it was
   last seen, and should itself refuse two handlers of one kind.
-- The end-to-end tests cover the start and the stop of the built file.
-  The journey from a repository to a pull request, with stand-ins for the
-  engine, the code host and the generator, is the next step.
+- The end-to-end tests cover the start and the stop of the built file
+  and one journey from a repository to a pull request, with stand-ins
+  for the engine, the code host and the generator. They do not cover
+  yet: review mode, a rejected patch and a second attempt, a generator
+  that fails or cannot log in, a publication the host refuses, a cancel,
+  and a restart in the middle of an improvement.
+- The log of a whole journey is four lines, the start and the end of
+  each job, also at the level of debug. A step of a job, a tool that was
+  started and a call of the code host leave no line.
 - git gets `PATH` and `HOME` only. A push that goes through the
   credential helper of `gh` may need the token of the environment: to be
   proven on the first real publication.
