@@ -913,6 +913,12 @@ Where this log and the plan differ, this log and the code are right.
   the cancel of the list of improvements, opening a pull request in the
   browser, the next file, and asking again with larger limits after a
   failure.
+- A start removes what was left before it listens, and an engine that
+  does not answer is waited for thirty seconds, longer than the client
+  waits for a start.
+- The label of a container is made of the path of the instance, so the
+  containers of a folder that was moved are not found, and those started
+  before the label existed never are.
 - An old service removes its socket a moment before it releases its
   lock. A new one that tried the lock in that moment would leave, and
   the client would wait its whole wait and say the service did not
@@ -1020,20 +1026,19 @@ A real run can fail, or lose work that was paid for:
   settings only name it, and the engine is not told to leave the
   registry alone, so without an image built by hand it looks for one
   there and every generation fails.
-- A working copy whose tree was left unreadable cannot be removed, and
-  the removal runs where a step ends. Its fault then takes the place of
-  the result of the step, so a call of the generator can go unrecorded,
-  and the folder that stays blocks the next copy of the same id.
-- Nothing clears what a crash left: no working copy and no container is
-  looked for when the service starts.
 - Three readings of the generator are guesses that no run has measured:
   the status of a spent limit, the words of a failed login, and the
   error of a key with no credit.
 - git gets no token for a push. Where the login of the code host lives
   in the environment only, a publication may fail: to be proven on the
   first real one.
-- A container is given thirty seconds to be removed, and a removal that
-  fails is not raised, so a run can return while its container lives.
+- A run whose container may still live fails its step, and a step of
+  the generator that fails so does not record the call that was paid
+  for. The fault can be tried again, and the new copy has the path of
+  the one the old container was lent.
+- Every reading of the engine was proven on a stand-in. Not tried on a
+  real one: the listing by a label, the words for a container that is
+  gone or is being removed, and a mount of a copy made anew at one path.
 
 A person meets it in the first minutes of the client:
 
@@ -1062,6 +1067,12 @@ Rare, and severe when it happens:
   socket for its own and does not compare the version, so a service of
   another contract that starts in the same moment is used, or fails the
   client with a mismatch.
+- A start removes what was left before it listens, and an engine that
+  does not answer is waited for thirty seconds, longer than the client
+  waits for a start.
+- The label of a container is made of the path of the instance, so the
+  containers of a folder that was moved are not found, and those started
+  before the label existed never are.
 - An old service removes its socket a moment before it releases its
   lock. A new one that tries the lock then leaves without a word, and
   the client says the service did not start.
@@ -1141,3 +1152,32 @@ fails the improvement as an exposed credential and keeps its tokens.
 - Where: `frontend/src/app/interactive.tsx`,
   `frontend/src/theme/widths.ts`, `frontend/src/components/panel.tsx`,
   `frontend/src/api/browser.ts`.
+
+### A copy is removed whatever was done to it, and a start clears the rest
+
+- Code of a repository can leave a tree with folders the service may
+  not list or empty. A removal that is refused gives the owner back each
+  folder of the tree and tries again. A link is never followed, so
+  nothing outside the tree is changed.
+- The result of a step counts for more than its folders. Disposing of a
+  copy never throws: a copy that stays is an error line in the log, and
+  the next copy of the id or the next start removes it. One place holds
+  this, behind the port of the working copies, so no step changed.
+- A container that may still run after its command is a fault of the
+  run, not an outcome: it may still write into the copy, so no patch is
+  taken and the copy is thrown away. A name the engine no longer knows
+  counts as removed.
+- A start removes what a service that was killed left: the containers
+  first, then every working copy, and never a mirror. It runs under the
+  lock and before the worker, so no job holds a copy, and a job taken
+  back after a crash makes its copy anew.
+- Two instances share one engine, so a container carries a label made
+  of the path of its instance, and a start removes only those with its
+  own label and a name the sandbox gave. A part of this that fails is a
+  line in the log, and the start goes on.
+- No whole service of a test starts the real engine any more: each runs
+  on a stand-in unless a test gives another.
+- Where: `backend/src/modules/repositories/infrastructure/git/working-copy-folders.ts`,
+  `backend/src/shared/infrastructure/sandbox/container-removal.ts`,
+  `backend/src/shared/infrastructure/sandbox/leftover-containers.ts`,
+  `backend/src/composition/leftover-sweep.ts`.
