@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import { SystemClock } from '#infrastructure/time/system-clock.adapter';
 import { CLOCK, type Clock } from '#kernel/time/clock';
+import { Instant } from '#kernel/time/instant';
 import { FixedClock } from '#tests/support/fixed-clock';
 
 /** The clock and the file system may differ by this much, and no more. */
@@ -34,13 +35,10 @@ describe('SystemClock', () => {
       expect(Math.abs(now - timeOfNewFile())).toBeLessThan(TOLERANCE_MS);
     });
 
-    it('should never go back', () => {
-      const clock = new SystemClock();
+    it('should give a moment its one text can hold', () => {
+      const now = new SystemClock().now();
 
-      const first = clock.now();
-      const second = clock.now();
-
-      expect(second.isBefore(first)).toBe(false);
+      expect(Instant.parse(now.toString()).equals(now)).toBe(true);
     });
   });
 

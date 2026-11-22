@@ -1,26 +1,13 @@
 import { InvalidInstantError } from '#kernel/errors/invalid-instant.error';
 import { ValueObject } from '#kernel/primitives/value-object';
-import { civilFromDays, daysFromCivil } from '#kernel/time/calendar';
-
-const MS_PER_SECOND = 1000;
-const MS_PER_MINUTE = 60_000;
-const MS_PER_HOUR = 3_600_000;
-const MS_PER_DAY = 86_400_000;
 
 /** The last millisecond of the year 9999, where a year still has 4 digits. */
 const LAST = 253_402_300_799_999;
 
-const YEAR_DIGITS = 4;
-const CLOCK_DIGITS = 2;
 const MILLISECOND_DIGITS = 3;
 
 /** The one text of a moment: UTC, with milliseconds, of a fixed width. */
-const TEXT =
-  /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})T(?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2})\.(?<millisecond>\d{3})Z$/u;
-
-function digits(value: number, width: number): string {
-  return String(value).padStart(width, '0');
-}
+const TEXT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 function holds(epochMilliseconds: number): boolean {
   return (
@@ -30,21 +17,27 @@ function holds(epochMilliseconds: number): boolean {
   );
 }
 
-/** The milliseconds since 1970 that the parts of a text name. */
-function millisecondsOf(parts: Readonly<Record<string, string>>): number {
-  const part = (name: string): number => Number(parts[name]);
-  const days = daysFromCivil({
-    year: part('year'),
-    month: part('month'),
-    day: part('day'),
+/** The one text of the moment, as the database and the contract keep it. */
+function textOf(epochMilliseconds: number): string {
+  return Temporal.Instant.fromEpochMilliseconds(epochMilliseconds).toString({
+    fractionalSecondDigits: MILLISECOND_DIGITS,
   });
-  return (
-    days * MS_PER_DAY +
-    part('hour') * MS_PER_HOUR +
-    part('minute') * MS_PER_MINUTE +
-    part('second') * MS_PER_SECOND +
-    part('millisecond')
-  );
+}
+
+/**
+ * The milliseconds since 1970 that a text of the one shape names. The
+ * calendar of the platform refuses a day or an hour that does not exist,
+ * and a text it refuses names no moment.
+ */
+function millisecondsOf(text: string): number {
+  if (!TEXT.test(text)) {
+    return Number.NaN;
+  }
+  try {
+    return Temporal.Instant.from(text).epochMilliseconds;
+  } catch {
+    return Number.NaN;
+  }
 }
 
 interface InstantProps {
@@ -73,12 +66,12 @@ export class Instant extends ValueObject<InstantProps> {
 
   /**
    * A text is a moment only when the moment it names is written the same
-   * way, which refuses the 30th of February and the hour 24.
+   * way. The platform reads more than the one shape, such as a second 60
+   * it moves back to 59, and none of that is a moment here.
    */
   public static parse(text: string): Instant {
-    const parts = TEXT.exec(text)?.groups;
-    const named = parts === undefined ? Number.NaN : millisecondsOf(parts);
-    if (!holds(named) || new Instant(named).toString() !== text) {
+    const named = millisecondsOf(text);
+    if (!holds(named) || textOf(named) !== text) {
       throw new InvalidInstantError(
         `"${text}" is not a moment in UTC as YYYY-MM-DDTHH:mm:ss.sssZ.`,
       );
@@ -99,21 +92,6 @@ export class Instant extends ValueObject<InstantProps> {
   }
 
   public override toString(): string {
-    const days = Math.floor(this.epochMilliseconds / MS_PER_DAY);
-    const inDay = this.epochMilliseconds - days * MS_PER_DAY;
-    const { year, month, day } = civilFromDays(days);
-    const date = [
-      digits(year, YEAR_DIGITS),
-      digits(month, CLOCK_DIGITS),
-      digits(day, CLOCK_DIGITS),
-    ].join('-');
-    const time = [
-      Math.floor(inDay / MS_PER_HOUR),
-      Math.floor((inDay % MS_PER_HOUR) / MS_PER_MINUTE),
-      Math.floor((inDay % MS_PER_MINUTE) / MS_PER_SECOND),
-    ]
-      .map((value) => digits(value, CLOCK_DIGITS))
-      .join(':');
-    return `${date}T${time}.${digits(inDay % MS_PER_SECOND, MILLISECOND_DIGITS)}Z`;
+    return textOf(this.epochMilliseconds);
   }
 }
