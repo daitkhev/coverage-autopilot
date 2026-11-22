@@ -42,7 +42,9 @@ export async function runScreens({
       />
     </ThemeContext>,
     // The client writes nothing to the console, so Ink need not guard it.
-    { ...terminal, patchConsole: false },
+    // And the client was given a terminal, so Ink is told to draw on it:
+    // left to itself it reads the environment and draws nothing under CI.
+    { ...terminal, patchConsole: false, interactive: true },
   );
   await ink.waitUntilExit();
   return farewell;

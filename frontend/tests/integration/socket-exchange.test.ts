@@ -55,7 +55,10 @@ describe('exchange', () => {
       const socket = join(folder, 'service.sock');
       writeFileSync(socket, 'not a socket');
 
-      expect(codeOf(await unreachableOf(socket))).toBe('ENOTSOCK');
+      // macOS says the file is no socket, and Linux that it refused.
+      expect(['ENOTSOCK', 'ECONNREFUSED']).toContain(
+        codeOf(await unreachableOf(socket)),
+      );
     });
   });
 
