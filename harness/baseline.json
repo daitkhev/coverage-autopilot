@@ -45,7 +45,6 @@
         "CoverageMetric",
         "CreateWorkingCopyRequest",
         "ExtractPatchResult",
-        "InstallMode",
         "PatchDto",
         "PublishPatchRequest",
         "PublishPatchResult",

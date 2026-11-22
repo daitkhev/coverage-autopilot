@@ -19,7 +19,7 @@ export interface RepositoryThresholdDto {
  * `sandboxed`: none while the network is open. `trusted`: the code of the
  * repository and of its packages, as its own developers install it.
  */
-export type InstallMode = 'sandboxed' | 'trusted';
+type InstallMode = 'sandboxed' | 'trusted';
 
 /** How the packages of a repository are installed at the moment it is read. */
 export interface RepositoryInstallDto {

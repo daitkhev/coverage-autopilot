@@ -19,7 +19,7 @@ import {
 export const WORKING_COPY_PATH = '/work/acme-widgets';
 
 /** The repository every stand-in working copy is a copy of. */
-export const STAND_IN_REPOSITORY_ID = RepositoryId.create(REPOSITORY_ID);
+const STAND_IN_REPOSITORY_ID = RepositoryId.create(REPOSITORY_ID);
 
 /** The stand-in working copy as it is lent to the tools of `owner`. */
 export function loanOf(owner: string): WorkingCopyLoan {
