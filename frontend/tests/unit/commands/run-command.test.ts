@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServiceApi } from '#api/service-api';
+import { ServiceTimeoutError } from '#api/service-timeout-error';
 import { ServiceUnreachableError } from '#api/service-unreachable-error';
 import type { Command } from '#commands/command';
 import { runCommand } from '#commands/run-command';
@@ -10,6 +11,7 @@ import { REPOSITORY_LIST } from '#tests/support/sample-repositories';
 
 const SOCKET = '/run/coverage-autopilot/service.sock';
 const REPO = 'example/payments';
+const ANSWER_LIMIT_MS = 30_000;
 
 function unreachable(): Promise<never> {
   return Promise.reject(new ServiceUnreachableError(SOCKET));
@@ -79,6 +81,22 @@ describe('runCommand', () => {
     await expect(runCommand({ name: 'repo list' }, io)).resolves.toBe(0);
 
     expect(io.printed).toHaveLength(REPOSITORY_LIST.items.length);
+  });
+
+  describe('when the service does not answer in time', () => {
+    it('should say once how long it waited, and fail', async () => {
+      const io = recordingIo({
+        health: () =>
+          Promise.reject(new ServiceTimeoutError(SOCKET, ANSWER_LIMIT_MS)),
+      });
+
+      await expect(runCommand({ name: 'doctor' }, io)).resolves.toBe(1);
+
+      expect(io.said).toEqual([
+        'The service on the socket /run/coverage-autopilot/service.sock did not answer in 30 seconds.',
+      ]);
+      expect(io.printed).toEqual([]);
+    });
   });
 
   describe('when a command meets any other fault', () => {

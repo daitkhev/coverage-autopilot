@@ -1,3 +1,4 @@
+import { ServiceTimeoutError } from '#api/service-timeout-error';
 import { ServiceUnreachableError } from '#api/service-unreachable-error';
 import { approve } from '#commands/approve';
 import { cancel } from '#commands/cancel';
@@ -44,22 +45,40 @@ function dispatch<Name extends CommandName>(
   return run(command, io);
 }
 
+/** The sentence for a service that does not answer, or not in time. */
+function silenceOf(error: unknown): string | undefined {
+  if (error instanceof ServiceUnreachableError) {
+    return `The service does not answer on ${error.socketPath}.`;
+  }
+  return error instanceof ServiceTimeoutError ? error.message : undefined;
+}
+
 /**
- * Runs one command and gives its exit code. A service that does not
- * answer is said here once, in one sentence, for every command; any other
+ * Runs work over the service and gives its exit code. A service that
+ * does not answer, or does not answer in time, is said here once, in one
+ * sentence, for every command and for the reach before it; any other
  * fault is not caught, so it is not mistaken for an answer.
  */
+export async function overService(
+  err: (line: string) => void,
+  work: () => Promise<number>,
+): Promise<number> {
+  try {
+    return await work();
+  } catch (error: unknown) {
+    const said = silenceOf(error);
+    if (said === undefined) {
+      throw error;
+    }
+    err(said);
+    return EXIT_CODE.failed;
+  }
+}
+
+/** Runs one command and gives its exit code, as `overService` says. */
 export async function runCommand(
   command: Command,
   io: CommandIo,
 ): Promise<number> {
-  try {
-    return await dispatch(command, io);
-  } catch (error: unknown) {
-    if (!(error instanceof ServiceUnreachableError)) {
-      throw error;
-    }
-    io.err(`The service does not answer on ${error.socketPath}.`);
-    return EXIT_CODE.failed;
-  }
+  return overService(io.err, async () => dispatch(command, io));
 }

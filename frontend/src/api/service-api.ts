@@ -46,9 +46,11 @@ export type ServiceAnswer<Value> =
 
 /**
  * One method for each route of the service. Every method throws
- * `ServiceUnreachableError` when nothing answers on the socket, and
- * `ContractMismatchError` of the contracts when an answer, a value or a
- * refusal, does not match its schema: both are faults.
+ * `ServiceUnreachableError` when nothing answers on the socket,
+ * `ServiceTimeoutError` when the service does not answer within the limit
+ * of a request, and `ContractMismatchError` of the contracts when an
+ * answer, a value or a refusal, does not match its schema: all are
+ * faults.
  */
 export interface ServiceApi {
   /**

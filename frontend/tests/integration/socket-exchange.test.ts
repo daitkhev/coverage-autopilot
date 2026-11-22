@@ -6,14 +6,19 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { getRequest, postRequest } from '#api/route-requests';
+import { ServiceTimeoutError } from '#api/service-timeout-error';
 import { ServiceUnreachableError } from '#api/service-unreachable-error';
 import { exchange } from '#api/socket-exchange';
 import {
+  type AnswerPart,
   type ScriptedServer,
   startScriptedServer,
 } from '#tests/support/socket-server';
 
 const HEALTH = getRequest('/health');
+
+/** A limit a test can wait for: the limit of the client is 30 seconds. */
+const SHORT_LIMIT_MS = 50;
 
 /** The failure the client gives when nothing answers, with its cause. */
 async function unreachableOf(socket: string): Promise<ServiceUnreachableError> {
@@ -120,6 +125,27 @@ describe('exchange', () => {
         server.answerWith({ cut: 'within_the_answer' });
 
         expect(codeOf(await unreachableOf(server.socket))).toBe('ECONNRESET');
+      });
+    });
+
+    describe.each<[string, AnswerPart]>([
+      ['takes the request and never answers', 'before_the_answer'],
+      ['stops in the middle of its answer', 'within_the_answer'],
+    ])('when it %s', (_case, part) => {
+      it('should give up at the limit, and say how long it waited', async () => {
+        server.answerWith({ silent: part });
+
+        const failure: unknown = await exchange(
+          server.socket,
+          HEALTH,
+          SHORT_LIMIT_MS,
+        ).catch((error: unknown) => error);
+
+        expect(failure).toBeInstanceOf(ServiceTimeoutError);
+        expect((failure as ServiceTimeoutError).message).toBe(
+          `The service on the socket ${server.socket} did not answer in 0.05 seconds.`,
+        );
+        expect((failure as ServiceTimeoutError).cause).toBeInstanceOf(Error);
       });
     });
 

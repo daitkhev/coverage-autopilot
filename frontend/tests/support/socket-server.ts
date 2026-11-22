@@ -19,16 +19,20 @@ interface ReceivedRequest {
   readonly body: string;
 }
 
+/** Where in its answer the server stops. */
+export type AnswerPart = 'before_the_answer' | 'within_the_answer';
+
 /**
  * What the server does with every request: answers a status with a body
- * as JSON or as text, writes bytes that are no HTTP, or cuts the
- * connection before or within its answer.
+ * as JSON or as text, writes bytes that are no HTTP, cuts the connection
+ * before or within its answer, or holds it open there and says no more.
  */
 type ScriptedAnswer =
   | { readonly status: number; readonly body: unknown }
   | { readonly status: number; readonly text: string }
   | { readonly raw: string }
-  | { readonly cut: 'before_the_answer' | 'within_the_answer' };
+  | { readonly cut: AnswerPart }
+  | { readonly silent: AnswerPart };
 
 /** A server on a Unix socket that answers what a test scripted. */
 export interface ScriptedServer {
@@ -37,7 +41,7 @@ export interface ScriptedServer {
   readonly received: readonly ReceivedRequest[];
   /** Every request from now on is answered so. */
   answerWith(answer: ScriptedAnswer): void;
-  /** Stops the server and removes its folder. */
+  /** Stops the server, also within an answer it holds, and removes its folder. */
   close(): Promise<void>;
 }
 
@@ -52,16 +56,25 @@ const NOT_SCRIPTED: ScriptedAnswer = { status: FAULT, text: 'not scripted' };
 /** The length an answer cut within itself promised and never sent. */
 const PROMISED_LENGTH = '100';
 
+/** Writes the start of an answer whose rest never comes. */
+function beginUpTo(part: AnswerPart, response: ServerResponse): void {
+  if (part === 'within_the_answer') {
+    response.writeHead(OK, { 'content-length': PROMISED_LENGTH });
+    response.write('{"cut":');
+  }
+}
+
 function play(
   answer: ScriptedAnswer,
   request: IncomingMessage,
   response: ServerResponse,
 ): void {
+  if ('silent' in answer) {
+    beginUpTo(answer.silent, response);
+    return;
+  }
   if ('cut' in answer) {
-    if (answer.cut === 'within_the_answer') {
-      response.writeHead(OK, { 'content-length': PROMISED_LENGTH });
-      response.write('{"cut":');
-    }
+    beginUpTo(answer.cut, response);
     request.socket.destroy();
     return;
   }

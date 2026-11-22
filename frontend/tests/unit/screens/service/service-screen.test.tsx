@@ -7,6 +7,7 @@ import type {
 } from '@coverage-autopilot/api-contracts/health';
 
 import type { ServiceAnswer } from '#api/service-api';
+import { ServiceTimeoutError } from '#api/service-timeout-error';
 import { ServiceUnreachableError } from '#api/service-unreachable-error';
 import { ServiceScreen } from '#screens/service/service-screen';
 import {
@@ -162,6 +163,30 @@ describe('ServiceScreen', () => {
       await expect
         .poll(() => screenOf(terminal), PATIENT)
         .toContain('! no answer yet');
+      expect(screenOf(terminal)).not.toContain('THE CLIENT SAID');
+    });
+  });
+
+  describe('when one request runs out of time', () => {
+    it('should show it as a fault, and go on asking', async () => {
+      let asked = 0;
+      const terminal = show(
+        fakeSession({
+          health: () => {
+            asked += 1;
+            return asked === 1
+              ? Promise.reject(new ServiceTimeoutError(SOCKET, 30_000))
+              : Promise.resolve(IDLE_HEALTH);
+          },
+        }),
+      );
+
+      await expect
+        .poll(() => screenOf(terminal), PATIENT)
+        .toContain('ServiceTimeoutError');
+      await expect
+        .poll(() => screenOf(terminal), PATIENT)
+        .toContain('Everything is in order');
       expect(screenOf(terminal)).not.toContain('THE CLIENT SAID');
     });
   });

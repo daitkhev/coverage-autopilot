@@ -9,7 +9,7 @@ import { reachLinesOf, STEP_WORDS } from '#app/service-reach-words';
 import { HELP_TEXT } from '#commands/command-grammar';
 import { EXIT_CODE } from '#commands/command-io';
 import { type CommandLine, parseCommandLine } from '#commands/command-line';
-import { runCommand } from '#commands/run-command';
+import { overService, runCommand } from '#commands/run-command';
 import {
   type Environment,
   serviceSettingOf,
@@ -63,26 +63,32 @@ async function showScreens(
   return EXIT_CODE.done;
 }
 
-/** One command over the service, which is reached first. */
+/**
+ * One command over the service, which is reached first. A service that
+ * does not answer the reach is said as one that does not answer the
+ * command.
+ */
 async function runOne(
   line: Line<'command'>,
   process: ClientProcess,
   door: ServiceDoor,
 ): Promise<number> {
-  const reached = await door.reach((step) => {
-    process.err(STEP_WORDS[step]);
-  });
-  if (reached.outcome !== 'ready') {
-    reachLinesOf(reached).forEach(process.err);
-    return EXIT_CODE.failed;
-  }
-  return runCommand(line.command, {
-    session: sessionOf(reached.api),
-    out: process.out,
-    err: process.err,
-    pause: door.pause,
-    json: line.flags.json,
-    unicode: showsUnicode(process.environment),
+  return overService(process.err, async () => {
+    const reached = await door.reach((step) => {
+      process.err(STEP_WORDS[step]);
+    });
+    if (reached.outcome !== 'ready') {
+      reachLinesOf(reached).forEach(process.err);
+      return EXIT_CODE.failed;
+    }
+    return runCommand(line.command, {
+      session: sessionOf(reached.api),
+      out: process.out,
+      err: process.err,
+      pause: door.pause,
+      json: line.flags.json,
+      unicode: showsUnicode(process.environment),
+    });
   });
 }
 
