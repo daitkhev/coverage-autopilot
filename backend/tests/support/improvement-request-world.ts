@@ -1,3 +1,4 @@
+import { ApproveImprovementHandler } from '#improvement/application/commands/approve-improvement/approve-improvement.handler';
 import { ImprovementRegistration } from '#improvement/application/commands/start-improvement/improvement-registration';
 import { StartImprovementHandler } from '#improvement/application/commands/start-improvement/start-improvement.handler';
 import { ImprovementViews } from '#improvement/application/dto/improvement-views';
@@ -52,6 +53,13 @@ export class ImprovementRequestWorld {
     this.registration,
     this.views,
     REQUEST_SETTINGS,
+  );
+  public readonly approve = new ApproveImprovementHandler(
+    this.improvements,
+    this.transactions,
+    this.queue,
+    this.clock,
+    this.views,
   );
   public readonly getImprovement = new GetImprovementHandler(
     this.improvements,
