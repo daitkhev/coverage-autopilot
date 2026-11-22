@@ -45,6 +45,25 @@ describe('ErrorDetails', () => {
     );
   });
 
+  describe('when the headline does not fit beside the code', () => {
+    it('should wrap the headline and keep the code whole', () => {
+      const drawn = drawnAt(
+        <ErrorDetails
+          look={IMPROVEMENT_STATUS.failed}
+          headline="The health of the service could not be read"
+          code="ContractMismatchError"
+          next="Ask again."
+        />,
+        40,
+      );
+
+      expect(drawn.split('\n').slice(0, 2)).toEqual([
+        '✕ The health of    ContractMismatchError',
+        'the service could',
+      ]);
+    });
+  });
+
   it.each(WIDTHS)('should fit in %i columns', (columns) => {
     expect(widestLine(drawnAt(REFUSED, columns))).toBeLessThanOrEqual(columns);
   });
