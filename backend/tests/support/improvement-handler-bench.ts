@@ -12,6 +12,7 @@ import {
   minutesIn,
 } from '#tests/support/improvement-values';
 import { InlineTransactions } from '#tests/support/inline-transactions';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import { StandInJobContext } from '#tests/support/stand-in-job-context';
 
 /** After every step of a journey of the tests, and before its deadline. */
@@ -29,6 +30,8 @@ export class ImprovementHandlerBench {
   public readonly context = new StandInJobContext(IMPROVEMENT_ID);
   public readonly alarm = new ManualAlarm();
   public readonly transactions = new InlineTransactions();
+  /** Every line the handler wrote. */
+  public readonly logger = new RecordingLogger();
   public readonly steps = [
     new ScriptedStep('analyzing', 'verification_error'),
     new ScriptedStep('generating', 'generator_unavailable'),
@@ -43,6 +46,7 @@ export class ImprovementHandlerBench {
       this.clock,
       this.alarm,
       this.transactions,
+      this.logger,
     );
   }
 

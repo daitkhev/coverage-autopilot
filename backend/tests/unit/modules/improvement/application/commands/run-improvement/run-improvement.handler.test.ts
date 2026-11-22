@@ -187,13 +187,14 @@ describe('RunImprovementHandler', () => {
     describe('when no step does the work of the status', () => {
       it('should throw a fault of the binding', async () => {
         await bench.store(improvementIn('analyzing'));
-        const { improvements, clock, alarm, transactions } = bench;
+        const { improvements, clock, alarm, transactions, logger } = bench;
         const handler = new RunImprovementHandler(
           improvements,
           [],
           clock,
           alarm,
           transactions,
+          logger,
         );
 
         await expect(handler.execute(bench.context)).rejects.toBeInstanceOf(

@@ -15,6 +15,10 @@ import {
   retriesExhausted,
   unreadablePayload,
 } from '#improvement/application/commands/run-improvement/run-failures';
+import {
+  stepEndOf,
+  stepFieldsOf,
+} from '#improvement/application/commands/run-improvement/step-lines';
 import { MissingStepError } from '#improvement/application/errors/missing-step.error';
 import { StalledStepError } from '#improvement/application/errors/stalled-step.error';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
@@ -40,6 +44,7 @@ import type {
   JobHandler,
   JobResult,
 } from '#ports/job-handler.port';
+import { LOGGER, type Logger } from '#ports/logger.port';
 import {
   TRANSACTION_MANAGER,
   type TransactionManager,
@@ -116,6 +121,7 @@ export class RunImprovementHandler implements JobHandler {
   private readonly clock: Clock;
   private readonly alarm: Alarm;
   private readonly transactions: TransactionManager;
+  private readonly logger: Logger;
 
   public constructor(
     @Inject(IMPROVEMENT_REPOSITORY) improvements: ImprovementRepository,
@@ -123,12 +129,14 @@ export class RunImprovementHandler implements JobHandler {
     @Inject(CLOCK) clock: Clock,
     @Inject(ALARM) alarm: Alarm,
     @Inject(TRANSACTION_MANAGER) transactions: TransactionManager,
+    @Inject(LOGGER) logger: Logger,
   ) {
     this.improvements = improvements;
     this.steps = new Map(steps.map((step) => [step.status, step]));
     this.clock = clock;
     this.alarm = alarm;
     this.transactions = transactions;
+    this.logger = logger.child({ component: 'improvement-run' });
   }
 
   public async execute(context: JobContext): Promise<JobResult> {
@@ -247,7 +255,33 @@ export class RunImprovementHandler implements JobHandler {
     return step;
   }
 
+  /**
+   * A step says when it starts and how it ends, with the ids of its
+   * journey. A move of the handler itself, such as a start, is no step.
+   */
   private async perform(work: Work, execution: Execution): Promise<StepResult> {
+    if (work.next === 'change') {
+      return this.attempt(work, execution);
+    }
+    const { run, context } = execution;
+    const log = this.logger.child(stepFieldsOf(run.improvement, context));
+    log.info('A step of an improvement started.');
+    try {
+      const result = await this.attempt(work, execution);
+      log.info(
+        'A step of an improvement ended.',
+        stepEndOf(result, run.improvement),
+      );
+      return result;
+    } catch (error) {
+      // A stop, a lost lease or a fault nobody foresaw: the lines of the
+      // job say which.
+      log.info('A step of an improvement ended.', { outcome: 'interrupted' });
+      throw error;
+    }
+  }
+
+  private async attempt(work: Work, execution: Execution): Promise<StepResult> {
     try {
       return await this.carryOut(work, execution);
     } catch (error) {
