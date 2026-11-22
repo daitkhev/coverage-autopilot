@@ -41,6 +41,7 @@ interface FailureWords {
   readonly next: string;
 }
 
+/** Each reason of a failure as a headline, and the step that follows. */
 export const FAILURE_WORDS: Readonly<
   Record<ImprovementFailureReason, FailureWords>
 > = {
@@ -82,6 +83,7 @@ export const FAILURE_WORDS: Readonly<
   },
 };
 
+/** Why the work was not needed, as a headline. */
 export const SKIP_WORDS: Readonly<Record<SkipReason, string>> = {
   threshold_met: 'The file is already above the threshold',
   no_undetected_mutants: 'The tests already detect every mutant',
@@ -100,6 +102,7 @@ export const OUTCOME_WORDS: Readonly<Record<GenerationOutcome, string>> = {
 /** An attempt that stopped before a test was written. */
 export const NOT_WRITTEN = 'stopped before a test was written';
 
+/** The name of the generator as people know it. */
 export const GENERATOR_WORDS: Readonly<Record<GeneratorCli, string>> = {
   claude_code: 'Claude Code',
 };

@@ -23,6 +23,7 @@ const ANSWERS: readonly Answer[] = [
   { label: 'Reject the patch and cancel the improvement', destroys: true },
 ];
 
+/** The decisions in the order the question lists them. */
 export const DECISIONS: readonly Decision[] = ['later', 'approve', 'reject'];
 
 /** The frame of the panel, the question, and the line of its outcome. */
