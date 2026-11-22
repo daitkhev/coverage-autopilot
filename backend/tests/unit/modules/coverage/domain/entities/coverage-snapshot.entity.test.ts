@@ -64,6 +64,36 @@ describe('CoverageSnapshot', () => {
       });
     });
 
+    it('should keep how many tests ran and failed', () => {
+      expect(snapshotOf({ tests: { ran: 53, failed: 33 } }).tests).toEqual({
+        ran: 53,
+        failed: 33,
+      });
+    });
+
+    describe('when the tests are counted in a way no run gives', () => {
+      it.each([
+        ['more failed than ran', { ran: 2, failed: 3 }],
+        ['fewer than none failed', { ran: 2, failed: -1 }],
+        ['a part of a test ran', { ran: 2.5, failed: 1 }],
+        ['a part of a test failed', { ran: 2, failed: 0.5 }],
+      ])('should throw InvalidCoverageSnapshotError for %s', (_case, tests) => {
+        expect(() => snapshotOf({ tests })).toThrow(
+          new InvalidCoverageSnapshotError(
+            'A snapshot counts its tests in whole numbers, and no more of ' +
+              'them failed than ran.',
+          ),
+        );
+      });
+
+      it('should take as many failed as ran', () => {
+        expect(snapshotOf({ tests: { ran: 2, failed: 2 } }).tests).toEqual({
+          ran: 2,
+          failed: 2,
+        });
+      });
+    });
+
     describe('when the origin key is empty', () => {
       it('should throw InvalidCoverageSnapshotError', () => {
         expect(() => snapshotOf({ originKey: ' ' })).toThrow(

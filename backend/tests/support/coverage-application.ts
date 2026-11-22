@@ -125,10 +125,12 @@ export function coverageApplication(): CoverageApplication {
     settings,
   );
   const tests = new TestExecution(classifier, [runner], reader, artifacts);
+  const testReports = fixedTestReportReader();
   const capture = new SnapshotCapture(
     repositories,
     preparation,
     tests,
+    testReports,
     new FixedClock(CAPTURED_AT),
     new SequentialIdGenerator(),
   );
@@ -141,7 +143,7 @@ export function coverageApplication(): CoverageApplication {
     detector,
     runner,
     reader,
-    testReports: fixedTestReportReader(),
+    testReports,
     preparation,
     tests,
     capture,

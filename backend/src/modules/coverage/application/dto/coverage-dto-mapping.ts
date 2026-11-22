@@ -136,5 +136,6 @@ export function snapshotDtoOf(
     threshold: thresholdDtoOf(threshold),
     files: splitOf(snapshot, threshold),
     testRunOutput: snapshot.testRunOutput,
+    tests: snapshot.tests === null ? null : { ...snapshot.tests },
   };
 }

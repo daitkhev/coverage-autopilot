@@ -65,6 +65,14 @@ describe('SqliteCoverageSnapshotRepository', () => {
       expect(found?.totals.equals(snapshot.totals)).toBe(true);
     });
 
+    it('should give back how many tests ran and failed', async () => {
+      await save(fixtureSnapshot({ tests: { ran: 53, failed: 33 } }));
+
+      const found = await repository.findById(SnapshotId.create(SNAPSHOT_ID));
+
+      expect(found?.tests).toEqual({ ran: 53, failed: 33 });
+    });
+
     it('should store a row for every file with counters and none else', async () => {
       await save(snapshot);
 

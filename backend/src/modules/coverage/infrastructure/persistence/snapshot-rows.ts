@@ -19,6 +19,7 @@ import {
   scanParametersDocumentSchema,
   type snapshotRowSchema,
   uncoveredDocumentSchema,
+  UNMEASURED_FILES_VERSION,
   unmeasuredFilesDocumentSchema,
 } from '#coverage/infrastructure/persistence/snapshot-documents.schema';
 import { CommitSha } from '#kernel/primitives/commit-sha';
@@ -55,13 +56,14 @@ export function snapshotColumns(snapshot: CoverageSnapshot): Columns {
       fileListRule: parameters.fileListRule,
     }),
     unmeasured_files: JSON.stringify({
-      version: DOCUMENT_VERSION,
+      version: UNMEASURED_FILES_VERSION,
       testRunOutput: snapshot.testRunOutput,
       files: snapshot.unmeasured.map((file) => ({
         path: file.path.value,
         reason: file.reason,
         toolMessage: file.toolMessage,
       })),
+      tests: snapshot.tests,
     }),
     lines_covered: totals.of('lines').covered,
     lines_total: totals.of('lines').total,
@@ -187,6 +189,7 @@ export function snapshotFrom(
       }),
     ),
     testRunOutput: unmeasured.testRunOutput,
+    tests: unmeasured.tests,
     capturedAt: Instant.parse(row.captured_at),
   });
 }

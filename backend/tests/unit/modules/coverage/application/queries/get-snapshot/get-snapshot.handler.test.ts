@@ -26,7 +26,7 @@ let handler: GetSnapshotHandler;
 beforeEach(() => {
   repositories = standInRepositories();
   handler = new GetSnapshotHandler(
-    inMemorySnapshots(fixtureSnapshot()),
+    inMemorySnapshots(fixtureSnapshot({ tests: { ran: 53, failed: 33 } })),
     new RepositoryThresholds(repositories),
   );
 });
@@ -63,6 +63,7 @@ describe('GetSnapshotHandler', () => {
         threshold: { metric: 'lines', percentage: 80 },
         files: { below: 2, above: 0, unmeasured: 1, noCode: 1 },
         testRunOutput: null,
+        tests: { ran: 53, failed: 33 },
       });
     });
 

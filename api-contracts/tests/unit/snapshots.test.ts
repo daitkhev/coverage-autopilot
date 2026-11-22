@@ -23,6 +23,7 @@ const snapshot = {
   totals: counters,
   threshold,
   files: { below: 3, above: 9, unmeasured: 1, noCode: 2 },
+  tests: { ran: 53, failed: 33 },
   repositoryId: 'r1',
   parameters: {
     testRunner: 'vitest',
@@ -59,6 +60,12 @@ describe('snapshotListSchema', () => {
     expect(snapshotListSchema.safeParse(value).success).toBe(true);
   });
 
+  it('should accept a snapshot whose tests were not counted', () => {
+    const value = { items: [{ ...snapshot, tests: null }] };
+
+    expect(snapshotListSchema.safeParse(value).success).toBe(true);
+  });
+
   it.each([
     ['a missing commit', { ...snapshot, commitSha: undefined }],
     ['a short commit', { ...snapshot, commitSha: 'abc123' }],
@@ -67,6 +74,9 @@ describe('snapshotListSchema', () => {
       { ...snapshot, files: { ...snapshot.files, below: -1 } },
     ],
     ['an unknown key', { ...snapshot, branch: 'main' }],
+    ['no word on its tests', { ...snapshot, tests: undefined }],
+    ['a part of a test', { ...snapshot, tests: { ran: 2, failed: 0.5 } }],
+    ['tests that did not run', { ...snapshot, tests: { ran: -1, failed: 0 } }],
   ])('should refuse %s', (_name, value) => {
     expect(snapshotListSchema.safeParse({ items: [value] }).success).toBe(
       false,

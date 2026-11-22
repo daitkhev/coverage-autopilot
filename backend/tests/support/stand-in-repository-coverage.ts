@@ -54,5 +54,8 @@ export function withStandInCoverage(registered: DynamicModule): DynamicModule {
  * threshold of a test, as the coverage module gives it.
  */
 export function latestSnapshot(): SnapshotSummaryDto {
-  return snapshotDtoOf(fixtureSnapshot(), TEST_THRESHOLD);
+  return snapshotDtoOf(
+    fixtureSnapshot({ tests: { ran: 53, failed: 33 } }),
+    TEST_THRESHOLD,
+  );
 }

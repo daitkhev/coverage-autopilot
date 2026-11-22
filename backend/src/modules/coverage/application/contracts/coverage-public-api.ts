@@ -114,6 +114,15 @@ export interface FileSplitDto {
   readonly noCode: number;
 }
 
+/**
+ * How many tests of the repository ran in the run of a snapshot, and how
+ * many of them failed. A file that failed to run counts as one of each.
+ */
+export interface TestCountsDto {
+  readonly ran: number;
+  readonly failed: number;
+}
+
 export interface CoverageSnapshotDto {
   readonly id: string;
   readonly repositoryId: RepositoryId;
@@ -128,6 +137,11 @@ export interface CoverageSnapshotDto {
   readonly files: FileSplitDto;
   /** The reference of the raw output of the test run in the artifact store. */
   readonly testRunOutput: string | null;
+  /**
+   * `null` when the runner wrote no report of its tests that could be
+   * read, and for a snapshot taken before the service counted them.
+   */
+  readonly tests: TestCountsDto | null;
 }
 
 interface UnsupportedProjectDto {

@@ -38,6 +38,7 @@ export const PAYMENTS_SNAPSHOT: SnapshotSummary = {
   },
   threshold: { metric: 'lines', percentage: 80 },
   files: { below: 12, above: 30, unmeasured: 2, noCode: 4 },
+  tests: { ran: 412, failed: 0 },
 };
 
 /** The snapshots of `example/payments`, newest first. */

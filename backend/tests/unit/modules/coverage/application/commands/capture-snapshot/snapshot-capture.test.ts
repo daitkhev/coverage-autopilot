@@ -3,6 +3,7 @@ import { assert, describe, expect, it } from 'vitest';
 import type { CaptureSnapshotCommand } from '#coverage/application/commands/capture-snapshot/capture-snapshot.command';
 import { SnapshotId } from '#coverage/domain/value-objects/snapshot-id.vo';
 import { CommitSha } from '#kernel/primitives/commit-sha';
+import { FilePath } from '#kernel/primitives/file-path';
 import { RepositoryId } from '#kernel/primitives/repository-id';
 import type { JobProgress } from '#ports/job-queue.port';
 import {
@@ -16,8 +17,10 @@ import {
   REPOSITORY_ID,
   SNAPSHOT_COMMIT,
 } from '#tests/support/coverage-snapshots';
+import { RESULTS_PATH } from '#tests/support/coverage-stand-ins';
 import { RecordingLogger } from '#tests/support/recording-logger';
 import { PASSED } from '#tests/support/recording-sandbox';
+import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
 
 const COMMAND: CaptureSnapshotCommand = {
   repositoryId: RepositoryId.create(REPOSITORY_ID),
@@ -120,6 +123,53 @@ describe('SnapshotCapture', () => {
           outcome: 'install_failed',
           outputReference: 'artifact-1',
         });
+      });
+    });
+
+    it('should count the tests the run ran and failed', async () => {
+      const { capture, testReports } = coverageApplication();
+
+      const result = await capture.capture(COMMAND, RUNNING);
+
+      assert(result.outcome === 'measured');
+      expect(result.snapshot.tests).toEqual({ ran: 2, failed: 0 });
+      expect(testReports.outcomeRequests).toEqual([
+        { workingCopyPath: WORKING_COPY_PATH, reportPath: RESULTS_PATH },
+      ]);
+    });
+
+    describe('when tests of the repository fail', () => {
+      it('should still measure, and count the failing tests', async () => {
+        const { capture, runner, testReports } = coverageApplication();
+        runner.output = {
+          ...runner.output,
+          result: { ...PASSED, exitCode: 1 },
+        };
+        testReports.reported = {
+          ran: 53,
+          failing: Array.from({ length: 33 }, (_, index) => ({
+            file: FilePath.create(`tests/api-${String(index)}.test.ts`),
+            test: null,
+          })),
+        };
+
+        const result = await capture.capture(COMMAND, RUNNING);
+
+        assert(result.outcome === 'measured');
+        expect(result.snapshot.tests).toEqual({ ran: 53, failed: 33 });
+        expect(result.snapshot.files).toHaveLength(3);
+      });
+    });
+
+    describe('when the runner wrote no report of its tests', () => {
+      it('should measure, and count no test', async () => {
+        const { capture, testReports } = coverageApplication();
+        testReports.reported = null;
+
+        const result = await capture.capture(COMMAND, RUNNING);
+
+        assert(result.outcome === 'measured');
+        expect(result.snapshot.tests).toBeNull();
       });
     });
 

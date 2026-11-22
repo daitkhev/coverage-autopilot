@@ -21,6 +21,7 @@ export function snapshotAnswerOf(snapshot: SnapshotView): Snapshot {
     totals: snapshot.totals,
     threshold: snapshot.threshold,
     files: snapshot.files,
+    tests: snapshot.tests,
     repositoryId: snapshot.repositoryId.value,
     parameters: {
       testRunner: parameters.testRunner,

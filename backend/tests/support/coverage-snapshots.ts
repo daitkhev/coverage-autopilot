@@ -1,4 +1,7 @@
-import { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
+import {
+  CoverageSnapshot,
+  type TestCounts,
+} from '#coverage/domain/entities/coverage-snapshot.entity';
 import { CoverageCounter } from '#coverage/domain/value-objects/coverage-counter.vo';
 import {
   CoverageCounters,
@@ -143,6 +146,17 @@ export interface SnapshotSpec {
   readonly files?: readonly FileCoverage[];
   readonly unmeasured?: readonly UnmeasuredFile[];
   readonly capturedAt?: string;
+  readonly tests?: TestCounts | null;
+}
+
+/** What the run of the snapshot left: its files and its tests. */
+function measuredOf(spec: SnapshotSpec) {
+  return {
+    files: spec.files ?? [],
+    unmeasured: spec.unmeasured ?? [],
+    testRunOutput: null,
+    tests: spec.tests ?? null,
+  };
 }
 
 /** A snapshot of `acme/widgets` with the files a test names. */
@@ -154,9 +168,7 @@ export function snapshotOf(spec: SnapshotSpec = {}): CoverageSnapshot {
     originKey: spec.originKey ?? 'scan:origin',
     project: jestProject(),
     parameters: jestParameters(),
-    files: spec.files ?? [],
-    unmeasured: spec.unmeasured ?? [],
-    testRunOutput: null,
+    ...measuredOf(spec),
     capturedAt: Instant.parse(spec.capturedAt ?? CAPTURED_AT),
   });
 }

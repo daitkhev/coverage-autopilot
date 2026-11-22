@@ -31,6 +31,18 @@ export const fileSplitSchema = z.strictObject({
 
 export type FileSplit = z.infer<typeof fileSplitSchema>;
 
+/**
+ * How many tests of the repository ran in the run of a snapshot, and how
+ * many of them failed. A file that failed to run counts as one of each.
+ * The coverage holds what ran even when some failed.
+ */
+export const testCountsSchema = z.strictObject({
+  ran: countSchema,
+  failed: countSchema,
+});
+
+export type TestCounts = z.infer<typeof testCountsSchema>;
+
 const snapshotSummaryShape = {
   id: idSchema,
   commitSha: commitShaSchema,
@@ -38,6 +50,11 @@ const snapshotSummaryShape = {
   totals: coverageCountersSchema,
   threshold: thresholdSchema,
   files: fileSplitSchema,
+  /**
+   * `null` when the runner wrote no report of its tests that the service
+   * could read, and for a snapshot taken before the tests were counted.
+   */
+  tests: testCountsSchema.nullable(),
 };
 
 export const snapshotSummarySchema = z.strictObject(snapshotSummaryShape);

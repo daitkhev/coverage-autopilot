@@ -30,6 +30,11 @@ export interface SnapshotSummaryDto {
     readonly unmeasured: number;
     readonly noCode: number;
   };
+  /** How many tests ran and failed, `null` when they were not counted. */
+  readonly tests: {
+    readonly ran: number;
+    readonly failed: number;
+  } | null;
 }
 
 /** What only the coverage module knows of a repository. */

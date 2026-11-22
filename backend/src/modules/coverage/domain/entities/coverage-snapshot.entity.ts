@@ -28,7 +28,28 @@ export interface CoverageSnapshotProps {
   readonly unmeasured: readonly UnmeasuredFile[];
   /** The raw output of the test run, which says why a file was dropped. */
   readonly testRunOutput: string | null;
+  /**
+   * How many tests of the run ran and failed, or `null` when its runner
+   * wrote no report of its tests that could be read.
+   */
+  readonly tests: TestCounts | null;
   readonly capturedAt: Instant;
+}
+
+/** A file that failed to run counts as one test that ran and failed. */
+export interface TestCounts {
+  readonly ran: number;
+  readonly failed: number;
+}
+
+function holdsItsTests(tests: TestCounts | null): boolean {
+  return (
+    tests === null ||
+    (Number.isInteger(tests.ran) &&
+      Number.isInteger(tests.failed) &&
+      tests.failed >= 0 &&
+      tests.failed <= tests.ran)
+  );
 }
 
 /** By code unit, so the order is the same under every locale. */
@@ -79,6 +100,12 @@ export class CoverageSnapshot extends Entity<SnapshotId> {
         `${repeated} is in a snapshot twice, and a file has one state.`,
       );
     }
+    if (!holdsItsTests(props.tests)) {
+      throw new InvalidCoverageSnapshotError(
+        'A snapshot counts its tests in whole numbers, and no more of them ' +
+          'failed than ran.',
+      );
+    }
     return new CoverageSnapshot(props);
   }
 
@@ -114,6 +141,10 @@ export class CoverageSnapshot extends Entity<SnapshotId> {
 
   public get testRunOutput(): string | null {
     return this.props.testRunOutput;
+  }
+
+  public get tests(): TestCounts | null {
+    return this.props.tests;
   }
 
   public get capturedAt(): Instant {

@@ -203,6 +203,7 @@ describe('RepositoriesController', () => {
             commitSha: SNAPSHOT_COMMIT,
             threshold: { metric: 'lines', percentage: 80 },
             files: { below: 2, above: 0, unmeasured: 1, noCode: 1 },
+            tests: { ran: 53, failed: 33 },
           },
         },
       ]);

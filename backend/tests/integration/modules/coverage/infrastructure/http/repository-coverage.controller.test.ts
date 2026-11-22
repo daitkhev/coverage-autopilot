@@ -129,7 +129,7 @@ describe('RepositoryCoverageController', () => {
 
   describe('GET /repositories/:id/snapshots', () => {
     it('should answer 200 with the snapshots, the newest first', async () => {
-      await routes.store(fixtureSnapshot());
+      await routes.store(fixtureSnapshot({ tests: { ran: 53, failed: 33 } }));
       await routes.store(
         snapshotOf({
           id: NEWER_ID,
@@ -148,6 +148,7 @@ describe('RepositoryCoverageController', () => {
         commitSha: SNAPSHOT_COMMIT,
         totals: { lines: { covered: 2, total: 6 } },
         files: { below: 2, above: 0, unmeasured: 1, noCode: 1 },
+        tests: { ran: 53, failed: 33 },
         parameters: {
           testRunner: 'jest',
           testRunnerVersion: '30.5.2',

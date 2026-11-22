@@ -15,7 +15,15 @@ import {
   type TestRunRecord,
 } from '#coverage/application/commands/run-tests/test-execution';
 import type { CaptureSnapshotResult } from '#coverage/application/contracts/coverage-public-api';
-import { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
+import {
+  TEST_REPORT_READER,
+  type TestOutcomes,
+  type TestReportReader,
+} from '#coverage/application/ports/test-report-reader.port';
+import {
+  CoverageSnapshot,
+  type TestCounts,
+} from '#coverage/domain/entities/coverage-snapshot.entity';
 import { SnapshotId } from '#coverage/domain/value-objects/snapshot-id.vo';
 import { ID_GENERATOR, type IdGenerator } from '#kernel/id/id-generator';
 import { CLOCK, type Clock } from '#kernel/time/clock';
@@ -40,6 +48,12 @@ const UNWATCHED: CaptureWatch = {
   progress: () => undefined,
 };
 
+function countsOf(outcomes: TestOutcomes | null): TestCounts | null {
+  return outcomes === null
+    ? null
+    : { ran: outcomes.ran, failed: outcomes.failing.length };
+}
+
 function refusalOf(
   preparation: Exclude<Preparation, { outcome: 'ready' }>,
 ): Capture {
@@ -61,6 +75,7 @@ export class SnapshotCapture {
   private readonly repositories: RepositoriesPublicApi;
   private readonly preparation: PrepareProjectHandler;
   private readonly tests: TestExecution;
+  private readonly reports: TestReportReader;
   private readonly clock: Clock;
   private readonly ids: IdGenerator;
 
@@ -68,12 +83,14 @@ export class SnapshotCapture {
     @Inject(REPOSITORIES_PUBLIC_API) repositories: RepositoriesPublicApi,
     @Inject(PrepareProjectHandler) preparation: PrepareProjectHandler,
     @Inject(TestExecution) tests: TestExecution,
+    @Inject(TEST_REPORT_READER) reports: TestReportReader,
     @Inject(CLOCK) clock: Clock,
     @Inject(ID_GENERATOR) ids: IdGenerator,
   ) {
     this.repositories = repositories;
     this.preparation = preparation;
     this.tests = tests;
+    this.reports = reports;
     this.clock = clock;
     this.ids = ids;
   }
@@ -162,15 +179,23 @@ export class SnapshotCapture {
     steps.pass();
     return {
       outcome: 'measured',
-      snapshot: this.snapshotOf(command, record, files),
+      snapshot: await this.snapshotOf(command, record, files),
     };
   }
 
-  private snapshotOf(
+  /**
+   * A run with failing tests still measured what ran, so the snapshot
+   * counts them for a person to see, and never stops on them.
+   */
+  private async snapshotOf(
     command: CaptureSnapshotCommand,
     record: TestRunRecord,
     measured: MeasuredFiles,
-  ): CoverageSnapshot {
+  ): Promise<CoverageSnapshot> {
+    const outcomes = await this.reports.outcomes({
+      workingCopyPath: record.workingCopyPath,
+      reportPath: record.output.resultsPath,
+    });
     return CoverageSnapshot.create({
       id: SnapshotId.create(this.ids.generate()),
       repositoryId: command.repositoryId,
@@ -181,6 +206,7 @@ export class SnapshotCapture {
       files: measured.files,
       unmeasured: measured.unmeasured,
       testRunOutput: record.outputReference,
+      tests: countsOf(outcomes),
       capturedAt: this.clock.now(),
     });
   }

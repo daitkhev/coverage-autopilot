@@ -35,9 +35,18 @@ export const scanParametersDocumentSchema = z.strictObject({
   fileListRule: word,
 });
 
-/** The files with no numbers, and the raw output that says why. */
-export const unmeasuredFilesDocumentSchema = z.strictObject({
-  version: z.literal(DOCUMENT_VERSION),
+/**
+ * The version the document of the unmeasured files is written with. The
+ * second counts the tests of the run beside its raw output.
+ */
+export const UNMEASURED_FILES_VERSION = 2;
+
+/** The newest version of each document that changed since the first. */
+const NEWEST_VERSIONS: Readonly<Record<string, number>> = {
+  unmeasured_files: UNMEASURED_FILES_VERSION,
+};
+
+const unmeasuredFilesShape = {
   testRunOutput: z.string().nullable(),
   files: z.array(
     z.strictObject({
@@ -46,7 +55,30 @@ export const unmeasuredFilesDocumentSchema = z.strictObject({
       toolMessage: z.string().nullable(),
     }),
   ),
+};
+
+/** The first version, read as the second: its tests were not counted. */
+const firstUnmeasuredFilesSchema = z
+  .strictObject({
+    version: z.literal(DOCUMENT_VERSION),
+    ...unmeasuredFilesShape,
+  })
+  .transform((document) => ({ ...document, tests: null }));
+
+const secondUnmeasuredFilesSchema = z.strictObject({
+  version: z.literal(UNMEASURED_FILES_VERSION),
+  ...unmeasuredFilesShape,
+  tests: z.strictObject({ ran: count, failed: count }).nullable(),
 });
+
+/**
+ * The files with no numbers, the raw output that says why, and how many
+ * tests of the run ran and failed, in the shape of the second version.
+ */
+export const unmeasuredFilesDocumentSchema = z.union([
+  secondUnmeasuredFilesSchema,
+  firstUnmeasuredFilesSchema,
+]);
 
 /**
  * The `uncovered` column of a file: what of it never ran. The counters
@@ -87,6 +119,20 @@ export const fileRowSchema = z.object({
 
 const versionedSchema = z.looseObject({ version: z.unknown() });
 
+function isKnown(version: unknown, newest: number): boolean {
+  return (
+    Number.isInteger(version) &&
+    Number(version) >= DOCUMENT_VERSION &&
+    Number(version) <= newest
+  );
+}
+
+function versionWords(newest: number): string {
+  return newest === DOCUMENT_VERSION
+    ? `the version ${String(DOCUMENT_VERSION)}`
+    : `the versions ${String(DOCUMENT_VERSION)} to ${String(newest)}`;
+}
+
 /**
  * Parses a JSON column. A version this code does not know is told apart
  * from a broken document, because only the first one can be fixed by a
@@ -99,10 +145,11 @@ export function readDocument<Schema extends z.ZodType>(
 ): z.infer<Schema> {
   const json: unknown = JSON.parse(text);
   const version = versionedSchema.safeParse(json).data?.version;
-  if (version !== DOCUMENT_VERSION) {
+  const newest = NEWEST_VERSIONS[column] ?? DOCUMENT_VERSION;
+  if (!isKnown(version, newest)) {
     throw new UnknownDocumentVersionError(
       `The ${column} document has the version ${String(version)}, and this ` +
-        `service reads the version ${String(DOCUMENT_VERSION)}.`,
+        `service reads ${versionWords(newest)}.`,
     );
   }
   const parsed = schema.safeParse(json);

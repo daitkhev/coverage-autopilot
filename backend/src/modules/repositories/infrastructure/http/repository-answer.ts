@@ -14,6 +14,7 @@ function summaryOf(snapshot: SnapshotView): SnapshotSummary {
     totals: snapshot.totals,
     threshold: snapshot.threshold,
     files: snapshot.files,
+    tests: snapshot.tests,
   };
 }
 

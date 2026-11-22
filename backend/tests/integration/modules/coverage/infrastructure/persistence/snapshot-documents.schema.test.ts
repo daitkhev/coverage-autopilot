@@ -89,6 +89,32 @@ describe('the stored documents of a snapshot', () => {
     ]);
   });
 
+  it('should read a snapshot of the first version as one with no test counted', async () => {
+    storeSample();
+
+    expect((await readSample())?.tests).toBeNull();
+  });
+
+  it('should read the tests the second version counts', async () => {
+    storeSample({
+      unmeasured_files:
+        '{"version":2,"testRunOutput":"artifact-1","files":[],' +
+        '"tests":{"ran":53,"failed":33}}',
+    });
+
+    expect((await readSample())?.tests).toEqual({ ran: 53, failed: 33 });
+  });
+
+  it('should refuse a first version that counts its tests', async () => {
+    storeSample({
+      unmeasured_files:
+        '{"version":1,"testRunOutput":null,"files":[],' +
+        '"tests":{"ran":1,"failed":0}}',
+    });
+
+    await expect(readSample()).rejects.toThrow(InvalidStoredDocumentError);
+  });
+
   it('should read the counters and the uncovered code of a file', async () => {
     storeSample();
 
@@ -120,6 +146,32 @@ describe('the stored documents of a snapshot', () => {
         code: 'unknown_document_version',
         retryable: false,
       });
+    });
+
+    it('should name every version a document of several versions has', async () => {
+      storeSample({
+        unmeasured_files:
+          '{"version":3,"testRunOutput":null,"files":[],"tests":null}',
+      });
+
+      await expect(readSample()).rejects.toThrow(
+        new UnknownDocumentVersionError(
+          'The unmeasured_files document has the version 3, and this ' +
+            'service reads the versions 1 to 2.',
+        ),
+      );
+    });
+
+    it.each([
+      ['no version before the first', '0'],
+      ['a part of a version', '1.5'],
+      ['a version in words', '"2"'],
+    ])('should refuse %s', async (_case, version) => {
+      storeSample({
+        unmeasured_files: `{"version":${version},"testRunOutput":null,"files":[]}`,
+      });
+
+      await expect(readSample()).rejects.toThrow(UnknownDocumentVersionError);
     });
   });
 

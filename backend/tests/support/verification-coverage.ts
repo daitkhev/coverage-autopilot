@@ -92,6 +92,7 @@ export function snapshotDto(
     threshold: { metric: 'lines', percentage: 80 },
     files: { below: 1, above: 0, unmeasured: 0, noCode: 0 },
     testRunOutput: null,
+    tests: { ran: 4, failed: 0 },
   };
 }
 
