@@ -6,7 +6,10 @@ import type { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
 
-import type { InstancePaths } from '#infrastructure/config/instance-paths';
+import {
+  type InstancePaths,
+  instancePaths,
+} from '#infrastructure/config/instance-paths';
 import { createInstanceFolder } from '#tests/support/instance-folder';
 import { playingEngine } from '#tests/support/playing-engine';
 import { askOver } from '#tests/support/service-bench';
@@ -87,12 +90,14 @@ export function builtServiceVariables(
  * Starts the built file under plain Node. The process gets exactly the
  * variables of its own instance and what a test adds, and nothing of the
  * test process. A test that names the instance of another service shares
- * that instance.
+ * that instance, and asks it over the socket of that instance.
  */
 export function startBuiltService(
   variables: Readonly<Record<string, string>> = {},
 ): BuiltService {
   const folder = createInstanceFolder();
+  const named = variables['AUTOPILOT_INSTANCE_DIR'];
+  const paths = named === undefined ? folder.paths : instancePaths(named);
   const own = {
     ...builtServiceVariables(folder.paths.directory),
     ...variables,
@@ -104,8 +109,8 @@ export function startBuiltService(
   const exitCode = exitCodeOf(child);
   const errors = writtenTo(child.stderr);
   return {
-    paths: folder.paths,
-    send: async (path, asked) => askOver(folder.paths.socket, path, asked),
+    paths,
+    send: async (path, asked) => askOver(paths.socket, path, asked),
     signal: (name) => {
       child.kill(name);
     },

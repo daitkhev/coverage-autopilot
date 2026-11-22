@@ -96,35 +96,64 @@ function standInVariables(
 }
 
 /**
+ * A code host in a temporary folder and the stand-ins beside it, which
+ * every service started with `variables` uses, one after another.
+ */
+export interface StandInHost {
+  readonly host: TemporaryCodeHost;
+  /** What leads a service to the stand-ins of `gh`, git and the engine. */
+  readonly variables: Readonly<Record<string, string>>;
+  /** Where the stand-in of the engine keeps what it played. */
+  readonly engineFolder: string;
+  /** Removes the host, its stand-ins and what they kept. */
+  remove(): void;
+}
+
+/** A new code host with its stand-ins, and nothing on it yet. */
+export function standInHost(): StandInHost {
+  const host = new TemporaryCodeHost();
+  const engineFolder = join(host.folder, 'engine');
+  try {
+    mkdirSync(engineFolder);
+    return {
+      host,
+      variables: standInVariables(host, engineFolder),
+      engineFolder,
+      remove: () => {
+        host.remove();
+      },
+    };
+  } catch (error) {
+    host.remove();
+    throw error;
+  }
+}
+
+/**
  * Starts the built service over a new code host, with these variables
  * besides those that reach the stand-ins.
  */
 export function hostedBuiltService(
   variables: Readonly<Record<string, string>>,
 ): HostedBuiltService {
-  const host = new TemporaryCodeHost();
-  const engineFolder = join(host.folder, 'engine');
+  const standIns = standInHost();
   let service: BuiltService;
   try {
-    mkdirSync(engineFolder);
-    service = startBuiltService({
-      ...standInVariables(host, engineFolder),
-      ...variables,
-    });
+    service = startBuiltService({ ...standIns.variables, ...variables });
   } catch (error) {
-    host.remove();
+    standIns.remove();
     throw error;
   }
   return {
-    host,
+    host: standIns.host,
     service,
-    playedRuns: () => playedRuns(engineFolder),
-    imageCalls: () => imageCalls(engineFolder),
+    playedRuns: () => playedRuns(standIns.engineFolder),
+    imageCalls: () => imageCalls(standIns.engineFolder),
     close: async () => {
       try {
         await service.close();
       } finally {
-        host.remove();
+        standIns.remove();
       }
     },
   };
