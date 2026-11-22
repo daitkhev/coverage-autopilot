@@ -147,6 +147,7 @@ describe('StrykerMutationRunner', () => {
       expect(Object.keys(bench.tool.found)).toEqual([CONFIG]);
       expect(JSON.parse(bench.tool.found[CONFIG] ?? '')).toEqual({
         testRunner: 'jest',
+        jest: { enableFindRelatedTests: false },
         mutate: ['./src/price.ts'],
         coverageAnalysis: 'perTest',
         disableBail: true,
@@ -159,6 +160,15 @@ describe('StrykerMutationRunner', () => {
         incrementalFile: CACHE,
         tempDirName: FOLDER,
         allowConsoleColors: false,
+      });
+    });
+
+    it('should have every test run, also for a target no test imports', async () => {
+      await bench.measureBaseline(bench.request('vitest'));
+
+      expect(JSON.parse(bench.tool.found[CONFIG] ?? '')).toMatchObject({
+        testRunner: 'vitest',
+        vitest: { related: false },
       });
     });
 

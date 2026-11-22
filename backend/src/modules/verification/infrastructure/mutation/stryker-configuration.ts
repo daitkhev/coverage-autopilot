@@ -77,6 +77,20 @@ export const RUN_COMMAND: readonly string[] = [
 ];
 
 /**
+ * Left alone, each runner starts only the tests it finds related to the
+ * mutated file. No test imports a file nobody tested yet, so the tool ran
+ * none and stopped, and such a file is what an improvement is asked for
+ * most. Every test runs once instead, and `perTest` still ties a mutant
+ * to the tests that reach it.
+ */
+const EVERY_TEST: Readonly<
+  Record<MutationRunRequest['testRunner'], Readonly<Record<string, object>>>
+> = {
+  jest: { jest: { enableFindRelatedTests: false } },
+  vitest: { vitest: { related: false } },
+};
+
+/**
  * The configuration of one run. Only the target is mutated. Every test
  * that kills a mutant is listed, the tests are tied to the mutants they
  * run, and the number of test runners is the one of the settings. The
@@ -88,6 +102,7 @@ export function strykerConfigurationOf(
 ): string {
   const configuration = {
     testRunner: request.testRunner,
+    ...EVERY_TEST[request.testRunner],
     mutate: [mutatePatternOf(request.targetFile)],
     coverageAnalysis: 'perTest',
     disableBail: true,
