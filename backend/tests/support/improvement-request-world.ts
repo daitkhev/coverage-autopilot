@@ -1,4 +1,5 @@
 import { ApproveImprovementHandler } from '#improvement/application/commands/approve-improvement/approve-improvement.handler';
+import { CancelImprovementHandler } from '#improvement/application/commands/cancel-improvement/cancel-improvement.handler';
 import { ImprovementRegistration } from '#improvement/application/commands/start-improvement/improvement-registration';
 import { StartImprovementHandler } from '#improvement/application/commands/start-improvement/start-improvement.handler';
 import { ImprovementViews } from '#improvement/application/dto/improvement-views';
@@ -55,6 +56,13 @@ export class ImprovementRequestWorld {
     REQUEST_SETTINGS,
   );
   public readonly approve = new ApproveImprovementHandler(
+    this.improvements,
+    this.transactions,
+    this.queue,
+    this.clock,
+    this.views,
+  );
+  public readonly cancel = new CancelImprovementHandler(
     this.improvements,
     this.transactions,
     this.queue,
