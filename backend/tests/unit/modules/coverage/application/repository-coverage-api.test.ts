@@ -1,13 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { RepositoryCoverageApi } from '#coverage/application/repository-coverage-api';
-import { RepositoryId } from '#kernel/primitives/repository-id';
+import type { RepositoryDto } from '#repositories/application/contracts/repositories-public-api';
 import { REPOSITORY_COVERAGE } from '#repositories/application/contracts/repository-coverage';
-import {
-  fixtureSnapshot,
-  REPOSITORY_ID,
-  snapshotOf,
-} from '#tests/support/coverage-snapshots';
+import { fixtureSnapshot, snapshotOf } from '#tests/support/coverage-snapshots';
 import {
   type InMemorySnapshots,
   inMemorySnapshots,
@@ -16,15 +12,18 @@ import {
   type RecordingQueue,
   recordingQueue,
 } from '#tests/support/recording-queue';
-import { COVERAGE_TEST_SETTINGS } from '#tests/support/recording-sandbox';
 import {
   endedScanJob,
   queuedScanJob,
   runningScanJob,
   SCAN_ID,
 } from '#tests/support/scan-jobs';
+import {
+  heldBy,
+  standInRepositories,
+} from '#tests/support/stand-in-repositories';
 
-const WIDGETS = RepositoryId.create(REPOSITORY_ID);
+const WIDGETS: RepositoryDto = heldBy(standInRepositories());
 
 const NEWER_ID = '00000000-0000-4000-8000-0000000000ab';
 
@@ -35,7 +34,7 @@ let api: RepositoryCoverageApi;
 beforeEach(() => {
   snapshots = inMemorySnapshots();
   queue = recordingQueue();
-  api = new RepositoryCoverageApi(snapshots, queue, COVERAGE_TEST_SETTINGS);
+  api = new RepositoryCoverageApi(snapshots, queue);
 });
 
 describe('RepositoryCoverageApi', () => {
@@ -51,7 +50,7 @@ describe('RepositoryCoverageApi', () => {
       });
     });
 
-    it('should give the newest snapshot under the threshold of the settings', async () => {
+    it('should give the newest snapshot under the threshold of the repository', async () => {
       snapshots.saved.push(
         fixtureSnapshot(),
         fixtureSnapshot({
@@ -67,6 +66,20 @@ describe('RepositoryCoverageApi', () => {
         id: NEWER_ID,
         threshold: { metric: 'lines', percentage: 80 },
         files: { below: 2, above: 0, unmeasured: 1, noCode: 1 },
+      });
+    });
+
+    it('should split the snapshot under the threshold it is given', async () => {
+      snapshots.saved.push(fixtureSnapshot());
+
+      const coverage = await api.coverageOf({
+        ...WIDGETS,
+        threshold: { metric: 'lines', percentage: 30, isDefault: false },
+      });
+
+      expect(coverage.latestSnapshot).toMatchObject({
+        threshold: { metric: 'lines', percentage: 30 },
+        files: { below: 1, above: 1 },
       });
     });
 

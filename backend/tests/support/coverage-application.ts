@@ -3,6 +3,7 @@ import { PrepareProjectHandler } from '#coverage/application/commands/prepare-pr
 import { TestExecution } from '#coverage/application/commands/run-tests/test-execution';
 import type { CoverageReport } from '#coverage/application/ports/coverage-report-reader.port';
 import type { SupportedProject } from '#coverage/application/ports/project-detector.port';
+import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import type { ReportedCoverage } from '#coverage/domain/services/file-state.service';
 import type { FileCoverage } from '#coverage/domain/value-objects/file-coverage.vo';
 import {
@@ -81,6 +82,8 @@ export interface CoverageApplication {
   readonly preparation: PrepareProjectHandler;
   readonly tests: TestExecution;
   readonly capture: SnapshotCapture;
+  /** The threshold of the stand-in repository, asked of it each time. */
+  readonly thresholds: RepositoryThresholds;
 }
 
 /**
@@ -126,5 +129,6 @@ export function coverageApplication(): CoverageApplication {
     preparation,
     tests,
     capture,
+    thresholds: new RepositoryThresholds(repositories),
   };
 }

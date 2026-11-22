@@ -12,17 +12,26 @@ import type {
   TestRunDto,
 } from '#coverage/application/contracts/coverage-public-api';
 import {
-  COVERAGE_SETTINGS,
-  type CoverageSettings,
-} from '#coverage/application/coverage-settings';
-import {
-  fileDtoOf,
   parametersDtoOf,
+  runFileDtoOf,
 } from '#coverage/application/dto/coverage-dto-mapping';
 import {
   PROJECT_DETECTOR,
   type ProjectDetector,
 } from '#coverage/application/ports/project-detector.port';
+
+function coverageDtoOf(
+  record: TestRunRecord,
+  measured: MeasuredFiles,
+): RunCoverageDto {
+  const files = [...measured.files, ...measured.unmeasured]
+    .sort(
+      ({ path: left }, { path: right }) =>
+        Number(left.value > right.value) - Number(left.value < right.value),
+    )
+    .map(runFileDtoOf);
+  return { parameters: parametersDtoOf(record.detection.parameters), files };
+}
 
 function testRunDtoOf(record: TestRunRecord): TestRunDto {
   const { result } = record.output;
@@ -37,22 +46,20 @@ function testRunDtoOf(record: TestRunRecord): TestRunDto {
 
 /**
  * Runs tests in a working copy another module lends, for the gate of a
- * patch. Nothing is stored: the caller keeps what it needs.
+ * patch. Nothing is stored: the caller keeps what it needs. The files are
+ * judged by no threshold, since the copy names no repository.
  */
 @Injectable()
 export class RunTestsHandler {
   private readonly detector: ProjectDetector;
   private readonly tests: TestExecution;
-  private readonly settings: CoverageSettings;
 
   public constructor(
     @Inject(PROJECT_DETECTOR) detector: ProjectDetector,
     @Inject(TestExecution) tests: TestExecution,
-    @Inject(COVERAGE_SETTINGS) settings: CoverageSettings,
   ) {
     this.detector = detector;
     this.tests = tests;
-    this.settings = settings;
   }
 
   public async execute(
@@ -71,21 +78,7 @@ export class RunTestsHandler {
     return {
       outcome: 'completed',
       testRun: testRunDtoOf(record),
-      coverage: measured === null ? null : this.coverageDtoOf(record, measured),
+      coverage: measured === null ? null : coverageDtoOf(record, measured),
     };
-  }
-
-  private coverageDtoOf(
-    record: TestRunRecord,
-    measured: MeasuredFiles,
-  ): RunCoverageDto {
-    const { threshold } = this.settings;
-    const files = [...measured.files, ...measured.unmeasured]
-      .sort(
-        ({ path: left }, { path: right }) =>
-          Number(left.value > right.value) - Number(left.value < right.value),
-      )
-      .map((file) => fileDtoOf(file, threshold));
-    return { parameters: parametersDtoOf(record.detection.parameters), files };
   }
 }

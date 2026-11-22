@@ -3,6 +3,17 @@ import type { FilePath } from '#kernel/primitives/file-path';
 import type { RepositoryId } from '#kernel/primitives/repository-id';
 import type { Instant } from '#kernel/time/instant';
 
+/** The counter of coverage a threshold reads. */
+export type CoverageMetric = 'statements' | 'branches' | 'functions' | 'lines';
+
+/** What the files of a repository are judged by at the moment it is read. */
+export interface RepositoryThresholdDto {
+  readonly metric: CoverageMetric;
+  readonly percentage: number;
+  /** The repository has none of its own, so the service's default holds. */
+  readonly isDefault: boolean;
+}
+
 export interface RepositoryDto {
   readonly id: RepositoryId;
   readonly owner: string;
@@ -13,6 +24,7 @@ export interface RepositoryDto {
   /** The head of the default branch as it was last read, with the moment. */
   readonly headCommit: CommitSha | null;
   readonly headCheckedAt: Instant | null;
+  readonly threshold: RepositoryThresholdDto;
 }
 
 export interface RepositoryRequest {

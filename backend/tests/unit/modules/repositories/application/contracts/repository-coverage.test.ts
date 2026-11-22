@@ -1,8 +1,10 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import type { CommitSha } from '#kernel/primitives/commit-sha';
-import type { RepositoryId } from '#kernel/primitives/repository-id';
-import { REPOSITORIES_PUBLIC_API } from '#repositories/application/contracts/repositories-public-api';
+import {
+  REPOSITORIES_PUBLIC_API,
+  type RepositoryDto,
+} from '#repositories/application/contracts/repositories-public-api';
 import {
   REPOSITORY_COVERAGE,
   type RepositoryCoverage,
@@ -16,9 +18,9 @@ describe('RepositoryCoverage', () => {
     expect(REPOSITORY_COVERAGE).not.toBe(REPOSITORIES_PUBLIC_API);
   });
 
-  it('should be asked by the id of a repository alone', () => {
+  it('should be asked with the repository as it was read, its threshold too', () => {
     expectTypeOf<RepositoryCoverage['coverageOf']>().parameters.toEqualTypeOf<
-      [RepositoryId]
+      [RepositoryDto]
     >();
     expectTypeOf<
       RepositoryCoverage['coverageOf']

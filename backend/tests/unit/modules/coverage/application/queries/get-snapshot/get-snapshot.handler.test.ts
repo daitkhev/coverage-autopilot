@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
+import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
 import { RepositoryId } from '#kernel/primitives/repository-id';
@@ -13,12 +14,22 @@ import {
   SNAPSHOT_ID,
 } from '#tests/support/coverage-snapshots';
 import { inMemorySnapshots } from '#tests/support/coverage-stand-ins';
-import { COVERAGE_TEST_SETTINGS } from '#tests/support/recording-sandbox';
+import {
+  judgeBy,
+  type StandInRepositories,
+  standInRepositories,
+} from '#tests/support/stand-in-repositories';
 
-const handler = new GetSnapshotHandler(
-  inMemorySnapshots(fixtureSnapshot()),
-  COVERAGE_TEST_SETTINGS,
-);
+let repositories: StandInRepositories;
+let handler: GetSnapshotHandler;
+
+beforeEach(() => {
+  repositories = standInRepositories();
+  handler = new GetSnapshotHandler(
+    inMemorySnapshots(fixtureSnapshot()),
+    new RepositoryThresholds(repositories),
+  );
+});
 
 describe('GetSnapshotHandler', () => {
   describe('execute', () => {
@@ -52,6 +63,19 @@ describe('GetSnapshotHandler', () => {
         threshold: { metric: 'lines', percentage: 80 },
         files: { below: 2, above: 0, unmeasured: 1, noCode: 1 },
         testRunOutput: null,
+      });
+    });
+
+    describe('when the repository has a threshold of its own', () => {
+      it('should split the files under it', async () => {
+        judgeBy(repositories, 30);
+
+        const snapshot = await handler.execute({ snapshotId: SNAPSHOT_ID });
+
+        expect(snapshot).toMatchObject({
+          threshold: { metric: 'lines', percentage: 30 },
+          files: { below: 1, above: 1 },
+        });
       });
     });
 

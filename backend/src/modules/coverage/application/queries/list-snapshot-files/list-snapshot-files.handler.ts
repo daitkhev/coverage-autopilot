@@ -7,10 +7,6 @@ import {
   type FileImprovements,
 } from '#coverage/application/contracts/file-improvements';
 import {
-  COVERAGE_SETTINGS,
-  type CoverageSettings,
-} from '#coverage/application/coverage-settings';
-import {
   fileDtoOf,
   thresholdDtoOf,
 } from '#coverage/application/dto/coverage-dto-mapping';
@@ -19,6 +15,7 @@ import type {
   SnapshotFilesDto,
 } from '#coverage/application/dto/snapshot-files.dto';
 import type { ListSnapshotFilesQuery } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.query';
+import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
 import { InvalidSnapshotIdError } from '#coverage/domain/errors/invalid-snapshot-id.error';
 import {
@@ -121,25 +118,25 @@ function snapshotIdOf(text: string): SnapshotId | null {
 /**
  * The files of a snapshot in all three states, narrowed by the filters of
  * the query, each measured one with the work on it. `below` and `metric`
- * make the threshold each file is judged by, and what the settings say
- * fills what they leave out. The improvements are known to the module
- * above this one only, so they come through the port `FILE_IMPROVEMENTS`,
- * read once for the whole list. `null` when no snapshot has the id, also
- * when the id is no id of a snapshot at all.
+ * make the threshold each file is judged by, and the threshold the
+ * repository has now fills what they leave out. The improvements are
+ * known to the module above this one only, so they come through the port
+ * `FILE_IMPROVEMENTS`, read once for the whole list. `null` when no
+ * snapshot has the id, also when the id is no id of a snapshot at all.
  */
 @Injectable()
 export class ListSnapshotFilesHandler {
   private readonly snapshots: CoverageSnapshotRepository;
-  private readonly settings: CoverageSettings;
+  private readonly thresholds: RepositoryThresholds;
   private readonly improvements: FileImprovements;
 
   public constructor(
     @Inject(COVERAGE_SNAPSHOT_REPOSITORY) snapshots: CoverageSnapshotRepository,
-    @Inject(COVERAGE_SETTINGS) settings: CoverageSettings,
+    @Inject(RepositoryThresholds) thresholds: RepositoryThresholds,
     @Inject(FILE_IMPROVEMENTS) improvements: FileImprovements,
   ) {
     this.snapshots = snapshots;
-    this.settings = settings;
+    this.thresholds = thresholds;
     this.improvements = improvements;
   }
 
@@ -151,7 +148,7 @@ export class ListSnapshotFilesHandler {
     if (snapshot === null) {
       return null;
     }
-    const threshold = this.thresholdOf(query);
+    const threshold = await this.thresholdOf(snapshot, query);
     const latest = await this.improvements.latestOf(snapshot.repositoryId);
     return {
       snapshotId: snapshot.id.value,
@@ -160,8 +157,13 @@ export class ListSnapshotFilesHandler {
     };
   }
 
-  private thresholdOf(query: ListSnapshotFilesQuery): CoverageThreshold {
-    const { metric, percentage } = this.settings.threshold;
+  private async thresholdOf(
+    snapshot: CoverageSnapshot,
+    query: ListSnapshotFilesQuery,
+  ): Promise<CoverageThreshold> {
+    const { metric, percentage } = await this.thresholds.of(
+      snapshot.repositoryId,
+    );
     return CoverageThreshold.create({
       metric: query.metric ?? metric,
       percentage: query.below ?? percentage.value,

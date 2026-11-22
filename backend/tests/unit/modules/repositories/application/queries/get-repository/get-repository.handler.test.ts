@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { RepositoryId } from '#kernel/primitives/repository-id';
+import { ThresholdPercentage } from '#repositories/domain/value-objects/threshold-percentage.vo';
 import {
   RepositoriesWorld,
   WIDGETS_ID,
@@ -33,6 +34,24 @@ describe('GetRepositoryHandler', () => {
         connectedAt: world.clock.now(),
         headCommit: SCRIPTED_HEAD,
         headCheckedAt: world.clock.now(),
+        threshold: { metric: 'lines', percentage: 80, isDefault: true },
+      });
+    });
+
+    describe('when the repository has a threshold of its own', () => {
+      it('should give that percent of the metric of the service', async () => {
+        const repository = await world.connected();
+        repository.changeThreshold(ThresholdPercentage.create(95));
+
+        const found = await world.getRepository.execute({
+          repositoryId: WIDGETS_ID,
+        });
+
+        expect(found?.threshold).toEqual({
+          metric: 'lines',
+          percentage: 95,
+          isDefault: false,
+        });
       });
     });
 

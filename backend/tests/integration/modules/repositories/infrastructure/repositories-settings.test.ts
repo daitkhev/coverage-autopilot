@@ -10,6 +10,7 @@ function settingsWith(
   gh: Record<string, string>,
 ): RepositoriesSettings {
   return {
+    threshold: { metric: 'lines', percentage: 80 },
     workingCopiesRoot: '/srv/copies',
     git: { command: ['git'], environment: git, timeoutMs: 1 },
     gh: { command: ['gh'], environment: gh, timeoutMs: 1 },

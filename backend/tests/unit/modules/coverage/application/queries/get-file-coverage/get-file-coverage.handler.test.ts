@@ -1,18 +1,29 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
+import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import { FilePath } from '#kernel/primitives/file-path';
 import {
   fixtureSnapshot,
   SNAPSHOT_ID,
 } from '#tests/support/coverage-snapshots';
 import { inMemorySnapshots } from '#tests/support/coverage-stand-ins';
-import { COVERAGE_TEST_SETTINGS } from '#tests/support/recording-sandbox';
+import {
+  judgeBy,
+  type StandInRepositories,
+  standInRepositories,
+} from '#tests/support/stand-in-repositories';
 
-const handler = new GetFileCoverageHandler(
-  inMemorySnapshots(fixtureSnapshot()),
-  COVERAGE_TEST_SETTINGS,
-);
+let repositories: StandInRepositories;
+let handler: GetFileCoverageHandler;
+
+beforeEach(() => {
+  repositories = standInRepositories();
+  handler = new GetFileCoverageHandler(
+    inMemorySnapshots(fixtureSnapshot()),
+    new RepositoryThresholds(repositories),
+  );
+});
 
 function requestFor(path: string): {
   snapshotId: string;
@@ -39,6 +50,26 @@ describe('GetFileCoverageHandler', () => {
         uncoveredLines: [{ start: 6, end: 9 }],
         openBranchLines: [6],
         uncoveredFunctions: [{ name: 'halve', line: 5 }],
+      });
+    });
+
+    describe('when the repository has a threshold of its own', () => {
+      it('should judge the file by it', async () => {
+        judgeBy(repositories, 40);
+
+        const file = await handler.execute(requestFor('src/used.ts'));
+
+        expect(file).toMatchObject({ belowThreshold: false });
+      });
+
+      it('should judge the file anew once the threshold changed', async () => {
+        judgeBy(repositories, 40);
+        await handler.execute(requestFor('src/used.ts'));
+        judgeBy(repositories, 41);
+
+        const file = await handler.execute(requestFor('src/used.ts'));
+
+        expect(file).toMatchObject({ belowThreshold: true });
       });
     });
 

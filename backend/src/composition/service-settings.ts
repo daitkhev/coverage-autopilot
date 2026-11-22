@@ -9,6 +9,9 @@ import type { RepositoriesModule } from '#repositories/repositories.module';
 /** The settings of the repositories module, as its module file takes them. */
 type RepositoriesSettings = Parameters<typeof RepositoriesModule.register>[0];
 
+/** Lines, because they match what people expect to read. */
+const THRESHOLD_METRIC = 'lines';
+
 /** Both are found on the `PATH` of the environment they are started with. */
 const GIT_COMMAND = ['git'];
 const GH_COMMAND = ['gh'];
@@ -49,6 +52,10 @@ export function serviceSettingsOf(
     sandbox: config.sandbox,
     artifacts: config.instance.artifacts,
     repositories: {
+      threshold: {
+        metric: THRESHOLD_METRIC,
+        percentage: config.coverageThreshold,
+      },
       workingCopiesRoot: config.instance.workingCopies,
       git: { command: GIT_COMMAND, ...config.git },
       gh: { command: GH_COMMAND, ...config.gh },

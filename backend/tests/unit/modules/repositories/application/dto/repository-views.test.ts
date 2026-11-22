@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CommitSha } from '#kernel/primitives/commit-sha';
+import type { RepositoryDto } from '#repositories/application/contracts/repositories-public-api';
 import type { Repository } from '#repositories/domain/entities/repository.entity';
+import { ThresholdPercentage } from '#repositories/domain/value-objects/threshold-percentage.vo';
 import { SNAPSHOT_COMMIT } from '#tests/support/coverage-snapshots';
 import {
   RepositoriesWorld,
@@ -48,8 +50,27 @@ describe('RepositoryViews', () => {
         latestSnapshot: latestSnapshot(),
         activeScanId: SCAN_ID,
         outdated: false,
+        threshold: { metric: 'lines', percentage: 80, isDefault: true },
       });
       expect(world.coverage.asked).toEqual([WIDGETS_ID]);
+    });
+
+    it('should ask the coverage module with the threshold the view shows', async () => {
+      widgets.changeThreshold(ThresholdPercentage.create(95));
+      const given: RepositoryDto[] = [];
+      world.coverage.coverageOf = async (repository) => {
+        given.push(repository);
+        return Promise.resolve(world.coverage.answer);
+      };
+
+      const view = await world.views.viewOf(widgets);
+
+      expect(view.threshold).toEqual({
+        metric: 'lines',
+        percentage: 95,
+        isDefault: false,
+      });
+      expect(given.map(({ threshold }) => threshold)).toEqual([view.threshold]);
     });
 
     it('should add no snapshot and no scan before the first', async () => {

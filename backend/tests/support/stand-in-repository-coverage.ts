@@ -8,8 +8,10 @@ import {
   type RepositoryCoverageDto,
   type SnapshotSummaryDto,
 } from '#repositories/application/contracts/repository-coverage';
-import { fixtureSnapshot } from '#tests/support/coverage-snapshots';
-import { COVERAGE_TEST_SETTINGS } from '#tests/support/recording-sandbox';
+import {
+  fixtureSnapshot,
+  TEST_THRESHOLD,
+} from '#tests/support/coverage-snapshots';
 
 /** What the coverage module answers a test, and every repository it was asked. */
 export interface StandInRepositoryCoverage extends RepositoryCoverage {
@@ -23,8 +25,8 @@ export function standInRepositoryCoverage(): StandInRepositoryCoverage {
   const stand: StandInRepositoryCoverage = {
     answer: { latestSnapshot: null, activeScanId: null },
     asked: [],
-    coverageOf: async (repositoryId) => {
-      stand.asked.push(repositoryId);
+    coverageOf: async (repository) => {
+      stand.asked.push(repository.id);
       return Promise.resolve(stand.answer);
     },
   };
@@ -48,9 +50,9 @@ export function withStandInCoverage(registered: DynamicModule): DynamicModule {
 }
 
 /**
- * The fixture snapshot at `SNAPSHOT_COMMIT`, split under the threshold of
- * the settings, as the coverage module gives it.
+ * The fixture snapshot at `SNAPSHOT_COMMIT`, split under the default
+ * threshold of a test, as the coverage module gives it.
  */
 export function latestSnapshot(): SnapshotSummaryDto {
-  return snapshotDtoOf(fixtureSnapshot(), COVERAGE_TEST_SETTINGS.threshold);
+  return snapshotDtoOf(fixtureSnapshot(), TEST_THRESHOLD);
 }

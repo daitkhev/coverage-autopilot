@@ -6,7 +6,7 @@ import {
   type CoveragePublicApi,
   type CoverageSnapshotDto,
   type FileCoverageDto,
-  type MeasuredFileDto,
+  type MeasuredRunFileDto,
   type RunCoverageDto,
   type ScanParametersDto,
 } from '#coverage/application/contracts/coverage-public-api';
@@ -36,7 +36,7 @@ type Comparison =
   | ({ readonly outcome: 'comparable' } & CoverageComparison)
   | { readonly outcome: 'incomparable'; readonly reason: string };
 
-function targetCoverageOf(file: MeasuredFileDto): TargetCoverageDto {
+function targetCoverageOf(file: MeasuredRunFileDto): TargetCoverageDto {
   const { statements, branches, functions, lines } = file.counters;
   const counter = ({ covered, total }: CoverageCounterDto) => ({
     covered,

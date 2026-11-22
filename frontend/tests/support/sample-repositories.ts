@@ -70,6 +70,7 @@ export const SCANNED_REPOSITORY: Repository = {
   activeScanId: null,
   headCommit: PAYMENTS_COMMIT,
   outdated: false,
+  threshold: { metric: 'lines', percentage: 80, isDefault: true },
 };
 
 /** Connected a minute ago, and never scanned. */

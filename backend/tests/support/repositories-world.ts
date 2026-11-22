@@ -15,6 +15,7 @@ import { RepositoriesFacade } from '#repositories/application/repositories-facad
 import { Repository } from '#repositories/domain/entities/repository.entity';
 import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
 import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
+import { DEFAULT_TEST_THRESHOLD } from '#tests/support/coverage-snapshots';
 import { FixedClock } from '#tests/support/fixed-clock';
 import { InMemoryRepositoryRepository } from '#tests/support/in-memory-repository-repository';
 import { InlineTransactions } from '#tests/support/inline-transactions';
@@ -45,7 +46,10 @@ export class RepositoriesWorld {
   public readonly clock = new FixedClock(STORED_TIME);
   public readonly ids = new SequentialIdGenerator();
   public readonly coverage = standInRepositoryCoverage();
-  public readonly views = new RepositoryViews(this.coverage);
+  public readonly views = new RepositoryViews(
+    this.coverage,
+    DEFAULT_TEST_THRESHOLD,
+  );
   public readonly heads = new HeadRecorder(
     this.repositories,
     this.transactions,
@@ -60,7 +64,10 @@ export class RepositoriesWorld {
     this.ids,
     this.views,
   );
-  public readonly getRepository = new GetRepositoryHandler(this.repositories);
+  public readonly getRepository = new GetRepositoryHandler(
+    this.repositories,
+    DEFAULT_TEST_THRESHOLD,
+  );
   public readonly getRepositoryView = new GetRepositoryViewHandler(
     this.repositories,
     this.views,

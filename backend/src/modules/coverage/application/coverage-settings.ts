@@ -1,9 +1,9 @@
-import type { CoverageThreshold } from '#coverage/domain/value-objects/coverage-threshold.vo';
-
-/** What the coverage module takes from the settings of the service. */
+/**
+ * What the coverage module takes from the settings of the service. The
+ * threshold is not one of them: each repository has its own, which the
+ * module asks for when it judges a file.
+ */
 export interface CoverageSettings {
-  /** A measured file below it can be improved. */
-  readonly threshold: CoverageThreshold;
   /** The install is the one step with the network, so it has its own limit. */
   readonly installTimeoutMs: number;
   readonly testRunTimeoutMs: number;

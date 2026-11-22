@@ -4,6 +4,7 @@ import {
   accessCheckSchema,
   connectRepositoryRequestSchema,
   repositoryListSchema,
+  repositoryThresholdSchema,
 } from '#api-contracts/repositories';
 
 const repository = {
@@ -17,6 +18,7 @@ const repository = {
   activeScanId: 'scan1',
   headCommit: null,
   outdated: false,
+  threshold: { metric: 'lines', percentage: 80, isDefault: true },
 };
 
 describe('connectRepositoryRequestSchema', () => {
@@ -60,11 +62,41 @@ describe('repositoryListSchema', () => {
       { ...repository, outdated: undefined },
     ],
     ['a time with no zone', { ...repository, connectedAt: '2026-11-20 08:00' }],
+    ['no threshold', { ...repository, threshold: undefined }],
     ['an unknown key', { ...repository, stars: 3 }],
   ])('should refuse %s', (_name, value) => {
     expect(repositoryListSchema.safeParse({ items: [value] }).success).toBe(
       false,
     );
+  });
+});
+
+describe('repositoryThresholdSchema', () => {
+  it('should accept a threshold of its own', () => {
+    const value = { metric: 'lines', percentage: 95, isDefault: false };
+
+    expect(repositoryThresholdSchema.safeParse(value).success).toBe(true);
+  });
+
+  it.each([
+    [
+      'no word on whether it is the default',
+      { metric: 'lines', percentage: 80 },
+    ],
+    [
+      'a counter that is not one',
+      { metric: 'calls', percentage: 80, isDefault: true },
+    ],
+    [
+      'more than everything',
+      { metric: 'lines', percentage: 101, isDefault: false },
+    ],
+    [
+      'an unknown key',
+      { metric: 'lines', percentage: 80, isDefault: true, own: 95 },
+    ],
+  ])('should refuse %s', (_name, value) => {
+    expect(repositoryThresholdSchema.safeParse(value).success).toBe(false);
   });
 });
 

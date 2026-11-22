@@ -10,11 +10,11 @@ export interface ListSnapshotFilesQuery {
   readonly snapshotId: string;
   /**
    * Only the measured files below this percentage: the files that can be
-   * improved. It takes the place of the percentage of the settings.
+   * improved. It takes the place of the percentage of the repository.
    */
   readonly below?: number | undefined;
   /**
-   * The counter the threshold reads, in place of the one of the settings.
+   * The counter the threshold reads, in place of the one of the repository.
    * Alone it narrows nothing: it changes which files are below and the
    * order.
    */

@@ -48,15 +48,22 @@ interface UncoveredFunctionDto {
   readonly line: number;
 }
 
-export interface MeasuredFileDto {
+/** A measured file as a run of tests gives it: no threshold judged it. */
+export interface MeasuredRunFileDto {
   readonly path: FilePath;
   readonly state: 'measured';
   readonly counters: CoverageCountersDto;
-  /** Below the threshold of the settings, so the file can be a target. */
-  readonly belowThreshold: boolean;
   readonly uncoveredLines: readonly LineRangeDto[];
   readonly openBranchLines: readonly number[];
   readonly uncoveredFunctions: readonly UncoveredFunctionDto[];
+}
+
+export interface MeasuredFileDto extends MeasuredRunFileDto {
+  /**
+   * Below the threshold its repository has at the moment of the read, so
+   * the file can be a target.
+   */
+  readonly belowThreshold: boolean;
 }
 
 /** A file of type declarations alone. It is never a target. */
@@ -75,6 +82,9 @@ export interface UnmeasuredFileDto {
 
 export type FileCoverageDto =
   MeasuredFileDto | NoCodeFileDto | UnmeasuredFileDto;
+
+/** A file of a run of tests, in any of the three states. */
+export type RunFileDto = MeasuredRunFileDto | NoCodeFileDto | UnmeasuredFileDto;
 
 export interface DetectedProjectDto {
   readonly testRunner: TestRunnerName;
@@ -188,10 +198,14 @@ export interface TestRunDto {
   readonly outputReference: string | null;
 }
 
+/**
+ * A run is lent a working copy and knows no repository, so no threshold
+ * judges its files: the gate compares their numbers with a snapshot.
+ */
 export interface RunCoverageDto {
   readonly parameters: ScanParametersDto;
   /** Every eligible file in one of the three states, sorted by path. */
-  readonly files: readonly FileCoverageDto[];
+  readonly files: readonly RunFileDto[];
 }
 
 export type RunTestsResult =

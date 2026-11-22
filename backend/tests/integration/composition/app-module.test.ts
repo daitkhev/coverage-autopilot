@@ -4,17 +4,13 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { AppModule } from '#composition/app.module';
-import {
-  COVERAGE_SETTINGS,
-  type CoverageSettings,
-} from '#coverage/application/coverage-settings';
-import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-threshold.vo';
 import { IMPROVEMENT_SETTINGS } from '#improvement/application/improvement-settings';
 import { GENERATOR_SANDBOX } from '#improvement/infrastructure/generator/generator-sandbox';
 import { DockerSandbox } from '#infrastructure/sandbox/docker-sandbox.adapter';
 import { Instant } from '#kernel/time/instant';
 import { JOB_HANDLERS, type JobHandler } from '#ports/job-handler.port';
 import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
+import { DEFAULT_THRESHOLD } from '#repositories/application/default-threshold';
 import { loadWith } from '#tests/support/service-variables';
 import {
   createMigratedDatabase,
@@ -75,30 +71,22 @@ describe('AppModule', () => {
     expect(generator).not.toBe(service.get(SANDBOX));
   });
 
-  it('should judge files by 80% of lines', async () => {
+  it('should judge the files of a repository by 80% of lines by default', async () => {
     const service = await serviceWith({});
 
-    const { threshold } = service.get<CoverageSettings>(
-      COVERAGE_SETTINGS,
-      ANYWHERE,
-    );
-
-    expect(threshold).toEqual(
-      CoverageThreshold.create({ metric: 'lines', percentage: 80 }),
-    );
+    expect(service.get(DEFAULT_THRESHOLD, ANYWHERE)).toEqual({
+      metric: 'lines',
+      percentage: 80,
+    });
   });
 
-  it('should judge files by the percent of lines its variable names', async () => {
+  it('should judge them by the percent of lines its variable names', async () => {
     const service = await serviceWith({ AUTOPILOT_COVERAGE_THRESHOLD: '95' });
 
-    const { threshold } = service.get<CoverageSettings>(
-      COVERAGE_SETTINGS,
-      ANYWHERE,
-    );
-
-    expect(threshold).toEqual(
-      CoverageThreshold.create({ metric: 'lines', percentage: 95 }),
-    );
+    expect(service.get(DEFAULT_THRESHOLD, ANYWHERE)).toEqual({
+      metric: 'lines',
+      percentage: 95,
+    });
   });
 
   describe('when the generator has no credential', () => {

@@ -181,6 +181,19 @@ describe('RepositoriesModule', () => {
         await refused.close();
       });
 
+      it.each([0, 101, 85.5])(
+        'should refuse a default threshold of %d percent',
+        async (percentage) => {
+          const refused = await compiled({
+            ...host.settings,
+            threshold: { metric: 'lines', percentage },
+          });
+
+          await expect(refused.init()).rejects.toThrow('threshold.percentage');
+          await refused.close();
+        },
+      );
+
       it('should refuse a git that is not told who commits', async () => {
         const settings = host.settings;
         const environment = Object.fromEntries(

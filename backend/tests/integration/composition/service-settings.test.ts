@@ -17,6 +17,7 @@ describe('serviceSettingsOf', () => {
       AUTOPILOT_QUEUE_CONCURRENCY: '3',
       AUTOPILOT_GIT_TIMEOUT_MS: '90000',
       AUTOPILOT_GH_TIMEOUT_MS: '15000',
+      AUTOPILOT_COVERAGE_THRESHOLD: '95',
       GH_TOKEN: 'zz-private',
     });
     const stream = new PassThrough();
@@ -33,6 +34,7 @@ describe('serviceSettingsOf', () => {
       sandbox: config.sandbox,
       artifacts: '/srv/autopilot/artifacts',
       repositories: {
+        threshold: { metric: 'lines', percentage: 95 },
         workingCopiesRoot: '/srv/autopilot/working-copies',
         git: {
           command: ['git'],

@@ -6,18 +6,11 @@ import {
   type CoverageApplication,
   coverageApplication,
 } from '#tests/support/coverage-application';
-import {
-  COVERAGE_TEST_SETTINGS,
-  PASSED,
-} from '#tests/support/recording-sandbox';
+import { PASSED } from '#tests/support/recording-sandbox';
 import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
 
 function handlerOf(application: CoverageApplication): RunTestsHandler {
-  return new RunTestsHandler(
-    application.detector,
-    application.tests,
-    COVERAGE_TEST_SETTINGS,
-  );
+  return new RunTestsHandler(application.detector, application.tests);
 }
 
 const MEASURED: RunTestsCommand = {
@@ -62,11 +55,26 @@ describe('RunTestsHandler', () => {
             files: [
               { path: { value: 'src/broken.ts' }, state: 'unmeasured' },
               { path: { value: 'src/types.ts' }, state: 'no_executable_code' },
-              { path: { value: 'src/unused.ts' }, belowThreshold: true },
+              { path: { value: 'src/unused.ts' }, state: 'measured' },
               { path: { value: 'src/used.ts' }, state: 'measured' },
             ],
           },
         });
+      });
+
+      it('should judge no file by a threshold, since no repository is named', async () => {
+        const application = coverageApplication();
+
+        const result = await handlerOf(application).execute(MEASURED, RUNNING);
+
+        const files = result.outcome === 'completed' ? result.coverage : null;
+        expect(files?.files.map((file) => 'belowThreshold' in file)).toEqual([
+          false,
+          false,
+          false,
+          false,
+        ]);
+        expect(application.repositories.created).toEqual([]);
       });
     });
 

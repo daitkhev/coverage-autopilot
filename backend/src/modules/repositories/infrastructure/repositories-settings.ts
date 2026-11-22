@@ -1,3 +1,5 @@
+import type { DefaultThreshold } from '#repositories/application/default-threshold';
+
 /** How the service starts one program. */
 export interface ToolSettings {
   /**
@@ -20,6 +22,8 @@ export interface ToolSettings {
 
 /** What the repositories module needs from the configuration. */
 export interface RepositoriesSettings {
+  /** What a repository with no threshold of its own is judged by. */
+  readonly threshold: DefaultThreshold;
   /**
    * An absolute folder of the service alone. Mirrors and working copies
    * are made under it, and nothing else is.

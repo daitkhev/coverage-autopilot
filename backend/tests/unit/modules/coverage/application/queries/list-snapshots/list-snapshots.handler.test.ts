@@ -13,9 +13,9 @@ import {
   snapshotOf,
 } from '#tests/support/coverage-snapshots';
 import { inMemorySnapshots } from '#tests/support/coverage-stand-ins';
-import { COVERAGE_TEST_SETTINGS } from '#tests/support/recording-sandbox';
 import {
   heldBy,
+  judgeBy,
   type StandInRepositories,
   standInRepositories,
 } from '#tests/support/stand-in-repositories';
@@ -40,11 +40,7 @@ beforeEach(() => {
       repositoryId: OTHER_REPOSITORY_ID,
     }),
   );
-  handler = new ListSnapshotsHandler(
-    repositories,
-    snapshots,
-    COVERAGE_TEST_SETTINGS,
-  );
+  handler = new ListSnapshotsHandler(repositories, snapshots);
 });
 
 describe('ListSnapshotsHandler', () => {
@@ -71,6 +67,19 @@ describe('ListSnapshotsHandler', () => {
         totals: { lines: { covered: 2, total: 6 } },
         threshold: { metric: 'lines', percentage: 80 },
         files: { below: 2, above: 0, unmeasured: 1, noCode: 1 },
+      });
+    });
+
+    describe('when the repository has a threshold of its own', () => {
+      it('should split every snapshot under it', async () => {
+        judgeBy(repositories, 30);
+
+        const listed = await handler.execute({ repositoryId: REPOSITORY_ID });
+
+        expect(listed?.map(({ threshold }) => threshold.percentage)).toEqual([
+          30, 30,
+        ]);
+        expect(listed?.[1]?.files).toMatchObject({ below: 1, above: 1 });
       });
     });
 

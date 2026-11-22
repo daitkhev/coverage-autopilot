@@ -17,22 +17,18 @@ import {
   REPOSITORY_ID,
   SNAPSHOT_COMMIT,
 } from '#tests/support/coverage-snapshots';
-import {
-  COVERAGE_TEST_SETTINGS,
-  PASSED,
-} from '#tests/support/recording-sandbox';
+import { PASSED } from '#tests/support/recording-sandbox';
 import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
 
-const settings = COVERAGE_TEST_SETTINGS;
-
 function apiOf(application: CoverageApplication): CoverageApi {
-  const { snapshots, capture, transactions, detector, tests } = application;
+  const { snapshots, capture, transactions, detector, tests, thresholds } =
+    application;
   return new CoverageApi(
-    new CaptureSnapshotHandler(snapshots, capture, transactions, settings),
+    new CaptureSnapshotHandler(snapshots, capture, transactions, thresholds),
     application.preparation,
-    new RunTestsHandler(detector, tests, settings),
-    new GetSnapshotHandler(snapshots, settings),
-    new GetFileCoverageHandler(snapshots, settings),
+    new RunTestsHandler(detector, tests),
+    new GetSnapshotHandler(snapshots, thresholds),
+    new GetFileCoverageHandler(snapshots, thresholds),
   );
 }
 

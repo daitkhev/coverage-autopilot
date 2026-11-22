@@ -66,7 +66,10 @@ import {
 import { SchemaRows } from '#tests/support/schema-rows';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
 import { standInFileImprovements } from '#tests/support/stand-in-file-improvements';
-import { standInRepositories } from '#tests/support/stand-in-repositories';
+import {
+  heldBy,
+  standInRepositories,
+} from '#tests/support/stand-in-repositories';
 import {
   createMigratedDatabase,
   type TemporaryDatabase,
@@ -186,7 +189,7 @@ describe('CoverageModule', () => {
     const module = await compile(services);
     const port = module.get<RepositoryCoverage>(REPOSITORY_COVERAGE);
 
-    const coverage = await port.coverageOf(RepositoryId.create(REPOSITORY_ID));
+    const coverage = await port.coverageOf(heldBy(standInRepositories()));
 
     expect(port).toBeInstanceOf(RepositoryCoverageApi);
     expect(coverage).toEqual({ latestSnapshot: null, activeScanId: null });

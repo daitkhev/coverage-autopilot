@@ -4,6 +4,7 @@ import { errorSchema } from '@coverage-autopilot/api-contracts/errors';
 import { snapshotFilesSchema } from '@coverage-autopilot/api-contracts/snapshots';
 
 import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
+import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import { SnapshotFilesController } from '#coverage/infrastructure/http/snapshot-files.controller';
 import {
   fixtureSnapshot,
@@ -14,13 +15,13 @@ import {
   type HttpService,
   startHttpService,
 } from '#tests/support/http-service';
-import { COVERAGE_TEST_SETTINGS } from '#tests/support/recording-sandbox';
 import {
   type StandInFileImprovements,
   standInFileImprovements,
   USED_IMPROVEMENT_ID,
   usedFileImproved,
 } from '#tests/support/stand-in-file-improvements';
+import { standInRepositories } from '#tests/support/stand-in-repositories';
 
 const MISSING_ID = '00000000-0000-4000-8000-000000000999';
 
@@ -31,7 +32,7 @@ beforeEach(async () => {
   improvements = standInFileImprovements();
   const handler = new ListSnapshotFilesHandler(
     inMemorySnapshots(fixtureSnapshot()),
-    COVERAGE_TEST_SETTINGS,
+    new RepositoryThresholds(standInRepositories()),
     improvements,
   );
   service = await startHttpService({

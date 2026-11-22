@@ -13,6 +13,7 @@ import { CreateWorkingCopyHandler } from '#repositories/application/commands/cre
 import { PublishPatchHandler } from '#repositories/application/commands/publish-patch/publish-patch.handler';
 import { ResolveHeadHandler } from '#repositories/application/commands/resolve-head/resolve-head.handler';
 import { REPOSITORIES_PUBLIC_API } from '#repositories/application/contracts/repositories-public-api';
+import { DEFAULT_THRESHOLD } from '#repositories/application/default-threshold';
 import { RepositoryViews } from '#repositories/application/dto/repository-views';
 import { HeadRecorder } from '#repositories/application/head-recorder';
 import { CODE_HOST } from '#repositories/application/ports/code-host.port';
@@ -84,6 +85,7 @@ export class RepositoriesModule implements OnModuleInit {
       controllers: [RepositoriesController, RepositoryAccessController],
       providers: [
         { provide: REPOSITORIES_SETTINGS, useValue: settings },
+        { provide: DEFAULT_THRESHOLD, useValue: settings.threshold },
         {
           provide: REPOSITORY_REPOSITORY,
           useClass: SqliteRepositoryRepository,

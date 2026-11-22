@@ -3,11 +3,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { CaptureSnapshotCommand } from '#coverage/application/commands/capture-snapshot/capture-snapshot.command';
 import { SnapshotCapture } from '#coverage/application/commands/capture-snapshot/snapshot-capture';
 import type { CaptureSnapshotResult } from '#coverage/application/contracts/coverage-public-api';
-import {
-  COVERAGE_SETTINGS,
-  type CoverageSettings,
-} from '#coverage/application/coverage-settings';
 import { snapshotDtoOf } from '#coverage/application/dto/coverage-dto-mapping';
+import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
 import {
   COVERAGE_SNAPSHOT_REPOSITORY,
@@ -28,18 +25,18 @@ export class CaptureSnapshotHandler {
   private readonly snapshots: CoverageSnapshotRepository;
   private readonly capture: SnapshotCapture;
   private readonly transactions: TransactionManager;
-  private readonly settings: CoverageSettings;
+  private readonly thresholds: RepositoryThresholds;
 
   public constructor(
     @Inject(COVERAGE_SNAPSHOT_REPOSITORY) snapshots: CoverageSnapshotRepository,
     @Inject(SnapshotCapture) capture: SnapshotCapture,
     @Inject(TRANSACTION_MANAGER) transactions: TransactionManager,
-    @Inject(COVERAGE_SETTINGS) settings: CoverageSettings,
+    @Inject(RepositoryThresholds) thresholds: RepositoryThresholds,
   ) {
     this.snapshots = snapshots;
     this.capture = capture;
     this.transactions = transactions;
-    this.settings = settings;
+    this.thresholds = thresholds;
   }
 
   public async execute(
@@ -60,10 +57,14 @@ export class CaptureSnapshotHandler {
     return this.captured(saved);
   }
 
-  private captured(snapshot: CoverageSnapshot): CaptureSnapshotResult {
+  /** Split under the threshold its repository has now. */
+  private async captured(
+    snapshot: CoverageSnapshot,
+  ): Promise<CaptureSnapshotResult> {
+    const threshold = await this.thresholds.of(snapshot.repositoryId);
     return {
       outcome: 'captured',
-      snapshot: snapshotDtoOf(snapshot, this.settings.threshold),
+      snapshot: snapshotDtoOf(snapshot, threshold),
     };
   }
 }

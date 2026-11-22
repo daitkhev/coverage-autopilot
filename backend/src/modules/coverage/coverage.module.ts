@@ -35,9 +35,8 @@ import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/g
 import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
 import { RepositoryCoverageApi } from '#coverage/application/repository-coverage-api';
+import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import { COVERAGE_SNAPSHOT_REPOSITORY } from '#coverage/domain/repositories/coverage-snapshot.repository';
-import type { CoverageMetric } from '#coverage/domain/value-objects/coverage-counters.vo';
-import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-threshold.vo';
 import { TEST_RUNNER_NAMES } from '#coverage/domain/value-objects/detected-project.vo';
 import { TypescriptSourceClassifier } from '#coverage/infrastructure/classification/typescript-source-classifier.adapter';
 import { NodeProjectDetector } from '#coverage/infrastructure/detection/node-project-detector.adapter';
@@ -52,22 +51,15 @@ import { VITEST_COMMAND } from '#coverage/infrastructure/runners/vitest-command'
 import type { JobHandler } from '#ports/job-handler.port';
 import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
 
-/** The settings of the module as plain values, as the root gives them. */
-interface CoverageValues extends Omit<CoverageSettings, 'threshold'> {
-  readonly threshold: {
-    readonly metric: CoverageMetric;
-    readonly percentage: number;
-  };
-}
-
 /**
  * Project detection, test runs with coverage, the reading of reports,
  * snapshots and thresholds, and the routes of scans, of the snapshots of
  * a repository and of the files of a snapshot.
  *
  * It takes from the modules around it: the contract of `repositories`,
- * the answer of the improvement module to its port `FILE_IMPROVEMENTS`,
- * the sandbox, the store of tool output, the queue, the transaction
+ * which also gives the threshold of each repository, the answer of the
+ * improvement module to its port `FILE_IMPROVEMENTS`, the sandbox, the
+ * store of tool output, the queue, the transaction
  * manager, the SQLite connection, the clock, the id generator and the
  * settings of this module, which `register` binds. It gives the queue its
  * handler of scans, and answers the port `REPOSITORY_COVERAGE` of the
@@ -113,6 +105,7 @@ interface CoverageValues extends Omit<CoverageSettings, 'threshold'> {
     GetScanHandler,
     CancelScanHandler,
     ListSnapshotsHandler,
+    RepositoryThresholds,
     { provide: COVERAGE_PUBLIC_API, useClass: CoverageApi },
     { provide: RepositoryCoverageApi.token, useClass: RepositoryCoverageApi },
   ],
@@ -136,11 +129,7 @@ export class CoverageModule implements OnModuleInit {
    * find its contract, the module of repositories the answer to its port,
    * and the root its handler of scans.
    */
-  public static register(values: CoverageValues): DynamicModule {
-    const settings: CoverageSettings = {
-      ...values,
-      threshold: CoverageThreshold.create(values.threshold),
-    };
+  public static register(settings: CoverageSettings): DynamicModule {
     return {
       module: CoverageModule,
       global: true,

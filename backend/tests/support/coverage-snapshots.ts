@@ -27,11 +27,14 @@ export const REPOSITORY_ID = '00000000-0000-4000-8000-0000000000bb';
 
 export const CAPTURED_AT = '2026-03-04T05:06:07.008Z';
 
-/** What a test judges files by: 80% of lines, as a plain service does. */
-export const TEST_THRESHOLD = CoverageThreshold.create({
+/** The default threshold of a test: 80% of lines, as a plain service has. */
+export const DEFAULT_TEST_THRESHOLD = {
   metric: 'lines',
   percentage: 80,
-});
+} as const;
+
+/** What a test judges files by when it names no other threshold. */
+export const TEST_THRESHOLD = CoverageThreshold.create(DEFAULT_TEST_THRESHOLD);
 
 /** Covered and total of each metric a test names. The others are 0 of 0. */
 export type CounterSpec = Partial<

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { thresholdSchema } from '#api-contracts/coverage';
 import { snapshotSummarySchema } from '#api-contracts/snapshots';
 import {
   accessCheckNameSchema,
@@ -23,6 +24,17 @@ export type ConnectRepositoryRequest = z.infer<
   typeof connectRepositoryRequestSchema
 >;
 
+/**
+ * What the files of a repository are judged by now. A repository without
+ * a threshold of its own has the default of the service.
+ */
+export const repositoryThresholdSchema = z.strictObject({
+  ...thresholdSchema.shape,
+  isDefault: z.boolean(),
+});
+
+export type RepositoryThreshold = z.infer<typeof repositoryThresholdSchema>;
+
 export const repositorySchema = z.strictObject({
   id: idSchema,
   owner: textSchema,
@@ -36,6 +48,7 @@ export const repositorySchema = z.strictObject({
   headCommit: commitShaSchema.nullable(),
   /** The head moved past the commit of the latest snapshot. */
   outdated: z.boolean(),
+  threshold: repositoryThresholdSchema,
 });
 
 export type Repository = z.infer<typeof repositorySchema>;

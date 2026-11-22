@@ -8,6 +8,7 @@ import type {
 } from '#repositories/application/contracts/repositories-public-api';
 import {
   CAPTURED_AT,
+  DEFAULT_TEST_THRESHOLD,
   REPOSITORY_ID,
   SNAPSHOT_COMMIT,
 } from '#tests/support/coverage-snapshots';
@@ -26,6 +27,7 @@ function acmeWidgets(): RepositoryDto {
     connectedAt: Instant.parse(CAPTURED_AT),
     headCommit: null,
     headCheckedAt: null,
+    threshold: { ...DEFAULT_TEST_THRESHOLD, isDefault: true },
   };
 }
 
@@ -42,6 +44,17 @@ export function heldBy(repositories: StandInRepositories): RepositoryDto {
     throw new Error('The stand-in of the repositories holds no repository.');
   }
   return repositories.repository;
+}
+
+/** Gives the repository of the stand-in a percent of lines of its own. */
+export function judgeBy(
+  repositories: StandInRepositories,
+  percentage: number,
+): void {
+  repositories.repository = {
+    ...heldBy(repositories),
+    threshold: { metric: 'lines', percentage, isDefault: false },
+  };
 }
 
 async function refuse(): Promise<never> {

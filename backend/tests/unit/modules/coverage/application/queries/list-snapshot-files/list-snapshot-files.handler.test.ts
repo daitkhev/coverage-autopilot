@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import type { ListSnapshotFilesQuery } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.query';
+import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import { InvalidCoveragePercentageError } from '#coverage/domain/errors/invalid-coverage-percentage.error';
 import { FilePath } from '#kernel/primitives/file-path';
 import { RepositoryId } from '#kernel/primitives/repository-id';
@@ -13,17 +14,22 @@ import {
   snapshotOf,
 } from '#tests/support/coverage-snapshots';
 import { inMemorySnapshots } from '#tests/support/coverage-stand-ins';
-import { COVERAGE_TEST_SETTINGS } from '#tests/support/recording-sandbox';
 import {
   type StandInFileImprovements,
   standInFileImprovements,
   USED_IMPROVEMENT_ID,
   usedFileImproved,
 } from '#tests/support/stand-in-file-improvements';
+import {
+  judgeBy,
+  type StandInRepositories,
+  standInRepositories,
+} from '#tests/support/stand-in-repositories';
 
 const TIED_ID = '00000000-0000-4000-8000-0000000000ab';
 
 let improvements: StandInFileImprovements;
+let repositories: StandInRepositories;
 let handler: ListSnapshotFilesHandler;
 
 /**
@@ -33,6 +39,7 @@ let handler: ListSnapshotFilesHandler;
  */
 beforeEach(() => {
   improvements = standInFileImprovements();
+  repositories = standInRepositories();
   handler = new ListSnapshotFilesHandler(
     inMemorySnapshots(
       fixtureSnapshot(),
@@ -46,7 +53,7 @@ beforeEach(() => {
         ],
       }),
     ),
-    COVERAGE_TEST_SETTINGS,
+    new RepositoryThresholds(repositories),
     improvements,
   );
 });
@@ -107,7 +114,7 @@ describe('ListSnapshotFilesHandler', () => {
     });
 
     describe('with a percentage', () => {
-      it('should keep the measured files below it in the metric of the settings', async () => {
+      it('should keep the measured files below it in the metric of the repository', async () => {
         const listed = await handler.execute({
           snapshotId: SNAPSHOT_ID,
           below: 30,
@@ -133,6 +140,46 @@ describe('ListSnapshotFilesHandler', () => {
         await expect(
           handler.execute({ snapshotId: SNAPSHOT_ID, below: 101 }),
         ).rejects.toThrow(InvalidCoveragePercentageError);
+      });
+    });
+
+    describe('when the repository has a threshold of its own', () => {
+      it('should judge every file by it', async () => {
+        judgeBy(repositories, 30);
+
+        const listed = await handler.execute({ snapshotId: SNAPSHOT_ID });
+
+        expect(listed?.threshold).toEqual({ metric: 'lines', percentage: 30 });
+        expect(listed?.items).toMatchObject([
+          { path: { value: 'src/unused.ts' }, belowThreshold: true },
+          { path: { value: 'src/used.ts' }, belowThreshold: false },
+          { path: { value: 'src/broken.ts' } },
+          { path: { value: 'src/types.ts' } },
+        ]);
+      });
+
+      it('should judge the files anew once it changed', async () => {
+        judgeBy(repositories, 30);
+        await handler.execute({ snapshotId: SNAPSHOT_ID });
+        judgeBy(repositories, 50);
+
+        const listed = await handler.execute({ snapshotId: SNAPSHOT_ID });
+
+        expect(listed?.items[1]).toMatchObject({
+          path: { value: 'src/used.ts' },
+          belowThreshold: true,
+        });
+      });
+
+      it('should give way to a percentage a person names', async () => {
+        judgeBy(repositories, 30);
+
+        const listed = await handler.execute({
+          snapshotId: SNAPSHOT_ID,
+          below: 50,
+        });
+
+        expect(listed?.threshold).toEqual({ metric: 'lines', percentage: 50 });
       });
     });
 

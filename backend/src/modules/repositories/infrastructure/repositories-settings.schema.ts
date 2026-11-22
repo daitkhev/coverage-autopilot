@@ -31,8 +31,16 @@ const gitSettingsSchema = toolSettingsSchema.extend({
   ),
 });
 
+const MOST_PERCENT = 100;
+
+/** A whole percent from 1 to 100, since 0 would make no file a target. */
+const thresholdSchema = z.object({
+  percentage: z.int().min(1).max(MOST_PERCENT),
+});
+
 /** What the settings must be for the module to work at all. */
 const repositoriesSettingsSchema = z.object({
+  threshold: thresholdSchema,
   workingCopiesRoot: z
     .string()
     .refine(isAbsolute, 'The root of the working copies is not absolute.'),

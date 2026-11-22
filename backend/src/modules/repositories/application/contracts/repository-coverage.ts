@@ -1,8 +1,9 @@
 import type { CommitSha } from '#kernel/primitives/commit-sha';
-import type { RepositoryId } from '#kernel/primitives/repository-id';
 import type { Instant } from '#kernel/time/instant';
-
-type CoverageMetric = 'statements' | 'branches' | 'functions' | 'lines';
+import type {
+  CoverageMetric,
+  RepositoryDto,
+} from '#repositories/application/contracts/repositories-public-api';
 
 interface CoverageCounterDto {
   readonly covered: number;
@@ -33,7 +34,7 @@ export interface SnapshotSummaryDto {
 
 /** What only the coverage module knows of a repository. */
 export interface RepositoryCoverageDto {
-  /** The newest snapshot, split under the threshold of the settings. */
+  /** The newest snapshot, split under the threshold of the repository. */
   readonly latestSnapshot: SnapshotSummaryDto | null;
   /** Its scan that has not ended: the running one, else the oldest queued. */
   readonly activeScanId: string | null;
@@ -43,9 +44,11 @@ export interface RepositoryCoverageDto {
  * The coverage of a repository, which a person sees with it. This module
  * declares the port and the coverage module, which is above it, answers
  * it, so the routes of a repository stay in the module of repositories.
+ * It is given the repository as it was read, so the snapshot is split
+ * under the very threshold the answer shows.
  */
 export interface RepositoryCoverage {
-  coverageOf(repositoryId: RepositoryId): Promise<RepositoryCoverageDto>;
+  coverageOf(repository: RepositoryDto): Promise<RepositoryCoverageDto>;
 }
 
 /** The injection token of the coverage of a repository. */

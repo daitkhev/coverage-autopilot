@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
+import { DEFAULT_TEST_THRESHOLD } from '#tests/support/coverage-snapshots';
 import { GhStandIn } from '#tests/support/gh-stand-in';
 
 /** Where git is found on a desk and in CI. Nothing else is on the path. */
@@ -57,6 +58,7 @@ export class TemporaryCodeHost {
     writeFileSync(join(this.folder, 'gitconfig'), '');
     this.gh = new GhStandIn(ghFolder);
     this.settings = {
+      threshold: DEFAULT_TEST_THRESHOLD,
       workingCopiesRoot: join(this.folder, 'service'),
       git: {
         command: ['git'],

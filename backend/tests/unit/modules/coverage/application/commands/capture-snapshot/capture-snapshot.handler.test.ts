@@ -16,10 +16,8 @@ import {
   SNAPSHOT_ID,
 } from '#tests/support/coverage-snapshots';
 import { TRANSACTION } from '#tests/support/coverage-stand-ins';
-import {
-  COVERAGE_TEST_SETTINGS,
-  PASSED,
-} from '#tests/support/recording-sandbox';
+import { PASSED } from '#tests/support/recording-sandbox';
+import { judgeBy } from '#tests/support/stand-in-repositories';
 
 const COMMAND: CaptureSnapshotCommand = {
   repositoryId: RepositoryId.create(REPOSITORY_ID),
@@ -34,7 +32,7 @@ function handlerOf(application: CoverageApplication): CaptureSnapshotHandler {
     application.snapshots,
     application.capture,
     application.transactions,
-    COVERAGE_TEST_SETTINGS,
+    application.thresholds,
   );
 }
 
@@ -55,6 +53,22 @@ describe('CaptureSnapshotHandler', () => {
           threshold: { metric: 'lines', percentage: 80 },
           files: { below: 2, above: 0, unmeasured: 1, noCode: 1 },
         },
+      });
+    });
+
+    describe('when the repository has a threshold of its own', () => {
+      it('should split the snapshot under it', async () => {
+        const application = coverageApplication();
+        judgeBy(application.repositories, 30);
+
+        const result = await handlerOf(application).execute(COMMAND, RUNNING);
+
+        expect(result).toMatchObject({
+          snapshot: {
+            threshold: { metric: 'lines', percentage: 30 },
+            files: { below: 1, above: 1 },
+          },
+        });
       });
     });
 

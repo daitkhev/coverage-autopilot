@@ -6,7 +6,8 @@ import type {
   DetectedProjectDto,
   FileCoverageDto,
   FileSplitDto,
-  MeasuredFileDto,
+  MeasuredRunFileDto,
+  RunFileDto,
   ScanParametersDto,
 } from '#coverage/application/contracts/coverage-public-api';
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
@@ -59,27 +60,23 @@ export function parametersDtoOf(parameters: ScanParameters): ScanParametersDto {
   };
 }
 
-/** A measured file, with whether it is below the threshold. */
-function measuredDtoOf(
-  file: FileCoverage,
-  threshold: CoverageThreshold,
-): MeasuredFileDto {
+/** A measured file, with its numbers and what never ran. */
+function measuredDtoOf(file: FileCoverage): MeasuredRunFileDto {
   return {
     path: file.path,
     state: 'measured',
     counters: countersDtoOf(file.counters),
-    belowThreshold: file.canBeTarget(threshold),
     uncoveredLines: file.uncovered.lines,
     openBranchLines: file.uncovered.branchLines,
     uncoveredFunctions: file.uncovered.functions,
   };
 }
 
-/** A file in any of its three states. */
-export function fileDtoOf(
+/** A file in any of its three states, a measured one as `measured` says. */
+function dtoOf<Measured>(
   file: FileCoverage | UnmeasuredFile,
-  threshold: CoverageThreshold,
-): FileCoverageDto {
+  measured: (file: FileCoverage) => Measured,
+): Measured | Exclude<RunFileDto, MeasuredRunFileDto> {
   if (!(file instanceof FileCoverage)) {
     return {
       path: file.path,
@@ -89,8 +86,24 @@ export function fileDtoOf(
     };
   }
   return file.state === 'measured'
-    ? measuredDtoOf(file, threshold)
+    ? measured(file)
     : { path: file.path, state: 'no_executable_code' };
+}
+
+/** A file as a run of tests measured it, judged by no threshold. */
+export function runFileDtoOf(file: FileCoverage | UnmeasuredFile): RunFileDto {
+  return dtoOf(file, measuredDtoOf);
+}
+
+/** A file, a measured one with whether it is below the threshold. */
+export function fileDtoOf(
+  file: FileCoverage | UnmeasuredFile,
+  threshold: CoverageThreshold,
+): FileCoverageDto {
+  return dtoOf(file, (measured) => ({
+    ...measuredDtoOf(measured),
+    belowThreshold: measured.canBeTarget(threshold),
+  }));
 }
 
 function splitOf(

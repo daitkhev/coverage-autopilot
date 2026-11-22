@@ -31,5 +31,6 @@ export function repositoryAnswerOf(repository: RepositoryViewDto): Repository {
     activeScanId: repository.activeScanId,
     headCommit: repository.headCommit?.value ?? null,
     outdated: repository.outdated,
+    threshold: repository.threshold,
   };
 }
