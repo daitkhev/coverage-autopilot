@@ -68,7 +68,9 @@ async function unlessGone<Value>(
  * Gives the owner back every folder of the tree, from the top down, so
  * each one can be listed and emptied. Only an entry that is a folder
  * itself is changed, by its own path: a link is never followed, wherever
- * it points.
+ * it points. A removal that was refused goes on removing after it failed,
+ * so a folder may go while it is opened up, and one that is gone needs
+ * nothing.
  */
 async function openUp(path: string): Promise<void> {
   const entry = await unlessGone<Stats | null>(async () => lstat(path), null);
@@ -76,9 +78,9 @@ async function openUp(path: string): Promise<void> {
     return;
   }
   if ((entry.mode & OWNER_ONLY) !== OWNER_ONLY) {
-    await chmod(path, OWNER_ONLY);
+    await unlessGone(async () => chmod(path, OWNER_ONLY), undefined);
   }
-  for (const name of await readdir(path)) {
+  for (const name of await unlessGone(async () => readdir(path), [])) {
     await openUp(join(path, name));
   }
 }
