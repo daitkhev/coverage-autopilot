@@ -27,6 +27,30 @@ interface ErrorDetailsProps {
   readonly next: string;
 }
 
+/** What happened as a sentence in bold, its stable code beside it. */
+export function Headline({
+  look,
+  headline,
+  code,
+}: Pick<ErrorDetailsProps, 'look' | 'headline' | 'code'>): ReactNode {
+  return (
+    <Box gap={GAP}>
+      <Text>
+        <Glyph name={look.glyph} role={look.role} />{' '}
+        <RoleText role={look.role} bold>
+          {headline}
+        </RoleText>
+      </Text>
+      {code === undefined ? null : (
+        // The code is searched for as it is written, so it is never cut.
+        <Box flexShrink={0}>
+          <RoleText role="secondary">{code}</RoleText>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 /** What happened, what the tool said, and what to do. */
 export function ErrorDetails({
   look,
@@ -38,20 +62,11 @@ export function ErrorDetails({
 }: ErrorDetailsProps): ReactNode {
   return (
     <Box flexDirection="column">
-      <Box gap={GAP}>
-        <Text>
-          <Glyph name={look.glyph} role={look.role} />{' '}
-          <RoleText role={look.role} bold>
-            {headline}
-          </RoleText>
-        </Text>
-        {code === undefined ? null : (
-          // The code is searched for as it is written, so it is never cut.
-          <Box flexShrink={0}>
-            <RoleText role="secondary">{code}</RoleText>
-          </Box>
-        )}
-      </Box>
+      <Headline
+        look={look}
+        headline={headline}
+        {...(code === undefined ? {} : { code })}
+      />
       {explanation === undefined ? null : (
         <Box paddingLeft={GAP}>
           <RoleText>{explanation}</RoleText>

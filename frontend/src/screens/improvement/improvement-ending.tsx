@@ -12,6 +12,7 @@ import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses'
 import { AnswerList } from '#components/answer-list';
 import { Clipped } from '#components/clipped';
 import { CoverageChange } from '#components/coverage-change';
+import { Headline } from '#components/error-details';
 import { Glyph } from '#components/glyph';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
@@ -119,20 +120,14 @@ function HeadlineLines({
 }: {
   readonly headline: Headline;
 }): ReactNode {
-  const { look } = headline;
+  const { look, code } = headline;
   return (
     <Box flexDirection="column">
-      <Box gap={GAP}>
-        <Text>
-          <Glyph name={look.glyph} role={look.role} />{' '}
-          <RoleText role={look.role} bold>
-            {headline.title}
-          </RoleText>
-        </Text>
-        {headline.code === undefined ? null : (
-          <RoleText role="secondary">{headline.code}</RoleText>
-        )}
-      </Box>
+      <Headline
+        look={look}
+        headline={headline.title}
+        {...(code === undefined ? {} : { code })}
+      />
       {headline.lines.map((line) => (
         <Box key={line.text} paddingLeft={GAP}>
           <RoleText {...(line.role === undefined ? {} : { role: line.role })}>
