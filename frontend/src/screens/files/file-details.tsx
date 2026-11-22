@@ -14,6 +14,7 @@ import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses'
 import { CoverageBar } from '#components/coverage-bar';
 import { counterCoverage, CounterPercent } from '#components/coverage-change';
 import { ErrorDetails } from '#components/error-details';
+import { FactRow } from '#components/fact-row';
 import { type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
@@ -26,9 +27,6 @@ import {
   UNMEASURED_REASON,
 } from '#theme/status';
 import { BAR_CELLS, GAP } from '#theme/widths';
-
-/** The cells of a label in the panel, as long as "Statements" and a gap. */
-const LABEL_CELLS = 12;
 
 /** The four counters, in the order the mock-ups list them. */
 const COUNTERS: readonly (readonly [CoverageMetric, string])[] = [
@@ -65,12 +63,9 @@ function Fact({
   readonly children: string;
 }): ReactNode {
   return (
-    <Box>
-      <Box width={LABEL_CELLS} flexShrink={0}>
-        <RoleText role="secondary">{label}</RoleText>
-      </Box>
+    <FactRow label={label}>
       <RoleText>{children === '' ? 'none' : children}</RoleText>
-    </Box>
+    </FactRow>
   );
 }
 
@@ -101,10 +96,7 @@ function Counters({
       {COUNTERS.map(([metric, label]) => {
         const counter = file.coverage[metric];
         return (
-          <Box key={metric}>
-            <Box width={LABEL_CELLS} flexShrink={0}>
-              <RoleText>{label}</RoleText>
-            </Box>
+          <FactRow key={metric} label={label}>
             <CoverageBar
               coverage={counterCoverage(counter)}
               threshold={threshold.percentage}
@@ -117,7 +109,7 @@ function Counters({
                 </RoleText>
               </Box>
             ) : null}
-          </Box>
+          </FactRow>
         );
       })}
     </Section>
