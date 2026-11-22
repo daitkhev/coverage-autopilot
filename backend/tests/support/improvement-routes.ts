@@ -7,7 +7,6 @@ import { GetBudgetSettingsHandler } from '#improvement/application/queries/get-b
 import { GetImprovementHandler } from '#improvement/application/queries/get-improvement/get-improvement.handler';
 import { GetImprovementPatchHandler } from '#improvement/application/queries/get-improvement-patch/get-improvement-patch.handler';
 import { ListImprovementsHandler } from '#improvement/application/queries/list-improvements/list-improvements.handler';
-import { ListSnapshotFilesHandler } from '#improvement/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { AnswerStatus } from '#improvement/infrastructure/http/answer-status';
 import {
   type HttpService,
@@ -36,7 +35,6 @@ export async function improvementRoutes(
       { provide: GetImprovementHandler, useValue: world.getImprovement },
       { provide: ListImprovementsHandler, useValue: world.listImprovements },
       { provide: GetImprovementPatchHandler, useValue: world.getPatch },
-      { provide: ListSnapshotFilesHandler, useValue: world.listSnapshotFiles },
       { provide: GetBudgetSettingsHandler, useValue: world.getBudgetSettings },
     ],
   });

@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 
 import type { Provider } from '@nestjs/common';
 
+import { FILE_IMPROVEMENTS } from '#coverage/application/contracts/file-improvements';
 import { COVERAGE_SETTINGS } from '#coverage/application/coverage-settings';
 import { CoverageModule } from '#coverage/coverage.module';
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
@@ -31,6 +32,7 @@ import {
 import { QUEUED_AT } from '#tests/support/scan-jobs';
 import { type Row, SchemaRows } from '#tests/support/schema-rows';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
+import { standInFileImprovements } from '#tests/support/stand-in-file-improvements';
 import {
   type StandInRepositories,
   standInRepositories,
@@ -76,6 +78,7 @@ function providersOf(below: Below): Provider[] {
     { provide: SANDBOX, useValue: new RecordingSandbox() },
     { provide: ARTIFACT_STORE, useValue: inMemoryArtifacts() },
     { provide: REPOSITORIES_PUBLIC_API, useValue: below.repositories },
+    { provide: FILE_IMPROVEMENTS, useValue: standInFileImprovements() },
     { provide: COVERAGE_SETTINGS, useValue: COVERAGE_TEST_SETTINGS },
   ];
 }
@@ -83,7 +86,7 @@ function providersOf(below: Below): Provider[] {
 /**
  * The coverage module behind the error filter of the service, as one
  * process would run it: its own handlers, the SQLite queue and store, and
- * the repositories module as stand-ins in memory.
+ * the repositories and the improvement modules as stand-ins in memory.
  */
 export async function startCoverageRoutes(): Promise<CoverageRoutes> {
   const database = createMigratedDatabase();

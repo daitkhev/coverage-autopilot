@@ -5,7 +5,6 @@ import { RunTestsHandler } from '#coverage/application/commands/run-tests/run-te
 import { CoverageApi } from '#coverage/application/coverage-api';
 import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
 import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
-import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
 import { RepositoryId } from '#kernel/primitives/repository-id';
@@ -34,7 +33,6 @@ function apiOf(application: CoverageApplication): CoverageApi {
     new RunTestsHandler(detector, tests, settings),
     new GetSnapshotHandler(snapshots, settings),
     new GetFileCoverageHandler(snapshots, settings),
-    new ListSnapshotFilesHandler(snapshots, settings),
   );
 }
 
@@ -63,27 +61,6 @@ describe('CoverageApi', () => {
     expect(captured).toMatchObject({ snapshot: { id: FIRST_ID } });
     expect(found).toMatchObject({ id: FIRST_ID });
     expect(file).toMatchObject({ state: 'no_executable_code' });
-  });
-
-  it('should list the files of a snapshot as a request narrows them', async () => {
-    const api = apiOf(coverageApplication());
-    await api.captureSnapshot(
-      {
-        repositoryId: RepositoryId.create(REPOSITORY_ID),
-        commit: CommitSha.create(SNAPSHOT_COMMIT),
-        originKey: 'improvement:1:baseline',
-      },
-      RUNNING,
-    );
-
-    const listed = await api.listSnapshotFiles({
-      snapshotId: FIRST_ID,
-      state: 'no_executable_code',
-    });
-
-    expect(listed?.files).toEqual([
-      { path: FilePath.create('src/types.ts'), state: 'no_executable_code' },
-    ]);
   });
 
   describe('prepareProject', () => {

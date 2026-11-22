@@ -11,6 +11,7 @@ import {
   COVERAGE_PUBLIC_API,
   type CoveragePublicApi,
 } from '#coverage/application/contracts/coverage-public-api';
+import { FILE_IMPROVEMENTS } from '#coverage/application/contracts/file-improvements';
 import { CoverageApi } from '#coverage/application/coverage-api';
 import { COVERAGE_SETTINGS } from '#coverage/application/coverage-settings';
 import { TestRunnerUnavailableError } from '#coverage/application/errors/test-runner-unavailable.error';
@@ -25,6 +26,7 @@ import { RepositoryCoverageApi } from '#coverage/application/repository-coverage
 import { CoverageModule } from '#coverage/coverage.module';
 import { RepositoryCoverageController } from '#coverage/infrastructure/http/repository-coverage.controller';
 import { ScansController } from '#coverage/infrastructure/http/scans.controller';
+import { SnapshotFilesController } from '#coverage/infrastructure/http/snapshot-files.controller';
 import { REPORT_FOLDER } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
 import { SQLITE_CONNECTION } from '#infrastructure/database/sqlite-connection';
 import { SqliteTransactionRunner } from '#infrastructure/database/sqlite-transaction-runner.adapter';
@@ -61,6 +63,7 @@ import {
 } from '#tests/support/recording-sandbox';
 import { SchemaRows } from '#tests/support/schema-rows';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
+import { standInFileImprovements } from '#tests/support/stand-in-file-improvements';
 import { standInRepositories } from '#tests/support/stand-in-repositories';
 import {
   createMigratedDatabase,
@@ -112,6 +115,7 @@ function servicesOf(database: TemporaryDatabase, folder: ProjectFolder) {
       provide: REPOSITORIES_PUBLIC_API,
       useValue: standInRepositories(folder.root),
     },
+    { provide: FILE_IMPROVEMENTS, useValue: standInFileImprovements() },
     { provide: COVERAGE_SETTINGS, useValue: COVERAGE_TEST_SETTINGS },
   ] satisfies Provider[];
 }
@@ -187,11 +191,15 @@ describe('CoverageModule', () => {
 
   it('should bind the routes of scans and snapshots to wired handlers', async () => {
     const module = await compile(services);
-
-    expect(module.get(RepositoryCoverageController)).toBeInstanceOf(
+    const routes = [
       RepositoryCoverageController,
+      ScansController,
+      SnapshotFilesController,
+    ];
+
+    expect(routes.map((route) => module.get(route))).toEqual(
+      routes.map((route) => expect.any(route) as unknown),
     );
-    expect(module.get(ScansController)).toBeInstanceOf(ScansController);
     await expect(
       module.get(GetScanHandler).execute({ scanId: 'job-1' }),
     ).resolves.toBeNull();

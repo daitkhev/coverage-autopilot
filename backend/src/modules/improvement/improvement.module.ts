@@ -20,6 +20,7 @@ import { VerifyingStep } from '#improvement/application/commands/run-improvement
 import { ImprovementRegistration } from '#improvement/application/commands/start-improvement/improvement-registration';
 import { StartImprovementHandler } from '#improvement/application/commands/start-improvement/start-improvement.handler';
 import { ImprovementViews } from '#improvement/application/dto/improvement-views';
+import { FileImprovementsApi } from '#improvement/application/file-improvements-api';
 import {
   type GenerationCallLimits,
   IMPROVEMENT_SETTINGS,
@@ -31,7 +32,6 @@ import { GetBudgetSettingsHandler } from '#improvement/application/queries/get-b
 import { GetImprovementHandler } from '#improvement/application/queries/get-improvement/get-improvement.handler';
 import { GetImprovementPatchHandler } from '#improvement/application/queries/get-improvement-patch/get-improvement-patch.handler';
 import { ListImprovementsHandler } from '#improvement/application/queries/list-improvements/list-improvements.handler';
-import { ListSnapshotFilesHandler } from '#improvement/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { IMPROVEMENT_REPOSITORY } from '#improvement/domain/repositories/improvement.repository';
 import {
   Budget,
@@ -59,7 +59,6 @@ import { BudgetSettingsController } from '#improvement/infrastructure/http/budge
 import { ImprovementDecisionsController } from '#improvement/infrastructure/http/improvement-decisions.controller';
 import { ImprovementRequestsController } from '#improvement/infrastructure/http/improvement-requests.controller';
 import { ImprovementsController } from '#improvement/infrastructure/http/improvements.controller';
-import { SnapshotFilesController } from '#improvement/infrastructure/http/snapshot-files.controller';
 import { checkImprovementSettings } from '#improvement/infrastructure/improvement-settings.schema';
 import { SqliteImprovementRepository } from '#improvement/infrastructure/persistence/sqlite-improvement.repository';
 import { DockerSandbox } from '#infrastructure/sandbox/docker-sandbox.adapter';
@@ -112,22 +111,22 @@ function settingsOf(values: ImprovementValues): ImprovementSettings {
  * An improvement of one file: the request for it, the job that runs it
  * from status to status, the generator that writes the test, and what a
  * person sees and decides on the way. Its routes are those of
- * improvements, of the files of a snapshot with the work on each, and of
- * the settings of a budget.
+ * improvements and of the settings of a budget.
  *
  * It takes from the modules around it: the contracts of `repositories`,
  * `coverage` and `verification`, the queue, the transaction manager, the
  * SQLite connection, the clock, the alarm, the id generator, the store of
  * tool output, the sandbox of the generator, and the settings of this
- * module and of the generator. `register` binds the last three. The
- * service lists `RunImprovementHandler` among the handlers of its worker.
+ * module and of the generator. `register` binds the last three. It answers
+ * the port `FILE_IMPROVEMENTS` of the coverage module, so the files of a
+ * snapshot show the work on each. The service lists
+ * `RunImprovementHandler` among the handlers of its worker.
  */
 @Module({
   controllers: [
     ImprovementRequestsController,
     ImprovementsController,
     ImprovementDecisionsController,
-    SnapshotFilesController,
     BudgetSettingsController,
   ],
   providers: [
@@ -150,10 +149,10 @@ function settingsOf(values: ImprovementValues): ImprovementSettings {
     ListImprovementsHandler,
     GetImprovementPatchHandler,
     GetBudgetSettingsHandler,
-    ListSnapshotFilesHandler,
     AnswerStatus,
+    { provide: FileImprovementsApi.token, useClass: FileImprovementsApi },
   ],
-  exports: [RunImprovementHandler],
+  exports: [RunImprovementHandler, FileImprovementsApi.token],
 })
 export class ImprovementModule implements OnModuleInit {
   /**
@@ -176,11 +175,14 @@ export class ImprovementModule implements OnModuleInit {
   /**
    * The module with its settings, and the sandbox the CLI runs in: a
    * second `DockerSandbox`, with the image of the CLI and a larger limit
-   * of output, on the clock and the ids the service shares.
+   * of output, on the clock and the ids the service shares. It is global
+   * like the modules below it, so the coverage module finds the answer to
+   * its port, which it cannot import.
    */
   public static register(values: ImprovementValues): DynamicModule {
     return {
       module: ImprovementModule,
+      global: true,
       providers: [
         { provide: IMPROVEMENT_SETTINGS, useValue: settingsOf(values) },
         { provide: GENERATOR_SETTINGS, useValue: values.adapter },

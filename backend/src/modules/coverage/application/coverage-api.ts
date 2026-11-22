@@ -13,8 +13,6 @@ import type {
   PrepareProjectResult,
   RunTestsRequest,
   RunTestsResult,
-  SnapshotFilesDto,
-  SnapshotFilesRequest,
   SnapshotRequest,
   WorkingCopyLoan,
 } from '#coverage/application/contracts/coverage-public-api';
@@ -24,7 +22,6 @@ import {
 } from '#coverage/application/dto/coverage-dto-mapping';
 import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
 import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
-import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 
 /** The contract of the module, answered by its commands and queries. */
 @Injectable()
@@ -34,7 +31,6 @@ export class CoverageApi implements CoveragePublicApi {
   private readonly runTestsHandler: RunTestsHandler;
   private readonly snapshotHandler: GetSnapshotHandler;
   private readonly fileHandler: GetFileCoverageHandler;
-  private readonly filesHandler: ListSnapshotFilesHandler;
 
   public constructor(
     @Inject(CaptureSnapshotHandler) captureHandler: CaptureSnapshotHandler,
@@ -42,14 +38,12 @@ export class CoverageApi implements CoveragePublicApi {
     @Inject(RunTestsHandler) runTestsHandler: RunTestsHandler,
     @Inject(GetSnapshotHandler) snapshotHandler: GetSnapshotHandler,
     @Inject(GetFileCoverageHandler) fileHandler: GetFileCoverageHandler,
-    @Inject(ListSnapshotFilesHandler) filesHandler: ListSnapshotFilesHandler,
   ) {
     this.captureHandler = captureHandler;
     this.prepareHandler = prepareHandler;
     this.runTestsHandler = runTestsHandler;
     this.snapshotHandler = snapshotHandler;
     this.fileHandler = fileHandler;
-    this.filesHandler = filesHandler;
   }
 
   public async captureSnapshot(
@@ -92,11 +86,5 @@ export class CoverageApi implements CoveragePublicApi {
     request: FileCoverageRequest,
   ): Promise<FileCoverageDto | null> {
     return this.fileHandler.execute(request);
-  }
-
-  public async listSnapshotFiles(
-    request: SnapshotFilesRequest,
-  ): Promise<SnapshotFilesDto | null> {
-    return this.filesHandler.execute(request);
   }
 }

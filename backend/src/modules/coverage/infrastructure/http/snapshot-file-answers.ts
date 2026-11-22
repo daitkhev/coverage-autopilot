@@ -6,8 +6,9 @@ import type {
 import type {
   SnapshotFileDto,
   SnapshotFilesDto,
-} from '#improvement/application/dto/snapshot-files.dto';
+} from '#coverage/application/dto/snapshot-files.dto';
 
+/** The contract names the counters of a measured file its coverage. */
 function fileAnswerOf(file: SnapshotFileDto): FileCoverage {
   if (file.state !== 'measured') {
     return { ...file, path: file.path.value };
@@ -15,7 +16,7 @@ function fileAnswerOf(file: SnapshotFileDto): FileCoverage {
   return {
     path: file.path.value,
     state: file.state,
-    coverage: file.coverage,
+    coverage: file.counters,
     belowThreshold: file.belowThreshold,
     uncoveredLines: [...file.uncoveredLines],
     openBranchLines: [...file.openBranchLines],

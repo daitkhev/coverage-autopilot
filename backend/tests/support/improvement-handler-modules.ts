@@ -129,7 +129,6 @@ function standInSnapshots(): StandInSnapshots {
     prepareProject: refuse,
     runTests: refuse,
     getSnapshot: refuse,
-    listSnapshotFiles: refuse,
   };
   return stand;
 }

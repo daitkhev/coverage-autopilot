@@ -83,7 +83,6 @@ export function generationCoverage(): GenerationCoverage {
     captureSnapshot: refuse,
     prepareProject: refuse,
     runTests: refuse,
-    listSnapshotFiles: refuse,
   };
   return coverage;
 }

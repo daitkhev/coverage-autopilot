@@ -3,6 +3,7 @@ import { PassThrough } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { repositorySchema } from '@coverage-autopilot/api-contracts/repositories';
+import { snapshotFilesSchema } from '@coverage-autopilot/api-contracts/snapshots';
 
 import { AppModule } from '#composition/app.module';
 import { SqliteCoverageSnapshotRepository } from '#coverage/infrastructure/persistence/sqlite-coverage-snapshot.repository';
@@ -95,6 +96,35 @@ describe('the ports a module declares for the module above it', () => {
         },
         activeScanId: scanId,
       });
+    });
+  });
+
+  describe('the improvements of the files of a snapshot', () => {
+    it('should show a measured file of a snapshot with its newest improvement', async () => {
+      const target = {
+        repositoryId: REPOSITORY_ID,
+        snapshotId: SNAPSHOT_ID,
+        filePath: 'src/used.ts',
+      };
+      rows.improvement(target, { status: 'failed' });
+      const newest = rows.improvement(target, {
+        status: 'verifying',
+        created_at: '2026-11-22T09:00:00.000Z',
+      });
+
+      const answer = await service.send(
+        'GET',
+        `/snapshots/${SNAPSHOT_ID}/files?state=measured`,
+      );
+
+      expect(answer.status).toBe(200);
+      expect(snapshotFilesSchema.parse(answer.body).items).toMatchObject([
+        { path: 'src/unused.ts', latestImprovement: null },
+        {
+          path: 'src/used.ts',
+          latestImprovement: { id: newest, status: 'verifying' },
+        },
+      ]);
     });
   });
 });

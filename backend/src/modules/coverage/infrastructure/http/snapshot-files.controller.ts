@@ -1,5 +1,13 @@
-import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  NotFoundException,
+  Param,
+  Query,
+} from '@nestjs/common';
 
+import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
 import { parseAs } from '@coverage-autopilot/api-contracts/parsing';
 import {
   type SnapshotFiles,
@@ -7,14 +15,19 @@ import {
 } from '@coverage-autopilot/api-contracts/snapshots';
 import { resourceParamsSchema } from '@coverage-autopilot/api-contracts/values';
 
-import { ListSnapshotFilesHandler } from '#improvement/application/queries/list-snapshot-files/list-snapshot-files.handler';
-import { snapshotNotFound } from '#improvement/infrastructure/http/improvement-refusals';
-import { snapshotFilesAnswerOf } from '#improvement/infrastructure/http/snapshot-file-answers';
+import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
+import { snapshotFilesAnswerOf } from '#coverage/infrastructure/http/snapshot-file-answers';
+
+/** No snapshot has the id of the path, or it is no id of one at all. */
+const NO_SNAPSHOT: ErrorBody = {
+  error: 'not_found',
+  message: 'No snapshot has this id.',
+};
 
 /**
  * The files screen: the files of a snapshot with the newest improvement
- * of each. It lives here, not in coverage, because only this module knows
- * the improvements, and coverage does not know this one.
+ * of each. The improvements come through a port of this module, so the
+ * route stays with its resource.
  */
 @Controller('snapshots')
 export class SnapshotFilesController {
@@ -37,7 +50,7 @@ export class SnapshotFilesController {
       snapshotId: id,
     });
     if (files === null) {
-      throw snapshotNotFound();
+      throw new NotFoundException(NO_SNAPSHOT);
     }
     return snapshotFilesAnswerOf(files);
   }

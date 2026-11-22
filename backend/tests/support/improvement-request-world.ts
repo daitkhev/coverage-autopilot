@@ -8,7 +8,6 @@ import { GetBudgetSettingsHandler } from '#improvement/application/queries/get-b
 import { GetImprovementHandler } from '#improvement/application/queries/get-improvement/get-improvement.handler';
 import { GetImprovementPatchHandler } from '#improvement/application/queries/get-improvement-patch/get-improvement-patch.handler';
 import { ListImprovementsHandler } from '#improvement/application/queries/list-improvements/list-improvements.handler';
-import { ListSnapshotFilesHandler } from '#improvement/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
 import { inMemoryArtifacts } from '#tests/support/coverage-stand-ins';
 import { FixedClock } from '#tests/support/fixed-clock';
@@ -82,10 +81,6 @@ export class ImprovementRequestWorld {
   public readonly getPatch = new GetImprovementPatchHandler(this.improvements);
   public readonly getBudgetSettings = new GetBudgetSettingsHandler(
     TEST_SETTINGS,
-  );
-  public readonly listSnapshotFiles = new ListSnapshotFilesHandler(
-    this.coverage,
-    this.improvements,
   );
 
   /** The settings fill a request, and say whether a request is taken. */

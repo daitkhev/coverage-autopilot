@@ -1,23 +1,12 @@
 import type {
-  CoverageCountersDto,
   CoverageThresholdDto,
   FileCoverageDto,
   MeasuredFileDto,
 } from '#coverage/application/contracts/coverage-public-api';
-import type { ImprovementStatus } from '#improvement/domain/value-objects/improvement-status.vo';
+import type { ImprovementRefDto } from '#coverage/application/contracts/file-improvements';
 
-/** The newest improvement of a file: which one, and how far it came. */
-export interface ImprovementRefDto {
-  readonly id: string;
-  readonly status: ImprovementStatus;
-}
-
-/**
- * A measured file with its counters under the name a person reads them
- * by, and the newest improvement of its path, or `null` for none.
- */
-export interface MeasuredFileWorkDto extends Omit<MeasuredFileDto, 'counters'> {
-  readonly coverage: CoverageCountersDto;
+/** A measured file with the newest improvement of its path, or `null`. */
+interface MeasuredFileWorkDto extends MeasuredFileDto {
   readonly latestImprovement: ImprovementRefDto | null;
 }
 
@@ -30,6 +19,9 @@ export interface SnapshotFilesDto {
   readonly snapshotId: string;
   /** What `belowThreshold` of each measured file was judged by. */
   readonly threshold: CoverageThresholdDto;
-  /** In the order coverage gives them: the least covered first. */
+  /**
+   * The least covered in the metric of the threshold first. A file with
+   * nothing of that metric to count, of any state, comes after, by path.
+   */
   readonly items: readonly SnapshotFileDto[];
 }

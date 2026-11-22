@@ -212,38 +212,6 @@ export interface FileCoverageRequest extends SnapshotRequest {
 }
 
 /**
- * The files of a snapshot, narrowed as a person asks. A filter left out
- * narrows nothing, and the filters that are given must all hold.
- */
-export interface SnapshotFilesRequest extends SnapshotRequest {
-  /**
-   * Only the measured files below this percentage: the files that can be
-   * improved. It takes the place of the percentage of the settings.
-   */
-  readonly below?: number;
-  /**
-   * The counter the threshold reads, in place of the one of the settings.
-   * Alone it narrows nothing: it changes which files are below and the
-   * order.
-   */
-  readonly metric?: CoverageMetric;
-  /** Only the files in this state. */
-  readonly state?: FileCoverageDto['state'];
-}
-
-/** The files of a snapshot as a request narrowed them. */
-export interface SnapshotFilesDto {
-  readonly snapshotId: string;
-  /** What `belowThreshold` of each measured file was judged by. */
-  readonly threshold: CoverageThresholdDto;
-  /**
-   * The least covered in the metric of the threshold first. A file with
-   * nothing of that metric to count, of any state, comes after, by path.
-   */
-  readonly files: readonly FileCoverageDto[];
-}
-
-/**
  * Project detection, test runs with coverage, snapshots and thresholds,
  * as the other modules see them.
  *
@@ -277,11 +245,6 @@ export interface CoveragePublicApi {
   getFileCoverage(
     request: FileCoverageRequest,
   ): Promise<FileCoverageDto | null>;
-
-  /** `null` when no snapshot has the id. */
-  listSnapshotFiles(
-    request: SnapshotFilesRequest,
-  ): Promise<SnapshotFilesDto | null>;
 }
 
 /** The injection token of the contract of the coverage module. */

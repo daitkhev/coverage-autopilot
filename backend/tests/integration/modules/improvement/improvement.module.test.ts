@@ -2,12 +2,14 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { improvementSchema } from '@coverage-autopilot/api-contracts/improvements';
 
+import { FILE_IMPROVEMENTS } from '#coverage/application/contracts/file-improvements';
 import { ApproveImprovementHandler } from '#improvement/application/commands/approve-improvement/approve-improvement.handler';
 import { CancelImprovementHandler } from '#improvement/application/commands/cancel-improvement/cancel-improvement.handler';
 import {
   IMPROVEMENT_STEPS,
   type ImprovementStep,
 } from '#improvement/application/commands/run-improvement/improvement-step';
+import { FileImprovementsApi } from '#improvement/application/file-improvements-api';
 import { REQUEST_HASHER } from '#improvement/application/ports/request-hasher.port';
 import { TEST_GENERATOR } from '#improvement/application/ports/test-generator.port';
 import { GetImprovementPatchHandler } from '#improvement/application/queries/get-improvement-patch/get-improvement-patch.handler';
@@ -19,7 +21,6 @@ import { BudgetSettingsController } from '#improvement/infrastructure/http/budge
 import { ImprovementDecisionsController } from '#improvement/infrastructure/http/improvement-decisions.controller';
 import { ImprovementRequestsController } from '#improvement/infrastructure/http/improvement-requests.controller';
 import { ImprovementsController } from '#improvement/infrastructure/http/improvements.controller';
-import { SnapshotFilesController } from '#improvement/infrastructure/http/snapshot-files.controller';
 import { SqliteImprovementRepository } from '#improvement/infrastructure/persistence/sqlite-improvement.repository';
 import { GENERATOR_TEST_SETTINGS } from '#tests/support/generator-request';
 import {
@@ -58,7 +59,7 @@ afterEach(async () => {
 });
 
 describe('ImprovementModule', () => {
-  it('should bind the store, the generator, the hasher and a step for each working status', async () => {
+  it('should bind the store, the generator, the hasher, a step for each working status and the port of coverage', async () => {
     const { module } = await open({ realGenerator: true });
 
     expect(module.get(IMPROVEMENT_REPOSITORY)).toBeInstanceOf(
@@ -66,6 +67,7 @@ describe('ImprovementModule', () => {
     );
     expect(module.get(TEST_GENERATOR)).toBeInstanceOf(ClaudeCodeGenerator);
     expect(module.get(REQUEST_HASHER)).toBeInstanceOf(Sha256RequestHasher);
+    expect(module.get(FILE_IMPROVEMENTS)).toBeInstanceOf(FileImprovementsApi);
     expect(
       module
         .get<ImprovementStep[]>(IMPROVEMENT_STEPS)
@@ -109,13 +111,12 @@ describe('ImprovementModule', () => {
     ]);
   });
 
-  it('should bind the routes of improvements, of snapshot files and of a budget', async () => {
+  it('should bind the routes of improvements and of a budget', async () => {
     const { module } = await open();
     const routes = [
       ImprovementRequestsController,
       ImprovementsController,
       ImprovementDecisionsController,
-      SnapshotFilesController,
       BudgetSettingsController,
     ];
 

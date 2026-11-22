@@ -18,14 +18,6 @@ export function improvementNotFound(): NotFoundException {
   } satisfies ErrorBody);
 }
 
-/** No snapshot has the id of the path, or it is no id of one at all. */
-export function snapshotNotFound(): NotFoundException {
-  return new NotFoundException({
-    error: 'not_found',
-    message: 'No snapshot has this id.',
-  } satisfies ErrorBody);
-}
-
 /** The gate has accepted no patch of the improvement yet, or never will. */
 export function noAcceptedPatch(improvementId: string): ConflictException {
   return new ConflictException({

@@ -43,6 +43,7 @@ import { TypescriptSourceClassifier } from '#coverage/infrastructure/classificat
 import { NodeProjectDetector } from '#coverage/infrastructure/detection/node-project-detector.adapter';
 import { RepositoryCoverageController } from '#coverage/infrastructure/http/repository-coverage.controller';
 import { ScansController } from '#coverage/infrastructure/http/scans.controller';
+import { SnapshotFilesController } from '#coverage/infrastructure/http/snapshot-files.controller';
 import { SqliteCoverageSnapshotRepository } from '#coverage/infrastructure/persistence/sqlite-coverage-snapshot.repository';
 import { IstanbulReportReader } from '#coverage/infrastructure/reports/istanbul-report-reader.adapter';
 import { JEST_COMMAND } from '#coverage/infrastructure/runners/jest-command';
@@ -61,10 +62,11 @@ interface CoverageValues extends Omit<CoverageSettings, 'threshold'> {
 
 /**
  * Project detection, test runs with coverage, the reading of reports,
- * snapshots and thresholds, and the routes of scans and of the snapshots
- * of a repository.
+ * snapshots and thresholds, and the routes of scans, of the snapshots of
+ * a repository and of the files of a snapshot.
  *
  * It takes from the modules around it: the contract of `repositories`,
+ * the answer of the improvement module to its port `FILE_IMPROVEMENTS`,
  * the sandbox, the store of tool output, the queue, the transaction
  * manager, the SQLite connection, the clock, the id generator and the
  * settings of this module, which `register` binds. It gives the queue its
@@ -73,7 +75,11 @@ interface CoverageValues extends Omit<CoverageSettings, 'threshold'> {
  * knows of it.
  */
 @Module({
-  controllers: [RepositoryCoverageController, ScansController],
+  controllers: [
+    RepositoryCoverageController,
+    ScansController,
+    SnapshotFilesController,
+  ],
   providers: [
     {
       provide: COVERAGE_SNAPSHOT_REPOSITORY,
