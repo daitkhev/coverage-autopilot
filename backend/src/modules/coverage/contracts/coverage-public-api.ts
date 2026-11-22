@@ -132,12 +132,17 @@ export interface CaptureSnapshotRequest {
   readonly originKey: string;
 }
 
-/** `test_run_timed_out`: the tests ran past the time limit of the settings. */
+/**
+ * `test_run_timed_out`: the tests ran past the time limit of the settings.
+ * `coverage_report_missing`: the runner ended and wrote no report, so a
+ * snapshot would hold no number. Its output says why.
+ */
 export type CaptureSnapshotResult =
   | { readonly outcome: 'captured'; readonly snapshot: CoverageSnapshotDto }
   | UnsupportedProjectDto
   | {
-      readonly outcome: 'install_failed' | 'test_run_timed_out';
+      readonly outcome:
+        'install_failed' | 'test_run_timed_out' | 'coverage_report_missing';
       readonly outputReference: string | null;
     };
 

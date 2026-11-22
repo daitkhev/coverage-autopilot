@@ -137,6 +137,13 @@ export class SnapshotCapture {
     }
     steps.begin('read_report');
     const files = await this.tests.readCoverage(record);
+    if (files.reportMissing) {
+      steps.fail();
+      return {
+        outcome: 'coverage_report_missing',
+        outputReference: record.outputReference,
+      };
+    }
     steps.pass();
     return {
       outcome: 'measured',

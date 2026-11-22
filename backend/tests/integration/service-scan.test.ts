@@ -4,7 +4,6 @@ import { errorSchema } from '@coverage-autopilot/api-contracts/errors';
 import { improvementListSchema } from '@coverage-autopilot/api-contracts/improvements';
 import { repositorySchema } from '@coverage-autopilot/api-contracts/repositories';
 import { type Scan, scanSchema } from '@coverage-autopilot/api-contracts/scans';
-import { snapshotFilesSchema } from '@coverage-autopilot/api-contracts/snapshots';
 
 import {
   type HostedService,
@@ -24,6 +23,11 @@ const PROJECT = {
 };
 
 const ENDED = new Set(['completed', 'failed', 'cancelled']);
+
+/**
+ * No snapshot has this id. The refusal comes before any snapshot is read.
+ */
+const SOME_SNAPSHOT = '0190a1b2-c3d4-7e5f-8a6b-9c0d1e2f3a4b';
 
 let hosted: HostedService;
 
@@ -70,27 +74,23 @@ function containerCommands(): string[][] {
 }
 
 describe('a scan asked over the socket', () => {
-  it('should install and run the tests in the sandbox, and keep a snapshot', async () => {
-    hosted = hostedService({ exitCode: 0 });
+  describe('when the test runner ends and wrote no report', () => {
+    it('should fail the scan with that reason after both commands ran', async () => {
+      // The stand-in of the engine runs nothing, so no report is written.
+      hosted = hostedService({ exitCode: 0 });
 
-    const scan = await scanned();
-    const snapshot = `/snapshots/${String(scan.snapshotId)}/files`;
-    const files = await hosted.send(snapshot);
+      const scan = await scanned();
 
-    expect(scan).toMatchObject({ status: 'completed', failure: null });
-    expect(containerCommands().map((command) => command[0])).toEqual([
-      'npm',
-      'node',
-    ]);
-    // The stand-in writes no report, so the file was not measured.
-    expect(snapshotFilesSchema.parse(files.body).items).toEqual([
-      {
-        path: 'src/sum.ts',
-        state: 'unmeasured',
-        reason: 'missing_from_report',
-        toolMessage: null,
-      },
-    ]);
+      expect(containerCommands().map((command) => command[0])).toEqual([
+        'npm',
+        'node',
+      ]);
+      expect(scan).toMatchObject({
+        status: 'failed',
+        snapshotId: null,
+        failure: { reason: 'coverage_report_missing' },
+      });
+    });
   });
 
   describe('when the install fails', () => {
@@ -114,12 +114,12 @@ describe('a scan asked over the socket', () => {
   describe('when an improvement is asked with no credential of the generator', () => {
     it('should refuse it with 409 and store nothing', async () => {
       hosted = hostedService({ exitCode: 0 });
-      const scan = await scanned();
+      await hosted.bench.run();
 
       const refused = await hosted.send('/improvements', {
         method: 'POST',
         headers: { 'Idempotency-Key': 'improve-1' },
-        body: { snapshotId: scan.snapshotId, filePath: 'src/sum.ts' },
+        body: { snapshotId: SOME_SNAPSHOT, filePath: 'src/sum.ts' },
       });
       const listed = await hosted.send('/improvements');
 

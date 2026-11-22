@@ -129,6 +129,7 @@ describe('TestExecution', () => {
       expect(measured).toEqual({
         files: [types, unused, used],
         unmeasured: [broken],
+        reportMissing: false,
       });
     });
 
@@ -141,8 +142,9 @@ describe('TestExecution', () => {
         };
         const record = await tests.run(MEASURED, RUNNING);
 
-        const { unmeasured } = await tests.readCoverage(record);
+        const { unmeasured, reportMissing } = await tests.readCoverage(record);
 
+        expect(reportMissing).toBe(true);
         expect(unmeasured).toEqual([
           broken,
           UnmeasuredFile.create({
@@ -165,9 +167,10 @@ describe('TestExecution', () => {
         reader.report = new Map();
         const record = await tests.run(MEASURED, RUNNING);
 
-        const { files } = await tests.readCoverage(record);
+        const { files, reportMissing } = await tests.readCoverage(record);
 
         expect(files).toEqual([FileCoverage.noExecutableCode(types.path)]);
+        expect(reportMissing).toBe(false);
       });
     });
   });

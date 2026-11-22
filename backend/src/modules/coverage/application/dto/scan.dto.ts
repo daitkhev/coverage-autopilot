@@ -8,6 +8,7 @@ export type ScanStatus =
 
 /**
  * `test_run_timed_out`: the tests ran past the time limit of a scan.
+ * `coverage_report_missing`: the test runner ended and wrote no report.
  * `retries_exhausted`: the scan stopped on a fault and nothing runs it
  * again.
  */
@@ -15,6 +16,7 @@ export type ScanFailureReason =
   | 'unsupported_project'
   | 'install_failed'
   | 'test_run_timed_out'
+  | 'coverage_report_missing'
   | 'retries_exhausted';
 
 /** A stable code for scripts and a sentence for people. */

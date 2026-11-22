@@ -26,6 +26,7 @@ describe('scanSchema', () => {
     ['unsupported_project', 'The repository has no test runner.'],
     ['install_failed', 'npm ci exited 1.'],
     ['test_run_timed_out', 'The tests ran past 20 minutes.'],
+    ['coverage_report_missing', 'The test runner wrote no report.'],
     ['retries_exhausted', 'The scan was tried 3 times.'],
   ])('should accept a scan that failed with %s', (reason, message) => {
     const value = {

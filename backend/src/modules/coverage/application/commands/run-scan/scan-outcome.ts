@@ -17,7 +17,8 @@ export type ScanOutcome = { readonly version: typeof SCAN_OUTCOME_VERSION } & (
       readonly detail: string;
     }
   | {
-      readonly outcome: 'install_failed' | 'test_run_timed_out';
+      readonly outcome:
+        'install_failed' | 'test_run_timed_out' | 'coverage_report_missing';
       readonly outputReference: string | null;
     }
   | {

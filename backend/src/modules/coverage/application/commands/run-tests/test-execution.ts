@@ -50,6 +50,11 @@ export interface TestRunRecord {
 export interface MeasuredFiles {
   readonly files: readonly FileCoverage[];
   readonly unmeasured: readonly UnmeasuredFile[];
+  /**
+   * The runner was given files to measure and wrote no report at all, so
+   * every one of them is unmeasured: it stopped before it measured.
+   */
+  readonly reportMissing: boolean;
 }
 
 /** The first line of the output that names the file, as the runner said it. */
@@ -129,6 +134,7 @@ export class TestExecution {
     return {
       files: states.filter((state) => state instanceof FileCoverage),
       unmeasured: states.filter((state) => state instanceof UnmeasuredFile),
+      reportMissing: report === null && withCode(record.sources).length > 0,
     };
   }
 

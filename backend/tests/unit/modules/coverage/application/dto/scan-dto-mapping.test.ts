@@ -126,6 +126,20 @@ describe('scanDtoOf', () => {
         },
       ],
       [
+        'a test run that wrote no report',
+        {
+          version: 1,
+          outcome: 'coverage_report_missing',
+          outputReference: 'out-2',
+        },
+        {
+          reason: 'coverage_report_missing',
+          message:
+            'The test runner ended and wrote no coverage report, so no ' +
+            'file was measured. The output of the tests says why.',
+        },
+      ],
+      [
         'a fault that ended it, with the sentence of the fault',
         {
           version: 1,

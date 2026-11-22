@@ -49,7 +49,11 @@ describe('CoveragePublicApi', () => {
 
   it('should answer a project it cannot measure with a value', () => {
     expectTypeOf<CaptureSnapshotResult['outcome']>().toEqualTypeOf<
-      'captured' | 'unsupported' | 'install_failed' | 'test_run_timed_out'
+      | 'captured'
+      | 'unsupported'
+      | 'install_failed'
+      | 'test_run_timed_out'
+      | 'coverage_report_missing'
     >();
     expectTypeOf<PrepareProjectResult['outcome']>().toEqualTypeOf<
       'ready' | 'unsupported' | 'install_failed'

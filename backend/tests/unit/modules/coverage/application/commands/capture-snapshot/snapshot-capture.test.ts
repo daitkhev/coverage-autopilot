@@ -137,6 +137,35 @@ describe('SnapshotCapture', () => {
       });
     });
 
+    describe('when the runner ends and wrote no report', () => {
+      it('should answer coverage_report_missing with its output', async () => {
+        const { capture, reader } = coverageApplication();
+        reader.report = null;
+
+        const result = await capture.capture(COMMAND, RUNNING);
+
+        expect(result).toEqual({
+          outcome: 'coverage_report_missing',
+          outputReference: 'artifact-2',
+        });
+      });
+
+      it('should end the reading of the report as failed', async () => {
+        const { capture, reader } = coverageApplication();
+        reader.report = null;
+        const heard: JobProgress[] = [];
+
+        await capture.capture(COMMAND, RUNNING, (progress) => {
+          heard.push(progress);
+        });
+
+        expect(heard.at(-1)?.steps.at(-1)).toMatchObject({
+          code: 'read_report',
+          status: 'failed',
+        });
+      });
+    });
+
     describe('when a step fails', () => {
       it('should give the copy back and throw the fault', async () => {
         const { capture, sandbox, repositories } = coverageApplication();

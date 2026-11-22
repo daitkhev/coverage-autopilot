@@ -135,11 +135,15 @@ export const skipReasonSchema = z.enum([
 
 export type SkipReason = z.infer<typeof skipReasonSchema>;
 
-/** `test_run_timed_out`: the tests ran past the time limit of a scan. */
+/**
+ * `test_run_timed_out`: the tests ran past the time limit of a scan.
+ * `coverage_report_missing`: the test runner ended and wrote no report.
+ */
 export const scanFailureReasonSchema = z.enum([
   'unsupported_project',
   'install_failed',
   'test_run_timed_out',
+  'coverage_report_missing',
   'retries_exhausted',
 ]);
 

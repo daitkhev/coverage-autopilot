@@ -21,6 +21,10 @@ const INSTALL_FAILED = 'The packages of the project could not be installed.';
 const TEST_RUN_TIMED_OUT =
   'The tests ran past the time limit of a scan, so no file was measured.';
 
+const COVERAGE_REPORT_MISSING =
+  'The test runner ended and wrote no coverage report, so no file was ' +
+  'measured. The output of the tests says why.';
+
 const REPOSITORY_REMOVED = 'The repository was removed before the scan ran.';
 
 const RETRIES_EXHAUSTED =
@@ -63,6 +67,8 @@ const STATE_OF_OUTCOME: Readonly<
   install_failed: () => failedWith('install_failed', INSTALL_FAILED),
   test_run_timed_out: () =>
     failedWith('test_run_timed_out', TEST_RUN_TIMED_OUT),
+  coverage_report_missing: () =>
+    failedWith('coverage_report_missing', COVERAGE_REPORT_MISSING),
   failed: (outcome) =>
     failedWith('retries_exhausted', textIn(outcome, 'message')),
   repository_not_found: () =>
@@ -107,7 +113,7 @@ function stateOfJob(job: JobDto): ScanState {
  * | `pending` | | `queued`, also when it waits for a retry |
  * | `leased` | | `running` |
  * | `completed` | `captured` | `completed`, with its snapshot |
- * | `completed` | `unsupported_project`, `install_failed`, `test_run_timed_out` | `failed` with that reason |
+ * | `completed` | `unsupported_project`, `install_failed`, `test_run_timed_out`, `coverage_report_missing` | `failed` with that reason |
  * | `completed` | `failed`, `repository_not_found` | `failed` with `retries_exhausted` |
  * | `dead` | | `failed` with `retries_exhausted` |
  * | `cancelled` | | `cancelled` |
