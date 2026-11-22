@@ -300,7 +300,7 @@ describe('PatchView', () => {
     expect(frame).toContain('new file');
   });
 
-  describe.each(SIZES)('in $columns columns', (size) => {
+  describe.each(SIZES)('when the terminal has $columns columns', (size) => {
     it.each([
       ['in review', WAITING],
       ['published', PUBLISHED],

@@ -211,7 +211,7 @@ describe('ImprovementView', () => {
     expect(frame).toContain('✓ only test files changed');
   });
 
-  describe.each(SIZES)('in $columns columns', (size) => {
+  describe.each(SIZES)('when the terminal has $columns columns', (size) => {
     it.each(Object.values(IMPROVEMENT_BY_STATUS))(
       'should fit $status',
       (improvement) => {
