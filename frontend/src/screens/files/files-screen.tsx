@@ -1,24 +1,20 @@
 import { type ReactNode, useCallback } from 'react';
 
 import type { ClientSession } from '#api/client-session';
-import type { ServiceAnswer } from '#api/service-api';
 import { ServiceUnreachableError } from '#api/service-unreachable-error';
-import { AppShell, type ShellFrame } from '#components/app-shell';
+import type { ShellFrame } from '#components/app-shell';
+import { BareScreen } from '#components/bare-screen';
 import { EmptyState } from '#components/empty-state';
-import { KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
-import { StatusLine } from '#components/status-line-pathed';
-import { type Unanswered, UnansweredBody } from '#components/unanswered-body';
-import { useKeys } from '#hooks/use-keys';
-import {
-  type RepeatedRequest,
-  useRepeatedRequest,
-} from '#hooks/use-repeated-request';
+import { shownOf, UnansweredBody } from '#components/unanswered-body';
+import { useRepeatedRequest } from '#hooks/use-repeated-request';
 import { type FilesView, loadFiles } from '#screens/files/files-answer';
 import { FilesBrowser } from '#screens/files/files-browser';
 
 /** The screen asks the service again about once a second. */
 const EVERY_MS = 1000;
+
+const PATH = ['Repositories'];
 
 interface FilesScreenProps {
   readonly session: ClientSession;
@@ -28,49 +24,8 @@ interface FilesScreenProps {
   readonly onBack: () => void;
 }
 
-type Shown =
-  Unanswered | { readonly kind: 'answered'; readonly view: FilesView };
-
-/**
- * What the screen shows. A service that does not answer leaves the last
- * answer standing, not fresh; any other fault of the request is shown.
- */
-function shownOf({
-  answer,
-  failure,
-}: RepeatedRequest<ServiceAnswer<FilesView>>): Shown {
-  if (failure !== undefined && !(failure instanceof ServiceUnreachableError)) {
-    return { kind: 'fault', fault: failure };
-  }
-  if (answer === undefined) {
-    return { kind: 'waiting' };
-  }
-  return answer.outcome === 'refused'
-    ? { kind: 'refused', error: answer.error }
-    : { kind: 'answered', view: answer.value };
-}
-
-/** A screen with no files to show: on its way, refused, or never scanned. */
-function Bare({
-  frame,
-  body,
-  stale,
-  onBack,
-}: {
-  readonly frame: ShellFrame;
-  readonly body: ReactNode;
-  readonly stale: boolean;
-  readonly onBack: () => void;
-}): ReactNode {
-  useKeys({ esc: onBack }, { active: true });
-  return (
-    <AppShell
-      {...frame}
-      body={body}
-      status={<StatusLine path={['Repositories']} facts={[]} stale={stale} />}
-      keys={<KeyHints hints={[{ key: 'esc', label: 'back' }]} />}
-    />
-  );
+function isUnreachable(failure: unknown): boolean {
+  return failure instanceof ServiceUnreachableError;
 }
 
 function NeverScanned({ view }: { readonly view: FilesView }): ReactNode {
@@ -92,36 +47,26 @@ function NeverScanned({ view }: { readonly view: FilesView }): ReactNode {
  * order it returned it.
  */
 export function FilesScreen(props: FilesScreenProps): ReactNode {
-  const { session, frame, repositoryId } = props;
+  const { session, frame, repositoryId, onBack } = props;
   const load = useCallback(
     () => loadFiles(session.api, repositoryId),
     [session, repositoryId],
   );
   const request = useRepeatedRequest(load, EVERY_MS);
-  const shown = shownOf(request);
+  const shown = shownOf(request, isUnreachable);
+  const bare = { frame, path: PATH, stale: request.stale, onBack };
   if (shown.kind !== 'answered') {
-    const body = <UnansweredBody title="Files" state={shown} />;
     return (
-      <Bare
-        frame={frame}
-        body={body}
-        stale={request.stale}
-        onBack={props.onBack}
+      <BareScreen
+        {...bare}
+        body={<UnansweredBody title="Files" state={shown} />}
       />
     );
   }
-  const { repository, files } = shown.view;
+  const { repository, files } = shown.value;
   const snapshot = repository.latestSnapshot;
   if (files === undefined || snapshot === null) {
-    const body = <NeverScanned view={shown.view} />;
-    return (
-      <Bare
-        frame={frame}
-        body={body}
-        stale={request.stale}
-        onBack={props.onBack}
-      />
-    );
+    return <BareScreen {...bare} body={<NeverScanned view={shown.value} />} />;
   }
   return (
     <FilesBrowser

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { type Unanswered, UnansweredBody } from '#components/unanswered-body';
+import {
+  shownOf,
+  type Unanswered,
+  UnansweredBody,
+} from '#components/unanswered-body';
 import {
   drawnAt,
   drawnWith,
@@ -61,5 +65,51 @@ describe('UnansweredBody', () => {
     for (const state of [WAITING, REFUSED, FAULT]) {
       expect(widestLine(draw(state, columns))).toBeLessThanOrEqual(columns);
     }
+  });
+});
+
+describe('shownOf', () => {
+  const GONE = new Error('gone');
+  const isGone = (failure: unknown): boolean => failure === GONE;
+  const LAST = { outcome: 'answered', value: 'last' } as const;
+
+  describe('when nothing answered yet', () => {
+    it('should wait', () => {
+      const request = { answer: undefined, stale: false, failure: undefined };
+
+      expect(shownOf(request, isGone)).toEqual(WAITING);
+    });
+  });
+
+  describe('when the service cannot be reached', () => {
+    it('should keep the last answer', () => {
+      const request = { answer: LAST, stale: true, failure: GONE };
+
+      expect(shownOf(request, isGone)).toEqual({
+        kind: 'answered',
+        value: 'last',
+      });
+    });
+  });
+
+  describe('when the request failed for another reason', () => {
+    it('should show the fault in place of the last answer', () => {
+      const fault = new TypeError('Expected a string.');
+      const request = { answer: LAST, stale: true, failure: fault };
+
+      expect(shownOf(request, isGone)).toEqual({ kind: 'fault', fault });
+    });
+  });
+
+  describe('when the service refused', () => {
+    it('should show the refusal', () => {
+      const refusal = {
+        outcome: 'refused',
+        error: { error: 'not_found', message: 'No improvement has this id.' },
+      } as const;
+      const request = { answer: refusal, stale: false, failure: undefined };
+
+      expect(shownOf(request, isGone)).toEqual(REFUSED);
+    });
   });
 });

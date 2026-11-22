@@ -7,6 +7,7 @@ import { ErrorDetails } from '#components/error-details';
 import { Glyph } from '#components/glyph';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
+import type { RepeatedRequest } from '#hooks/use-repeated-request';
 import type { StatusLook } from '#theme/status';
 
 /**
@@ -17,6 +18,35 @@ export type Unanswered =
   | { readonly kind: 'waiting' }
   | { readonly kind: 'refused'; readonly error: ErrorBody }
   | { readonly kind: 'fault'; readonly fault: unknown };
+
+/** What a screen shows: the value it asked for, or what stands instead. */
+export type Shown<Value> =
+  Unanswered | { readonly kind: 'answered'; readonly value: Value };
+
+/** An answer of the service as a screen reads it: a value or a refusal. */
+type Reply<Value> =
+  | { readonly outcome: 'answered'; readonly value: Value }
+  | { readonly outcome: 'refused'; readonly error: ErrorBody };
+
+/**
+ * What a screen shows of a request it repeats. A service that does not
+ * answer leaves the last answer standing, not fresh, so the screen says
+ * which failure that is; any other fault is shown in place of the answer.
+ */
+export function shownOf<Value>(
+  { answer, failure }: RepeatedRequest<Reply<Value>>,
+  isUnreachable: (failure: unknown) => boolean,
+): Shown<Value> {
+  if (failure !== undefined && !isUnreachable(failure)) {
+    return { kind: 'fault', fault: failure };
+  }
+  if (answer === undefined) {
+    return { kind: 'waiting' };
+  }
+  return answer.outcome === 'refused'
+    ? { kind: 'refused', error: answer.error }
+    : { kind: 'answered', value: answer.value };
+}
 
 interface UnansweredBodyProps {
   /** The title of the panel the answer would have filled. */
