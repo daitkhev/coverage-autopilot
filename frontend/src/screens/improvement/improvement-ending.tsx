@@ -86,10 +86,11 @@ function completedHeadline(
   look: StatusLook,
 ): Headline {
   const { pullRequest, branch } = improvement;
+  if (pullRequest === null) {
+    return { look, title: 'Completed', lines: [] };
+  }
   const lines: AttemptResult[] = [
-    ...(pullRequest === null
-      ? []
-      : [{ text: pullRequest.url, role: 'link' as const }]),
+    { text: pullRequest.url, role: 'link' },
     ...(branch === null ? [] : [{ text: `from the branch ${branch}` }]),
   ];
   return { look, title: 'Pull request opened', lines };
