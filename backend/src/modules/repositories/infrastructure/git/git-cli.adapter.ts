@@ -25,6 +25,7 @@ import {
   symbolicHeadSchema,
 } from '#repositories/infrastructure/git/git-output.schema';
 import { hostGit } from '#repositories/infrastructure/git/git-tool-settings';
+import { MirrorTurns } from '#repositories/infrastructure/git/mirror-turns';
 import {
   REPOSITORIES_SETTINGS,
   type RepositoriesSettings,
@@ -57,6 +58,7 @@ export class GitCli implements Git {
     @Inject(REPOSITORIES_SETTINGS) settings: RepositoriesSettings,
     @Inject(LOGGER) logger: Logger,
     @Inject(CLOCK) clock: Clock,
+    @Inject(MirrorTurns) turns: MirrorTurns,
   ) {
     this.git = new ToolRunner({
       name: 'git',
@@ -65,7 +67,7 @@ export class GitCli implements Git {
       log: new ToolLog(logger, clock),
     });
     this.root = settings.workingCopiesRoot;
-    this.mirror = new GitMirror(this.git, this.root);
+    this.mirror = new GitMirror(this.git, this.root, turns);
   }
 
   public async version(signal: AbortSignal): Promise<GitVersionResult> {

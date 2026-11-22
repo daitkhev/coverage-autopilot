@@ -26,6 +26,7 @@ import { REPOSITORY_REPOSITORY } from '#repositories/domain/repositories/reposit
 import { GhCodeHost } from '#repositories/infrastructure/gh/gh-code-host.adapter';
 import { GitCli } from '#repositories/infrastructure/git/git-cli.adapter';
 import { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-copies.adapter';
+import { MirrorTurns } from '#repositories/infrastructure/git/mirror-turns';
 import {
   type CopiesSweep,
   WorkingCopyFolders,
@@ -90,6 +91,7 @@ export class RepositoriesModule implements OnModuleInit {
         { provide: GIT, useClass: GitCli },
         { provide: CODE_HOST, useClass: GhCodeHost },
         { provide: WORKING_COPIES, useClass: GitWorkingCopies },
+        MirrorTurns,
         { provide: REPOSITORIES_PUBLIC_API, useClass: RepositoriesFacade },
         HeadRecorder,
         RepositoryViews,

@@ -7,6 +7,7 @@ import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
 import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
 import { WorkingCopyId } from '#repositories/domain/value-objects/working-copy-id.vo';
 import { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-copies.adapter';
+import { MirrorTurns } from '#repositories/infrastructure/git/mirror-turns';
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
 import { RecordingLogger } from '#tests/support/recording-logger';
 import { TemporaryCodeHost } from '#tests/support/temporary-code-host';
@@ -53,7 +54,12 @@ export class WorkingCopyFixture {
 
   /** Copies with other settings, which log to the same logger. */
   public copiesWith(settings: RepositoriesSettings): GitWorkingCopies {
-    return new GitWorkingCopies(settings, this.logger, TOOL_CLOCK);
+    return new GitWorkingCopies(
+      settings,
+      this.logger,
+      TOOL_CLOCK,
+      new MirrorTurns(),
+    );
   }
 
   /** A copy at the commit, the first one unless named, and its path. */

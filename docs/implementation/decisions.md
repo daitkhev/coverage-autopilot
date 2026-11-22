@@ -1394,3 +1394,20 @@ fails the improvement as an exposed credential and keeps its tokens.
 - Where: `backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile`,
   `backend/src/shared/infrastructure/config/shipped-images.ts`,
   `backend/src/main.ts`.
+
+### A mirror takes one fetch at a time
+
+- Every repository has one mirror, and a request that asks for an
+  improvement fetches its branch into it, as a job does before it makes a
+  copy. git moves a branch under a lock and only from the commit it read
+  first, so two fetches into one mirror after the branch moved made one of
+  them fail, and the request answered 500.
+- Each change of a mirror now waits for its turn: the fetch of the branch,
+  and a fetch by hash with the checks around it. The turns live in one
+  object of the module, shared by the adapter of git and that of the
+  working copies, so a request and a job wait for each other too. A read
+  of a mirror takes no turn.
+- The turns hold within one service, which is all there is: a start takes
+  the lock of its instance, and no other process changes its mirrors.
+- Where: `backend/src/modules/repositories/infrastructure/git/mirror-turns.ts`,
+  `backend/src/modules/repositories/infrastructure/git/git-mirror.ts`.

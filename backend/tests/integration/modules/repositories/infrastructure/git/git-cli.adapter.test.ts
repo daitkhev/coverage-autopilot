@@ -9,6 +9,7 @@ import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url
 import { ToolFailedError } from '#repositories/infrastructure/errors/tool-failed.error';
 import { UnexpectedToolOutputError } from '#repositories/infrastructure/errors/unexpected-tool-output.error';
 import { GitCli } from '#repositories/infrastructure/git/git-cli.adapter';
+import { MirrorTurns } from '#repositories/infrastructure/git/mirror-turns';
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
 import { RecordingLogger } from '#tests/support/recording-logger';
 import {
@@ -30,7 +31,12 @@ let git: GitCli;
 
 /** git with the settings, whose lines no test of this file reads. */
 function gitOf(settings: RepositoriesSettings): GitCli {
-  return new GitCli(settings, new RecordingLogger(), TOOL_CLOCK);
+  return new GitCli(
+    settings,
+    new RecordingLogger(),
+    TOOL_CLOCK,
+    new MirrorTurns(),
+  );
 }
 
 /**

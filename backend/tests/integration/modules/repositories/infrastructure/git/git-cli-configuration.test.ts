@@ -9,6 +9,7 @@ import { RepositoryId } from '#kernel/primitives/repository-id';
 import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
 import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
 import { GitCli } from '#repositories/infrastructure/git/git-cli.adapter';
+import { MirrorTurns } from '#repositories/infrastructure/git/mirror-turns';
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
 import { CONFIGURATION_PLACES, GitPlanter } from '#tests/support/git-planter';
 import { RecordingLogger } from '#tests/support/recording-logger';
@@ -25,7 +26,12 @@ let snapshot: string;
 /** The facts of the snapshot against the head, with git of these settings. */
 /** git with the settings, whose lines no test of this file reads. */
 function gitOf(settings: RepositoriesSettings): GitCli {
-  return new GitCli(settings, new RecordingLogger(), TOOL_CLOCK);
+  return new GitCli(
+    settings,
+    new RecordingLogger(),
+    TOOL_CLOCK,
+    new MirrorTurns(),
+  );
 }
 
 async function compared(git: GitCli): Promise<unknown> {

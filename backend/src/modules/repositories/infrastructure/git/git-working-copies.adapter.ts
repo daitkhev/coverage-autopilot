@@ -28,6 +28,7 @@ import {
   hostGit,
   isolatedGit,
 } from '#repositories/infrastructure/git/git-tool-settings';
+import { MirrorTurns } from '#repositories/infrastructure/git/mirror-turns';
 import {
   type CopyFolders,
   WorkingCopyFolders,
@@ -101,6 +102,7 @@ export class GitWorkingCopies implements WorkingCopies {
     @Inject(REPOSITORIES_SETTINGS) settings: RepositoriesSettings,
     @Inject(LOGGER) logger: Logger,
     @Inject(CLOCK) clock: Clock,
+    @Inject(MirrorTurns) turns: MirrorTurns,
   ) {
     const secrets = secretValuesOf(settings);
     const log = new ToolLog(logger, clock);
@@ -116,7 +118,7 @@ export class GitWorkingCopies implements WorkingCopies {
       secrets,
       log,
     });
-    this.mirror = new GitMirror(this.host, settings.workingCopiesRoot);
+    this.mirror = new GitMirror(this.host, settings.workingCopiesRoot, turns);
     this.folders = new WorkingCopyFolders(settings.workingCopiesRoot);
     this.logger = logger.child({ component: 'working-copies' });
   }
