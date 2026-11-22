@@ -4,6 +4,10 @@ import {
   type Capture,
   SnapshotCapture,
 } from '#coverage/application/commands/capture-snapshot/snapshot-capture';
+import {
+  SCAN_OUTCOME_VERSION,
+  type ScanOutcome,
+} from '#coverage/application/commands/run-scan/scan-outcome';
 import { SCAN_PAYLOAD_VERSION } from '#coverage/application/commands/scan-repository/scan-repository.command';
 import { UnknownScanPayloadError } from '#coverage/application/errors/unknown-scan-payload.error';
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
@@ -18,7 +22,6 @@ import { RepositoryId } from '#kernel/primitives/repository-id';
 import type {
   JobContext,
   JobHandler,
-  JobOutcome,
   JobResult,
 } from '#ports/job-handler.port';
 import type { JobDocument } from '#ports/job-queue.port';
@@ -26,9 +29,6 @@ import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
 } from '#repositories/contracts/repositories-public-api';
-
-/** The version of the outcome of a scan job this service writes. */
-const OUTCOME_VERSION = 1;
 
 type Fault = DomainError | ApplicationError | InfrastructureError;
 
@@ -50,9 +50,9 @@ function checkPayload(payload: JobDocument): void {
   }
 }
 
-function captured(snapshot: CoverageSnapshot): JobOutcome {
+function captured(snapshot: CoverageSnapshot): ScanOutcome {
   return {
-    version: OUTCOME_VERSION,
+    version: SCAN_OUTCOME_VERSION,
     outcome: 'captured',
     snapshotId: snapshot.id.value,
   };
@@ -60,16 +60,16 @@ function captured(snapshot: CoverageSnapshot): JobOutcome {
 
 function refusedOutcome(
   capture: Exclude<Capture, { outcome: 'measured' }>,
-): JobOutcome {
+): ScanOutcome {
   return capture.outcome === 'unsupported'
     ? {
-        version: OUTCOME_VERSION,
+        version: SCAN_OUTCOME_VERSION,
         outcome: 'unsupported_project',
         reason: capture.reason,
         detail: capture.detail,
       }
     : {
-        version: OUTCOME_VERSION,
+        version: SCAN_OUTCOME_VERSION,
         outcome: capture.outcome,
         outputReference: capture.outputReference,
       };
@@ -85,12 +85,16 @@ function answerTo(error: unknown, signal: AbortSignal): JobResult {
     throw error;
   }
   const { code, message } = error;
-  return error.retryable
-    ? { status: 'retry', reason: { code, message } }
-    : {
-        status: 'finished',
-        outcome: { version: OUTCOME_VERSION, outcome: 'failed', code, message },
-      };
+  if (error.retryable) {
+    return { status: 'retry', reason: { code, message } };
+  }
+  const failed: ScanOutcome = {
+    version: SCAN_OUTCOME_VERSION,
+    outcome: 'failed',
+    code,
+    message,
+  };
+  return { status: 'finished', outcome: failed };
 }
 
 /**
@@ -131,7 +135,7 @@ export class RunScanHandler implements JobHandler {
     return Promise.resolve();
   }
 
-  private async scan(context: JobContext): Promise<JobOutcome> {
+  private async scan(context: JobContext): Promise<ScanOutcome> {
     checkPayload(context.payload);
     const originKey = `scan:${context.jobId}`;
     const stored = await this.snapshots.findByOriginKey(originKey);
@@ -140,7 +144,10 @@ export class RunScanHandler implements JobHandler {
     }
     const repositoryId = RepositoryId.create(context.subjectId);
     if ((await this.repositories.getRepository({ repositoryId })) === null) {
-      return { version: OUTCOME_VERSION, outcome: 'repository_not_found' };
+      return {
+        version: SCAN_OUTCOME_VERSION,
+        outcome: 'repository_not_found',
+      };
     }
     const commit = await this.repositories.resolveHead(
       { repositoryId },
