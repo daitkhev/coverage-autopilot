@@ -21,6 +21,8 @@ export interface PackageManifest {
   readonly version: string;
   readonly type: 'module';
   readonly engines: JsonRecord;
+  /** The program of the package, by the name a person types. */
+  readonly bin: Readonly<Record<string, string>>;
   readonly dependencies: Readonly<Record<string, string>>;
 }
 
@@ -60,20 +62,26 @@ function sharedDependencies(
 
 /**
  * The manifest of the built package: the name, the version and the Node
- * of the root manifest, and what every workspace needs when it runs. The
+ * of the root manifest, the program under the name of the package, and
+ * what every workspace needs when it runs. The
  * client and the service are one application, so they are installed as
  * one package with one list of dependencies.
  */
-export function packageManifestOf(root: string): PackageManifest {
+export function packageManifestOf(
+  root: string,
+  program: string,
+): PackageManifest {
   const own = readJsonRecord(join(root, MANIFEST));
   const workspaces = stringListAt(own, 'workspaces').map((folder) =>
     readJsonRecord(join(root, folder, MANIFEST)),
   );
+  const name = stringAt(own, 'name');
   return {
-    name: stringAt(own, 'name'),
+    name,
     version: stringAt(own, 'version'),
     type: 'module',
     engines: recordAt(own, 'engines'),
+    bin: { [name]: program },
     dependencies: sharedDependencies(workspaces),
   };
 }

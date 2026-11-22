@@ -1,5 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import {
+  accessSync,
+  constants,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -13,6 +15,7 @@ import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  CLIENT_BUILD,
   PACKAGE_BUILD,
   runBuild,
   SERVICE_BUILD,
@@ -35,7 +38,11 @@ const ROOT_MANIFEST = {
   workspaces: ['backend', 'frontend'],
 };
 
-const CLIENT_MANIFEST = { name: 'client', dependencies: { ink: '8.0.0' } };
+const CLIENT_MANIFEST = {
+  name: 'client',
+  imports: { '#client/jsx-runtime': './src/jsx-runtime.ts' },
+  dependencies: { ink: '8.0.0' },
+};
 
 const MIGRATION = 'CREATE TABLE things (id TEXT);\n';
 
@@ -55,6 +62,18 @@ import { greeting } from '#service/greeting';
 process.stdout.write(greeting(basename('/tree/acme')));
 `;
 
+const CLIENT_ENTRY = `
+const shown = <b>client</b>;
+
+process.stdout.write(typeof shown);
+`;
+
+const JSX = `
+export function jsx(type: string): string {
+  return type;
+}
+`;
+
 let root: string;
 
 function write(file: string, text: string): void {
@@ -72,6 +91,14 @@ beforeEach(() => {
   write(SERVICE_BUILD.settings, JSON.stringify({ compilerOptions: {} }));
   write('backend/src/greeting.ts', GREETING);
   write(SERVICE_BUILD.entry, ENTRY);
+  write(
+    CLIENT_BUILD.settings,
+    JSON.stringify({
+      compilerOptions: { jsx: 'react-jsx', jsxImportSource: '#client' },
+    }),
+  );
+  write('frontend/src/jsx-runtime.ts', JSX);
+  write(CLIENT_BUILD.entry, CLIENT_ENTRY);
 });
 
 afterEach(() => {
@@ -90,6 +117,21 @@ describe('runBuild', () => {
     expect(exitCode).toBe(0);
     expect(host.printed).toEqual(WRITTEN);
     expect(run.stdout).toBe('covered, acme');
+  });
+
+  it('should write the client as a program a person starts', async () => {
+    await runBuild(fakeHost({ root }));
+
+    const file = join(root, CLIENT_BUILD.file);
+    const run = spawnSync(process.execPath, [file], { encoding: 'utf8' });
+
+    expect(readFileSync(file, 'utf8').split('\n')[0]).toBe(
+      '#!/usr/bin/env node',
+    );
+    expect(() => {
+      accessSync(file, constants.X_OK);
+    }).not.toThrow();
+    expect(run.stdout).toBe('string');
   });
 
   it('should put the code of the tree in and leave a module of Node out', async () => {
@@ -116,6 +158,7 @@ describe('runBuild', () => {
       version: '1.2.3',
       type: 'module',
       engines: { node: '>=26' },
+      bin: { 'acme-tool': 'bin/client.js' },
       dependencies: { ink: '8.0.0', zod: '4.6.7' },
     });
   });
@@ -134,7 +177,7 @@ describe('runBuild', () => {
     it('should fail and name the package and both versions', async () => {
       write(
         'frontend/package.json',
-        JSON.stringify({ dependencies: { zod: '5.0.0' } }),
+        JSON.stringify({ ...CLIENT_MANIFEST, dependencies: { zod: '5.0.0' } }),
       );
       const host = fakeHost({ root });
 

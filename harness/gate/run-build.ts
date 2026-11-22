@@ -1,5 +1,5 @@
-import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { chmodSync, cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 
 import { rolldown } from 'rolldown';
 
@@ -19,12 +19,37 @@ export const PACKAGE_BUILD = {
   migrations: { from: 'backend/migrations', to: 'dist/migrations' },
 } as const;
 
-/** What the build of the service reads and writes. */
+/** What the build of one program reads and writes. */
+interface ProgramBuild {
+  readonly entry: string;
+  readonly settings: string;
+  readonly file: string;
+  /** The first line of a file a person starts by its name. */
+  readonly banner?: string;
+}
+
+/** The service, which the client starts with Node. */
 export const SERVICE_BUILD = {
   entry: 'backend/src/main.ts',
   settings: 'backend/tsconfig.json',
   file: 'dist/bin/service.js',
 } as const;
+
+/**
+ * The client, the program of the package: a person starts it by the name
+ * of the package, so its file names what runs it and may be run.
+ */
+export const CLIENT_BUILD = {
+  entry: 'frontend/src/main.tsx',
+  settings: 'frontend/tsconfig.json',
+  file: 'dist/bin/client.js',
+  banner: '#!/usr/bin/env node',
+} as const;
+
+const PROGRAMS: readonly ProgramBuild[] = [SERVICE_BUILD, CLIENT_BUILD];
+
+/** Read and run by everyone, written by its owner. */
+const PROGRAM_MODE = 0o755;
 
 const JSON_INDENT = 2;
 
@@ -43,11 +68,15 @@ export function staysImport(id: string): boolean {
   return !OWN_CODE.test(id);
 }
 
-async function write(root: string, warnings: string[]): Promise<void> {
+async function write(
+  root: string,
+  program: ProgramBuild,
+  warnings: string[],
+): Promise<void> {
   const bundle = await rolldown({
-    input: join(root, SERVICE_BUILD.entry),
+    input: join(root, program.entry),
     platform: 'node',
-    tsconfig: join(root, SERVICE_BUILD.settings),
+    tsconfig: join(root, program.settings),
     external: staysImport,
     onLog: (level, log) => {
       if (level === 'warn') {
@@ -55,10 +84,18 @@ async function write(root: string, warnings: string[]): Promise<void> {
       }
     },
   });
+  const file = join(root, program.file);
   try {
-    await bundle.write({ file: join(root, SERVICE_BUILD.file), format: 'esm' });
+    await bundle.write({
+      file,
+      format: 'esm',
+      ...(program.banner === undefined ? {} : { banner: program.banner }),
+    });
   } finally {
     await bundle.close();
+  }
+  if (program.banner !== undefined) {
+    chmodSync(file, PROGRAM_MODE);
   }
 }
 
@@ -68,14 +105,19 @@ function writeBeside(root: string): void {
   cpSync(join(root, migrations.from), join(root, migrations.to), {
     recursive: true,
   });
-  const text = JSON.stringify(packageManifestOf(root), null, JSON_INDENT);
+  const program = relative(PACKAGE_BUILD.folder, CLIENT_BUILD.file);
+  const text = JSON.stringify(
+    packageManifestOf(root, program),
+    null,
+    JSON_INDENT,
+  );
   mkdirSync(dirname(join(root, manifest)), { recursive: true });
   writeFileSync(join(root, manifest), `${text}\n`);
 }
 
 /**
- * Builds the package a person installs: the service as one file plain
- * Node runs, its migrations and the manifest. The folder is emptied
+ * Builds the package a person installs: the client and the service, each
+ * as one file plain Node runs, the migrations and the manifest. The folder is emptied
  * first, so nothing of an earlier build is taken for a part of this one.
  * A warning of the bundler fails the build like an error: an import it
  * could not follow would otherwise fail only when the built service
@@ -88,7 +130,9 @@ export async function runBuild(host: Host): Promise<number> {
       recursive: true,
       force: true,
     });
-    await write(host.root, warnings);
+    for (const program of PROGRAMS) {
+      await write(host.root, program, warnings);
+    }
     writeBeside(host.root);
   } catch (error) {
     host.print(
