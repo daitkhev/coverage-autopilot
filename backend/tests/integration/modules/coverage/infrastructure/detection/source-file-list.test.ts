@@ -52,6 +52,22 @@ describe('listSourceFiles', () => {
     });
   });
 
+  describe('when such a folder is named in another case', () => {
+    it('should leave it out as well', () => {
+      const paths = ['Examples/a.ts', 'src/DEMO/b.ts', 'src/product.ts'];
+
+      expect(listed(paths)).toEqual(['src/product.ts']);
+    });
+  });
+
+  describe('when a folder of a tool is named in another case', () => {
+    it('should list it, since a person named it', () => {
+      const paths = ['src/Build/a.ts', 'src/Coverage/b.ts'];
+
+      expect(listed(paths)).toEqual(paths);
+    });
+  });
+
   describe('when a name merely holds such a word', () => {
     it('should list the file', () => {
       const paths = [

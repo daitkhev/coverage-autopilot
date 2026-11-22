@@ -10,8 +10,12 @@ import { FilePath } from '#kernel/primitives/file-path';
  */
 export const FILE_LIST_RULE = 'typescript-sources-v2';
 
-/** Folders of packages, of output, of tests and of tools. */
-const NOT_SOURCES = [
+/**
+ * Folders of packages, of output, of tests and of tools, by the exact
+ * name the tools give them: a folder such as `Build` is named by a person
+ * and may hold the product.
+ */
+const NOT_SOURCES = new Set([
   'node_modules',
   'dist',
   'build',
@@ -21,15 +25,16 @@ const NOT_SOURCES = [
   'tests',
   '__tests__',
   '__mocks__',
-];
+]);
 
 /**
  * Folders of code that calls the product from outside, to show it, to
  * time it or to feed its tests. Nobody tests such code, so each of its
  * files would count below the threshold beside the files of the product,
- * and could be picked to be improved in their place.
+ * and could be picked to be improved in their place. A person names such
+ * a folder, so `Examples` is the same folder as `examples`.
  */
-const OUTSIDE_THE_PRODUCT = [
+const OUTSIDE_THE_PRODUCT = new Set([
   'examples',
   'example',
   'demos',
@@ -41,9 +46,7 @@ const OUTSIDE_THE_PRODUCT = [
   'bench',
   'fixtures',
   '__fixtures__',
-];
-
-const SKIPPED_FOLDERS = new Set([...NOT_SOURCES, ...OUTSIDE_THE_PRODUCT]);
+]);
 
 const SOURCE = /\.(?:ts|tsx|mts|cts)$/u;
 
@@ -52,9 +55,12 @@ const NOT_A_SOURCE =
   /(?:\.d\.[mc]?ts|\.(?:test|spec)\.[mc]?tsx?|\.config\.[mc]?ts)$/u;
 
 function isSkippedFolder(entry: Dirent): boolean {
+  const { name } = entry;
   return (
     entry.isDirectory() &&
-    (entry.name.startsWith('.') || SKIPPED_FOLDERS.has(entry.name))
+    (name.startsWith('.') ||
+      NOT_SOURCES.has(name) ||
+      OUTSIDE_THE_PRODUCT.has(name.toLowerCase()))
   );
 }
 

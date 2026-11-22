@@ -1769,12 +1769,16 @@ fails the improvement as an exposed credential and keeps its tokens.
 ### A scan leaves out the code that only calls the product
 
 - The owner decided that a scan leaves out folders of examples. A folder
-  is left out at any depth by its exact name: `examples`, `example`,
-  `demos`, `demo`, `samples` and `sample` show how the product is called,
-  `benchmarks`, `benchmark` and `bench` time it, and `fixtures` and
-  `__fixtures__` feed its tests. Such code calls the product from
-  outside and nobody tests it, so each of its files counted below the
-  threshold, and one was picked to be improved.
+  is left out at any depth by its whole name, in any case: `examples`,
+  `example`, `demos`, `demo`, `samples` and `sample` show how the product
+  is called, `benchmarks`, `benchmark` and `bench` time it, and
+  `fixtures` and `__fixtures__` feed its tests. Such code calls the
+  product from outside and nobody tests it, so each of its files counted
+  below the threshold, and one was picked to be improved.
+- The case is ignored because a person names such a folder, and
+  `Examples` is the same folder to them. The folders of tools, such as
+  `dist` or `coverage`, are still matched as the tools write them: a
+  `Coverage` folder is named by a person and may hold the product.
 - `docs` and `scripts` stay listed. Either can hold the product itself,
   such as a module that serves its documentation or the commands a
   package ships. A file of the product left out is missed in silence,
