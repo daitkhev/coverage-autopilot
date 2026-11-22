@@ -1,5 +1,4 @@
-import type { RepositoryId } from '#kernel/primitives/repository-id';
-
+/** The preflight of one repository, by its id as a route or a module gives it. */
 export interface CheckAccessCommand {
-  readonly repositoryId: RepositoryId;
+  readonly repositoryId: string;
 }

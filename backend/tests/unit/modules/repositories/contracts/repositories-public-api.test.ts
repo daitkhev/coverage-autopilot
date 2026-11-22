@@ -56,10 +56,13 @@ describe('RepositoriesPublicApi', () => {
     >().toEqualTypeOf<PublishPatchRequest>();
   });
 
-  it('should give values, never an aggregate', () => {
+  it('should answer the access check of a repository that is not there with null', () => {
     expectTypeOf<
       RepositoriesPublicApi['checkAccess']
-    >().returns.resolves.toEqualTypeOf<AccessCheckDto>();
+    >().returns.resolves.toEqualTypeOf<AccessCheckDto | null>();
+  });
+
+  it('should give values, never an aggregate', () => {
     expectTypeOf<
       RepositoriesPublicApi['createWorkingCopy']
     >().returns.resolves.toEqualTypeOf<WorkingCopyDto>();

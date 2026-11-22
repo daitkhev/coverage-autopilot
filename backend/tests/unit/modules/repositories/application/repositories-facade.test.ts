@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
+import { RepositoryId } from '#kernel/primitives/repository-id';
 import { InvalidWorkingCopyIdError } from '#repositories/domain/errors/invalid-working-copy-id.error';
 import {
   RepositoriesWorld,
@@ -29,9 +30,22 @@ describe('RepositoriesFacade', () => {
 
   describe('checkAccess', () => {
     it('should give the access check of the repository', async () => {
-      expect((await world.facade.checkAccess(REQUEST, NEVER)).passed).toBe(
-        true,
-      );
+      expect(await world.facade.checkAccess(REQUEST, NEVER)).toMatchObject({
+        repositoryId: WIDGETS_ID,
+        passed: true,
+      });
+    });
+
+    describe('when no repository has the id', () => {
+      it('should give null', async () => {
+        const repositoryId = RepositoryId.create(
+          '00000000-0000-4000-8000-0000000000ff',
+        );
+
+        expect(
+          await world.facade.checkAccess({ repositoryId }, NEVER),
+        ).toBeNull();
+      });
     });
   });
 

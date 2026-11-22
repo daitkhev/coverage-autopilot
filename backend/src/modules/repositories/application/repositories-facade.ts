@@ -72,8 +72,11 @@ export class RepositoriesFacade implements RepositoriesPublicApi {
   public async checkAccess(
     request: RepositoryRequest,
     signal: AbortSignal,
-  ): Promise<AccessCheckDto> {
-    return this.checkAccessHandler.execute(request, signal);
+  ): Promise<AccessCheckDto | null> {
+    return this.checkAccessHandler.execute(
+      { repositoryId: request.repositoryId.value },
+      signal,
+    );
   }
 
   public async resolveHead(

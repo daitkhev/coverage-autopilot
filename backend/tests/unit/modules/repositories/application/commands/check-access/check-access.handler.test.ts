@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RepositoryId } from '#kernel/primitives/repository-id';
 import { RepositoryNotFoundError } from '#repositories/application/errors/repository-not-found.error';
 import {
   RepositoriesWorld,
@@ -22,7 +21,7 @@ describe('CheckAccessHandler', () => {
   describe('execute', () => {
     it('should give the check and keep the head it read', async () => {
       const check = await world.checkAccess.execute(
-        { repositoryId: WIDGETS_ID },
+        { repositoryId: WIDGETS_ID.value },
         NEVER,
       );
 
@@ -31,8 +30,8 @@ describe('CheckAccessHandler', () => {
         passed: true,
         headCommit: SCRIPTED_HEAD,
       });
-      expect(check.checkedAt.toString()).toBe(STORED_TIME);
-      expect(check.steps).toHaveLength(3);
+      expect(check?.checkedAt.toString()).toBe(STORED_TIME);
+      expect(check?.steps).toHaveLength(3);
       const kept = world.repositories.saves[0]?.repository.head;
       expect(kept?.commit).toBe(SCRIPTED_HEAD);
       expect(kept?.readAt.toString()).toBe(STORED_TIME);
@@ -43,28 +42,28 @@ describe('CheckAccessHandler', () => {
         world.host.loginAnswer = { outcome: 'missing' };
 
         const check = await world.checkAccess.execute(
-          { repositoryId: WIDGETS_ID },
+          { repositoryId: WIDGETS_ID.value },
           NEVER,
         );
 
-        expect(check.passed).toBe(false);
+        expect(check?.passed).toBe(false);
         expect(world.repositories.saves).toEqual([]);
         expect(world.transactions.runs).toBe(0);
       });
     });
 
     describe('when no repository has the id', () => {
-      it('should throw RepositoryNotFoundError', async () => {
-        await expect(
-          world.checkAccess.execute(
-            {
-              repositoryId: RepositoryId.create(
-                '00000000-0000-4000-8000-0000000000ff',
-              ),
-            },
-            NEVER,
-          ),
-        ).rejects.toThrow(RepositoryNotFoundError);
+      it.each([
+        ['another id', '00000000-0000-4000-8000-0000000000ff'],
+        ['a text that is no id', 'acme-widgets'],
+      ])('should give null for %s and ask no tool', async (_case, id) => {
+        const check = await world.checkAccess.execute(
+          { repositoryId: id },
+          NEVER,
+        );
+
+        expect(check).toBeNull();
+        expect(world.git.calls).toEqual([]);
       });
     });
   });

@@ -167,7 +167,7 @@ export interface RepositoriesPublicApi {
   checkAccess(
     request: RepositoryRequest,
     signal: AbortSignal,
-  ): Promise<AccessCheckDto>;
+  ): Promise<AccessCheckDto | null>;
 
   /**
    * Reads the head of the default branch from the host of the code, stores

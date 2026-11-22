@@ -125,9 +125,9 @@ describe('RepositoriesModule', () => {
 
       const check = await api.checkAccess({ repositoryId }, NEVER);
 
-      expect(check.passed).toBe(true);
-      expect(check.steps[0]?.message).toMatch(/^Found git version 2\.\d+/u);
-      expect(check.headCommit?.value).toBe(base);
+      expect(check?.passed).toBe(true);
+      expect(check?.steps[0]?.message).toMatch(/^Found git version 2\.\d+/u);
+      expect(check?.headCommit?.value).toBe(base);
       expect(
         (await api.getRepository({ repositoryId }))?.headCommit?.value,
       ).toBe(base);
