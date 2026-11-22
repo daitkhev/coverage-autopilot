@@ -63,28 +63,35 @@ function sharedDoor(setting: ServiceSetting): ServiceDoor {
 
 /**
  * A service of this run alone. It is started once, however often it is
- * reached, and stopped on the way out.
+ * reached, and stopped on the way out. A start that failed keeps its
+ * folder for its log until the next try, which makes a folder of its
+ * own, or until the way out: a run leaves at most one such folder at a
+ * time, and none behind it.
  */
 function isolatedDoor(setting: ServiceSetting): ServiceDoor {
   let own: IsolatedService | undefined;
   return {
     reach: async (observe) => {
-      own =
-        own?.outcome === 'ready'
-          ? await own.again(observe)
-          : await startIsolatedService({
-              command: setting.command,
-              variables: setting.variables,
-              temporaryRoot: setting.temporaryRoot,
-              wait: WAIT,
-              pause,
-              observe,
-            });
+      if (own?.outcome === 'ready') {
+        own = await own.again(observe);
+        return own;
+      }
+      own?.remove();
+      own = await startIsolatedService({
+        command: setting.command,
+        variables: setting.variables,
+        temporaryRoot: setting.temporaryRoot,
+        wait: WAIT,
+        pause,
+        observe,
+      });
       return own;
     },
     leave: async () => {
       if (own?.outcome === 'ready') {
         await own.stop();
+      } else {
+        own?.remove();
       }
     },
     pause,

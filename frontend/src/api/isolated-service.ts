@@ -42,10 +42,15 @@ interface IsolatedReadyService extends ReadyService {
 }
 
 /**
- * A service that did not start was ended, and its folder is kept, so the
- * path of its log still leads somewhere.
+ * A service of its own that did not start. It was ended, and its folder
+ * is kept, so the path of its log leads somewhere while it is shown.
  */
-export type IsolatedService = IsolatedReadyService | ServiceDidNotStart;
+interface IsolatedFailedStart extends ServiceDidNotStart {
+  /** Removes the folder, once its log was shown. */
+  remove(): void;
+}
+
+export type IsolatedService = IsolatedReadyService | IsolatedFailedStart;
 
 const FOLDER_PREFIX = 'coverage-autopilot-';
 
@@ -81,7 +86,12 @@ async function startedIn(
     const answer = await answerAfterStart(own, launched);
     if (answer.outcome === 'did_not_start') {
       await launched.end(options);
-      return answer;
+      return {
+        ...answer,
+        remove: () => {
+          remove(folder);
+        },
+      };
     }
     const ready = readyService(own.location.socket, answer.reply);
     const service: IsolatedReadyService = {

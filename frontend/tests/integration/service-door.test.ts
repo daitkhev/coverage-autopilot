@@ -117,6 +117,28 @@ describe('doorOf', () => {
       expect(ownInstances()).toEqual([]);
     });
 
+    describe('when its start fails', () => {
+      it('should keep the folder of the last try alone, and none after leaving', async () => {
+        const command = bench.standIn({ errors: ['broken'], exitCode: 1 });
+        const door = doorOf({ ...setting(), command }, { isolated: true });
+
+        const first = await door.reach(() => undefined);
+        const shown = ownInstances();
+        const second = await door.reach(() => undefined);
+
+        expect([first.outcome, second.outcome]).toEqual([
+          'did_not_start',
+          'did_not_start',
+        ]);
+        expect(shown).toHaveLength(1);
+        expect(ownInstances()).toHaveLength(1);
+        expect(ownInstances()).not.toEqual(shown);
+        await door.leave();
+        expect(ownInstances()).toEqual([]);
+        expect(bench.runningIds()).toEqual([]);
+      });
+    });
+
     it('should leave nothing behind when it was never reached', async () => {
       const door = doorOf(setting(), { isolated: true });
 
