@@ -7,6 +7,8 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 
+import { moduleSettingsOf } from '#composition/module-settings';
+import { serviceSettingsOf } from '#composition/service-settings';
 import { CoverageModule } from '#coverage/coverage.module';
 import { ImprovementModule } from '#improvement/improvement.module';
 import {
@@ -49,8 +51,6 @@ import { LOGGER, type Logger } from '#ports/logger.port';
 import { SANDBOX } from '#ports/sandbox.port';
 import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
 import { RepositoriesModule } from '#repositories/repositories.module';
-import { moduleSettingsOf } from '#service/module-settings';
-import { serviceSettingsOf } from '#service/service-settings';
 import { VerificationModule } from '#verification/verification.module';
 
 /** What the run of the service has taken before the application exists. */

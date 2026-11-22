@@ -3,8 +3,8 @@ import { PassThrough } from 'node:stream';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
+import { serviceSettingsOf } from '#composition/service-settings';
 import { RepositoriesModule } from '#repositories/repositories.module';
-import { serviceSettingsOf } from '#service/service-settings';
 import { loadWith, PLAIN_MACHINE } from '#tests/support/service-variables';
 import { SharedTestModule } from '#tests/support/shared-test-module';
 

@@ -3,7 +3,10 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { serveProcess, type ServiceProcess } from '#service/service-process';
+import {
+  serveProcess,
+  type ServiceProcess,
+} from '#composition/service-process';
 import {
   SERVICE_VERSION,
   type ServiceBench,

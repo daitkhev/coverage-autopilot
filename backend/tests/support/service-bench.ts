@@ -2,9 +2,9 @@ import { type IncomingMessage, request } from 'node:http';
 import { Writable } from 'node:stream';
 import { json } from 'node:stream/consumers';
 
+import { runService, type ServiceRun } from '#composition/service-run';
 import type { ServiceConfig } from '#infrastructure/config/service-config';
 import { InstanceLock } from '#infrastructure/database/instance-lock';
-import { runService, type ServiceRun } from '#service/service-run';
 import {
   createInstanceFolder,
   type InstanceFolder,

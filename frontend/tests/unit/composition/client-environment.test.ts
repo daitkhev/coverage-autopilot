@@ -4,7 +4,7 @@ import {
   serviceSettingOf,
   showsColour,
   showsUnicode,
-} from '#client/client-environment';
+} from '#composition/client-environment';
 
 const COMMAND = ['/usr/bin/node', '/opt/tool/bin/service.js'] as const;
 

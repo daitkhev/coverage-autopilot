@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { moduleSettingsOf } from '#service/module-settings';
+import { moduleSettingsOf } from '#composition/module-settings';
 import { loadWith } from '#tests/support/service-variables';
 
 const IN_THE_IMAGE = {

@@ -6,16 +6,16 @@ import {
   sessionOf,
 } from '#app/service-door';
 import { reachLinesOf, STEP_WORDS } from '#app/service-reach-words';
+import { HELP_TEXT } from '#commands/command-grammar';
+import { EXIT_CODE } from '#commands/command-io';
+import { type CommandLine, parseCommandLine } from '#commands/command-line';
+import { runCommand } from '#commands/run-command';
 import {
   type Environment,
   serviceSettingOf,
   showsColour,
   showsUnicode,
-} from '#client/client-environment';
-import { HELP_TEXT } from '#commands/command-grammar';
-import { EXIT_CODE } from '#commands/command-io';
-import { type CommandLine, parseCommandLine } from '#commands/command-line';
-import { runCommand } from '#commands/run-command';
+} from '#composition/client-environment';
 
 /** Everything of the process the client uses, read by the entry file. */
 export interface ClientProcess {

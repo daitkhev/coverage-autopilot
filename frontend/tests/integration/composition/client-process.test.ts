@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { type ClientProcess, runClient } from '#client/client-process';
 import { HELP_TEXT } from '#commands/command-grammar';
+import { type ClientProcess, runClient } from '#composition/client-process';
 import { fakeTerminal } from '#tests/support/fake-terminal';
 import { PATIENT } from '#tests/support/keys';
 import { IDLE_HEALTH } from '#tests/support/sample-repositories';

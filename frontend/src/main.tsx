@@ -1,7 +1,7 @@
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-import { runClient } from '#client/client-process';
+import { runClient } from '#composition/client-process';
 
 /**
  * The entry file of the service, which the build writes beside the one

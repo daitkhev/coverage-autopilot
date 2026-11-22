@@ -1,12 +1,12 @@
 import type { Writable } from 'node:stream';
 
+import { runService } from '#composition/service-run';
 import type { Environment } from '#infrastructure/config/environment-values';
 import {
   loadServiceConfig,
   type ProcessUser,
 } from '#infrastructure/config/service-config';
 import type { RunningService } from '#infrastructure/service/running-service';
-import { runService } from '#service/service-run';
 
 /** What the entry file reads of its process and gives on as values. */
 export interface ServiceProcess {

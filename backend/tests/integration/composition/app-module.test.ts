@@ -3,6 +3,7 @@ import { PassThrough } from 'node:stream';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { AppModule } from '#composition/app.module';
 import {
   COVERAGE_SETTINGS,
   type CoverageSettings,
@@ -14,7 +15,6 @@ import { DockerSandbox } from '#infrastructure/sandbox/docker-sandbox.adapter';
 import { Instant } from '#kernel/time/instant';
 import { JOB_HANDLERS, type JobHandler } from '#ports/job-handler.port';
 import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
-import { AppModule } from '#service/app.module';
 import { loadWith } from '#tests/support/service-variables';
 import {
   createMigratedDatabase,

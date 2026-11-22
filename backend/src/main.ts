@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-import { serveProcess } from '#service/service-process';
+import { serveProcess } from '#composition/service-process';
 
 /**
  * Beside the folder of the sources, and beside the folder of the bundle
