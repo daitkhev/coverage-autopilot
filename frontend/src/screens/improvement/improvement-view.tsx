@@ -28,6 +28,7 @@ import {
 } from '#screens/improvement/improvement-keys';
 import { StepLine } from '#screens/improvement/step-line';
 import { ageWords } from '#theme/moments';
+import { repositoryName } from '#theme/names';
 import { layoutOf } from '#theme/widths';
 
 interface ImprovementViewProps {
@@ -185,7 +186,7 @@ export function ImprovementView(props: ImprovementViewProps): ReactNode {
         <StatusLine
           path={[
             'Improvements',
-            `${repository.owner}/${repository.name}`,
+            repositoryName(repository),
             improvement.targetFile,
           ]}
           facts={statusFacts(props, place)}

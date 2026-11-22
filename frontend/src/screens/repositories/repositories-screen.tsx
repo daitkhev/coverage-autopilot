@@ -38,6 +38,7 @@ import {
   type ScanStarts,
   useScanStarts,
 } from '#screens/repositories/use-scan-starts';
+import { repositoryName } from '#theme/names';
 
 interface RepositoriesScreenProps {
   readonly session: ClientSession;
@@ -160,7 +161,7 @@ export function RepositoriesScreen({
   const connect = useConnectDialog({
     session,
     onConnected: (repository) => {
-      setNotice(`${repository.owner}/${repository.name} is connected.`);
+      setNotice(`${repositoryName(repository)} is connected.`);
     },
   });
   const starting = startingOf(listing.answer, scans);

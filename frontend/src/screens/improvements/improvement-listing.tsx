@@ -7,6 +7,7 @@ import {
   type GroupName,
   groupOf,
 } from '#screens/improvements/improvement-words';
+import { repositoryName } from '#theme/names';
 
 /** The order of the groups: what needs the user always comes first. */
 export const GROUP_ORDER: readonly GroupName[] = [
@@ -44,7 +45,7 @@ function namesOf(
     ? new Map(
         repositories.value.items.map((repository) => [
           repository.id,
-          `${repository.owner}/${repository.name}`,
+          repositoryName(repository),
         ]),
       )
     : new Map();

@@ -9,7 +9,7 @@ import { type Fact, FactLine } from '#components/fact-line';
 import { RoleText } from '#components/role-text';
 import { percentWords } from '#theme/counts';
 import { ageWords } from '#theme/moments';
-import { shortHash } from '#theme/names';
+import { repositoryName, shortHash } from '#theme/names';
 import { GAP, type Layout } from '#theme/widths';
 
 /** The branch moved since the scan: a warning, with its symbol. */
@@ -88,7 +88,7 @@ export function RepositoryLine({
     <Box flexGrow={1} justifyContent="space-between" gap={GAP}>
       <FactLine
         facts={[
-          { text: `${repository.owner}/${repository.name}`, role: 'primary' },
+          { text: repositoryName(repository), role: 'primary' },
           { text: shortHash(snapshot.commitSha), role: 'primary' },
           { text: `scanned ${ageWords(snapshot.capturedAt, now)} ago` },
           ...(repository.outdated ? [OUTDATED] : []),

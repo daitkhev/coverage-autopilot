@@ -34,6 +34,7 @@ import {
 } from '#screens/patch/patch-keys';
 import { FILE_ROWS, PatchLines } from '#screens/patch/patch-lines';
 import { ageWords } from '#theme/moments';
+import { repositoryName } from '#theme/names';
 import { layoutOf } from '#theme/widths';
 
 interface PatchViewProps {
@@ -276,7 +277,7 @@ export function PatchView(props: PatchViewProps): ReactNode {
         <StatusLine
           path={[
             'Improvements',
-            `${repository.owner}/${repository.name}`,
+            repositoryName(repository),
             improvement.targetFile,
           ]}
           facts={statusFacts(props)}

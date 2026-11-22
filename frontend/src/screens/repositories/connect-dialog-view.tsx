@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 import type {
   AccessCheck,
   AccessStep,
-  Repository,
 } from '@coverage-autopilot/api-contracts/repositories';
 
 import { Dialog } from '#components/dialog';
@@ -20,6 +19,7 @@ import type {
 } from '#screens/repositories/connect-flow';
 import { isEditable } from '#screens/repositories/connect-flow';
 import { durationWords, elapsedMs } from '#theme/moments';
+import { repositoryName } from '#theme/names';
 import { ACCESS_CHECK_STATUS, ACCESS_STEP_WORDS } from '#theme/status';
 import { DIALOG_WIDTH } from '#theme/widths';
 
@@ -70,10 +70,6 @@ export function connectHintsOf(phase: ConnectPhase): KeyHint[] {
   ];
 }
 
-function nameOf(repository: Repository): string {
-  return `${repository.owner}/${repository.name}`;
-}
-
 /** Where the dialog stands, said in the status line of the screen. */
 export function connectStatusOf({ url, phase }: ConnectState): string {
   switch (phase.step) {
@@ -82,10 +78,10 @@ export function connectStatusOf({ url, phase }: ConnectState): string {
     case 'connecting':
       return `reading ${url}`;
     case 'checking':
-      return `checking access to ${nameOf(phase.repository)}`;
+      return `checking access to ${repositoryName(phase.repository)}`;
     case 'refused':
       return phase.refusal.kind === 'access'
-        ? `access to ${nameOf(phase.refusal.repository)} was refused`
+        ? `access to ${repositoryName(phase.refusal.repository)} was refused`
         : `${url} was not connected`;
   }
 }
@@ -193,7 +189,7 @@ function PhaseBody({
         <>
           <Working title="Checking access" since={phase.since} now={now} />
           <RoleText role="secondary">
-            {`Checking git, the login of gh and the right to push to ${nameOf(phase.repository)}.`}
+            {`Checking git, the login of gh and the right to push to ${repositoryName(phase.repository)}.`}
           </RoleText>
         </>
       );

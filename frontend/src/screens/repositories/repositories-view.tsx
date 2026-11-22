@@ -26,6 +26,7 @@ import {
 import { RepositoryRowLines } from '#screens/repositories/repository-row';
 import { isScanning } from '#screens/repositories/repository-words';
 import { countWords } from '#theme/counts';
+import { repositoryName } from '#theme/names';
 import { BAR_CELLS, layoutOf, type TerminalSize } from '#theme/widths';
 
 /** The list and the panel of the selected repository. */
@@ -110,9 +111,7 @@ function DetailsPanel(props: RepositoriesViewProps): ReactNode {
   return (
     <Panel
       title={
-        repository === undefined
-          ? 'Repository'
-          : `${repository.owner}/${repository.name}`
+        repository === undefined ? 'Repository' : repositoryName(repository)
       }
       focused={props.focused === 'details'}
     >

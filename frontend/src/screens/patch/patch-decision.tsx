@@ -10,6 +10,7 @@ import { Glyph } from '#components/glyph';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import type { ActionState } from '#hooks/use-action';
+import { repositoryName } from '#theme/names';
 import { GAP } from '#theme/widths';
 
 /** What a person can answer. Deciding later changes nothing, so it is first. */
@@ -134,7 +135,7 @@ export function DecisionPanel({
   chosen,
   state,
 }: DecisionPanelProps): ReactNode {
-  const { owner, name, defaultBranch } = repository;
+  const { defaultBranch } = repository;
   return (
     <Box flexShrink={0}>
       <Panel title="Your decision" focused>
@@ -146,7 +147,7 @@ export function DecisionPanel({
             </RoleText>
           </Text>
           <RoleText role="secondary" truncate>
-            {`to ${owner}/${name}, base ${defaultBranch}`}
+            {`to ${repositoryName(repository)}, base ${defaultBranch}`}
           </RoleText>
         </Box>
         <AnswerList answers={ANSWERS} selected={chosen} focused />

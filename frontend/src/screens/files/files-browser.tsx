@@ -20,6 +20,7 @@ import { filesHints } from '#screens/files/files-keys';
 import { RepositoryLine } from '#screens/files/repository-line';
 import { StartDialog } from '#screens/files/start-dialog';
 import { countWords } from '#theme/counts';
+import { repositoryName } from '#theme/names';
 
 /** What the browser is given: the latest snapshot and its files. */
 interface FilesBrowserProps {
@@ -161,7 +162,7 @@ export function FilesBrowser(props: FilesBrowserProps): ReactNode {
       body={<Body props={props} browser={browser} />}
       status={
         <StatusLine
-          path={['Repositories', `${repository.owner}/${repository.name}`]}
+          path={['Repositories', repositoryName(repository)]}
           facts={statusFacts(browser)}
           freshness={props.freshness}
         />

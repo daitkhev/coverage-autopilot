@@ -15,6 +15,7 @@ import {
   rowStateOf,
   stepAt,
 } from '#screens/repositories/repository-words';
+import { repositoryName } from '#theme/names';
 import { BAR_CELLS, GAP } from '#theme/widths';
 
 /** The cells of the count of files below the threshold, `999 below`. */
@@ -84,7 +85,7 @@ export function RepositoryRowLines({
         <Glyph name={look.glyph} role={look.role} />
         <Box flexGrow={1}>
           <RoleText bold={bold} truncate>
-            {`${repository.owner}/${repository.name}`}
+            {repositoryName(repository)}
           </RoleText>
         </Box>
         <Measure row={row} state={state} />

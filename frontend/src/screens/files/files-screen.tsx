@@ -10,6 +10,7 @@ import { shownOf, UnansweredBody } from '#components/unanswered-body';
 import { useDatedRequest } from '#hooks/use-dated-request';
 import { type FilesView, loadFiles } from '#screens/files/files-answer';
 import { FilesBrowser } from '#screens/files/files-browser';
+import { repositoryName } from '#theme/names';
 
 /** The screen asks the service again about once a second. */
 const EVERY_MS = 1000;
@@ -25,11 +26,10 @@ interface FilesScreenProps {
 }
 
 function NeverScanned({ view }: { readonly view: FilesView }): ReactNode {
-  const { owner, name } = view.repository;
   return (
     <Panel title="Files" focused>
       <EmptyState
-        sentence={`${owner}/${name} has no scan yet.`}
+        sentence={`${repositoryName(view.repository)} has no scan yet.`}
         keyName="esc"
         action="to go back and scan it"
       />

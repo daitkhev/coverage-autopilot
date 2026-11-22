@@ -4,12 +4,10 @@ import type { Cells } from '#commands/columns';
 import type { CommandIo } from '#commands/command-io';
 import { percentText } from '#commands/words';
 import { ageWords } from '#theme/moments';
-import { shortHash } from '#theme/names';
+import { repositoryName, shortHash } from '#theme/names';
 
-/** The name a person types for a repository: `owner/name`. */
-export function repositoryName(repository: Repository): string {
-  return `${repository.owner}/${repository.name}`;
-}
+/** The name a person types for a repository, as the screens show it. */
+export { repositoryName };
 
 /** What is worth knowing beside the numbers: the head moved, or a scan runs. */
 function notesOf(repository: Repository): string {
