@@ -154,6 +154,26 @@ describe('RepositoriesModule', () => {
         await expect(starting).rejects.not.toThrow(SECRET_TOKEN);
         await refused.close();
       });
+
+      it('should refuse a git that is not told who commits', async () => {
+        const settings = host.settings;
+        const environment = Object.fromEntries(
+          Object.entries(settings.git.environment).filter(
+            ([name]) => name !== 'GIT_COMMITTER_EMAIL',
+          ),
+        );
+        const refused = await compiled({
+          ...settings,
+          git: { ...settings.git, environment },
+        });
+
+        await expect(refused.init()).rejects.toThrow(
+          'The environment of git does not say who commits. It needs ' +
+            'GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, ' +
+            'GIT_COMMITTER_EMAIL.',
+        );
+        await refused.close();
+      });
     });
   });
 

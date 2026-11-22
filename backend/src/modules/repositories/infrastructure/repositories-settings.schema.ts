@@ -12,12 +12,31 @@ const toolSettingsSchema = z.object({
   outputLimitBytes: z.int().positive().optional(),
 });
 
+/**
+ * A commit on a working copy reads no configuration of git, so without
+ * these git would make up who commits from the user and the machine.
+ */
+const WHO_COMMITS = [
+  'GIT_AUTHOR_NAME',
+  'GIT_AUTHOR_EMAIL',
+  'GIT_COMMITTER_NAME',
+  'GIT_COMMITTER_EMAIL',
+];
+
+const gitSettingsSchema = toolSettingsSchema.extend({
+  environment: toolSettingsSchema.shape.environment.refine(
+    (environment) =>
+      WHO_COMMITS.every((name) => (environment[name] ?? '') !== ''),
+    `The environment of git does not say who commits. It needs ${WHO_COMMITS.join(', ')}.`,
+  ),
+});
+
 /** What the settings must be for the module to work at all. */
 const repositoriesSettingsSchema = z.object({
   workingCopiesRoot: z
     .string()
     .refine(isAbsolute, 'The root of the working copies is not absolute.'),
-  git: toolSettingsSchema,
+  git: gitSettingsSchema,
   gh: toolSettingsSchema,
   secretVariables: z.array(z.string().min(1)),
 });
