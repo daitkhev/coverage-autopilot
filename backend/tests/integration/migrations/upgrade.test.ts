@@ -211,4 +211,16 @@ describe('a database of the first version', () => {
         .get(repositoryId),
     ).toEqual({ head_commit: null, head_checked_at: null });
   });
+
+  it('should leave a repository to the default threshold', () => {
+    const repositoryId = writeFirstVersion();
+
+    migrateDatabase(database.connection, MIGRATIONS);
+
+    expect(
+      database.connection
+        .prepare('SELECT threshold_percentage FROM repositories WHERE id = ?')
+        .get(repositoryId),
+    ).toEqual({ threshold_percentage: null });
+  });
 });

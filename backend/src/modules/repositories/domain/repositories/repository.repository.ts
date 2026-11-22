@@ -27,7 +27,10 @@ export interface RepositoryRepository {
   /** Every connected repository, the oldest connection first. */
   list(): Promise<Repository[]>;
 
-  /** Adds a new repository, or keeps the head of one already there. */
+  /**
+   * Adds a new repository, or keeps the head and the threshold of one
+   * already there.
+   */
   save(repository: Repository, transaction: Transaction): Promise<void>;
 }
 

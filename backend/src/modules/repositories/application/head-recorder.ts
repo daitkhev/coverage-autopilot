@@ -4,6 +4,7 @@ import {
   TRANSACTION_MANAGER,
   type TransactionManager,
 } from '#ports/transaction-manager.port';
+import { loadRepository } from '#repositories/application/load-repository';
 import type {
   Repository,
   RepositoryHead,
@@ -30,13 +31,22 @@ export class HeadRecorder {
     this.transactions = transactions;
   }
 
+  /**
+   * The repository is read again in the transaction, since the host may
+   * have taken seconds to answer: a threshold set meanwhile is kept.
+   */
   public async record(
     repository: Repository,
     head: RepositoryHead,
   ): Promise<void> {
-    repository.recordHead(head);
-    await this.transactions.run(async (transaction) =>
-      this.repositories.save(repository, transaction),
-    );
+    await this.transactions.run(async (transaction) => {
+      const kept = await loadRepository(
+        this.repositories,
+        repository.id,
+        transaction,
+      );
+      kept.recordHead(head);
+      await this.repositories.save(kept, transaction);
+    });
   }
 }

@@ -7,6 +7,7 @@ import { Instant } from '#kernel/time/instant';
 import { Repository } from '#repositories/domain/entities/repository.entity';
 import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
 import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
+import { ThresholdPercentage } from '#repositories/domain/value-objects/threshold-percentage.vo';
 import { SqliteRepositoryRepository } from '#repositories/infrastructure/persistence/sqlite-repository.repository';
 import { SchemaRows, STORED_TIME } from '#tests/support/schema-rows';
 import {
@@ -60,6 +61,30 @@ describe('SqliteRepositoryRepository', () => {
       expect(found?.defaultBranch.value).toBe('main');
       expect(found?.connectedAt.toString()).toBe(STORED_TIME);
       expect(found?.head).toBeNull();
+      expect(found?.threshold).toBeNull();
+    });
+
+    it('should keep the threshold a person gave a repository', async () => {
+      const value = repository(FIRST_ID);
+      await save(value);
+      value.changeThreshold(ThresholdPercentage.create(95));
+
+      await save(value);
+
+      const found = await store.findById(value.id);
+      expect(found?.threshold?.value).toBe(95);
+    });
+
+    it('should forget the threshold once it is cleared', async () => {
+      const value = repository(FIRST_ID);
+      value.changeThreshold(ThresholdPercentage.create(95));
+      await save(value);
+      value.changeThreshold(null);
+
+      await save(value);
+
+      const found = await store.findById(value.id);
+      expect(found?.threshold).toBeNull();
     });
 
     it('should keep the head of a repository saved before', async () => {

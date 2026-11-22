@@ -47,4 +47,21 @@ describe('repositories', () => {
       expect(() => rows.repository(row)).toThrow(CHECK);
     });
   });
+
+  describe('the threshold of its own', () => {
+    it.each([
+      ['no threshold', {}],
+      ['the least threshold', { threshold_percentage: 1 }],
+      ['the most threshold', { threshold_percentage: 100 }],
+    ])('should accept %s', (_name, row) => {
+      expect(() => rows.repository(row)).not.toThrow();
+    });
+
+    it.each([
+      ['a threshold of nothing', { threshold_percentage: 0 }],
+      ['a threshold above everything', { threshold_percentage: 101 }],
+    ])('should refuse %s', (_name, row) => {
+      expect(() => rows.repository(row)).toThrow(CHECK);
+    });
+  });
 });

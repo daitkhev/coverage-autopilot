@@ -15,6 +15,7 @@ import {
 import type { RepositoryRepository } from '#repositories/domain/repositories/repository.repository';
 import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
 import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
+import { ThresholdPercentage } from '#repositories/domain/value-objects/threshold-percentage.vo';
 import {
   type RepositoryRow,
   repositoryRowSchema,
@@ -22,20 +23,21 @@ import {
 
 const COLUMNS =
   'id, owner, name, url, default_branch, connected_at, head_commit, ' +
-  'head_checked_at';
+  'head_checked_at, threshold_percentage';
 
 /** The host does not tell letters of a different case apart in a name. */
 const FIND_BY_OWNER_AND_NAME =
   `SELECT ${COLUMNS} FROM repositories ` +
   'WHERE owner = ? COLLATE NOCASE AND name = ? COLLATE NOCASE';
 
-/** Only the head changes after a repository is connected. */
+/** Only the head and the threshold change after a repository is connected. */
 const SAVE =
   `INSERT INTO repositories (${COLUMNS}) ` +
   'VALUES (:id, :owner, :name, :url, :default_branch, :connected_at, ' +
-  ':head_commit, :head_checked_at) ' +
+  ':head_commit, :head_checked_at, :threshold_percentage) ' +
   'ON CONFLICT (id) DO UPDATE SET head_commit = excluded.head_commit, ' +
-  'head_checked_at = excluded.head_checked_at';
+  'head_checked_at = excluded.head_checked_at, ' +
+  'threshold_percentage = excluded.threshold_percentage';
 
 function headOf(row: RepositoryRow): RepositoryHead | null {
   return row.head_commit === null
@@ -53,10 +55,14 @@ function repositoryOf(value: unknown): Repository {
     defaultBranch: BranchName.create(row.default_branch),
     connectedAt: Instant.parse(row.connected_at),
     head: headOf(row),
+    threshold:
+      row.threshold_percentage === null
+        ? null
+        : ThresholdPercentage.create(row.threshold_percentage),
   });
 }
 
-function rowOf(repository: Repository): Record<string, string | null> {
+function rowOf(repository: Repository): Record<string, string | number | null> {
   const head = repository.head;
   return {
     id: repository.id.value,
@@ -67,6 +73,7 @@ function rowOf(repository: Repository): Record<string, string | null> {
     connected_at: repository.connectedAt.toString(),
     head_commit: head?.commit.value ?? null,
     head_checked_at: head?.readAt.toString() ?? null,
+    threshold_percentage: repository.threshold?.value ?? null,
   };
 }
 

@@ -7,6 +7,7 @@ const columns = z.object({
   url: z.string(),
   default_branch: z.string(),
   connected_at: z.string(),
+  threshold_percentage: z.int().nullable(),
 });
 
 /**
