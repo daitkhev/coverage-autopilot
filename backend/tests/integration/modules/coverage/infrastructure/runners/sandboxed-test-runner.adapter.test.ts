@@ -223,6 +223,7 @@ describe('VITEST_COMMAND', () => {
         '--coverage.enabled=true',
         '--coverage.provider=v8',
         '--coverage.reporter=json',
+        '--coverage.reportOnFailure=true',
         `--coverage.reportsDirectory=${REPORT_FOLDER}`,
         '--coverage.include=src/used.ts',
         '--coverage.include=src/\\[id\\].ts',

@@ -9,6 +9,12 @@ import {
 const VITEST = 'node_modules/vitest/vitest.mjs';
 
 /**
+ * Vitest writes no report once a test has failed unless it is told to,
+ * and a repository with one red test would have no file measured.
+ */
+const REPORT_ALSO_AFTER_A_FAILURE = '--coverage.reportOnFailure=true';
+
+/**
  * Vitest takes the configuration of a folder above when the project has
  * none of its own, so a configuration that was found is always named.
  */
@@ -25,6 +31,7 @@ function coverageArguments(request: TestRunRequest): string[] {
     '--coverage.enabled=true',
     `--coverage.provider=${request.parameters.coverageProvider}`,
     '--coverage.reporter=json',
+    REPORT_ALSO_AFTER_A_FAILURE,
     `--coverage.reportsDirectory=${REPORT_FOLDER}`,
     ...request.coverageFiles.map(
       (path) => `--coverage.include=${exactGlob(path)}`,
