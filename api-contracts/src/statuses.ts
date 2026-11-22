@@ -107,6 +107,11 @@ export const coverageMetricSchema = z.enum([
 
 export type CoverageMetric = z.infer<typeof coverageMetricSchema>;
 
+/**
+ * `generator_unavailable`: the AI CLI cannot be started at all, such as
+ * one that is missing or not logged in. `publish_failed`: the host of the
+ * code refused the branch or the pull request.
+ */
 export const improvementFailureReasonSchema = z.enum([
   'budget_exhausted',
   'stale_snapshot',
@@ -115,6 +120,8 @@ export const improvementFailureReasonSchema = z.enum([
   'mutation_unsupported',
   'quota_exhausted',
   'credential_exposed',
+  'generator_unavailable',
+  'publish_failed',
 ]);
 
 export type ImprovementFailureReason = z.infer<

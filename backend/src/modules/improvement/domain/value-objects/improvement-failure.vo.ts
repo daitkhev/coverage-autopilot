@@ -12,6 +12,8 @@ export const FAILURE_REASONS = [
   'mutation_unsupported',
   'quota_exhausted',
   'credential_exposed',
+  'generator_unavailable',
+  'publish_failed',
 ] as const;
 
 export type FailureReason = (typeof FAILURE_REASONS)[number];

@@ -18,6 +18,8 @@ describe('ImprovementFailure', () => {
       'mutation_unsupported',
       'quota_exhausted',
       'credential_exposed',
+      'generator_unavailable',
+      'publish_failed',
     ]);
   });
 
