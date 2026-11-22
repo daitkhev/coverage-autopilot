@@ -1789,6 +1789,11 @@ fails the improvement as an exposed credential and keeps its tokens.
 - The rule is named `typescript-sources-v2` now, so a snapshot of the new
   list never compares with one of the old. A stored snapshot keeps the
   name it was listed by and reads as before.
+- A snapshot taken before this change may still list such a file, below
+  the threshold, and an improvement of it starts. Its analysis takes a
+  fresh snapshot, which does not list the file, and fails it with
+  `verification_error` before any generation: read in the code, not run.
+  A new scan gives a list without it.
 - The runner is asked to measure the listed files alone, and its report
   is read for them alone, so a left-out file reaches neither the files
   of a snapshot nor its totals. An improvement of such a file is refused

@@ -18,6 +18,8 @@ import {
   measuredFile,
   REPOSITORY_ID,
   SNAPSHOT_COMMIT,
+  SNAPSHOT_ID,
+  snapshotOf,
 } from '#tests/support/coverage-snapshots';
 import { startCommandOf } from '#tests/support/improvement-request-stand-ins';
 import { ImprovementRequestWorld } from '#tests/support/improvement-request-world';
@@ -80,6 +82,23 @@ afterEach(() => {
   folder.remove();
 });
 
+/** Asks for an improvement of a file of a snapshot, as a person does. */
+async function startOf(
+  filePath: string,
+  snapshotId: string = FIRST_ID,
+): Promise<StartImprovementResult> {
+  const world = new ImprovementRequestWorld();
+  const start = new StartImprovementHandler(
+    api,
+    world.repositories,
+    world.hasher,
+    world.registration,
+    world.views,
+    TEST_SETTINGS,
+  );
+  return start.execute(startCommandOf({ snapshotId, filePath }), RUNNING);
+}
+
 describe('a snapshot of a project with an examples folder', () => {
   it('should ask the runner to measure the product alone', () => {
     expect(application.runner.requests[0]?.coverageFiles).toEqual([
@@ -101,24 +120,6 @@ describe('a snapshot of a project with an examples folder', () => {
   });
 
   describe('when an improvement of an example is asked', () => {
-    const startOf = async (
-      filePath: string,
-    ): Promise<StartImprovementResult> => {
-      const world = new ImprovementRequestWorld();
-      const start = new StartImprovementHandler(
-        api,
-        world.repositories,
-        world.hasher,
-        world.registration,
-        world.views,
-        TEST_SETTINGS,
-      );
-      return start.execute(
-        startCommandOf({ snapshotId: FIRST_ID, filePath }),
-        RUNNING,
-      );
-    };
-
     it('should refuse it as it refuses a file that is no source', async () => {
       const example = await startOf(EXAMPLE);
       const noSource = await startOf(NO_SOURCE);
@@ -134,6 +135,26 @@ describe('a snapshot of a project with an examples folder', () => {
         reason: 'target_not_measured',
       });
       expect(product.outcome).toBe('created');
+    });
+  });
+
+  describe('when a snapshot was listed before examples were left out', () => {
+    it('should still hold the example, and let an improvement of it start', async () => {
+      application.snapshots.saved.push(
+        snapshotOf({
+          originKey: 'scan:0',
+          files: [measuredFile(EXAMPLE, { statements: [0, 7], lines: [0, 7] })],
+        }),
+      );
+
+      const file = await api.getFileCoverage({
+        snapshotId: SNAPSHOT_ID,
+        path: FilePath.create(EXAMPLE),
+      });
+      const started = await startOf(EXAMPLE, SNAPSHOT_ID);
+
+      expect(file).toMatchObject({ state: 'measured', belowThreshold: true });
+      expect(started.outcome).toBe('created');
     });
   });
 });
