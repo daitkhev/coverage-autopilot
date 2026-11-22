@@ -71,7 +71,11 @@ export function Panel({
           </Text>
         </Box>
         <Rule role={edge.role} />
-        <RoleText role={edge.role}>{frame.topRight}</RoleText>
+        {/* A box, because a text that starts between two cells is moved
+            left to a whole one, onto the end of the line before it. */}
+        <Box flexShrink={0}>
+          <RoleText role={edge.role}>{frame.topRight}</RoleText>
+        </Box>
       </Box>
       <Box
         flexDirection="column"

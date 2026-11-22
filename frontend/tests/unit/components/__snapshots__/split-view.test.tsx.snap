@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`SplitView > should draw the list and the selected item side by side 1`] = `
-"╭─ Files ─────────────────────────────────────────────────────────╮ ╭─ src/billing/invoice.ts ────────────────╮
+"╭─ Files ─────────────────────────────────────────────────────────╮ ╭─ src/billing/invoice.ts ─────────────────╮
 │ src/billing/invoice.ts                                          │ │ 41.2% of lines                           │
 ╰─────────────────────────────────────────────────────────────────╯ ╰──────────────────────────────────────────╯"
 `;

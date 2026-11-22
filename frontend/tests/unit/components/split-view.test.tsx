@@ -32,7 +32,42 @@ function split(layout: Layout, shown: 'left' | 'right' = 'left'): string {
   );
 }
 
+/** The cells of a line in which a panel has its right edge. */
+function rightEdges(line: string): number[] {
+  return [...line.matchAll(/[╮│╯]/gu)]
+    .map((found) => found.index)
+    .filter((cell) => cell > 0);
+}
+
 describe('SplitView', () => {
+  it.each(Array.from({ length: 31 }, (_, index) => 90 + index))(
+    'should close each panel in one column at %i columns',
+    (columns) => {
+      const [top = '', body = '', bottom = ''] = drawnAt(
+        <SplitView
+          layout={layoutOf({ columns, rows: 30 })}
+          shown="left"
+          left={
+            <Panel title="Files" note="3" focused>
+              <Text>src/billing/invoice.ts</Text>
+            </Panel>
+          }
+          right={
+            <Panel title="invoice.ts" focused={false}>
+              <Text>41.2% of lines</Text>
+            </Panel>
+          }
+        />,
+        columns,
+      ).split('\n');
+
+      expect(rightEdges(top)).toEqual(rightEdges(bottom));
+      expect(rightEdges(body).filter((_, index) => index % 2 === 0)).toEqual(
+        rightEdges(top),
+      );
+    },
+  );
+
   it('should draw the list and the selected item side by side', () => {
     expect(split('wide')).toMatchSnapshot();
   });
