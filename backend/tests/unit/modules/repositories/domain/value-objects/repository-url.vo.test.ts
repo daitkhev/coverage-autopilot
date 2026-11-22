@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { InvalidRepositoryUrlError } from '#repositories/domain/errors/invalid-repository-url.error';
-import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
+import {
+  NOT_A_REPOSITORY_URL,
+  RepositoryUrl,
+} from '#repositories/domain/value-objects/repository-url.vo';
 
 describe('RepositoryUrl', () => {
   describe('parse', () => {
@@ -56,6 +59,29 @@ describe('RepositoryUrl', () => {
           InvalidRepositoryUrlError,
         );
       });
+    });
+  });
+
+  describe('read', () => {
+    it('should give the address of a repository', () => {
+      expect(
+        RepositoryUrl.read('https://github.com/acme/shop.git')?.value,
+      ).toBe('https://github.com/acme/shop');
+    });
+
+    describe('when the text is not an address of a repository', () => {
+      it('should give null', () => {
+        expect(RepositoryUrl.read('https://gitlab.com/acme/shop')).toBeNull();
+      });
+    });
+  });
+
+  describe('NOT_A_REPOSITORY_URL', () => {
+    it('should say what an address is, with an example', () => {
+      expect(NOT_A_REPOSITORY_URL).toBe(
+        'The address is not the HTTPS address of a repository on ' +
+          'github.com, such as https://github.com/acme/shop.',
+      );
     });
   });
 

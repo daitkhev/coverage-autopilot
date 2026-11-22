@@ -19,6 +19,14 @@ interface RepositoryUrlProps {
   readonly name: string;
 }
 
+/**
+ * Why a text is not an address. It does not repeat the text, which may
+ * hold a credential.
+ */
+export const NOT_A_REPOSITORY_URL =
+  `The address is not the HTTPS address of a repository on ${CODE_HOST}, ` +
+  `such as https://${CODE_HOST}/acme/shop.`;
+
 /** A credential, a port, a query or a fragment has no place in it. */
 function isPlainAddress(url: URL): boolean {
   return [
@@ -55,13 +63,22 @@ export class RepositoryUrl extends ValueObject<RepositoryUrlProps> {
 
   /** Takes the address with or without `.git` and a trailing slash. */
   public static parse(text: string): RepositoryUrl {
-    const parts = partsOf(text);
-    if (parts === null) {
+    const url = RepositoryUrl.read(text);
+    if (url === null) {
       throw new InvalidRepositoryUrlError(
         `"${text}" is not the HTTPS address of a repository on ${CODE_HOST}.`,
       );
     }
-    return new RepositoryUrl(parts);
+    return url;
+  }
+
+  /**
+   * As `parse`, for a text a person typed: one that is not an address is
+   * an answer they can correct, so it is `null` and not a fault.
+   */
+  public static read(text: string): RepositoryUrl | null {
+    const parts = partsOf(text);
+    return parts === null ? null : new RepositoryUrl(parts);
   }
 
   public get host(): string {

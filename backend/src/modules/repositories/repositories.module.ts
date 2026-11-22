@@ -19,7 +19,11 @@ import { WORKING_COPIES } from '#repositories/application/ports/working-copies.p
 import { GetRepositoryHandler } from '#repositories/application/queries/get-repository/get-repository.handler';
 import { ListRepositoriesHandler } from '#repositories/application/queries/list-repositories/list-repositories.handler';
 import { RepositoriesFacade } from '#repositories/application/repositories-facade';
-import { REPOSITORIES_PUBLIC_API } from '#repositories/contracts/repositories-public-api';
+import { RepositoryConnectionsFacade } from '#repositories/application/repository-connections-facade';
+import {
+  REPOSITORIES_PUBLIC_API,
+  REPOSITORY_CONNECTIONS_API,
+} from '#repositories/contracts/repositories-public-api';
 import { REPOSITORY_REPOSITORY } from '#repositories/domain/repositories/repository.repository';
 import { GhCodeHost } from '#repositories/infrastructure/gh/gh-code-host.adapter';
 import { GitCli } from '#repositories/infrastructure/git/git-cli.adapter';
@@ -31,7 +35,7 @@ import {
 } from '#repositories/infrastructure/repositories-settings';
 import { checkSettings } from '#repositories/infrastructure/repositories-settings.schema';
 
-/** The use cases the routes of a later wave call. */
+/** The use cases behind the contracts of the module. */
 const HANDLERS = [
   ConnectRepositoryHandler,
   CheckAccessHandler,
@@ -77,11 +81,15 @@ export class RepositoriesModule implements OnModuleInit {
         { provide: CODE_HOST, useClass: GhCodeHost },
         { provide: WORKING_COPIES, useClass: GitWorkingCopies },
         { provide: REPOSITORIES_PUBLIC_API, useClass: RepositoriesFacade },
+        {
+          provide: REPOSITORY_CONNECTIONS_API,
+          useClass: RepositoryConnectionsFacade,
+        },
         HeadRecorder,
         AccessProbe,
         ...HANDLERS,
       ],
-      exports: [REPOSITORIES_PUBLIC_API, ...HANDLERS],
+      exports: [REPOSITORIES_PUBLIC_API, REPOSITORY_CONNECTIONS_API],
     };
   }
 

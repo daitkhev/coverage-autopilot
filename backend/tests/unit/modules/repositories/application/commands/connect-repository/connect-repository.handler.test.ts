@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { InvalidRepositoryUrlError } from '#repositories/domain/errors/invalid-repository-url.error';
 import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
+import { NOT_A_REPOSITORY_URL } from '#repositories/domain/value-objects/repository-url.vo';
 import {
   RepositoriesWorld,
   WIDGETS_ID,
@@ -56,10 +56,10 @@ describe('ConnectRepositoryHandler', () => {
           NEVER,
         );
 
-        expect(result.outcome).toBe('already_connected');
-        expect(result.outcome !== 'unreachable' && result.repository.id).toBe(
-          WIDGETS_ID,
-        );
+        expect(result).toMatchObject({
+          outcome: 'already_connected',
+          repository: { id: WIDGETS_ID },
+        });
         expect(world.git.calls).toEqual([]);
         expect(world.repositories.saves).toEqual([]);
       });
@@ -95,16 +95,28 @@ describe('ConnectRepositoryHandler', () => {
             { url: 'https://github.com/acme/widgets' },
             NEVER,
           ),
-        ).toEqual({ outcome: 'unreachable', reason: 'Repository not found.' });
+        ).toEqual({
+          outcome: 'unreachable',
+          reason:
+            'git could not read acme/widgets. It said: Repository not found.',
+        });
         expect(world.repositories.saves).toEqual([]);
       });
     });
 
     describe('when the address is not one of a repository', () => {
-      it('should throw InvalidRepositoryUrlError', async () => {
-        await expect(
-          world.connect.execute({ url: 'git@github.com:acme/widgets' }, NEVER),
-        ).rejects.toThrow(InvalidRepositoryUrlError);
+      it('should answer invalid_url without the text and ask nothing', async () => {
+        const result = await world.connect.execute(
+          { url: 'https://token@github.com/acme/widgets' },
+          NEVER,
+        );
+
+        expect(result).toEqual({
+          outcome: 'invalid_url',
+          reason: NOT_A_REPOSITORY_URL,
+        });
+        expect(JSON.stringify(result)).not.toContain('token');
+        expect(world.git.calls).toEqual([]);
       });
     });
   });

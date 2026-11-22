@@ -7,11 +7,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
 import type { RepositoryId } from '#kernel/primitives/repository-id';
-import { ConnectRepositoryHandler } from '#repositories/application/commands/connect-repository/connect-repository.handler';
 import {
   type PublishPatchRequest,
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
+  REPOSITORY_CONNECTIONS_API,
+  type RepositoryConnectionsApi,
 } from '#repositories/contracts/repositories-public-api';
 import { InvalidRepositoriesSettingsError } from '#repositories/infrastructure/errors/invalid-repositories-settings.error';
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
@@ -39,12 +40,17 @@ async function compiled(
   }).compile();
 }
 
+function connections(): RepositoryConnectionsApi {
+  return module.get<RepositoryConnectionsApi>(REPOSITORY_CONNECTIONS_API);
+}
+
 /** Connects `acme/widgets` and gives its id. */
 async function connected(): Promise<RepositoryId> {
-  const result = await module
-    .get(ConnectRepositoryHandler)
-    .execute({ url: TemporaryCodeHost.urlOf(WIDGETS) }, NEVER);
-  if (result.outcome === 'unreachable') {
+  const result = await connections().connectRepository(
+    { url: TemporaryCodeHost.urlOf(WIDGETS) },
+    NEVER,
+  );
+  if (!('repository' in result)) {
     throw new Error(result.reason);
   }
   return result.repository.id;
@@ -136,6 +142,14 @@ describe('RepositoriesModule', () => {
           NEVER,
         ),
       ).toMatchObject({ outcome: 'current' });
+    });
+
+    it('should list what it connected', async () => {
+      const repositoryId = await connected();
+
+      const listed = await connections().listRepositories();
+
+      expect(listed.map((repository) => repository.id)).toEqual([repositoryId]);
     });
 
     describe('when the settings cannot work', () => {

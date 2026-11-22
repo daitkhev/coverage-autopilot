@@ -19,6 +19,27 @@ export interface RepositoryRequest {
   readonly repositoryId: RepositoryId;
 }
 
+export interface ConnectRepositoryRequest {
+  /** The address as a person typed it. */
+  readonly url: string;
+}
+
+/**
+ * `already_connected`: the same owner and name were connected before, and
+ * that repository is the answer. `invalid_url`: the text is not the
+ * address of a repository on the host of the code. `unreachable`: git
+ * could not read the repository. A refusal says why, in words for people.
+ */
+export type ConnectRepositoryResult =
+  | {
+      readonly outcome: 'connected' | 'already_connected';
+      readonly repository: RepositoryDto;
+    }
+  | {
+      readonly outcome: 'invalid_url' | 'unreachable';
+      readonly reason: string;
+    };
+
 type AccessStepName = 'git_present' | 'gh_authenticated' | 'push_allowed';
 
 /** A failed step stops the rest, so a later step may never run. */
@@ -192,3 +213,25 @@ export interface RepositoriesPublicApi {
 
 /** The injection token of the contract of the repositories module. */
 export const REPOSITORIES_PUBLIC_API = Symbol('RepositoriesPublicApi');
+
+/**
+ * Which repositories are connected, for the module that shows them to a
+ * person. It is apart from `RepositoriesPublicApi`, because the modules
+ * that work on one repository never connect or list one.
+ */
+export interface RepositoryConnectionsApi {
+  /**
+   * Reads the default branch from the host and connects the repository.
+   * The same owner and name, in any case of letters, are connected once.
+   */
+  connectRepository(
+    request: ConnectRepositoryRequest,
+    signal: AbortSignal,
+  ): Promise<ConnectRepositoryResult>;
+
+  /** Every connected repository, the oldest connection first. */
+  listRepositories(): Promise<RepositoryDto[]>;
+}
+
+/** The injection token of the connected repositories. */
+export const REPOSITORY_CONNECTIONS_API = Symbol('RepositoryConnectionsApi');
