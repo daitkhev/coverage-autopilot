@@ -7,6 +7,7 @@ import { launchService } from '#api/service-launch';
 import {
   answerAfterStart,
   type ReadyService,
+  readyService,
   type ServiceDidNotStart,
   type ServiceStartOptions,
 } from '#api/service-start';
@@ -64,7 +65,11 @@ async function answers(api: ServiceApi): Promise<boolean> {
   }
 }
 
-/** Starts the service in the folder, and ends it again on a fault. */
+/**
+ * Starts the service in the folder, and ends it again on a fault. No
+ * other client knows the folder, so what answers there is the process
+ * this one started, of its own package.
+ */
 async function startedIn(
   folder: string,
   options: IsolatedServiceOptions,
@@ -78,10 +83,11 @@ async function startedIn(
       await launched.end(options);
       return answer;
     }
+    const ready = readyService(own.location.socket, answer.reply);
     const service: IsolatedReadyService = {
-      ...answer,
+      ...ready,
       again: async (observe) => {
-        if (await answers(answer.api)) {
+        if (await answers(ready.api)) {
           return service;
         }
         await launched.end(options);

@@ -32,6 +32,15 @@ export interface ReadyService {
   readonly health: Health;
 }
 
+/**
+ * Something answers on the socket after a start: the health it gave,
+ * which is not yet held to the contract of this client.
+ */
+export interface AnswerAfterStart {
+  readonly outcome: 'answered';
+  readonly reply: SocketReply;
+}
+
 /** The service did not answer in time, or its process failed. */
 export interface ServiceDidNotStart {
   readonly outcome: 'did_not_start';
@@ -70,14 +79,14 @@ export function readyService(socket: string, reply: SocketReply): ReadyService {
 }
 
 /**
- * Waits until a service answers on the socket, and reads its health. A
- * service the client started is of its own package, so the version is not
- * compared again.
+ * Waits until a service answers on the socket, and gives its health. What
+ * answers need not be the process that was started: one that finds
+ * another holding the instance leaves, and the other one answers.
  */
 export async function answerAfterStart(
   options: ServiceStartOptions,
   launched: LaunchedService,
-): Promise<ReadyService | ServiceDidNotStart> {
+): Promise<AnswerAfterStart | ServiceDidNotStart> {
   const { socket, log } = options.location;
   let reply: SocketReply | undefined;
   await pollUntil(options, async () => {
@@ -86,13 +95,13 @@ export async function answerAfterStart(
   });
   return reply === undefined
     ? { outcome: 'did_not_start', lines: await launched.lines(), log }
-    : readyService(socket, reply);
+    : { outcome: 'answered', reply };
 }
 
-/** Starts a service where nothing answers, and waits for it to answer. */
+/** Starts a service where nothing answers, and waits for one to answer. */
 export async function startService(
   options: ServiceStartOptions,
-): Promise<ReadyService | ServiceDidNotStart> {
+): Promise<AnswerAfterStart | ServiceDidNotStart> {
   options.observe('starting');
   return answerAfterStart(options, await launchService(options));
 }

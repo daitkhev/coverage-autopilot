@@ -1,8 +1,10 @@
 import { CONTRACT_VERSION } from '@coverage-autopilot/api-contracts/health';
 
 import { pollUntil } from '#api/polling';
+import type { SocketReply } from '#api/service-answers';
 import { linesSince, logSizeOf } from '#api/service-launch';
 import {
+  type AnswerAfterStart,
   healthReply,
   lookForService,
   type ReadyService,
@@ -25,6 +27,13 @@ interface BusyWithAnotherVersion extends ServiceVersion {
 /** How a client ended up on its way to a service. */
 export type ServiceReach =
   ReadyService | ServiceDidNotStart | BusyWithAnotherVersion;
+
+/**
+ * A reach replaces one service of another contract at most. One that
+ * answers after the replacement was started by another client of that
+ * contract in the same moment, which would replace this one in turn.
+ */
+type Replacement = 'may_replace' | 'replaced_one';
 
 function busyWith(version: ServiceVersion): BusyWithAnotherVersion {
   return { outcome: 'busy_with_another_version', ...version };
@@ -51,29 +60,57 @@ async function replaceService(
     async () => (await lookForService(socket)) === undefined,
   );
   return gone
-    ? startService(options)
+    ? afterStart(options, await startService(options), 'replaced_one')
     : { outcome: 'did_not_start', lines: await linesSince(log, offset), log };
 }
 
 /**
+ * Holds the health a service answered to the contract of this client. A
+ * service of this contract is used as it is. An idle service of another
+ * contract is replaced, and a busy one is left as it is, as is an idle
+ * one once the reach replaced one. A health of another contract may not
+ * match the schema of this client, so its version and its work are read
+ * first, and the whole health only when the version is the same.
+ */
+async function heldToContract(
+  options: ServiceStartOptions,
+  reply: SocketReply,
+  replacement: Replacement,
+): Promise<ServiceReach> {
+  const found = versionOf(reply);
+  if (found.contractVersion === CONTRACT_VERSION) {
+    return readyService(options.location.socket, reply);
+  }
+  return isIdle(found) && replacement === 'may_replace'
+    ? replaceService(options)
+    : busyWith(found);
+}
+
+/**
+ * What answers after a start is held to the contract as what was found
+ * before it: another client may have started a service of its own
+ * contract in the same moment, and this start then gave way to it.
+ */
+async function afterStart(
+  options: ServiceStartOptions,
+  started: AnswerAfterStart | ServiceDidNotStart,
+  replacement: Replacement,
+): Promise<ServiceReach> {
+  return started.outcome === 'answered'
+    ? heldToContract(options, started.reply, replacement)
+    : started;
+}
+
+/**
  * Reaches the service of the instance, as a client does on every command.
- * A service of this contract is used as it is. Where nothing answers, a
- * service is started, once. An idle service of another contract is
- * replaced, and a busy one is left as it is. A health of another contract
- * may not match the schema of this client, so its version and its work
- * are read first, and the whole health only when the version is the same.
+ * Where nothing answers, a service is started, once, and what answers
+ * then is held to the contract as a service that was there.
  */
 export async function reachService(
   options: ServiceStartOptions,
 ): Promise<ServiceReach> {
-  const { socket } = options.location;
-  const reply = await lookForService(socket);
-  if (reply === undefined) {
-    return startService(options);
-  }
-  const found = versionOf(reply);
-  if (found.contractVersion === CONTRACT_VERSION) {
-    return readyService(socket, reply);
-  }
-  return isIdle(found) ? replaceService(options) : busyWith(found);
+  const reply = await lookForService(options.location.socket);
+  return reply === undefined
+    ? afterStart(options, await startService(options), 'may_replace')
+    : heldToContract(options, reply, 'may_replace');
 }
