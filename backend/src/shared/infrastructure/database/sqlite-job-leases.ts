@@ -65,10 +65,12 @@ RETURNING ${CLAIMED}`;
  * A job whose lease ran out comes first, because it still holds its
  * repository. Then the oldest pending job of a repository with no leased
  * job, unless it was told to wait for a moment that has not come. The
- * order is set here: SQLite does not order what `RETURNING` gives.
+ * order is set here: SQLite does not order what `RETURNING` gives. The
+ * first claim sets the moment the job started, and a later one keeps it.
  */
 const CLAIM = `
-UPDATE jobs SET status = 'leased', runs = runs + 1, ${NEW_LEASE}
+UPDATE jobs SET status = 'leased', runs = runs + 1,
+  started_at = coalesce(started_at, :now), ${NEW_LEASE}
 WHERE id = (
   SELECT id FROM (
     SELECT id, 0 AS rank, lease_expires_at AS since

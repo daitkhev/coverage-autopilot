@@ -65,6 +65,18 @@ export interface JobDto {
   readonly runs: number;
   /** What the handler returned, once the job is `completed`. */
   readonly outcome: JobDocument | null;
+  /** When it was enqueued. */
+  readonly createdAt: Instant;
+  /**
+   * When a worker first claimed it. A later claim keeps it, so a job back
+   * in the queue keeps the moment it first started. `null` before.
+   */
+  readonly startedAt: Instant | null;
+  /**
+   * When it became `completed`, `dead` or `cancelled`, and `null` while it
+   * is pending or leased. A job that has ended is never written again.
+   */
+  readonly endedAt: Instant | null;
 }
 
 /**

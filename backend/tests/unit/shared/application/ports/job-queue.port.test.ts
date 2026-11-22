@@ -50,6 +50,12 @@ describe('JobQueue', () => {
     >();
   });
 
+  it('should give when a job was queued, and when it started and ended once it did', () => {
+    expectTypeOf<JobDto['createdAt']>().toEqualTypeOf<Instant>();
+    expectTypeOf<JobDto['startedAt']>().toEqualTypeOf<Instant | null>();
+    expectTypeOf<JobDto['endedAt']>().toEqualTypeOf<Instant | null>();
+  });
+
   it('should report the steps of a check with the statuses of a check', () => {
     type Step = JobProgressDto['steps'][number];
 

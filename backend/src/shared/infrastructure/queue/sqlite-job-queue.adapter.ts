@@ -43,15 +43,29 @@ function isSameJob(
   );
 }
 
+/**
+ * No statement writes a job in one of these again, so its last change is
+ * the moment it ended, and no column of its own has to keep it.
+ */
+const ENDED: ReadonlySet<JobDto['status']> = new Set([
+  'completed',
+  'dead',
+  'cancelled',
+]);
+
 function jobDtoOf(row: JobRow): JobDto {
+  const status = jobStatusOf(row.status);
   return {
     id: row.id,
     kind: jobKindOf(row.kind),
     repositoryId: RepositoryId.create(row.serializationKey),
     subjectId: row.subjectId,
-    status: jobStatusOf(row.status),
+    status,
     runs: row.runs,
     outcome: row.outcome === null ? null : jobDocumentOf(row.outcome),
+    createdAt: Instant.parse(row.createdAt),
+    startedAt: row.startedAt === null ? null : Instant.parse(row.startedAt),
+    endedAt: ENDED.has(status) ? Instant.parse(row.updatedAt) : null,
   };
 }
 

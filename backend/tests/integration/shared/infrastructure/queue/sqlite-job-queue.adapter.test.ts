@@ -1,15 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { InvalidStoredJobError } from '#infrastructure/queue/errors/invalid-stored-job.error';
+import { Instant } from '#kernel/time/instant';
 import type { EnqueueJobRequest } from '#ports/job-queue.port';
 import {
   GADGETS,
   QueueBench,
   type QueueProcess,
   scanOf,
+  START,
   WIDGETS,
 } from '#tests/support/queue-bench';
-import { SchemaRows } from '#tests/support/schema-rows';
+import { SchemaRows, STORED_TIME } from '#tests/support/schema-rows';
 
 let bench: QueueBench;
 let service: QueueProcess;
@@ -19,6 +21,8 @@ const SCAN = scanOf(WIDGETS, 'scan-1');
 const ROLLBACK = 'The caller failed after the';
 
 const WAIT_MS = 60_000;
+
+const STEP_MS = 1_000;
 
 beforeEach(async () => {
   bench = new QueueBench();
@@ -245,8 +249,64 @@ describe('SqliteJobQueue', () => {
         status: 'pending',
         runs: 0,
         outcome: null,
+        createdAt: Instant.parse(START),
+        startedAt: null,
+        endedAt: null,
       });
     });
+
+    it('should keep the first claim as the start through a later claim', async () => {
+      const { jobId } = await service.enqueue(SCAN);
+      bench.clock.advance(STEP_MS);
+      await service.worker.poll();
+      const firstClaim = bench.clock.now();
+      service.handler.latest().retry();
+      await service.worker.whenIdle();
+      bench.clock.advance(STEP_MS);
+
+      await service.worker.poll();
+
+      expect(await service.queue.getJob(jobId)).toMatchObject({
+        status: 'leased',
+        runs: 2,
+        startedAt: firstClaim,
+        endedAt: null,
+      });
+    });
+
+    it('should give the moment a job ended, which a later cancel keeps', async () => {
+      const { jobId } = await service.enqueue(SCAN);
+      await service.worker.poll();
+      bench.clock.advance(STEP_MS);
+      const end = bench.clock.now();
+      service.handler.latest().finish();
+      await service.worker.whenIdle();
+      bench.clock.advance(STEP_MS);
+
+      await service.transactions.run(async (transaction) =>
+        service.queue.cancel(jobId, transaction),
+      );
+
+      expect(await service.queue.getJob(jobId)).toMatchObject({
+        status: 'completed',
+        endedAt: end,
+      });
+    });
+
+    it.each(['completed', 'dead', 'cancelled'])(
+      'should end a %s job at its last change',
+      async (status) => {
+        const jobId = new SchemaRows(bench.connection).job({
+          status,
+          serialization_key: WIDGETS.value,
+          updated_at: STORED_TIME,
+        });
+
+        expect(await service.queue.getJob(jobId)).toMatchObject({
+          endedAt: Instant.parse(STORED_TIME),
+        });
+      },
+    );
 
     it('should refuse a kind that the queue never stores', async () => {
       const jobId = new SchemaRows(bench.connection).job({

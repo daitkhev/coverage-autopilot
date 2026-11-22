@@ -33,6 +33,10 @@ export interface JobFields {
 export interface JobRow extends JobFields {
   readonly status: string;
   readonly outcome: string | null;
+  readonly createdAt: string;
+  /** `null` until the first claim. */
+  readonly startedAt: string | null;
+  readonly updatedAt: string;
 }
 
 /** A pending job of a subject, as far as its wait goes. */
@@ -49,8 +53,8 @@ export interface ProgressRow {
   readonly updatedAt: string;
 }
 
-const JOB_COLUMNS =
-  'id, kind, serialization_key, subject_id, payload, status, runs, outcome';
+const JOB_COLUMNS = `id, kind, serialization_key, subject_id, payload, status,
+  runs, outcome, created_at, started_at, updated_at`;
 
 type StoredRecord = Readonly<Record<string, SQLOutputValue>>;
 
@@ -65,12 +69,18 @@ export function jobFieldsOf(record: StoredRecord): JobFields {
   };
 }
 
+function textOrNull(value: SQLOutputValue | undefined): string | null {
+  return value === undefined || value === null ? null : String(value);
+}
+
 function jobRowOf(record: StoredRecord): JobRow {
-  const outcome = record['outcome'] ?? null;
   return {
     ...jobFieldsOf(record),
     status: String(record['status']),
-    outcome: outcome === null ? null : String(outcome),
+    outcome: textOrNull(record['outcome']),
+    createdAt: String(record['created_at']),
+    startedAt: textOrNull(record['started_at']),
+    updatedAt: String(record['updated_at']),
   };
 }
 
