@@ -1,5 +1,6 @@
 import { once } from 'node:events';
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { Agent, type IncomingMessage, request as httpRequest } from 'node:http';
 import { connect, type Socket } from 'node:net';
 import { dirname, join } from 'node:path';
 
@@ -50,6 +51,45 @@ async function requestInFlight(socket: string): Promise<Socket> {
   );
   await once(client, 'data');
   return client;
+}
+
+/**
+ * A request over the one connection of `agent`, whose head is sent and
+ * read, and whose body waits until the function it gives is called.
+ */
+async function heldRequest(
+  agent: Agent,
+  socket: string,
+): Promise<() => Promise<IncomingMessage>> {
+  const request = httpRequest({
+    agent,
+    socketPath: socket,
+    method: 'POST',
+    path: '/repositories',
+    headers: { 'content-type': 'application/json', expect: '100-continue' },
+  });
+  const answered = once(request, 'response');
+  await once(request, 'continue');
+  return async () => {
+    request.end('{}');
+    const [answer] = (await answered) as [IncomingMessage];
+    answer.resume();
+    await once(answer, 'end');
+    return answer;
+  };
+}
+
+async function askedOver(
+  agent: Agent,
+  socket: string,
+): Promise<IncomingMessage> {
+  const request = httpRequest({ agent, socketPath: socket, path: '/health' });
+  const answered = once(request, 'response');
+  request.end();
+  const [answer] = (await answered) as [IncomingMessage];
+  answer.resume();
+  await once(answer, 'end');
+  return answer;
 }
 
 /**
@@ -163,6 +203,29 @@ describe('runService', () => {
       const answer = await askOver(bench.config.instance.socket, '/nowhere');
       expect(answer.status).toBe(404);
       await third.stop();
+    });
+
+    it('should close a connection a client goes on asking over, and end', async () => {
+      bench = serviceBench();
+      const service = await started();
+      const { socket } = bench.config.instance;
+      const agent = new Agent({ keepAlive: true, maxSockets: 1 });
+      leftOpen.push(async () => {
+        agent.destroy();
+        return Promise.resolve();
+      });
+      const answerHeld = await heldRequest(agent, socket);
+      const stopping = service.stop();
+      await vi.waitFor(() => {
+        expect(existsSync(socket)).toBe(false);
+      });
+
+      const held = await answerHeld();
+      const again = await askedOver(agent, socket);
+
+      expect(held.headers.connection).toBe('keep-alive');
+      expect(again.headers.connection).toBe('close');
+      await expect(stopping).resolves.toBeUndefined();
     });
 
     it('should stop once, however often it is asked', async () => {

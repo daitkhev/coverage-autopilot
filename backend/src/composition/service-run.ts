@@ -13,6 +13,7 @@ import {
   type ShippedImageFiles,
   withShippedBuilds,
 } from '#infrastructure/config/shipped-images';
+import { closingOnStop } from '#infrastructure/http/closing-on-stop';
 import { JobWorkerScheduler } from '#infrastructure/queue/job-worker-scheduler';
 import {
   giveBack,
@@ -63,8 +64,9 @@ const APPLICATION_OPTIONS = Object.assign(new NestApplicationContextOptions(), {
 
 /**
  * Removes what a stopped service of the instance left, then listens under
- * the held lock, keeps the socket to its owner, starts to make the images
- * ready without waiting for them, and works.
+ * the held lock, with connections that close once it stops, keeps the
+ * socket to its owner, starts to make the images ready without waiting
+ * for them, and works.
  */
 async function serving(
   wiring: ServiceWiring,
@@ -75,6 +77,7 @@ async function serving(
     new ExpressAdapter(),
     APPLICATION_OPTIONS,
   );
+  application.use(closingOnStop(wiring.life));
   try {
     await sweepLeftovers(
       wiring.config,
