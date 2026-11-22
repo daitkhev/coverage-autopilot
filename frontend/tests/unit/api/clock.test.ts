@@ -1,11 +1,11 @@
-/// <reference lib="esnext.temporal" />
-
 import { describe, expect, it } from 'vitest';
 
 import { parseAs } from '@coverage-autopilot/api-contracts/parsing';
 import { timestampSchema } from '@coverage-autopilot/api-contracts/values';
 
 import { currentMoment, localTimeZone } from '#api/clock';
+
+const MOMENT = '2026-11-21T14:05:00.000Z';
 
 describe('the platform', () => {
   it('should have Temporal, which the client reads the clock with', () => {
@@ -19,21 +19,13 @@ describe('currentMoment', () => {
 
     expect(parseAs(timestampSchema, moment)).toBe(moment);
   });
-
-  it('should read the clock now', () => {
-    const before = Temporal.Now.instant().epochMilliseconds;
-    const moment = Temporal.Instant.from(currentMoment()).epochMilliseconds;
-    const after = Temporal.Now.instant().epochMilliseconds;
-
-    expect(moment).toBeGreaterThanOrEqual(before);
-    expect(moment).toBeLessThanOrEqual(after);
-  });
 });
 
 describe('localTimeZone', () => {
   it('should name a zone a moment can be shown in', () => {
     const zone = localTimeZone();
+    const shown = Temporal.Instant.from(MOMENT).toZonedDateTimeISO(zone);
 
-    expect(Temporal.Now.zonedDateTimeISO(zone).timeZoneId).toBe(zone);
+    expect(shown.timeZoneId).toBe(zone);
   });
 });

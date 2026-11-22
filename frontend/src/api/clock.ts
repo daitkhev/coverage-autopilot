@@ -1,5 +1,3 @@
-/// <reference lib="esnext.temporal" />
-
 /**
  * The moment now, in the one format of the contract,
  * `YYYY-MM-DDTHH:mm:ss.sssZ`. This is the only place of the client that

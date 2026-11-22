@@ -1,5 +1,3 @@
-/// <reference lib="esnext.temporal" />
-
 const TENTH_MS = 100;
 const SECOND_MS = 1000;
 const MINUTE_MS = 60_000;
