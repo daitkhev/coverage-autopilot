@@ -8,7 +8,7 @@ export const TEST_RUNNER_NAMES = ['jest', 'vitest'] as const;
 export type TestRunnerName = (typeof TEST_RUNNER_NAMES)[number];
 
 /** The package managers the service installs with. */
-export const PACKAGE_MANAGERS = ['npm', 'pnpm'] as const;
+export const PACKAGE_MANAGERS = ['npm', 'pnpm', 'yarn'] as const;
 
 export type PackageManagerName = (typeof PACKAGE_MANAGERS)[number];
 

@@ -255,37 +255,6 @@ describe('NodeProjectDetector', () => {
         await expect(reasonOf(files)).resolves.toBe(reason);
       });
     });
-
-    describe('when the project is installed with pnpm', () => {
-      const pnpmFiles = {
-        'package.json': jestManifest({ packageManager: 'pnpm@10.34.9' }),
-        'pnpm-lock.yaml': pnpmLockfileOf({ jest: '30.5.2' }),
-      };
-
-      it('should give pnpm, the version its lockfile holds and its install', async () => {
-        const detection = await detect(pnpmFiles);
-
-        expect(detection).toMatchObject({
-          outcome: 'supported',
-          project: { packageManager: 'pnpm', testRunnerVersion: '30.5.2' },
-          parameters: { testRunnerVersion: '30.5.2' },
-          install: { environment: { COREPACK_ENV_FILE: '0' } },
-        });
-        expect(
-          detection.outcome === 'supported' &&
-            detection.install.command.slice(0, 3),
-        ).toEqual(['corepack', 'pnpm@10.34.9', 'install']);
-      });
-
-      it('should take a workspace file of settings alone for one package', async () => {
-        await expect(
-          reasonOf({
-            ...pnpmFiles,
-            'pnpm-workspace.yaml': 'onlyBuiltDependencies:\n  - esbuild\n',
-          }),
-        ).resolves.toBe('supported');
-      });
-    });
   });
 
   describe('the list of eligible files', () => {

@@ -14,6 +14,8 @@ import {
   type Found,
   unsupported,
 } from '#coverage/infrastructure/detection/runner-choice';
+import { YARN_LOCKFILE } from '#coverage/infrastructure/detection/yarn-classic';
+import { yarnChoice } from '#coverage/infrastructure/detection/yarn-manager';
 
 /** What package.json asks for: a manager, and an exact program of it. */
 interface AskedManager {
@@ -28,7 +30,7 @@ type Choice = Found<ManagerChoice> | UnsupportedProject;
 const LOCKFILES: readonly (readonly [string, string])[] = [
   ...NPM_LOCKFILES.map((name) => [name, 'npm'] as const),
   [PNPM_LOCKFILE, 'pnpm'],
-  ['yarn.lock', 'yarn'],
+  [YARN_LOCKFILE, 'yarn'],
   ['bun.lock', 'bun'],
   ['bun.lockb', 'bun'],
 ];
@@ -55,9 +57,12 @@ const INSTALLERS: Readonly<
     value: npmChoice(lockfile),
   }),
   pnpm: (root, asked) => pnpmChoice(root, asked.descriptor),
+  yarn: (root, asked) => yarnChoice(root, asked.descriptor),
 };
 
-const SUPPORTED = Object.keys(INSTALLERS).join(' and ');
+const LIST = new Intl.ListFormat('en');
+
+const SUPPORTED = LIST.format(Object.keys(INSTALLERS));
 
 function askedOf(field: string): AskedManager | UnsupportedProject {
   if (NPM_FIELD.test(field)) {
@@ -96,7 +101,7 @@ function guessed(
     ? { name: only, descriptor: null }
     : unsupported(
         'unsupported_package_manager',
-        `The repository has the lockfiles of ${[only, ...others].join(' and ')}, ` +
+        `The repository has the lockfiles of ${LIST.format([only, ...others])}, ` +
           'and package.json names no packageManager to choose one.',
       );
 }

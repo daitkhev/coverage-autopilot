@@ -92,7 +92,7 @@ export type RunFileDto = MeasuredRunFileDto | NoCodeFileDto | UnmeasuredFileDto;
 export interface DetectedProjectDto {
   readonly testRunner: TestRunnerName;
   readonly testRunnerVersion: string;
-  readonly packageManager: 'npm' | 'pnpm';
+  readonly packageManager: 'npm' | 'pnpm' | 'yarn';
   readonly configFile: FilePath | null;
 }
 

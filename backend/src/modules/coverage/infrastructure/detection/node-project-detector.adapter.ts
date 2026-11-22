@@ -173,9 +173,9 @@ function supportedProject(
 }
 
 /**
- * Detects a project of one package, installed with npm or pnpm and tested
- * with Jest or Vitest. It reads files and runs nothing. Every other kind
- * of repository is reported as a value with the reason.
+ * Detects a project of one package, installed with npm, pnpm or yarn and
+ * tested with Jest or Vitest. It reads files and runs nothing. Every other
+ * kind of repository is reported as a value with the reason.
  */
 @Injectable()
 export class NodeProjectDetector implements ProjectDetector {

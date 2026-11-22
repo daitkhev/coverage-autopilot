@@ -8,10 +8,13 @@ import {
   lockfileOf,
   type ProjectFolder,
 } from '#tests/support/project-folder';
+import { classicLockfileOf } from '#tests/support/yarn-lockfiles';
 
 const NPM_LOCK = lockfileOf({ jest: '30.5.2' });
 
 const PNPM_LOCK = pnpmLockfileOf({ jest: '30.5.2' });
+
+const YARN_LOCK = classicLockfileOf({ jest: '30.5.2' });
 
 const folders: ProjectFolder[] = [];
 
@@ -47,6 +50,7 @@ describe('chooseManager', () => {
       ['npm', { 'package-lock.json': NPM_LOCK }],
       ['npm', { 'npm-shrinkwrap.json': NPM_LOCK }],
       ['pnpm', { 'pnpm-lock.yaml': PNPM_LOCK }],
+      ['yarn', { 'yarn.lock': YARN_LOCK }],
     ])('should take %s from the one lockfile there is', (name, files) => {
       expect(nameOrReason(chosenIn(files))).toBe(name);
     });
@@ -131,10 +135,12 @@ describe('chooseManager', () => {
       [{ 'bun.lockb': '' }, {}],
       [{ 'bun.lock': '{}' }, { packageManager: 'bun@1.3.2' }],
     ])('should name it', (files, manifest) => {
-      expect(chosenIn(files, manifest)).toMatchObject({
+      expect(chosenIn(files, manifest)).toEqual({
         outcome: 'unsupported',
         reason: 'unsupported_package_manager',
-        detail: expect.stringContaining('installed with bun') as unknown,
+        detail:
+          'The repository is installed with bun, and only npm, pnpm, and ' +
+          'yarn are supported.',
       });
     });
   });
