@@ -18,7 +18,7 @@ export type ScanFailureReason =
   | 'retries_exhausted';
 
 /** A stable code for scripts and a sentence for people. */
-export interface ScanFailureDto {
+interface ScanFailureDto {
   readonly reason: ScanFailureReason;
   readonly message: string;
 }

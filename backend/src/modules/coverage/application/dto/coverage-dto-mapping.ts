@@ -60,7 +60,7 @@ export function parametersDtoOf(parameters: ScanParameters): ScanParametersDto {
 }
 
 /** A measured file, with whether it is below the threshold. */
-export function measuredDtoOf(
+function measuredDtoOf(
   file: FileCoverage,
   threshold: CoverageThreshold,
 ): MeasuredFileDto {
