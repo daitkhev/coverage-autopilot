@@ -46,7 +46,7 @@ interface Approval {
 /** What one approval burst sent. */
 export interface Decision {
   readonly approvals: readonly Approval[];
-  /** Whether cancels were sent in the same burst. */
+  /** Whether cancels were sent before the approvals or with them. */
   readonly cancelled: boolean;
 }
 
@@ -99,6 +99,9 @@ export async function decidedAtOnce(
   log: CancelLog,
 ): Promise<Decision> {
   const random = choicesOf(storm, `approve:${winner.target.label}`);
+  // A cancel at the look that found it waiting may have ended it already,
+  // and then no approval can win.
+  const cancelledBefore = log.answers.length > 0;
   const patch = improvementPatchSchema.parse(
     (await send(storm, `/improvements/${winner.id}/patch`)).body,
   );
@@ -123,7 +126,7 @@ export async function decidedAtOnce(
     : Promise.resolve([]);
   const [approvals, cancels] = await Promise.all([approving, cancelling]);
   log.answers.push(...cancels);
-  return { approvals, cancelled };
+  return { approvals, cancelled: cancelledBefore || cancelled };
 }
 
 /** How one approval breaks the rules: only the patch the person saw is approved, once. */
