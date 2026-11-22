@@ -2,13 +2,19 @@ import { describe, expect, it } from 'vitest';
 
 import type { RunTestsCommand } from '#coverage/application/commands/run-tests/run-tests.command';
 import { RunTestsHandler } from '#coverage/application/commands/run-tests/run-tests.handler';
-import type { TestFailureDto } from '#coverage/application/contracts/coverage-public-api';
+import type {
+  TestFailureDto,
+  TestOutcomesDto,
+} from '#coverage/application/contracts/coverage-public-api';
 import { FilePath } from '#kernel/primitives/file-path';
 import {
   type CoverageApplication,
   coverageApplication,
 } from '#tests/support/coverage-application';
-import { RESULTS_PATH } from '#tests/support/coverage-stand-ins';
+import {
+  FIXTURE_OUTCOMES,
+  RESULTS_PATH,
+} from '#tests/support/coverage-stand-ins';
 import { PASSED } from '#tests/support/recording-sandbox';
 import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
 
@@ -31,6 +37,13 @@ const UNMEASURED: RunTestsCommand = { ...MEASURED, withCoverage: false };
 
 const RUNNING = new AbortController().signal;
 
+const FAILING_OUTCOMES: TestOutcomesDto = {
+  ran: 3,
+  failing: [
+    { file: FilePath.create('tests/used.test.ts'), test: 'used calls home' },
+  ],
+};
+
 const FAILURE: TestFailureDto = {
   file: FilePath.create('tests/used.test.ts'),
   test: null,
@@ -52,10 +65,14 @@ describe('RunTestsHandler', () => {
           durationMs: PASSED.durationMs,
           outputReference: 'artifact-1',
           firstFailure: null,
+          outcomes: FIXTURE_OUTCOMES,
         },
         coverage: null,
       });
       expect(application.testReports.requests).toEqual([]);
+      expect(application.testReports.outcomeRequests).toEqual([
+        { workingCopyPath: WORKING_COPY_PATH, reportPath: RESULTS_PATH },
+      ]);
     });
 
     describe('with coverage', () => {
@@ -128,6 +145,40 @@ describe('RunTestsHandler', () => {
         ]);
       });
 
+      it('should tell which tests ran and which of them failed', async () => {
+        const application = coverageApplication();
+        application.runner.output = {
+          ...application.runner.output,
+          result: { ...PASSED, exitCode: 1 },
+        };
+        application.testReports.reported = FAILING_OUTCOMES;
+
+        const result = await handlerOf(application).execute(
+          UNMEASURED,
+          RUNNING,
+        );
+
+        expect(result).toMatchObject({
+          testRun: { status: 'failed', outcomes: FAILING_OUTCOMES },
+        });
+      });
+
+      it('should tell no outcomes when the report cannot be read', async () => {
+        const application = coverageApplication();
+        application.runner.output = {
+          ...application.runner.output,
+          result: { ...PASSED, exitCode: 1 },
+        };
+        application.testReports.reported = null;
+
+        const result = await handlerOf(application).execute(
+          UNMEASURED,
+          RUNNING,
+        );
+
+        expect(result).toMatchObject({ testRun: { outcomes: null } });
+      });
+
       it('should tell no failure when the report names none', async () => {
         const application = coverageApplication();
         application.runner.output = {
@@ -157,11 +208,17 @@ describe('RunTestsHandler', () => {
         const result = await handlerOf(application).execute(MEASURED, RUNNING);
 
         expect(result).toMatchObject({
-          testRun: { status: 'timed_out', exitCode: null, firstFailure: null },
+          testRun: {
+            status: 'timed_out',
+            exitCode: null,
+            firstFailure: null,
+            outcomes: null,
+          },
           coverage: null,
         });
         expect(application.reader.requests).toEqual([]);
         expect(application.testReports.requests).toEqual([]);
+        expect(application.testReports.outcomeRequests).toEqual([]);
       });
     });
 

@@ -90,4 +90,34 @@ describe('JsonTestReportReader', () => {
       }
     });
   });
+
+  describe('outcomes', () => {
+    async function outcomes() {
+      return new JsonTestReportReader().outcomes({
+        workingCopyPath: folder.root,
+        reportPath: join(folder.root, REPORT),
+      });
+    }
+
+    it('should count the tests and name the failing ones in the copy', async () => {
+      folder.write(REPORT, failedToRunAt(realpathSync(folder.root)));
+
+      await expect(outcomes()).resolves.toEqual({
+        ran: 1,
+        failing: [
+          { file: FilePath.create('tests/helpers/utils.test.ts'), test: null },
+        ],
+      });
+    });
+
+    it('should give nothing when the runner wrote no report', async () => {
+      await expect(outcomes()).resolves.toBeNull();
+    });
+
+    it('should give nothing for JSON of another shape', async () => {
+      folder.write(REPORT, '{"testResults": [{"name": 7}]}');
+
+      await expect(outcomes()).resolves.toBeNull();
+    });
+  });
 });

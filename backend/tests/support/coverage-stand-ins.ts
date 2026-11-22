@@ -10,6 +10,7 @@ import type {
 import type { SourceClassifier } from '#coverage/application/ports/source-classifier.port';
 import type {
   TestFailure,
+  TestOutcomes,
   TestReportReader,
   TestReportRequest,
 } from '#coverage/application/ports/test-report-reader.port';
@@ -188,16 +189,29 @@ export interface FixedTestReportReader extends TestReportReader {
   readonly requests: TestReportRequest[];
   /** `null` when the report names no failure. */
   failure: TestFailure | null;
+  /** The requests for the outcomes, kept apart from those for a failure. */
+  readonly outcomeRequests: TestReportRequest[];
+  /** `null` when there is no report that can be read. */
+  reported: TestOutcomes | null;
 }
 
-/** Keeps every request and answers the failure a test sets. */
+/** What the report of the fixture project says: two tests that passed. */
+export const FIXTURE_OUTCOMES: TestOutcomes = { ran: 2, failing: [] };
+
+/** Keeps every request and answers the failure and outcomes a test sets. */
 export function fixedTestReportReader(): FixedTestReportReader {
   const reader: FixedTestReportReader = {
     requests: [],
     failure: null,
+    outcomeRequests: [],
+    reported: FIXTURE_OUTCOMES,
     firstFailure: async (request) => {
       reader.requests.push(request);
       return Promise.resolve(reader.failure);
+    },
+    outcomes: async (request) => {
+      reader.outcomeRequests.push(request);
+      return Promise.resolve(reader.reported);
     },
   };
   return reader;

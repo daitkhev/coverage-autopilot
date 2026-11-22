@@ -67,7 +67,7 @@ function failuresOf(report: TestReport): ReportedFailure[] {
 }
 
 /** One line of plain characters, with `.` for the root of the copy. */
-function plainLine(line: string, roots: readonly string[]): string {
+export function plainLine(line: string, roots: readonly string[]): string {
   return roots
     .reduce((kept, root) => kept.replaceAll(root, ROOT), line)
     .replace(UNPRINTABLE, ' ')

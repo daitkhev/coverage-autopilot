@@ -207,6 +207,24 @@ export interface TestFailureDto {
 }
 
 /**
+ * A test that failed, by its file and its full name: every `describe`
+ * around it, then the test, as two copies of one commit both name it. A
+ * file that failed to run has no name and counts as one test.
+ */
+export interface FailingTestDto {
+  readonly file: FilePath;
+  readonly test: string | null;
+}
+
+/** Which tests of a run ran, and which of them failed. */
+export interface TestOutcomesDto {
+  /** Those that passed or failed, a file that failed to run as one. */
+  readonly ran: number;
+  /** Each test once, in the order of the report of the runner. */
+  readonly failing: readonly FailingTestDto[];
+}
+
+/**
  * `failed` is a result, not a fault: some test failed, or the runner
  * stopped with an error of its own.
  */
@@ -220,6 +238,12 @@ export interface TestRunDto {
    * run, and when the runner wrote no report that names one.
    */
   readonly firstFailure: TestFailureDto | null;
+  /**
+   * `null` when the runner wrote no report of its tests, or one that
+   * names a test in no file of the copy: no failure can then be told
+   * from another.
+   */
+  readonly outcomes: TestOutcomesDto | null;
 }
 
 /**

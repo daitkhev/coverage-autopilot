@@ -102,6 +102,10 @@ export function runCoverageOf(
   return { parameters, files: [file] };
 }
 
+/** The tests of the project that a run which passed ran. */
+const RAN = 4;
+
+/** A run that passed names its tests. Any other names none by default. */
 function testRunDtoOf(status: TestRunDto['status']): TestRunDto {
   return {
     status,
@@ -109,6 +113,7 @@ function testRunDtoOf(status: TestRunDto['status']): TestRunDto {
     durationMs: 900,
     outputReference: `test-run-${status}`,
     firstFailure: null,
+    outcomes: status === 'passed' ? { ran: RAN, failing: [] } : null,
   };
 }
 

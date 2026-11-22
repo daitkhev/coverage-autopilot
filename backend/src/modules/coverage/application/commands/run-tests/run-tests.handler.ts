@@ -10,6 +10,7 @@ import type {
   RunCoverageDto,
   RunTestsResult,
   TestFailureDto,
+  TestOutcomesDto,
   TestRunDto,
 } from '#coverage/application/contracts/coverage-public-api';
 import {
@@ -23,6 +24,7 @@ import {
 import {
   TEST_REPORT_READER,
   type TestReportReader,
+  type TestReportRequest,
 } from '#coverage/application/ports/test-report-reader.port';
 
 function coverageDtoOf(
@@ -36,6 +38,13 @@ function coverageDtoOf(
     )
     .map(runFileDtoOf);
   return { parameters: parametersDtoOf(record.detection.parameters), files };
+}
+
+function reportOf(record: TestRunRecord): TestReportRequest {
+  return {
+    workingCopyPath: record.workingCopyPath,
+    reportPath: record.output.resultsPath,
+  };
 }
 
 function statusOf(record: TestRunRecord): TestRunDto['status'] {
@@ -95,15 +104,20 @@ export class RunTestsHandler {
       durationMs: result.durationMs,
       outputReference: record.outputReference,
       firstFailure: status === 'failed' ? await this.failureOf(record) : null,
+      outcomes: status === 'timed_out' ? null : await this.outcomesOf(record),
     };
   }
 
   private async failureOf(
     record: TestRunRecord,
   ): Promise<TestFailureDto | null> {
-    return this.reports.firstFailure({
-      workingCopyPath: record.workingCopyPath,
-      reportPath: record.output.resultsPath,
-    });
+    return this.reports.firstFailure(reportOf(record));
+  }
+
+  /** A run stopped at its time limit wrote no whole report. */
+  private async outcomesOf(
+    record: TestRunRecord,
+  ): Promise<TestOutcomesDto | null> {
+    return this.reports.outcomes(reportOf(record));
   }
 }
