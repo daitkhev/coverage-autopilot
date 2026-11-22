@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { instanceLocationIn } from '#api/instance-location';
+import type { ServiceApi } from '#api/service-api';
 import { launchService } from '#api/service-launch';
 import {
   answerAfterStart,
@@ -9,6 +10,7 @@ import {
   type ServiceDidNotStart,
   type ServiceStartOptions,
 } from '#api/service-start';
+import { isServiceUnreachable } from '#api/service-unreachable-error';
 
 /** What a service of its own is started with. */
 export interface IsolatedServiceOptions extends Omit<
@@ -25,6 +27,12 @@ export interface IsolatedServiceOptions extends Omit<
 
 /** A service of its own that answers, and the one way to end it. */
 interface IsolatedReadyService extends ReadyService {
+  /**
+   * Itself while it answers. A service that stopped, as one asked to
+   * restart does, is started again in the same folder, so the socket a
+   * client holds leads to the new one.
+   */
+  again(observe: ServiceStartOptions['observe']): Promise<IsolatedService>;
   /**
    * Ends the service, the one process this client started, and removes
    * its folder.
@@ -44,6 +52,18 @@ function remove(folder: string): void {
   rmSync(folder, { recursive: true, force: true });
 }
 
+async function answers(api: ServiceApi): Promise<boolean> {
+  try {
+    await api.health();
+    return true;
+  } catch (error) {
+    if (isServiceUnreachable(error)) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 /** Starts the service in the folder, and ends it again on a fault. */
 async function startedIn(
   folder: string,
@@ -58,13 +78,21 @@ async function startedIn(
       await launched.end(options);
       return answer;
     }
-    return {
+    const service: IsolatedReadyService = {
       ...answer,
+      again: async (observe) => {
+        if (await answers(answer.api)) {
+          return service;
+        }
+        await launched.end(options);
+        return startedIn(folder, { ...options, observe });
+      },
       stop: async () => {
         await launched.end(options);
         remove(folder);
       },
     };
+    return service;
   } catch (error) {
     await launched.end(options);
     throw error;

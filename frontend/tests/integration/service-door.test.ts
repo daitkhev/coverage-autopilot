@@ -83,6 +83,30 @@ describe('doorOf', () => {
       await door.leave();
     });
 
+    it('should start it again in its folder once it stopped answering', async () => {
+      const stop = { status: 202, body: { stopping: true }, leaves: true };
+      const command = bench.standIn({ health: IDLE_HEALTH, stop });
+      const door = doorOf({ ...setting(), command }, { isolated: true });
+      const first = await door.reach(() => undefined);
+      if (first.outcome !== 'ready') {
+        throw new Error('The first service did not start.');
+      }
+      await first.api.stopService();
+      await bench.pauseUntil(() => {
+        expect(bench.runningIds()).toEqual([]);
+      })(0);
+
+      const second = await door.reach(() => undefined);
+
+      expect(second.outcome).toBe('ready');
+      expect(bench.startedIds()).toHaveLength(2);
+      expect(ownInstances()).toHaveLength(1);
+      await expect(first.api.health()).resolves.toEqual(IDLE_HEALTH);
+      await door.leave();
+      expect(bench.runningIds()).toEqual([]);
+      expect(ownInstances()).toEqual([]);
+    });
+
     it('should stop it and remove its folder on the way out', async () => {
       const door = doorOf(setting(), { isolated: true });
       await door.reach(() => undefined);

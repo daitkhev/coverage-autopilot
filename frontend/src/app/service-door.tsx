@@ -68,14 +68,17 @@ function isolatedDoor(setting: ServiceSetting): ServiceDoor {
   let own: IsolatedService | undefined;
   return {
     reach: async (observe) => {
-      own ??= await startIsolatedService({
-        command: setting.command,
-        variables: setting.variables,
-        temporaryRoot: setting.temporaryRoot,
-        wait: WAIT,
-        pause,
-        observe,
-      });
+      own =
+        own?.outcome === 'ready'
+          ? await own.again(observe)
+          : await startIsolatedService({
+              command: setting.command,
+              variables: setting.variables,
+              temporaryRoot: setting.temporaryRoot,
+              wait: WAIT,
+              pause,
+              observe,
+            });
       return own;
     },
     leave: async () => {
