@@ -55,6 +55,10 @@ describe('cleanSettingsIn', () => {
       );
     });
 
+    it('should end them with a line break when the last setting is dropped', () => {
+      expect(cleaned(`${LINKER}yarnPath: ./yarn.cjs\n`)).toBe(LINKER);
+    });
+
     it('should not follow what code of the repository left at the place of its file', () => {
       const outside = folderWith({ 'kept.yml': 'untouched\n' });
       const folder = folderWith({ '.yarnrc.yml': LINKER });

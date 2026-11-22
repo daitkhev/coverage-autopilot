@@ -117,11 +117,14 @@ function unreadable(where: string): UnsupportedProject {
   );
 }
 
-/** Whatever code of the repository left at the place is removed first. */
+/**
+ * Whatever code of the repository left at the place is removed first. The
+ * line break that ended a dropped setting is put back at the end.
+ */
 function writeClean(root: string, lines: readonly string[]): void {
   const path = join(root, CLEAN_SETTINGS);
   rmSync(path, { recursive: true, force: true });
-  writeFileSync(path, lines.join('\n'), { flag: 'wx' });
+  writeFileSync(path, `${lines.join('\n').trimEnd()}\n`, { flag: 'wx' });
 }
 
 /**
