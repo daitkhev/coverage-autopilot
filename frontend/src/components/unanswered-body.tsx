@@ -24,7 +24,7 @@ export type Shown<Value> =
   Unanswered | { readonly kind: 'answered'; readonly value: Value };
 
 /** An answer of the service as a screen reads it: a value or a refusal. */
-type Reply<Value> =
+export type Reply<Value> =
   | { readonly outcome: 'answered'; readonly value: Value }
   | { readonly outcome: 'refused'; readonly error: ErrorBody };
 

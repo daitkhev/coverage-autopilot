@@ -7,18 +7,19 @@ import type {
 } from '@coverage-autopilot/api-contracts/snapshots';
 
 import type { ClientSession } from '#api/client-session';
+import { improvementStartOf } from '#api/improvement-start';
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import { SplitView } from '#components/split-view';
+import { StartDialog } from '#components/start-dialog';
 import { type Freshness, StatusLine } from '#components/status-line';
 import { FileDetails } from '#screens/files/file-details';
 import { FileListPanel } from '#screens/files/file-list';
 import { type Browser, useBrowser } from '#screens/files/files-browsing';
 import { filesHints } from '#screens/files/files-keys';
 import { RepositoryLine } from '#screens/files/repository-line';
-import { StartDialog } from '#screens/files/start-dialog';
 import { countWords } from '#theme/counts';
 import { repositoryName } from '#theme/names';
 
@@ -128,8 +129,7 @@ function dialogOf(
     : {
         dialog: (
           <StartDialog
-            session={props.session}
-            repositoryId={props.repository.id}
+            calls={improvementStartOf(props.session.api, props.repository.id)}
             snapshotId={props.files.snapshotId}
             filePath={starting.path}
             onOpenImprovement={props.onOpenImprovement}

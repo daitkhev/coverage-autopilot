@@ -2,32 +2,10 @@ import type { BudgetSettings } from '@coverage-autopilot/api-contracts/improveme
 import type { AccessCheck } from '@coverage-autopilot/api-contracts/repositories';
 import type { ImprovementMode } from '@coverage-autopilot/api-contracts/statuses';
 
-import type { ServiceAnswer, ServiceApi } from '#api/service-api';
-
 /** What the dialog needs before anything can start. */
 export interface StartFacts {
   readonly settings: BudgetSettings;
   readonly access: AccessCheck;
-}
-
-/**
- * The limits with their maximums, and the preflight, asked together: the
- * dialog shows neither until it can show both.
- */
-export async function loadStartFacts(
-  api: ServiceApi,
-  repositoryId: string,
-): Promise<ServiceAnswer<StartFacts>> {
-  const [settings, access] = await Promise.all([
-    api.getBudgetSettings(),
-    api.checkAccess(repositoryId),
-  ]);
-  if (settings.outcome === 'refused') {
-    return settings;
-  }
-  return access.outcome === 'refused'
-    ? access
-    : { ...access, value: { settings: settings.value, access: access.value } };
 }
 
 /** What the person chose: three limits and how the work is published. */

@@ -6,36 +6,37 @@ import type {
   StartImprovementRequest,
 } from '@coverage-autopilot/api-contracts/improvements';
 
-import type { ClientSession } from '#api/client-session';
-import { newRequestKey } from '#api/request-key';
-import type { ServiceAnswer, ServiceApi } from '#api/service-api';
 import { Dialog } from '#components/dialog';
 import type { KeyHint } from '#components/key-hints';
-import { type ActionState, useAction } from '#hooks/use-action';
-import { type KeyHandlers, useKeys } from '#hooks/use-keys';
-import { StartForm } from '#screens/files/start-form';
+import { StartForm } from '#components/start-form';
 import {
   changed,
   fieldsOf,
   type LimitField,
   type Limits,
   limitsOf,
-  loadStartFacts,
   type StartFacts,
-} from '#screens/files/start-limits';
-import {
-  StageContent,
-  stageOf,
-  StartOutcome,
-} from '#screens/files/start-stage';
+} from '#components/start-limits';
+import { StageContent, stageOf, StartOutcome } from '#components/start-stage';
+import type { Reply } from '#components/unanswered-body';
+import { type ActionState, useAction } from '#hooks/use-action';
+import { type KeyHandlers, useKeys } from '#hooks/use-keys';
 import { DIALOG_WIDTH } from '#theme/widths';
 
 /** As wide as the list of commands: the widest dialog that fits in 80. */
 const FORM_WIDTH = DIALOG_WIDTH.palette;
 
+/** What a start asks the service: the preflight with the limits, the start. */
+interface StartCalls {
+  readonly prepare: () => Promise<Reply<StartFacts>>;
+  /** One start for one confirmation: a new key each time. */
+  readonly start: (
+    request: StartImprovementRequest,
+  ) => Promise<Reply<Improvement>>;
+}
+
 interface StartDialogProps {
-  readonly session: ClientSession;
-  readonly repositoryId: string;
+  readonly calls: StartCalls;
   readonly snapshotId: string;
   readonly filePath: string;
   readonly onOpenImprovement: (improvementId: string) => void;
@@ -43,9 +44,7 @@ interface StartDialogProps {
 }
 
 /** The improvement a refusal names, which `enter` then opens. */
-function namedBy(
-  state: ActionState<ServiceAnswer<Improvement>>,
-): string | undefined {
+function namedBy(state: ActionState<Reply<Improvement>>): string | undefined {
   return state.phase === 'ended' && state.outcome.outcome === 'refused'
     ? state.outcome.error.improvementId
     : undefined;
@@ -56,7 +55,7 @@ const CLOSE: KeyHint = { key: 'esc', label: 'close' };
 const CHECK_AGAIN: KeyHint = { key: 'enter', label: 'check again' };
 
 /** The keys of the form. A refusal that names an improvement opens it. */
-function readyHints(start: ActionState<ServiceAnswer<Improvement>>): KeyHint[] {
+function readyHints(start: ActionState<Reply<Improvement>>): KeyHint[] {
   const enter = namedBy(start) === undefined ? 'start' : 'open it';
   return [
     { key: 'enter', label: enter },
@@ -66,13 +65,13 @@ function readyHints(start: ActionState<ServiceAnswer<Improvement>>): KeyHint[] {
   ];
 }
 
-/** Starts the improvement with a new key, made for this one confirmation. */
+/** Starts the improvement, and opens it once the service took it. */
 async function begin(
-  api: ServiceApi,
+  calls: StartCalls,
   request: StartImprovementRequest,
   onStarted: (improvementId: string) => void,
-): Promise<ServiceAnswer<Improvement>> {
-  const answer = await api.startImprovement(request, newRequestKey());
+): Promise<Reply<Improvement>> {
+  const answer = await calls.start(request);
   if (answer.outcome === 'answered') {
     onStarted(answer.value.id);
   }
@@ -165,15 +164,13 @@ function ReadyDialog({
   readonly props: StartDialogProps;
   readonly facts: StartFacts;
 }): ReactNode {
-  const start = useAction<ServiceAnswer<Improvement>>();
+  const start = useAction<Reply<Improvement>>();
   const form = useForm(facts.settings);
   const confirm = (): void => {
     const named = namedBy(start.state);
     if (named === undefined) {
       const request = requestOf(props, form.limits);
-      start.start(() =>
-        begin(props.session.api, request, props.onOpenImprovement),
-      );
+      start.start(() => begin(props.calls, request, props.onOpenImprovement));
     } else {
       props.onOpenImprovement(named);
     }
@@ -199,9 +196,9 @@ function ReadyDialog({
  * it on `enter`.
  */
 export function StartDialog(props: StartDialogProps): ReactNode {
-  const prepare = useAction<ServiceAnswer<StartFacts>>();
+  const prepare = useAction<Reply<StartFacts>>();
   const check = (): void => {
-    prepare.start(() => loadStartFacts(props.session.api, props.repositoryId));
+    prepare.start(props.calls.prepare);
   };
   useEffect(check, []);
   const stage = stageOf(prepare.state);

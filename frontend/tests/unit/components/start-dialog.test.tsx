@@ -3,8 +3,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { BudgetSettings } from '@coverage-autopilot/api-contracts/improvements';
 
+import { improvementStartOf } from '#api/improvement-start';
 import type { ServiceApi } from '#api/service-api';
-import { StartDialog } from '#screens/files/start-dialog';
+import { StartDialog } from '#components/start-dialog';
 import {
   answered,
   fakeSession,
@@ -45,8 +46,7 @@ function opened(scripted: Partial<ServiceApi>) {
   const session = fakeSession(scripted);
   const dialog = (
     <StartDialog
-      session={session}
-      repositoryId={SCANNED_REPOSITORY.id}
+      calls={improvementStartOf(session.api, SCANNED_REPOSITORY.id)}
       snapshotId={PAYMENTS_SNAPSHOT.id}
       filePath="src/billing/invoice.ts"
       onOpenImprovement={(id) => {

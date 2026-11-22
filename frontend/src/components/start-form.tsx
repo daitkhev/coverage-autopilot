@@ -7,11 +7,7 @@ import { AccessSteps } from '#components/access-steps';
 import { Glyph } from '#components/glyph';
 import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
-import type {
-  LimitField,
-  Limits,
-  StartFacts,
-} from '#screens/files/start-limits';
+import type { LimitField, Limits, StartFacts } from '#components/start-limits';
 import { GAP } from '#theme/widths';
 
 /** The cells of the name of a field, and of its value. */

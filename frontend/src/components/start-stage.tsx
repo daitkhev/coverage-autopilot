@@ -5,14 +5,14 @@ import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 import type { AccessCheck } from '@coverage-autopilot/api-contracts/repositories';
 
-import type { ServiceAnswer } from '#api/service-api';
 import { AccessSteps } from '#components/access-steps';
 import { ErrorDetails } from '#components/error-details';
 import { BusyLine, FaultLine, RefusalLine } from '#components/outcome-line';
 import { faultWords } from '#components/problem-details';
 import { Section } from '#components/section';
+import type { StartFacts } from '#components/start-limits';
+import type { Reply } from '#components/unanswered-body';
 import type { ActionState } from '#hooks/use-action';
-import type { StartFacts } from '#screens/files/start-limits';
 import { ACCESS_CHECK_STATUS } from '#theme/status';
 
 /** Where the dialog is before anything can start. */
@@ -24,7 +24,7 @@ export type Stage =
   | { readonly kind: 'ready'; readonly facts: StartFacts };
 
 /** Where the preflight is: running, failed, refused, or passed. */
-export function stageOf(state: ActionState<ServiceAnswer<StartFacts>>): Stage {
+export function stageOf(state: ActionState<Reply<StartFacts>>): Stage {
   if (state.phase === 'failed') {
     return { kind: 'unanswered', failure: state.failure };
   }
@@ -82,7 +82,7 @@ function AccessRefused({
 export function StartOutcome({
   state,
 }: {
-  readonly state: ActionState<ServiceAnswer<Improvement>>;
+  readonly state: ActionState<Reply<Improvement>>;
 }): ReactNode {
   switch (state.phase) {
     case 'running':
