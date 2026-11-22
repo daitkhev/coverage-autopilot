@@ -1126,6 +1126,17 @@ Tests and the gate:
 - Mutation tests cover the harness only, and the rule that keeps colour
   and symbols in the theme is not written.
 
+Thought of after the first real runs, and left for later by the owner:
+
+- A hint to trust a repository the account may push to. It is offered
+  and never set by itself: the right to push does not make code safe.
+- A network for the tests of a trusted repository. Tests that call a
+  real service would run then, but it is a real weakening, and such
+  tests want keys as well.
+- A token of a private registry that an install alone can read. A
+  trusted install does not help a repository whose packages are private:
+  the sandbox holds no token.
+
 Found done since they were written: the reason of a scan that ran out
 of time, the refusal of a monorepo and of another package manager, the
 patch taken after the sandbox ended, the refusal of a patch that holds
