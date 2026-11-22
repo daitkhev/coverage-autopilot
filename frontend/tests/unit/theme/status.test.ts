@@ -9,6 +9,7 @@ import {
   stepStatusSchema,
   unmeasuredReasonSchema,
   verdictSchema,
+  waitingForSchema,
 } from '@coverage-autopilot/api-contracts/statuses';
 
 import {
@@ -22,6 +23,8 @@ import {
   SERVICE_STATE,
   type StatusLook,
   UNMEASURED_REASON,
+  WAITING_FOR,
+  waitWords,
 } from '#theme/status';
 
 const TABLES: Readonly<Record<string, Readonly<Record<string, StatusLook>>>> = {
@@ -70,6 +73,7 @@ const CONTRACT = [
     rows: UNMEASURED_REASON,
     schema: unmeasuredReasonSchema,
   },
+  { table: 'WAITING_FOR', rows: WAITING_FOR, schema: waitingForSchema },
   {
     table: 'ACCESS_STEP_WORDS',
     rows: ACCESS_STEP_WORDS,
@@ -150,4 +154,27 @@ describe('UNMEASURED_REASON', () => {
       expect(words.next).toMatch(/\.$/u);
     },
   );
+});
+
+describe('waitWords', () => {
+  const NO_WAIT = {
+    status: 'created',
+    waitingFor: null,
+    resumesAt: null,
+  } as const;
+
+  it.each([
+    [NO_WAIT, 'for its turn'],
+    [{ ...NO_WAIT, waitingFor: 'worker' } as const, 'for a free worker'],
+    [
+      {
+        status: 'waiting_for_limit',
+        waitingFor: null,
+        resumesAt: '2026-11-21T16:00:00.000Z',
+      } as const,
+      'for the limit until 16:00',
+    ],
+  ])('should say what %o waits for', (improvement, words) => {
+    expect(waitWords(improvement, 'UTC')).toBe(words);
+  });
 });

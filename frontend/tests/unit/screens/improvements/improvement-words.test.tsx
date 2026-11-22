@@ -45,12 +45,12 @@ describe('besideWords', () => {
       [
         'for a limit with no moment it ends',
         { ...waiting_for_limit, resumesAt: null },
-        'waits for the limit of the generator',
+        'waits for the limit',
       ],
       [
         'for a limit, by its status alone',
         { ...waiting_for_limit, waitingFor: null },
-        'limit spent, resumes at 16:00',
+        'waits for the limit until 16:00',
       ],
     ])('should say that it waits %s', (_case, improvement, words) => {
       expect(said(improvement)).toBe(words);

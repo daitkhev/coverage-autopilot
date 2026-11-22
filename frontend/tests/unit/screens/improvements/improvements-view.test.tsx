@@ -128,7 +128,9 @@ describe('ImprovementsView', () => {
     const drawn = draw();
 
     expect(drawn).toContain('example/payments · waits for its repository');
-    expect(drawn).toContain('example/payments · limit spent, resumes at 16:00');
+    expect(drawn).toContain(
+      'example/payments · waits for the limit until 16:00',
+    );
   });
 
   describe('when another improvement is chosen', () => {
@@ -137,7 +139,11 @@ describe('ImprovementsView', () => {
       { index: 2, heading: 'RUNNING', words: 'attempt 2 of 3, writing a test' },
       { index: 3, heading: 'RUNNING', words: 'attempt 2 of 3, check 5 of 7' },
       { index: 4, heading: 'RUNNING', words: 'publishing' },
-      { index: 5, heading: 'WAITING', words: 'waits for its repository' },
+      {
+        index: 5,
+        heading: 'WAITING',
+        words: 'waits for its repository',
+      },
       { index: 7, heading: 'HOW IT ENDED', words: 'pull request #131' },
       { index: 8, heading: 'HOW IT ENDED', words: '3 attempts were rejected.' },
     ])(

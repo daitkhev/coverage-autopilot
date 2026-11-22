@@ -20,7 +20,7 @@ exports[`ImprovementsView > should group the improvements by what they need, wit
  │   ○ WAIT    src/api/refund.ts                              30s │ │                                         │
  │             example/payments · waits for its repository        │ │                                         │
  │   ○ WAIT    src/billing/discount.ts                         1s │ │                                         │
- │             example/payments · limit spent, resumes at 16:00   │ │                                         │
+ │             example/payments · waits for the limit until 16:00 │ │                                         │
  │ FINISHED 4 ─────────────────────────────────────────────────── │ │                                         │
  │   ✓ DONE    src/billing/currency.ts                        45m │ │                                         │
  │             example/payments · pull request #131               │ │                                         │
@@ -94,7 +94,7 @@ exports[`ImprovementsView > when the last request failed > should keep the last 
  │   ○ WAIT    src/api/refund.ts                              30s │ │                                         │
  │             example/payments · waits for its repository        │ │                                         │
  │   ○ WAIT    src/billing/discount.ts                         1s │ │                                         │
- │             example/payments · limit spent, resumes at 16:00   │ │                                         │
+ │             example/payments · waits for the limit until 16:00 │ │                                         │
  │ FINISHED 4 ─────────────────────────────────────────────────── │ │                                         │
  │   ✓ DONE    src/billing/currency.ts                        45m │ │                                         │
  │             example/payments · pull request #131               │ │                                         │

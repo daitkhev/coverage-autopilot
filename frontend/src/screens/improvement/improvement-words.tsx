@@ -4,7 +4,6 @@ import type {
   ImprovementFailureReason,
   ImprovementStatus,
   SkipReason,
-  WaitingFor,
 } from '@coverage-autopilot/api-contracts/statuses';
 
 import type { StatusLook } from '#theme/status';
@@ -25,14 +24,6 @@ export const DOING: Readonly<Record<ImprovementStatus, string>> = {
   failed: 'Stopped',
   cancelled: 'Cancelled',
   skipped: 'Skipped',
-};
-
-/** Who the improvement waits for, after "Waiting for". */
-export const WAITING_FOR: Readonly<Record<WaitingFor, string>> = {
-  approval: 'your approval',
-  worker: 'a free worker',
-  repository: 'the earlier work of its repository',
-  limit: 'the limit of the generator to open again',
 };
 
 /** A failure as a sentence first, with what to do after it. */

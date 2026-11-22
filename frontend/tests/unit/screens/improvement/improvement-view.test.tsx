@@ -197,8 +197,7 @@ describe('ImprovementView', () => {
       });
 
       const frame = frameOf(terminal);
-      expect(frame).toContain('○ Waiting for the limit of the generator');
-      expect(frame).toContain('at 16:00');
+      expect(frame).toContain('○ Waiting for the limit until 16:00');
       expect(frame).not.toContain('! Waiting');
     });
   });

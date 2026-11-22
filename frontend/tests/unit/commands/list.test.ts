@@ -34,10 +34,10 @@ describe('list', () => {
 
     expect(io.printed).toMatchInlineSnapshot(`
       [
-        "example/payments  ○ WAIT    improvement-refund    src/api/refund.ts        30s  waits for other work of its repository",
+        "example/payments  ○ WAIT    improvement-refund    src/api/refund.ts        30s  waits for its repository",
         "example/payments  ⠋ RUN     improvement-entries   src/ledger/entries.ts    1s   analyzing",
         "example/payments  ⠋ RUN     improvement-tax       src/billing/tax.ts       1s   attempt 2 of 3, writing a test",
-        "example/payments  ○ WAIT    improvement-discount  src/billing/discount.ts  1s   waits for the limit of the subscription until 16:00",
+        "example/payments  ○ WAIT    improvement-discount  src/billing/discount.ts  1s   waits for the limit until 16:00",
         "example/payments  ⠋ RUN     improvement-invoice   src/billing/invoice.ts   1s   attempt 2 of 3, checking the patch",
         "example/payments  ? REVIEW  improvement-sum       src/billing/sum.ts       3h   approve the patch",
         "example/payments  ⠋ RUN     improvement-rounding  src/billing/rounding.ts  1s   publishing",

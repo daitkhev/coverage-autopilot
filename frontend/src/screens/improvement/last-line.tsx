@@ -6,14 +6,9 @@ import type { Improvement } from '@coverage-autopilot/api-contracts/improvements
 import { checkWordsOf } from '#components/gate-checks';
 import { Glyph } from '#components/glyph';
 import { RoleText } from '#components/role-text';
-import { DOING, WAITING_FOR } from '#screens/improvement/improvement-words';
-import {
-  ageWords,
-  clockWords,
-  isOlderThan,
-  STALE_AFTER_MS,
-} from '#theme/moments';
-import { IMPROVEMENT_STATUS, type StatusLook } from '#theme/status';
+import { DOING } from '#screens/improvement/improvement-words';
+import { ageWords, isOlderThan, STALE_AFTER_MS } from '#theme/moments';
+import { IMPROVEMENT_STATUS, type StatusLook, waitWords } from '#theme/status';
 import { GAP } from '#theme/widths';
 
 /** A worker that stopped reporting does not look busy. */
@@ -25,11 +20,8 @@ const QUIET: StatusLook = {
 
 /** What the service does now: what it waits for, or the step it runs. */
 function doingWords(improvement: Improvement, timeZone: string): string {
-  const { waitingFor, resumesAt } = improvement;
-  if (waitingFor !== null) {
-    const until =
-      resumesAt === null ? '' : ` at ${clockWords(resumesAt, timeZone)}`;
-    return `Waiting for ${WAITING_FOR[waitingFor]}${until}`;
+  if (improvement.waitingFor !== null) {
+    return `Waiting ${waitWords(improvement, timeZone)}`;
   }
   const running = improvement.progress?.steps.find(
     (step) => step.status === 'running',

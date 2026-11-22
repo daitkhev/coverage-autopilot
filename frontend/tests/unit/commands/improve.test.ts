@@ -53,7 +53,7 @@ const PUBLISHING: Improvement = {
   attempts: BY_STATUS.completed.attempts,
 };
 
-const WAITING_LINE = 'waiting      for other work of its repository';
+const WAITING_LINE = 'waiting      for its repository';
 const REJECTED_LINE =
   'attempt 1    rejected: The new tests detect 0 of 14 mutants.';
 
@@ -93,7 +93,7 @@ describe('improve', () => {
       ],
     });
     expect(io.printed).toEqual([
-      '○ WAIT  improvement-refund  src/api/refund.ts  30s  waits for other work of its repository',
+      '○ WAIT  improvement-refund  src/api/refund.ts  30s  waits for its repository',
     ]);
   });
 
@@ -283,7 +283,7 @@ describe('improve', () => {
 
       expect(io.said.slice(1, 3)).toEqual([
         REJECTED_LINE,
-        'waiting      for the limit of the subscription until 16:00',
+        'waiting      for the limit until 16:00',
       ]);
     });
   });

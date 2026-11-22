@@ -28,13 +28,10 @@ function reportOf(attempt: Attempt): VerificationReport {
 
 describe('statusWords', () => {
   it.each<[Improvement, string]>([
-    [BY_STATUS.created, '○ WAIT  waits for other work of its repository'],
+    [BY_STATUS.created, '○ WAIT  waits for its repository'],
     [BY_STATUS.analyzing, '⠋ RUN  analyzing'],
     [BY_STATUS.generating, '⠋ RUN  attempt 2 of 3, writing a test'],
-    [
-      BY_STATUS.waiting_for_limit,
-      '○ WAIT  waits for the limit of the subscription until 16:00',
-    ],
+    [BY_STATUS.waiting_for_limit, '○ WAIT  waits for the limit until 16:00'],
     [BY_STATUS.verifying, '⠋ RUN  attempt 2 of 3, checking the patch'],
     [BY_STATUS.awaiting_approval, '? REVIEW  approve the patch'],
     [BY_STATUS.publishing, '⠋ RUN  publishing'],

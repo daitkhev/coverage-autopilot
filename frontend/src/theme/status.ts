@@ -1,3 +1,4 @@
+import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 import type {
   AccessCheckName,
   AccessCheckStatus,
@@ -7,8 +8,10 @@ import type {
   StepStatus,
   UnmeasuredReason,
   Verdict,
+  WaitingFor,
 } from '@coverage-autopilot/api-contracts/statuses';
 
+import { clockWords } from '#theme/moments';
 import type { Role } from '#theme/roles';
 import type { GlyphName } from '#theme/symbols';
 
@@ -47,6 +50,32 @@ export const SCAN_STATUS: Readonly<Record<ScanStatus, StatusLook>> = {
   failed: { glyph: 'failed', word: 'FAIL', role: 'danger' },
   cancelled: { glyph: 'cancelled', word: 'CANCEL', role: 'secondary' },
 };
+
+/** Who or what an improvement waits for, after "waits for". */
+export const WAITING_FOR: Readonly<Record<WaitingFor, string>> = {
+  approval: 'your approval',
+  worker: 'a free worker',
+  repository: 'its repository',
+  limit: 'the limit',
+};
+
+/**
+ * What an improvement waits for, after "waits": `for a free worker`, or
+ * `for the limit until 16:00`. One that waits for no one
+ * waits for its turn, unless its status says it waits for the limit.
+ */
+export function waitWords(
+  improvement: Pick<Improvement, 'status' | 'waitingFor' | 'resumesAt'>,
+  timeZone: string,
+): string {
+  const { status, waitingFor, resumesAt } = improvement;
+  const waited =
+    waitingFor ?? (status === 'waiting_for_limit' ? 'limit' : undefined);
+  const what = waited === undefined ? 'its turn' : WAITING_FOR[waited];
+  const until =
+    resumesAt === null ? '' : ` until ${clockWords(resumesAt, timeZone)}`;
+  return `for ${what}${until}`;
+}
 
 /** A refused step of the access check stops the work, so it is red. */
 export const ACCESS_CHECK_STATUS: Readonly<

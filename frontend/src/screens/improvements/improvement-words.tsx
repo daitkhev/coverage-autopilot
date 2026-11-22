@@ -6,6 +6,7 @@ import type {
 
 import { clockWords } from '#theme/moments';
 import type { Role } from '#theme/roles';
+import { waitWords } from '#theme/status';
 
 /** What an improvement needs now: the user, the worker, its turn, nothing. */
 export type GroupName = 'needsYou' | 'running' | 'waiting' | 'finished';
@@ -82,15 +83,11 @@ export function groupOf(improvement: Improvement): GroupName {
 
 type Words = (improvement: Improvement, timeZone: string) => string;
 
-const WAIT_WORDS: Readonly<Record<WaitingFor, Words>> = {
-  approval: () => 'approve the patch',
-  worker: () => 'waits for a free worker',
-  repository: () => 'waits for its repository',
-  limit: ({ resumesAt }, timeZone) =>
-    resumesAt === null
-      ? 'waits for the limit of the generator'
-      : `limit spent, resumes at ${clockWords(resumesAt, timeZone)}`,
-};
+/** What a waiting improvement needs: the user's approval, or its wait. */
+const waitingWords: Words = (improvement, timeZone) =>
+  improvement.waitingFor === 'approval'
+    ? 'approve the patch'
+    : `waits ${waitWords(improvement, timeZone)}`;
 
 function attemptWords({ usage, budget }: Improvement): string {
   return `attempt ${String(usage.attempts)} of ${String(budget.attempts)}`;
@@ -106,11 +103,10 @@ function checkWords({ progress }: Improvement): string {
 }
 
 const STATUS_WORDS: Readonly<Record<ImprovementStatus, Words>> = {
-  created: () => 'waits for its turn',
+  created: waitingWords,
   analyzing: () => 'analyzing',
   generating: (improvement) => `${attemptWords(improvement)}, writing a test`,
-  waiting_for_limit: (improvement, timeZone) =>
-    WAIT_WORDS.limit(improvement, timeZone),
+  waiting_for_limit: waitingWords,
   verifying: (improvement) =>
     `${attemptWords(improvement)}, ${checkWords(improvement)}`,
   awaiting_approval: () => 'approve the patch',
@@ -138,7 +134,7 @@ export function besideWords(
   const words =
     improvement.waitingFor === null
       ? STATUS_WORDS[improvement.status]
-      : WAIT_WORDS[improvement.waitingFor];
+      : waitingWords;
   return words(improvement, timeZone);
 }
 

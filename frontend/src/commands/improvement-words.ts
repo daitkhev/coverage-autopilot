@@ -3,40 +3,20 @@ import type {
   VerificationReport,
 } from '@coverage-autopilot/api-contracts/attempts';
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
-import type {
-  ImprovementStatus,
-  WaitingFor,
-} from '@coverage-autopilot/api-contracts/statuses';
+import type { ImprovementStatus } from '@coverage-autopilot/api-contracts/statuses';
 
 import { type Cells, labelled } from '#commands/columns';
 import type { CommandIo } from '#commands/command-io';
 import { reasonText, statusText } from '#commands/words';
 import { percentWords } from '#theme/counts';
-import { ageWords, clockWords } from '#theme/moments';
-import { ATTEMPT_VERDICT, IMPROVEMENT_STATUS } from '#theme/status';
-
-/** What an improvement waits for, as a person reads it after "for". */
-const WAITING_FOR: Readonly<Record<WaitingFor, string>> = {
-  approval: 'approval',
-  worker: 'a worker',
-  repository: 'other work of its repository',
-  limit: 'the limit of the subscription',
-};
+import { ageWords } from '#theme/moments';
+import { ATTEMPT_VERDICT, IMPROVEMENT_STATUS, waitWords } from '#theme/status';
 
 type Words = (improvement: Improvement, io: CommandIo) => string;
 
 /** What a waiting improvement waits for, and until when if it knows. */
-export const waitingWords: Words = (improvement, io) => {
-  const what =
-    improvement.waitingFor === null
-      ? 'its turn'
-      : WAITING_FOR[improvement.waitingFor];
-  const until =
-    improvement.resumesAt === null
-      ? ''
-      : ` until ${clockWords(improvement.resumesAt, io.session.timeZone)}`;
-  return `for ${what}${until}`;
-};
+export const waitingWords: Words = (improvement, io) =>
+  waitWords(improvement, io.session.timeZone);
 
 /** The attempt that runs, as the service counts the attempts it spent. */
 export function attemptLabel(improvement: Improvement): string {
