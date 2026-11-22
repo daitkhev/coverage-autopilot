@@ -154,7 +154,7 @@ describe('StrykerMutationRunner', () => {
     });
   });
 
-  describe('when the tool ended well and wrote no report', () => {
+  describe('when the tool ended well and wrote no report, not even to list the mutants', () => {
     it('should throw UnreadableMutationReportError', async () => {
       bench.tool.writes({});
 

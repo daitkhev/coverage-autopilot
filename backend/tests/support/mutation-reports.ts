@@ -245,3 +245,21 @@ export function patchedReport(projectRoot: string): string {
     }),
   });
 }
+
+/** Every mutant the tool does not ignore, by its id. */
+const LISTED = ['1', '2', '3', '4', '5', '6', '7', '8', '10'];
+
+/**
+ * A run that only lists the mutants: a command that passes runs in place
+ * of a runner, under no test file, so every mutant survived it.
+ */
+export function listingReport(projectRoot: string): string {
+  const survived = Object.fromEntries(
+    LISTED.map((id) => [id, { status: 'Survived' as const }]),
+  );
+  return reportOf({
+    projectRoot,
+    tests: { '': [['all', 'All tests']] },
+    mutants: mutantsWith(survived),
+  });
+}

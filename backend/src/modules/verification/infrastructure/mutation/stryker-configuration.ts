@@ -52,16 +52,28 @@ const PATTERN_CHARACTERS = /[*?[\]()]/gu;
 const BRACES = /[{}]/gu;
 
 /**
- * The target as a pattern that matches that file, such as `[id].ts`.
+ * A path as a pattern that matches that file, such as `[id].ts`.
  * StrykerJS turns every backslash into a slash, so no character can be
- * escaped with one, and it reads a pattern that starts with `!` as an
- * exclusion, so the pattern starts with `./`.
+ * escaped with one.
+ */
+function patternOf(path: FilePath): string {
+  return path.value.replace(PATTERN_CHARACTERS, '[$&]').replace(BRACES, '?');
+}
+
+/**
+ * The target as a pattern of itself. StrykerJS reads a pattern that
+ * starts with `!` as an exclusion, so the pattern starts with `./`.
  */
 export function mutatePatternOf(path: FilePath): string {
-  const pattern = path.value
-    .replace(PATTERN_CHARACTERS, '[$&]')
-    .replace(BRACES, '?');
-  return `./${pattern}`;
+  return `./${patternOf(path)}`;
+}
+
+/**
+ * A file the tool leaves out of its sandbox, so no runner finds it. The
+ * tool matches each path from the root of the copy with a `/` before it.
+ */
+export function ignorePatternOf(path: FilePath): string {
+  return `/${patternOf(path)}`;
 }
 
 /**
@@ -126,11 +138,33 @@ const EVERY_TEST: Readonly<
  */
 const IGNORED = ['/.yarn/cache'];
 
+/** What every run of the tool shares, whatever runs the tests. */
+function commonPartOf(
+  request: MutationRunRequest,
+  settings: MutationSettings,
+): Readonly<Record<string, unknown>> {
+  return {
+    mutate: [mutatePatternOf(request.targetFile)],
+    concurrency: settings.concurrency,
+    timeoutFactor: settings.mutantTimeoutFactor,
+    timeoutMS: settings.mutantTimeoutMs,
+    reporters: ['json'],
+    jsonReporter: { fileName: REPORT_FILE },
+    tempDirName: MUTATION_FOLDER,
+    ignorePatterns: [
+      ...IGNORED,
+      ...request.leftOutTestFiles.map(ignorePatternOf),
+    ],
+    allowConsoleColors: false,
+  };
+}
+
 /**
  * The configuration of one run. Only the target is mutated. Every test
  * that kills a mutant is listed, the tests are tied to the mutants they
  * run, and the number of test runners is the one of the settings. The
- * project's own configuration of StrykerJS is never read.
+ * project's own configuration of StrykerJS is never read. When the files
+ * left out held every test, the tool ends at once with no report.
  */
 export function strykerConfigurationOf(
   request: MutationRunRequest,
@@ -139,19 +173,31 @@ export function strykerConfigurationOf(
   const configuration = {
     testRunner: request.testRunner,
     ...EVERY_TEST[request.testRunner],
-    mutate: [mutatePatternOf(request.targetFile)],
     coverageAnalysis: 'perTest',
     disableBail: true,
-    concurrency: settings.concurrency,
-    timeoutFactor: settings.mutantTimeoutFactor,
-    timeoutMS: settings.mutantTimeoutMs,
-    reporters: ['json'],
-    jsonReporter: { fileName: REPORT_FILE },
     incremental: true,
     incrementalFile: CACHE_FILE,
-    tempDirName: MUTATION_FOLDER,
-    ignorePatterns: IGNORED,
-    allowConsoleColors: false,
+    allowEmpty: true,
+    ...commonPartOf(request, settings),
+  };
+  return JSON.stringify(configuration);
+}
+
+/**
+ * A run that only lists the mutants, for a commit left with no test: the
+ * runner is a command that passes, so no mutant is detected. Nothing of
+ * it is cached, since its results are not those of any test.
+ */
+export function listingConfigurationOf(
+  request: MutationRunRequest,
+  settings: MutationSettings,
+): string {
+  const configuration = {
+    testRunner: 'command',
+    commandRunner: { command: 'exit 0' },
+    coverageAnalysis: 'off',
+    incremental: false,
+    ...commonPartOf(request, settings),
   };
   return JSON.stringify(configuration);
 }

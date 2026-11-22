@@ -72,7 +72,10 @@ function filesIn(root: string): Files {
 export class StrykerStandIn {
   public readonly sandbox = new RecordingSandbox();
   public found: Files = {};
+  /** What the folder held at the start of each run, in turn. */
+  public readonly foundInTurn: Files[] = [];
   private written: Files;
+  private turns: Files[] = [];
 
   public constructor(written: Files = {}) {
     this.written = written;
@@ -89,9 +92,17 @@ export class StrykerStandIn {
     return this;
   }
 
+  /** What each of the next runs writes, one after the other. */
+  public writesInTurn(...turns: Files[]): this {
+    this.turns = turns;
+    return this;
+  }
+
   private runTool(root: string): void {
     this.found = filesIn(root);
-    for (const [file, content] of Object.entries(this.written)) {
+    this.foundInTurn.push(this.found);
+    const written = this.turns.shift() ?? this.written;
+    for (const [file, content] of Object.entries(written)) {
       writeFileSync(join(root, file), content);
     }
   }

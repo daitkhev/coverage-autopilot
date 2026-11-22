@@ -160,3 +160,21 @@ export function mutantsOf(
     .sort(byPosition);
   return { mutants, mutantSetHash: hashOf(mutants) };
 }
+
+/**
+ * The mutants of a run that only listed them. Its runner was a command
+ * that passes, which the tool files under no test file, so no test of it
+ * is read and no test covers any mutant.
+ */
+export function listedMutantsOf(
+  report: StrykerReport,
+  target: FilePath,
+  scrub: Scrub,
+): MeasuredMutants {
+  const listed = mutantsOf({ ...report, testFiles: {} }, target, scrub);
+  const mutants = listed.mutants.map((mutant) => ({
+    ...mutant,
+    status: 'no_coverage' as const,
+  }));
+  return { mutants, mutantSetHash: listed.mutantSetHash };
+}

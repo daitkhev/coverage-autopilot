@@ -25,12 +25,16 @@ import {
   CACHE_FILE,
   CONFIG_FILE,
   installCommandOf,
+  listingConfigurationOf,
   REPORT_FILE,
   RUN_COMMAND,
   runVariablesOf,
   strykerConfigurationOf,
 } from '#verification/infrastructure/mutation/stryker-configuration';
-import { mutantsOf } from '#verification/infrastructure/mutation/stryker-mutants';
+import {
+  listedMutantsOf,
+  mutantsOf,
+} from '#verification/infrastructure/mutation/stryker-mutants';
 import type { StrykerReport } from '#verification/infrastructure/mutation/stryker-report.schema';
 import {
   parseStrykerReport,
@@ -54,11 +58,20 @@ const STRYKER_ERROR = /\bERROR\b/u;
 /** Enough of what is wrong with a report to find it in the kept output. */
 const PROBLEM_CHARACTERS = 1_000;
 
-/** One run: its request, and how text written in its working copy is kept. */
+/**
+ * One run: its request, how text written in its working copy is kept, and
+ * whether it measures the mutants or only lists them.
+ */
 interface Run {
   readonly request: MutationRunRequest;
   readonly scrub: Scrub;
+  readonly kind: 'measure' | 'listing';
 }
+
+/** The tool found no test to run, and stopped with no failure. */
+const NO_TEST = { outcome: 'no_test' } as const;
+
+type Concluded = MutationRunResult | typeof NO_TEST;
 
 function succeeded(result: SandboxCommandResult): boolean {
   return result.outcome === 'exited' && result.exitCode === 0;
@@ -91,18 +104,13 @@ function finalReportOf(run: Run): StrykerReport | null {
 /**
  * The tool wrote no report. It stops that way when it cannot run on the
  * project, such as when the tests fail before any mutant or the runner
- * plugin does not load. Without a failure it should have written one.
+ * plugin does not load.
  */
 function stoppedEarly(
   result: SandboxCommandResult,
   output: string,
   outputReference: string,
 ): MutationRunResult {
-  if (succeeded(result)) {
-    throw new UnreadableMutationReportError(
-      `${TOOL_NAME} ended without a failure and wrote no ${REPORT_FILE}.`,
-    );
-  }
   const summary = `${TOOL_NAME} stopped before any mutant ran: ${endingOf(result)}`;
   return {
     outcome: 'unsupported',
@@ -176,10 +184,44 @@ export class StrykerMutationRunner implements MutationRunner {
     signal: AbortSignal,
   ): Promise<MutationRunResult> {
     signal.throwIfAborted();
-    const run: Run = { request, scrub: scrubberOf(request.workingCopyPath) };
+    const run: Run = {
+      request,
+      scrub: scrubberOf(request.workingCopyPath),
+      kind: 'measure',
+    };
     await this.prepare(request, baselineCache);
-    const result = await this.runTool(request, signal);
-    return this.conclude(run, result);
+    const result = await this.conclude(
+      run,
+      await this.runTool(request, signal),
+    );
+    return result.outcome === 'no_test'
+      ? this.listMutants(run, signal)
+      : result;
+  }
+
+  /**
+   * The files left out held every test, so the tool ran none. A second
+   * run, with a command that passes in place of the runner, still lists
+   * every mutant of the target, and none of them is detected.
+   */
+  private async listMutants(
+    run: Run,
+    signal: AbortSignal,
+  ): Promise<MutationRunResult> {
+    const { request } = run;
+    prepareFolder(request.workingCopyPath, {
+      [CONFIG_FILE]: listingConfigurationOf(request, this.settings),
+    });
+    const result = await this.conclude(
+      { ...run, kind: 'listing' },
+      await this.runTool(request, signal),
+    );
+    if (result.outcome === 'no_test') {
+      throw new UnreadableMutationReportError(
+        `${TOOL_NAME} ended without a failure and wrote no ${REPORT_FILE}.`,
+      );
+    }
+    return result;
   }
 
   private async notInstalled(
@@ -244,7 +286,7 @@ export class StrykerMutationRunner implements MutationRunner {
   private async conclude(
     run: Run,
     result: SandboxCommandResult,
-  ): Promise<MutationRunResult> {
+  ): Promise<Concluded> {
     const { request, scrub } = run;
     const output = scrub(result.output);
     const outputReference = await this.keep(request, 'mutation-run', output);
@@ -254,7 +296,9 @@ export class StrykerMutationRunner implements MutationRunner {
     }
     const report = finalReportOf(run);
     if (report === null) {
-      return stoppedEarly(result, output, outputReference);
+      return succeeded(result)
+        ? NO_TEST
+        : stoppedEarly(result, output, outputReference);
     }
     return {
       outcome: 'completed',
@@ -263,7 +307,11 @@ export class StrykerMutationRunner implements MutationRunner {
         version: this.settings.toolVersion,
         testRunner: request.testRunner,
       },
-      ...mutantsOf(report, request.targetFile, scrub),
+      ...(run.kind === 'listing' ? listedMutantsOf : mutantsOf)(
+        report,
+        request.targetFile,
+        scrub,
+      ),
       cacheReference: await this.keepCache(run),
       outputReference,
     };

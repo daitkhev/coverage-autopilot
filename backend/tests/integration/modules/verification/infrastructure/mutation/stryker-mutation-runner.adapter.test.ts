@@ -166,6 +166,7 @@ describe('StrykerMutationRunner', () => {
         jsonReporter: { fileName: REPORT },
         incremental: true,
         incrementalFile: CACHE,
+        allowEmpty: true,
         tempDirName: FOLDER,
         ignorePatterns: ['/.yarn/cache'],
         allowConsoleColors: false,

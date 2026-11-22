@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { FilePath } from '#kernel/primitives/file-path';
 import {
   baselineReport,
+  listingReport,
   type MutantSpec,
   OLD_TESTS,
   patchedReport,
@@ -14,7 +15,10 @@ import {
   type ProjectFolder,
 } from '#tests/support/project-folder';
 import { UnreadableMutationReportError } from '#verification/infrastructure/errors/unreadable-mutation-report.error';
-import { mutantsOf } from '#verification/infrastructure/mutation/stryker-mutants';
+import {
+  listedMutantsOf,
+  mutantsOf,
+} from '#verification/infrastructure/mutation/stryker-mutants';
 import type { StrykerReport } from '#verification/infrastructure/mutation/stryker-report.schema';
 import { parseStrykerReport } from '#verification/infrastructure/mutation/stryker-report-reading';
 import { scrubberOf } from '#verification/infrastructure/mutation/tool-text';
@@ -180,5 +184,22 @@ describe('mutantsOf', () => {
         ),
       );
     });
+  });
+});
+
+describe('listedMutantsOf', () => {
+  it('should read no test of the command, and cover no mutant', () => {
+    const listed = listedMutantsOf(
+      reportFrom(listingReport(folder.root)),
+      FilePath.create(TARGET),
+      scrubberOf(folder.root),
+    );
+
+    expect(listed.mutants.map(({ status }) => status)).toEqual(
+      Array.from({ length: listed.mutants.length }, () => 'no_coverage'),
+    );
+    expect(listed.mutantSetHash).toBe(
+      measured(baselineReport(folder.root)).mutantSetHash,
+    );
   });
 });
