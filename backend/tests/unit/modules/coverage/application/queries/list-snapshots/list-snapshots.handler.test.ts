@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
-import { InvalidRepositoryIdError } from '#kernel/errors/invalid-repository-id.error';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { RepositoryId } from '#kernel/primitives/repository-id';
 import { Instant } from '#kernel/time/instant';
@@ -15,6 +14,7 @@ import {
 } from '#tests/support/coverage-snapshots';
 import { inMemorySnapshots } from '#tests/support/coverage-stand-ins';
 import { COVERAGE_TEST_SETTINGS } from '#tests/support/recording-sandbox';
+import { heldBy } from '#tests/support/repository-view-world';
 import {
   type StandInRepositories,
   standInRepositories,
@@ -76,6 +76,11 @@ describe('ListSnapshotsHandler', () => {
 
     describe('when the repository was never scanned', () => {
       it('should answer an empty list', async () => {
+        repositories.repository = {
+          ...heldBy(repositories),
+          id: RepositoryId.create(NEVER_SCANNED_ID),
+        };
+
         const listed = await handler.execute({
           repositoryId: NEVER_SCANNED_ID,
         });
@@ -95,10 +100,10 @@ describe('ListSnapshotsHandler', () => {
     });
 
     describe('when the id is not the id of a repository', () => {
-      it('should throw the error of a repository id', async () => {
-        await expect(handler.execute({ repositoryId: 'acme' })).rejects.toThrow(
-          InvalidRepositoryIdError,
-        );
+      it('should answer null, since it names none', async () => {
+        await expect(
+          handler.execute({ repositoryId: 'acme' }),
+        ).resolves.toBeNull();
       });
     });
   });

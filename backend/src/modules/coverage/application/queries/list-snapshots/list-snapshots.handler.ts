@@ -5,13 +5,13 @@ import {
   type CoverageSettings,
 } from '#coverage/application/coverage-settings';
 import { snapshotDtoOf } from '#coverage/application/dto/coverage-dto-mapping';
+import { findNamedRepository } from '#coverage/application/named-repository';
 import type { ListSnapshotsQuery } from '#coverage/application/queries/list-snapshots/list-snapshots.query';
 import type { CoverageSnapshotDto } from '#coverage/contracts/coverage-public-api';
 import {
   COVERAGE_SNAPSHOT_REPOSITORY,
   type CoverageSnapshotRepository,
 } from '#coverage/domain/repositories/coverage-snapshot.repository';
-import { RepositoryId } from '#kernel/primitives/repository-id';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
@@ -41,11 +41,14 @@ export class ListSnapshotsHandler {
   public async execute(
     query: ListSnapshotsQuery,
   ): Promise<CoverageSnapshotDto[] | null> {
-    const repositoryId = RepositoryId.create(query.repositoryId);
-    if ((await this.repositories.getRepository({ repositoryId })) === null) {
+    const repository = await findNamedRepository(
+      this.repositories,
+      query.repositoryId,
+    );
+    if (repository === null) {
       return null;
     }
-    const snapshots = await this.snapshots.listByRepository(repositoryId);
+    const snapshots = await this.snapshots.listByRepository(repository.id);
     return snapshots.map((snapshot) =>
       snapshotDtoOf(snapshot, this.settings.threshold),
     );
