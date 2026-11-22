@@ -736,13 +736,31 @@ Where this log and the plan differ, this log and the code are right.
   major version of a direct dependency, so it stays until those tools
   move.
 
+### A test run that wrote no report is a failed scan
+
+- A capture whose runner ended and wrote no report at all ends in
+  `coverage_report_missing` with the output of the tests, and a scan
+  fails with that reason. Before, it was a completed snapshot in which
+  every file was unmeasured: a table of no numbers and no cause.
+- Vitest writes no report once a test has failed unless it is told to,
+  so it is started with `--coverage.reportOnFailure=true`. Jest writes
+  one anyway. Both were tried on a project with one red test. A
+  repository with a red test is therefore measured, and what is left for
+  the new reason is a runner that stopped before it measured anything.
+- A report that is there and lacks a file still leaves only that file
+  unmeasured, and a project with no file that holds code needs no report.
+- A test run in a lent working copy, for the gate of a patch, answers as
+  before: the gate judges the target file, and an unmeasured target is
+  already an error of the check.
+- The scan has one reason more, so the version of the contract is 4.
+- Where: `backend/src/modules/coverage/application/commands/`
+  (`capture-snapshot/snapshot-capture.ts`, `run-tests/test-execution.ts`),
+  `backend/src/modules/coverage/infrastructure/runners/vitest-command.ts`.
+
 ### Owed after the wave that starts the service
 
 - The worker should record its last poll, so health can say when it was
   last seen, and should itself refuse two handlers of one kind.
-- A test run that exits with 0 and writes no report gives a completed
-  snapshot in which every file is unmeasured with `missing_from_report`.
-  Whether that is a failed scan instead is not decided.
 - The end-to-end tests cover the start and the stop of the built file.
   The journey from a repository to a pull request, with stand-ins for the
   engine, the code host and the generator, is the next step.
