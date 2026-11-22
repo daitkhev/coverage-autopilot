@@ -396,3 +396,46 @@ Where this log and the plan differ, this log and the code are right.
   worker or a repository from the job, which the aggregate does not know.
 - The binding of the store, the generator, its sandbox and its settings
   in the file of the module.
+
+### A job can wait for its moment
+
+- A job may carry a moment before which no worker takes it. An
+  improvement that waits for a window leaves such a job behind, in the
+  save that starts the wait, so it goes on by itself and no timer has to
+  outlive a restart of the service.
+- A job that waits holds nothing: another job of its repository runs
+  meanwhile.
+- The moment is no part of what makes two requests the same job.
+- The queue cancels every open job of an object by the id of the object.
+  A cancel of an improvement knows the improvement and not its jobs: the
+  first run, the one an approval adds, and one for each wait.
+- The queue tells what the pending job of an object waits for: its
+  moment, its repository, or a free worker. The screen groups the
+  improvements by it.
+- Where: `backend/migrations/0006-let-a-job-wait-for-its-moment.sql`,
+  `backend/src/shared/application/ports/job-queue.port.ts`,
+  `backend/src/shared/infrastructure/database/sqlite-job-leases.ts`.
+
+### One handler runs an improvement, one step for each status
+
+- Every job of an improvement has the same payload and differs in its
+  key alone: the handler reads the status and goes on from there.
+- A step saves its expected ends itself and throws a fault as it came.
+  The handler decides what a fault means: one that may pass is a
+  technical retry, and one that will not fails the improvement with the
+  reason the step names.
+- Two reasons were missing for that: `generator_unavailable`, for an AI
+  CLI that cannot be started at all, and `publish_failed`, for a branch
+  or a pull request the host of the code refused.
+- A step saves through the run, which applies a change to a copy and
+  stores it through the lease of the job, with what follows from the new
+  status in the same transaction.
+- The deadline of an improvement stops its work through an alarm, a port
+  beside the clock: a test decides when the moment comes, and the clock
+  decides whether a timer that fired is on time.
+- A fingerprint is a hash, and the application may not hash: the hash is
+  a port with one adapter.
+- Where: `backend/src/modules/improvement/application/commands/run-improvement/`,
+  `backend/src/modules/improvement/application/improvement-settings.ts`,
+  `backend/src/shared/application/ports/alarm.port.ts`,
+  `backend/src/shared/infrastructure/time/timer-alarm.adapter.ts`.
