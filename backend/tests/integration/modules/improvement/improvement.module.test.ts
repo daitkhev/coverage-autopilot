@@ -20,6 +20,7 @@ import { Sha256RequestHasher } from '#improvement/infrastructure/hashing/sha256-
 import { SqliteImprovementRepository } from '#improvement/infrastructure/persistence/sqlite-improvement.repository';
 import { GENERATOR_TEST_SETTINGS } from '#tests/support/generator-request';
 import {
+  patchDtoOf,
   resultOf,
   windowSpent,
 } from '#tests/support/improvement-generation-results';
@@ -31,7 +32,11 @@ import {
   REQUEST_SETTINGS,
   startCommandOf,
 } from '#tests/support/improvement-request-stand-ins';
-import { hashOf, reportPropsOf } from '#tests/support/improvement-values';
+import {
+  checkOf,
+  hashOf,
+  reportPropsOf,
+} from '#tests/support/improvement-values';
 
 const NEVER = new AbortController().signal;
 
@@ -159,6 +164,50 @@ describe('ImprovementModule', () => {
         null,
         expect.objectContaining({ reasons: ['The new test does not pass.'] }),
       ]);
+    });
+  });
+
+  describe('when a patch reaches publishing', () => {
+    it('should publish byte for byte the text the gate read with the endings of the settings', async () => {
+      const { work, gate, publisher } = await open();
+      await start();
+
+      await work();
+
+      const [verified] = gate.requests;
+      expect(verified?.patch.text).toBe(patchDtoOf().text);
+      expect(verified?.testFileSuffixes).toEqual(
+        REQUEST_SETTINGS.testFileSuffixes,
+      );
+      expect(publisher.publications.map(({ patchText }) => patchText)).toEqual([
+        verified?.patch.text,
+      ]);
+    });
+  });
+
+  describe('when the gate refuses the files of every patch', () => {
+    it('should publish none of them', async () => {
+      const { work, gate, publisher } = await open();
+      const reason =
+        'The patch adds .gitattributes, whose name does not end like a ' +
+        'test file: .test.ts or .test.tsx.';
+      const refused = {
+        ...reportPropsOf('rejected'),
+        reasons: [reason],
+        checks: [
+          { ...checkOf('test_files_only', 'rejected'), message: reason },
+        ],
+      };
+      gate.answers.push(refused, refused, refused);
+      const { id } = await start();
+
+      await work();
+
+      expect(publisher.publications).toEqual([]);
+      expect(await read(id)).toMatchObject({
+        status: 'failed',
+        failure: { reason: 'budget_exhausted' },
+      });
     });
   });
 

@@ -80,6 +80,22 @@ describe('PublishingStep', () => {
     },
   );
 
+  /**
+   * The gate reads the files of a patch strictly and accepts none but new
+   * plain test files, and the attempt keeps the text it read for good, so
+   * what goes out is what the gate accepted and nothing else.
+   */
+  it('should publish the very text the gate accepted, as the attempt keeps it', async () => {
+    const { stored } = await published();
+
+    const accepted = stored.acceptedAttempt;
+    expect(publisher.publications.map(({ patchText }) => patchText)).toEqual([
+      accepted?.patch?.text,
+    ]);
+    expect(accepted?.report?.patchHash).toBe(accepted?.patch?.hash);
+    expect(publisher.created).toEqual([]);
+  });
+
   it('should ask whether the base commit is still current for the target', async () => {
     await published();
 
