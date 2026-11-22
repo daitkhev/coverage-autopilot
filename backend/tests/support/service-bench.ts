@@ -13,6 +13,7 @@ import {
 } from '#tests/support/instance-folder';
 import { playingEngine } from '#tests/support/playing-engine';
 import { loadWith, PLAIN_MACHINE } from '#tests/support/service-variables';
+import { SHIPPED_IMAGE_FILE } from '#tests/support/shipped-image';
 import { MIGRATIONS_FOLDER } from '#tests/support/temporary-database';
 
 /** The version a service of the bench reports. */
@@ -141,6 +142,7 @@ export function serviceBench(
         logStream: log.stream,
         version: SERVICE_VERSION,
         pause,
+        generatorImageFile: SHIPPED_IMAGE_FILE,
       });
       runs.push(run);
       return run;

@@ -28,6 +28,8 @@ export interface ServiceProcess {
   readonly migrationsFolder: string;
   /** The package of the service, found the same way. */
   readonly packageFile: string;
+  /** What the image of the generator is built from, found the same way. */
+  readonly generatorImageFile: string;
   /** The standard error: the lines of the log, and that of a failure. */
   readonly errors: Writable;
   readonly signals: SignalSource;
@@ -80,6 +82,7 @@ async function started(
       logStream: entry.errors,
       version: versionIn(entry.packageFile),
       pause: timerPause,
+      generatorImageFile: entry.generatorImageFile,
     });
     if (run.outcome === 'running') {
       return run.service;
