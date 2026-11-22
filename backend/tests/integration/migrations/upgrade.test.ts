@@ -1,17 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  MIGRATIONS_DIRECTORY,
-  readMigrations,
-} from '#infrastructure/database/migration-files';
+import { readMigrations } from '#infrastructure/database/migration-files';
 import { migrateDatabase } from '#infrastructure/database/sqlite-migrator';
 import { SchemaRows, STORED_TIME } from '#tests/support/schema-rows';
 import {
   createEmptyDatabase,
+  MIGRATIONS_FOLDER,
   type TemporaryDatabase,
 } from '#tests/support/temporary-database';
 
-const MIGRATIONS = readMigrations(MIGRATIONS_DIRECTORY);
+const MIGRATIONS = readMigrations(MIGRATIONS_FOLDER);
 const FOREIGN_KEY = 'FOREIGN KEY constraint failed';
 
 /** An improvement as the first version of the schema stored it. */

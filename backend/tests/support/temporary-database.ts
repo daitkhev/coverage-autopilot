@@ -2,13 +2,19 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
+import { fileURLToPath } from 'node:url';
 
-import {
-  MIGRATIONS_DIRECTORY,
-  readMigrations,
-} from '#infrastructure/database/migration-files';
+import { readMigrations } from '#infrastructure/database/migration-files';
 import { openSqliteConnection } from '#infrastructure/database/sqlite-connection';
 import { migrateDatabase } from '#infrastructure/database/sqlite-migrator';
+
+/**
+ * `backend/migrations/`, found from this file, as the entry file of the
+ * service finds it from its own place.
+ */
+export const MIGRATIONS_FOLDER = fileURLToPath(
+  new URL('../../migrations/', import.meta.url),
+);
 
 /** A database file in a folder of its own, removed by `remove`. */
 export interface TemporaryDatabase {
@@ -38,6 +44,6 @@ export function createEmptyDatabase(): TemporaryDatabase {
 /** A database with every migration of the service applied. */
 export function createMigratedDatabase(): TemporaryDatabase {
   const database = createEmptyDatabase();
-  migrateDatabase(database.connection, readMigrations(MIGRATIONS_DIRECTORY));
+  migrateDatabase(database.connection, readMigrations(MIGRATIONS_FOLDER));
   return database;
 }

@@ -1,6 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { InvalidMigrationFileError } from '#infrastructure/database/errors/invalid-migration-file.error';
 
@@ -10,14 +9,6 @@ export interface Migration {
   readonly name: string;
   readonly sql: string;
 }
-
-/**
- * `backend/migrations/`, found from this file, so where the service is
- * started from does not matter.
- */
-export const MIGRATIONS_DIRECTORY = fileURLToPath(
-  new URL('../../../../migrations/', import.meta.url),
-);
 
 const FILE_NAME = /^(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*\.sql$/;
 
@@ -41,7 +32,11 @@ function versionOf(file: string, expected: number): number {
   return version;
 }
 
-/** The migrations in a folder, in the order they are applied. */
+/**
+ * The migrations in a folder, in the order they are applied. The folder is
+ * given and never found from the place of this file: the service ships as
+ * one bundled file, so only its entry file knows where it was put.
+ */
 export function readMigrations(directory: string): Migration[] {
   const files = readdirSync(directory)
     .filter((file) => !file.startsWith(HIDDEN))

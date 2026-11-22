@@ -1,11 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  MIGRATIONS_DIRECTORY,
-  readMigrations,
-} from '#infrastructure/database/migration-files';
+import { readMigrations } from '#infrastructure/database/migration-files';
 import {
   createMigratedDatabase,
+  MIGRATIONS_FOLDER,
   type TemporaryDatabase,
 } from '#tests/support/temporary-database';
 
@@ -32,7 +30,7 @@ afterEach(() => {
 
 describe('the migrations of the service', () => {
   it('should be numbered from 1 with no gaps, as the service reads them', () => {
-    const migrations = readMigrations(MIGRATIONS_DIRECTORY);
+    const migrations = readMigrations(MIGRATIONS_FOLDER);
 
     expect(migrations[0]?.name).toBe('0001-create-the-schema.sql');
     expect(migrations.map((migration) => migration.version)).toEqual(
@@ -41,7 +39,7 @@ describe('the migrations of the service', () => {
   });
 
   it('should bring a database to the version of the last one', () => {
-    const last = readMigrations(MIGRATIONS_DIRECTORY).length;
+    const last = readMigrations(MIGRATIONS_FOLDER).length;
     const version = database.connection.prepare('PRAGMA user_version').get();
 
     expect(version).toEqual({ user_version: last });
