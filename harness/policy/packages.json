@@ -51,7 +51,8 @@
         "backend/src/modules/*/infrastructure/",
         "backend/src/shared/infrastructure/",
         "backend/src/*.ts",
-        "frontend/src/api/"
+        "frontend/src/api/",
+        "frontend/src/main.tsx"
       ]
     },
     {

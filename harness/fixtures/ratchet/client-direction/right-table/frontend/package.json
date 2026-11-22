@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "imports": {
+    "#client/*": "./src/*.tsx",
     "#app/*": "./src/app/*.tsx",
     "#screens/*": "./src/screens/*.tsx",
     "#components/*": "./src/components/*.tsx",
