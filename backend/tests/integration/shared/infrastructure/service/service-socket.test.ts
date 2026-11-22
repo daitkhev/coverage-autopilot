@@ -12,6 +12,7 @@ import { prepareInstanceDirectory } from '#infrastructure/service/instance-direc
 import {
   removeStaleSocket,
   restrictSocket,
+  socketIsThere,
 } from '#infrastructure/service/service-socket';
 import {
   createInstanceFolder,
@@ -128,6 +129,29 @@ describe('removeStaleSocket', () => {
       }).toThrow(InstanceLockReleasedError);
       expect(lstatSync(paths.socket).isSocket()).toBe(true);
     });
+  });
+});
+
+describe('socketIsThere', () => {
+  it('should see the socket of a server that listens', async () => {
+    await listen();
+
+    expect(socketIsThere(paths.socket)).toBe(true);
+  });
+
+  it('should see none once the server closed', async () => {
+    const server = await listen();
+
+    server.close();
+    await once(server, 'close');
+
+    expect(socketIsThere(paths.socket)).toBe(false);
+  });
+
+  it('should take a file that is not a socket for none', () => {
+    writeFileSync(paths.socket, 'notes\n');
+
+    expect(socketIsThere(paths.socket)).toBe(false);
   });
 });
 

@@ -1,7 +1,9 @@
+import { once } from 'node:events';
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { connect, type Socket } from 'node:net';
 import { dirname, join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { errorSchema } from '@coverage-autopilot/api-contracts/errors';
 
@@ -14,6 +16,7 @@ import {
   type ServiceBench,
   serviceBench,
 } from '#tests/support/service-bench';
+import { MIGRATIONS_FOLDER } from '#tests/support/temporary-database';
 
 /** The bits of a mode that say who may read, write and enter. */
 const PERMISSIONS = 0o777;
@@ -31,7 +34,35 @@ async function started(): Promise<RunningService> {
   return running(await bench.run());
 }
 
+/**
+ * A request whose body never comes. The server of a service waits for
+ * its open requests as it closes, so the stop of that service is held
+ * after its socket is gone and before it gives back its lock. The server
+ * answers `100 Continue` once it read the head, so the request is open.
+ */
+async function requestInFlight(socket: string): Promise<Socket> {
+  const client = connect(socket);
+  await once(client, 'connect');
+  client.write(
+    'POST /repositories HTTP/1.1\r\nHost: service\r\n' +
+      'Content-Type: application/json\r\nContent-Length: 2\r\n' +
+      'Expect: 100-continue\r\n\r\n',
+  );
+  await once(client, 'data');
+  return client;
+}
+
+/**
+ * What a test left open, ended before its bench closes, also when the
+ * test failed half way.
+ */
+let leftOpen: (() => Promise<unknown>)[] = [];
+
 afterEach(async () => {
+  for (const end of leftOpen) {
+    await end();
+  }
+  leftOpen = [];
   await bench.close();
 });
 
@@ -59,13 +90,53 @@ describe('runService', () => {
   it('should hold its instance against a second service', async () => {
     bench = serviceBench();
     await started();
-    const second = await bench.run();
+    const paused: number[] = [];
+    const second = await bench.run(MIGRATIONS_FOLDER, async (ms) => {
+      paused.push(ms);
+      return Promise.resolve();
+    });
 
     const answer = await askOver(bench.config.instance.socket, '/nowhere');
 
     expect(second).toEqual({ outcome: 'held_by_another' });
+    expect(paused).toEqual([]);
     expect(answer.status).toBe(404);
     expect(bench.lockIsFree()).toBe(false);
+  });
+
+  describe('when it starts while another one is on its way out', () => {
+    it('should wait for the lock the other gives back, and serve', async () => {
+      bench = serviceBench();
+      const first = await started();
+      const { socket } = bench.config.instance;
+      const request = await requestInFlight(socket);
+      leftOpen.push(async () => Promise.resolve(request.destroy()));
+      const stopping = first.stop();
+      await vi.waitFor(() => {
+        expect(existsSync(socket)).toBe(false);
+      });
+      expect(bench.lockIsFree()).toBe(false);
+      const waits = Promise.withResolvers<undefined>();
+      const goOn = Promise.withResolvers<undefined>();
+      const second = bench.run(MIGRATIONS_FOLDER, async () => {
+        waits.resolve(undefined);
+        await goOn.promise;
+      });
+      leftOpen.push(async () => {
+        goOn.resolve(undefined);
+        return Promise.allSettled([second]);
+      });
+
+      await Promise.race([waits.promise, second]);
+      request.destroy();
+      await stopping;
+      goOn.resolve(undefined);
+      const run = running(await second);
+
+      expect(statSync(socket).isSocket()).toBe(true);
+      expect((await askOver(socket, '/health')).status).toBe(200);
+      expect(run.startedAt.isBefore(first.startedAt)).toBe(false);
+    });
   });
 
   it('should tell when it began to answer', async () => {

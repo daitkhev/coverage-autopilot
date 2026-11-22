@@ -6,6 +6,7 @@ import { json } from 'node:stream/consumers';
 import { runService, type ServiceRun } from '#composition/service-run';
 import type { ServiceConfig } from '#infrastructure/config/service-config';
 import { InstanceLock } from '#infrastructure/database/instance-lock';
+import { type Pause, timerPause } from '#infrastructure/time/timer-pause';
 import {
   createInstanceFolder,
   type InstanceFolder,
@@ -49,8 +50,12 @@ export interface ServiceBench {
   logText(): string;
   /** Every line of the log so far. */
   logLines(): LogLine[];
-  /** Runs a service of the instance, which `close` stops if it still runs. */
-  run(migrationsFolder?: string): Promise<ServiceRun>;
+  /**
+   * Runs a service of the instance, which `close` stops if it still runs.
+   * It pauses on a timer between two looks at a held lock, unless the test
+   * gives a pause of its own.
+   */
+  run(migrationsFolder?: string, pause?: Pause): Promise<ServiceRun>;
   /** Whether a service could take the lock now, which it then gives back. */
   lockIsFree(): boolean;
   /** Stops every service the bench ran and removes the folder. */
@@ -130,11 +135,12 @@ export function serviceBench(
         .split('\n')
         .filter((line) => line !== '')
         .map((line) => JSON.parse(line) as LogLine),
-    run: async (migrationsFolder = MIGRATIONS_FOLDER) => {
+    run: async (migrationsFolder = MIGRATIONS_FOLDER, pause = timerPause) => {
       const run = await runService(config, {
         migrationsFolder,
         logStream: log.stream,
         version: SERVICE_VERSION,
+        pause,
       });
       runs.push(run);
       return run;

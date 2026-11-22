@@ -104,12 +104,15 @@ describe('serveProcess', () => {
     });
   });
 
-  describe('when another service holds the instance', () => {
-    it('should exit with 0 and say nothing', async () => {
+  describe('when another service holds the instance and listens', () => {
+    it('should exit with 0 at once and say why in one line', async () => {
       await bench.run();
 
       await expect(serveProcess(processOf())).resolves.toBe(0);
-      expect(bench.logText()).toBe('');
+      expect(bench.logText()).toBe(
+        'The service left: another service holds the instance and listens ' +
+          'on its socket.\n',
+      );
     });
   });
 

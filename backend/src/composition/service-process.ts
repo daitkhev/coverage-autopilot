@@ -5,6 +5,8 @@ import { runService } from '#composition/service-run';
 import type { Environment } from '#infrastructure/config/environment-values';
 import { loadServiceConfig } from '#infrastructure/config/service-config';
 import type { RunningService } from '#infrastructure/service/running-service';
+import type { HeldOutcome } from '#infrastructure/service/service-start';
+import { timerPause } from '#infrastructure/time/timer-pause';
 
 /** A second signal finds no listener and ends the process at once. */
 const STOP_SIGNALS = ['SIGTERM', 'SIGINT'] as const;
@@ -43,11 +45,20 @@ function versionIn(packageFile: string): string {
 
 /**
  * A clean stop, or another service of the instance. A client starts a
- * service whenever none answers, so the one that came second leaves as
- * if nothing happened.
+ * service whenever none answers, so the one that came second leaves with
+ * the code of a clean end, and the client goes on waiting for the other.
  */
 const EXIT_WELL = 0;
 const EXIT_FAILED = 1;
+
+/** Why a start left the instance to another service, as a person reads it. */
+const LEFT_BECAUSE: Readonly<Record<HeldOutcome, string>> = {
+  held_by_another:
+    'another service holds the instance and listens on its socket',
+  held_without_socket:
+    'another service held the instance for the whole wait and did not ' +
+    'listen on its socket',
+};
 
 /** A person reads it, so it is one line with no stack. */
 function failureLine(what: string, error: unknown): string {
@@ -68,8 +79,13 @@ async function started(
       migrationsFolder: entry.migrationsFolder,
       logStream: entry.errors,
       version: versionIn(entry.packageFile),
+      pause: timerPause,
     });
-    return run.outcome === 'running' ? run.service : EXIT_WELL;
+    if (run.outcome === 'running') {
+      return run.service;
+    }
+    entry.errors.write(`The service left: ${LEFT_BECAUSE[run.outcome]}.\n`);
+    return EXIT_WELL;
   } catch (error) {
     entry.errors.write(failureLine('did not start', error));
     return EXIT_FAILED;

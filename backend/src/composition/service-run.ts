@@ -15,8 +15,12 @@ import {
   RunningService,
 } from '#infrastructure/service/running-service';
 import { restrictSocket } from '#infrastructure/service/service-socket';
-import { startService } from '#infrastructure/service/service-start';
+import {
+  type HeldOutcome,
+  startService,
+} from '#infrastructure/service/service-start';
 import { SystemClock } from '#infrastructure/time/system-clock.adapter';
+import type { Pause } from '#infrastructure/time/timer-pause';
 import { LOGGER, type Logger } from '#ports/logger.port';
 
 /** What the entry file gives a run besides the configuration. */
@@ -27,12 +31,14 @@ export interface ServiceStartup {
   readonly logStream: Writable;
   /** The version of the package, which the entry file reads beside it. */
   readonly version: string;
+  /** Between two looks at a lock that another service holds. */
+  readonly pause: Pause;
 }
 
-/** A service that runs, or, as a value, that another one holds the lock. */
+/** A service that runs, or, as a value, why another one keeps the lock. */
 export type ServiceRun =
   | { readonly outcome: 'running'; readonly service: RunningService }
-  | { readonly outcome: 'held_by_another' };
+  | { readonly outcome: HeldOutcome };
 
 /**
  * The framework writes nothing of its own, since the service has its log,
@@ -70,19 +76,24 @@ async function serving(
 }
 
 /**
- * Starts the service of an instance in its fixed order: the lock, the
- * database, the removal of a socket a crashed service left, the removal
- * of the containers and the working copies it left, the application on
- * the socket, kept to its owner, and then the worker, which takes back
- * first the jobs whose lease ran out. A start that fails gives back what
- * it took and throws, so the next one begins from the same place.
+ * Starts the service of an instance in its fixed order: the lock, waited
+ * for while a service on its way out still holds it, the database, the
+ * removal of a socket a crashed service left, the removal of the
+ * containers and the working copies it left, the application on the
+ * socket, kept to its owner, and then the worker, which takes back first
+ * the jobs whose lease ran out. A start that fails gives back what it
+ * took and throws, so the next one begins from the same place.
  */
 export async function runService(
   config: ServiceConfig,
   startup: ServiceStartup,
 ): Promise<ServiceRun> {
-  const start = startService(config, startup.migrationsFolder);
-  if (start.outcome === 'held_by_another') {
+  const start = await startService(
+    config,
+    startup.migrationsFolder,
+    startup.pause,
+  );
+  if (start.outcome !== 'started') {
     return start;
   }
   const { lock, connection } = start;

@@ -30,6 +30,16 @@ export function removeStaleSocket(lock: InstanceLock, path: string): void {
 }
 
 /**
+ * Whether a socket is where the service listens. Only the holder of the
+ * lock makes one there, and its server removes it as it closes, so while
+ * the lock is held a socket there means the holder listens on it, or
+ * soon replaces the one a crash left.
+ */
+export function socketIsThere(path: string): boolean {
+  return lstatSync(path, { throwIfNoEntry: false })?.isSocket() === true;
+}
+
+/**
  * Keeps the socket to its owner, once the service listens on it. The
  * directory keeps others out as well, but a person may open it to share
  * what it holds, and the socket would then let them drive the service.

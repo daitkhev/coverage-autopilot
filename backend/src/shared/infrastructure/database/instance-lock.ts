@@ -9,8 +9,9 @@ export type InstanceLockTaking =
   | { readonly outcome: 'held_by_another' };
 
 /**
- * A second service is refused at once. Waiting would only delay the same
- * answer, since the holder keeps the lock for its whole life.
+ * A second service is refused at once. The holder keeps the lock for its
+ * whole life, so whether to look again is the start's to decide, from
+ * what it sees of the holder.
  */
 const NO_WAIT_MS = 0;
 
