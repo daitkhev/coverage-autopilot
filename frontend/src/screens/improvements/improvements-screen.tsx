@@ -7,11 +7,10 @@ import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
 import { CancelQuestion } from '#components/cancel-question';
 import { problemOf } from '#components/problem-details';
-import { browseKeysOf } from '#hooks/list-keys';
 import { type DatedRequest, useDatedRequest } from '#hooks/use-dated-request';
 import { useFocusRing } from '#hooks/use-focus-ring';
-import { type KeyHandlers, useKeys } from '#hooks/use-keys';
-import { useSelection } from '#hooks/use-selection';
+import { useScreenActions } from '#hooks/use-screen-actions';
+import { type Selection, useSelection } from '#hooks/use-selection';
 import {
   type Filters,
   keptBy,
@@ -23,12 +22,13 @@ import {
   type Listing,
   listingOf,
 } from '#screens/improvements/improvement-listing';
-import { canBeCancelled } from '#screens/improvements/improvement-words';
+import { improvementsActions } from '#screens/improvements/improvements-actions';
 import {
   IMPROVEMENTS_PANELS,
   ImprovementsView,
 } from '#screens/improvements/improvements-view';
 import { ASK_EVERY_MS } from '#theme/moments';
+import { layoutOf } from '#theme/widths';
 
 interface ImprovementsScreenProps {
   readonly session: ClientSession;
@@ -52,38 +52,41 @@ function useListing(
   });
 }
 
-/** The repositories in the order of their list, for `r` to step through. */
-function repositoryIdsOf(listing: Listing | undefined): string[] {
-  return listing?.outcome === 'answered' ? [...listing.names.keys()] : [];
+const NO_NAMES: ReadonlyMap<string, string> = new Map();
+
+/** What the footer calls the list and the panel of the chosen improvement. */
+const PANEL_WORDS = ['list', 'details'] as const;
+
+/** The list the filters keep, its names, and the row chosen in it. */
+interface Kept {
+  readonly listing: DatedRequest<Listing>;
+  readonly improvements: readonly Improvement[];
+  readonly names: ReadonlyMap<string, string>;
+  readonly visible: number;
+  readonly selection: Selection;
 }
 
-/** What the keys do to the chosen improvement. */
-interface ChosenActions {
-  readonly open: (improvementId: string) => void;
-  /** Opens the question before a cancel of the work. */
-  readonly ask: (improvement: Improvement) => void;
-}
-
-/** `enter` opens the chosen work, and `c` asks before it cancels it. */
-function chosenKeys(
-  chosen: Improvement | undefined,
-  { open, ask }: ChosenActions,
-): KeyHandlers {
-  if (chosen === undefined) {
-    return {};
-  }
-  return {
-    enter: () => {
-      open(chosen.id);
-    },
-    ...(canBeCancelled(chosen)
-      ? {
-          c: () => {
-            ask(chosen);
-          },
-        }
-      : {}),
+/** Keeps the improvements whose file holds the filter, and chooses a row. */
+function useKept(
+  listing: DatedRequest<Listing>,
+  filters: Filters,
+  frame: ShellFrame,
+): Kept {
+  const kept = {
+    ...listing,
+    answer: keptBy(listing.answer, filters.path.text),
   };
+  const answered =
+    kept.answer?.outcome === 'answered' ? kept.answer : undefined;
+  const improvements = answered?.improvements ?? [];
+  const visible = visibleRowsOf(frame.size, filters.path.line === null ? 0 : 1);
+  const selection = useSelection({
+    count: improvements.length,
+    visible,
+    keys: improvements.map(({ id }) => id),
+  });
+  const names = answered?.names ?? NO_NAMES;
+  return { listing: kept, improvements, names, visible, selection };
 }
 
 /** The question before a cancel, for the work it was opened on. */
@@ -113,46 +116,42 @@ export function ImprovementsScreen({
 }: ImprovementsScreenProps): ReactNode {
   const filters = useFilters();
   const listing = useListing(session, filters);
-  const kept = {
-    ...listing,
-    answer: keptBy(listing.answer, filters.path.text),
-  };
-  const improvements =
-    kept.answer?.outcome === 'answered' ? kept.answer.improvements : [];
-  const visible = visibleRowsOf(frame.size, filters.path.line === null ? 0 : 1);
-  const selection = useSelection({
-    count: improvements.length,
-    visible,
-    keys: improvements.map(({ id }) => id),
-  });
+  const { selection, ...kept } = useKept(listing, filters, frame);
   const focus = useFocusRing(IMPROVEMENTS_PANELS);
   const [asked, ask] = useState<Improvement>();
-  useKeys(
+  const actions = improvementsActions(
     {
-      ...browseKeysOf(selection, focus),
-      ...filters.keysOf(repositoryIdsOf(listing.answer), selection.first),
-      ...chosenKeys(improvements[selection.index], {
-        open: onOpenImprovement,
-        ask,
-      }),
+      chosen: kept.improvements[selection.index],
+      names: kept.names,
+      filters,
+      layout: layoutOf(frame.size),
     },
-    // While the filter types the letters are its own, and the question
-    // takes every key.
-    { active: !filters.path.typing && asked === undefined },
+    {
+      selection,
+      panels: { ring: focus, names: IMPROVEMENTS_PANELS, words: PANEL_WORDS },
+      open: onOpenImprovement,
+      ask,
+    },
   );
+  // While the filter types the letters are its own, and the question
+  // takes every key.
+  useScreenActions(actions, {
+    active: !filters.path.typing && asked === undefined,
+  });
   return (
     <ImprovementsView
       frame={frame}
-      listing={kept}
+      listing={kept.listing}
       narrowing={filters}
       problem={problemOf(listing, isServiceUnreachable)}
       moment={{ now: session.now(), timeZone: session.timeZone }}
       position={selection}
-      visible={visible}
+      visible={kept.visible}
       focused={focus.focused}
       question={questionOf(session, asked, () => {
         ask(undefined);
       })}
+      actions={actions}
     />
   );
 }

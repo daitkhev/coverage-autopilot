@@ -9,19 +9,18 @@ import type { Repository } from '@coverage-autopilot/api-contracts/repositories'
 import type { ClientSession } from '#api/client-session';
 import type { ShellFrame } from '#components/app-shell';
 import { useFocusRing } from '#hooks/use-focus-ring';
-import { useKeys } from '#hooks/use-keys';
+import { type ScreenAction, useScreenActions } from '#hooks/use-screen-actions';
 import { type Selection, useSelection } from '#hooks/use-selection';
-import { choicesOf } from '#screens/improvement/improvement-choices';
+import { stepsOf } from '#screens/improvement/improvement-choices';
 import type { OpenDialog } from '#screens/improvement/improvement-dialog';
+import type { Choice } from '#screens/improvement/improvement-ending';
 import {
-  type ImprovementActions,
-  improvementKeys,
-  type ImprovementKeysState,
+  improvementActions,
   type ImprovementPanel,
 } from '#screens/improvement/improvement-keys';
 import { useNextFile } from '#screens/improvement/next-file';
 import { usePullRequestLink } from '#screens/improvement/pull-request-link';
-import { layoutOf } from '#theme/widths';
+import { type Layout, layoutOf } from '#theme/widths';
 
 /** What the place of the person on the screen is made from. */
 interface PlaceProps {
@@ -35,8 +34,13 @@ interface PlaceProps {
 
 /** Where the person is: the panel, the next step, the dialog, the notice. */
 export interface Place {
-  readonly state: ImprovementKeysState;
+  readonly focused: ImprovementPanel;
+  readonly layout: Layout;
+  /** The next steps of a failed improvement, empty for any other. */
+  readonly choices: readonly Choice[];
   readonly choice: Selection;
+  /** What the keys do while no dialog is open. */
+  readonly actions: readonly ScreenAction[];
   readonly dialog: OpenDialog | undefined;
   /** A line about what a key just did, such as that the browser started. */
   readonly notice: string | undefined;
@@ -46,6 +50,9 @@ export interface Place {
 }
 
 const PANELS: readonly [ImprovementPanel, ImprovementPanel] = ['work', 'facts'];
+
+/** What the footer calls the work and the facts. */
+const PANEL_WORDS = ['work', 'details'] as const;
 
 /** The dialog that is open and the notice that shows, with their setters. */
 function useOverlays(): {
@@ -60,18 +67,17 @@ function useOverlays(): {
 }
 
 /**
- * Where the person is on the screen, and the keys of the screen while no
- * dialog is open. The screen is not behind the backdrop of its own shell,
- * so it says itself that the dialog takes every key.
+ * Where the work leads on: its pull request in the browser, when there is
+ * one and a browser to show it, and the next file below the threshold.
  */
-export function usePlace(props: PlaceProps): Place {
-  const { dialog, open, notice, say } = useOverlays();
-  const ring = useFocusRing(PANELS);
-  const choices = choicesOf({ ...props, open });
-  const choice = useSelection({
-    count: choices.length,
-    visible: choices.length,
-  });
+function useWaysOn(
+  props: PlaceProps,
+  { open, say }: Pick<ReturnType<typeof useOverlays>, 'open' | 'say'>,
+): {
+  readonly pullRequest: PullRequest | undefined;
+  readonly openPullRequest: (pullRequest: PullRequest) => void;
+  readonly nextFile: (improvement: Improvement) => void;
+} {
   const link = usePullRequestLink(props.session, say);
   const nextFile = useNextFile(props.session, {
     onNotice: say,
@@ -80,32 +86,55 @@ export function usePlace(props: PlaceProps): Place {
     },
   });
   const { pullRequest } = props.improvement;
-  const state: ImprovementKeysState = {
-    focused: ring.focused,
-    layout: layoutOf(props.frame.size),
-    improvement: props.improvement,
-    choices,
+  return {
     pullRequest: link === undefined ? undefined : (pullRequest ?? undefined),
-  };
-  const actions: ImprovementActions = {
-    choice,
-    focus: ring.focus,
-    next: ring.next,
-    ask: () => {
-      open({ kind: 'cancel' });
-    },
-    openPatch: props.onOpenPatch,
-    openPullRequest: (shown: PullRequest) => link?.(shown),
+    openPullRequest: (shown) => link?.(shown),
     nextFile,
-    back: props.onBack,
   };
-  useKeys(improvementKeys(state, actions), { active: dialog === undefined });
+}
+
+/**
+ * Where the person is on the screen, and the keys of the screen while no
+ * dialog is open. The screen is not behind the backdrop of its own shell,
+ * so it says itself that the dialog takes every key.
+ */
+export function usePlace(props: PlaceProps): Place {
+  const { dialog, open, notice, say } = useOverlays();
+  const ring = useFocusRing(PANELS);
+  const steps = stepsOf({ ...props, open });
+  const choice = useSelection({
+    count: steps.choices.length,
+    visible: steps.choices.length,
+  });
+  const { pullRequest, ...on } = useWaysOn(props, { open, say });
+  const layout = layoutOf(props.frame.size);
+  const actions = improvementActions(
+    { layout, improvement: props.improvement, pullRequest, steps },
+    {
+      ...on,
+      choice,
+      panels: { ring, names: PANELS, words: PANEL_WORDS },
+      ask: () => {
+        open({ kind: 'cancel' });
+      },
+    },
+  );
+  useScreenActions(actions, { active: dialog === undefined });
   const close = (): void => {
     open(undefined);
   };
-  const leave = (): void => {
-    close();
-    say(undefined);
+  return {
+    focused: ring.focused,
+    layout,
+    choices: steps.choices,
+    choice,
+    actions,
+    dialog,
+    notice,
+    close,
+    leave: () => {
+      close();
+      say(undefined);
+    },
   };
-  return { state, choice, dialog, notice, close, leave };
 }

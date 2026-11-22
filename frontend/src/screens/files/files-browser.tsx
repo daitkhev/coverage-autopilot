@@ -9,7 +9,7 @@ import type {
 import type { ClientSession } from '#api/client-session';
 import { improvementStartOf } from '#api/improvement-start';
 import { AppShell, type ShellFrame } from '#components/app-shell';
-import { type KeyHint, KeyHints } from '#components/key-hints';
+import { hintsOf, type KeyHint, KeyHints } from '#components/key-hints';
 import { TYPING_HINTS } from '#components/list-filter';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
@@ -19,7 +19,6 @@ import { type Freshness, StatusLine } from '#components/status-line';
 import { FileDetails } from '#screens/files/file-details';
 import { FileListPanel } from '#screens/files/file-list';
 import { type Browser, useBrowser } from '#screens/files/files-browsing';
-import { filesHints } from '#screens/files/files-keys';
 import { RepositoryLine } from '#screens/files/repository-line';
 import { countWords } from '#theme/counts';
 import { repositoryName } from '#theme/names';
@@ -47,8 +46,8 @@ function Body({
   readonly browser: Browser;
 }): ReactNode {
   const { files } = props;
-  const { state, layout } = browser;
-  const details = state.focused === 'details';
+  const { selected, layout } = browser;
+  const details = browser.focused === 'details';
   return (
     <SplitView
       layout={layout}
@@ -70,13 +69,13 @@ function Body({
         />
       }
       right={
-        state.selected === undefined ? (
+        selected === undefined ? (
           <Panel title="No file" focused={details}>
             <RoleText role="secondary">No file is chosen.</RoleText>
           </Panel>
         ) : (
           <FileDetails
-            file={state.selected}
+            file={selected}
             threshold={files.threshold}
             focused={details}
             roomy={layout !== 'compact'}
@@ -103,7 +102,7 @@ function footerHints(browser: Browser): readonly KeyHint[] {
   if (browser.dialog.file !== undefined) {
     return DIALOG_HINTS;
   }
-  return browser.filter.typing ? TYPING_HINTS : filesHints(browser.state);
+  return browser.filter.typing ? TYPING_HINTS : hintsOf(browser.actions);
 }
 
 function positionOf(browser: Browser): { readonly position?: string } {

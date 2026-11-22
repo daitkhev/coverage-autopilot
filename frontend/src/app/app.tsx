@@ -8,7 +8,7 @@ import {
 } from 'react';
 
 import type { ClientSession } from '#api/client-session';
-import { type AppCommand, AppPalette } from '#app/app-palette';
+import { AppPalette } from '#app/app-palette';
 import { farewellOf } from '#app/farewell';
 import { KeysHelp } from '#app/keys-help';
 import {
@@ -22,10 +22,17 @@ import {
 import { type ServiceWatch, useServiceWatch } from '#app/service-watch';
 import { ShownScreen } from '#app/shown-screen';
 import { Overlay, type ShellFrame } from '#components/app-shell';
-import { KeyHints } from '#components/key-hints';
+import { hintsOf, KeyHints } from '#components/key-hints';
 import { TabBar } from '#components/tab-bar';
 import { BackdropContext } from '#hooks/use-backdrop';
-import { type KeyHandlers, useKeys } from '#hooks/use-keys';
+import { useKeys } from '#hooks/use-keys';
+import {
+  keysOf,
+  type OfferedActions,
+  offeredActions,
+  OfferedContext,
+  type ScreenAction,
+} from '#hooks/use-screen-actions';
 import { type TerminalLayout, useTerminalSize } from '#hooks/use-terminal-size';
 
 interface AppProps {
@@ -50,60 +57,60 @@ const OFFERED_COMMANDS = [
   `${TITLE} --help`,
 ];
 
-/** The keys of the app, which the footer names where there is room. */
-const APP_HINTS = [
-  { key: ':', label: 'commands' },
-  { key: 'q', label: 'quit' },
-  { key: '?', label: 'keys' },
-];
-
 const NEEDS_USER_LABEL = 'to review';
 
-/** The commands of the app, each with the key that runs it. */
-function commandsOf(app: {
+/**
+ * The actions of the app, which work on every screen: the sections, the
+ * list of commands, quitting and the keys. The footer names some of them
+ * where there is room, and the list of commands names the others.
+ */
+function appActionsOf(app: {
   readonly move: (move: Move) => void;
   readonly show: (dialog: AppDialog) => void;
   readonly quit: () => void;
-}): readonly AppCommand[] {
+}): ScreenAction[] {
   return [
     ...SECTIONS.map(({ name }, index) => ({
-      title: `Go to ${name}`,
       key: String(index + 1),
       run: () => {
         app.move({ kind: 'section', index });
       },
+      command: { title: `Go to ${name}` },
     })),
     {
-      title: 'Show the keys',
+      key: ':',
+      run: () => {
+        app.show('palette');
+      },
+      hint: { label: 'commands' },
+    },
+    {
+      key: 'q',
+      run: app.quit,
+      hint: { label: 'quit' },
+      command: { title: 'Quit' },
+    },
+    {
       key: '?',
       run: () => {
         app.show('keys');
       },
+      hint: { label: 'keys' },
+      command: { title: 'Show the keys' },
     },
-    { title: 'Quit', key: 'q', run: app.quit },
   ];
-}
-
-function keysOf(
-  commands: readonly AppCommand[],
-  openPalette: () => void,
-): KeyHandlers {
-  return {
-    ...Object.fromEntries(commands.map(({ key, run }) => [key, run])),
-    ':': openPalette,
-  };
 }
 
 /** What every screen is handed. The app's keys rest while its dialog is open. */
 function frameOf({
   size,
   header,
-  keys,
+  actions,
   dialog,
 }: {
   readonly size: TerminalLayout;
   readonly header: ReactNode;
-  readonly keys: KeyHandlers;
+  readonly actions: readonly ScreenAction[];
   readonly dialog: AppDialog;
 }): ShellFrame {
   return {
@@ -111,8 +118,8 @@ function frameOf({
     title: TITLE,
     commands: OFFERED_COMMANDS,
     header,
-    help: <KeyHints hints={APP_HINTS} />,
-    ...(dialog === 'none' ? { globalKeys: keys } : {}),
+    help: <KeyHints hints={hintsOf(actions)} />,
+    ...(dialog === 'none' ? { globalKeys: keysOf(actions) } : {}),
   };
 }
 
@@ -153,12 +160,14 @@ function useLost({ lost }: ServiceWatch, onLost: () => void): void {
 
 function DialogOver({
   dialog,
-  commands,
+  offers,
+  actions,
   size,
   onClose,
 }: {
   readonly dialog: AppDialog;
-  readonly commands: readonly AppCommand[];
+  readonly offers: OfferedActions;
+  readonly actions: readonly ScreenAction[];
   readonly size: TerminalLayout;
   readonly onClose: () => void;
 }): ReactNode {
@@ -168,7 +177,7 @@ function DialogOver({
   return (
     <Overlay size={size}>
       {dialog === 'palette' ? (
-        <AppPalette commands={commands} onClose={onClose} />
+        <AppPalette offers={offers} app={actions} onClose={onClose} />
       ) : (
         <KeysHelp onClose={onClose} />
       )}
@@ -190,12 +199,13 @@ export function App({
   const size = useTerminalSize();
   const [trail, move] = useReducer(moved, FIRST_TRAIL);
   const [dialog, setDialog] = useState<AppDialog>('none');
+  const [offers] = useState(offeredActions);
   const watch = useServiceWatch(session);
   useLost(watch, onLost);
   const quit = (): void => {
     onQuit(farewellOf(watch.activeWork));
   };
-  const commands = commandsOf({ move, show: setDialog, quit });
+  const actions = appActionsOf({ move, show: setDialog, quit });
   const header = (
     <Header
       section={sectionOf(trail)}
@@ -204,24 +214,24 @@ export function App({
       size={size}
     />
   );
-  const keys = keysOf(commands, () => {
-    setDialog('palette');
-  });
   // Also over a dialog and in a text field, where `q` is a letter.
   useKeys({ 'ctrl+c': quit }, { active: true });
   return (
     <Box width={size.columns} height={size.rows}>
       <BackdropContext value={dialog !== 'none'}>
-        <ShownScreen
-          place={shownOf(trail)}
-          session={session}
-          frame={frameOf({ size, header, keys, dialog })}
-          move={move}
-        />
+        <OfferedContext value={offers}>
+          <ShownScreen
+            place={shownOf(trail)}
+            session={session}
+            frame={frameOf({ size, header, actions, dialog })}
+            move={move}
+          />
+        </OfferedContext>
       </BackdropContext>
       <DialogOver
         dialog={dialog}
-        commands={commands}
+        offers={offers}
+        actions={actions}
         size={size}
         onClose={() => {
           setDialog('none');

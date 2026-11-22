@@ -4,11 +4,16 @@ import type { Health } from '@coverage-autopilot/api-contracts/health';
 
 import type { Problem } from '#components/problem-details';
 import type { DatedRequest } from '#hooks/use-dated-request';
-import type { Restart } from '#screens/service/restart';
+import {
+  type Restart,
+  restartBlockOf,
+  serviceActions,
+} from '#screens/service/restart';
 import { ServiceView } from '#screens/service/service-view';
 import { refused, SAMPLE_NOW } from '#tests/support/fake-service-api';
 import { sampleFrame, SECTION, WIDE } from '#tests/support/sample-frame';
 import { BUSY_HEALTH, IDLE_HEALTH } from '#tests/support/sample-repositories';
+import { nothing } from '#tests/support/still-ways';
 import {
   drawnAt,
   drawnWith,
@@ -40,6 +45,14 @@ function answered(health: Health): DatedRequest<Health> {
   };
 }
 
+/** The actions the screen hands the view for the health and the restart. */
+function actionsOf(health: DatedRequest<Health>, restart: Restart) {
+  return serviceActions(restartBlockOf(health.answer, restart), {
+    next: nothing,
+    restart: nothing,
+  });
+}
+
 function view({
   health = answered(IDLE_HEALTH),
   problem,
@@ -61,6 +74,7 @@ function view({
       moment={{ now: SAMPLE_NOW, timeZone: 'UTC' }}
       focused={focused}
       restart={restart}
+      actions={actionsOf(health, restart)}
     />,
     columns,
   );
@@ -227,6 +241,7 @@ describe('ServiceView', () => {
             moment={{ now: SAMPLE_NOW, timeZone: 'UTC' }}
             focused="status"
             restart={{ phase: 'idle' }}
+            actions={actionsOf(answered(IDLE_HEALTH), { phase: 'idle' })}
           />,
         ),
         USUAL_COLUMNS,

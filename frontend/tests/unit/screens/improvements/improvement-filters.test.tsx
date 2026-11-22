@@ -6,8 +6,10 @@ import type {
   ImprovementListQuery,
 } from '@coverage-autopilot/api-contracts/improvements';
 
+import { hintsOf } from '#components/key-hints';
 import {
-  filterHints,
+  filterActions,
+  type Filters,
   isNarrowed,
   keptBy,
   narrowingFacts,
@@ -29,11 +31,17 @@ import {
   REPOSITORY_LIST,
   SCANNED_REPOSITORY,
 } from '#tests/support/sample-repositories';
+import { nothing } from '#tests/support/still-ways';
 import { widestLine } from '#tests/support/terminal-text';
 import { renderAt } from '#tests/support/wide-terminal';
 import type { TerminalSize } from '#theme/widths';
 
 const NAMES = new Map([[SCANNED_REPOSITORY.id, 'example/payments']]);
+
+const STILL_FILTERS: Filters = {
+  ...UNNARROWED,
+  choose: { status: nothing, repositoryId: nothing },
+};
 
 /** The list as the service narrows it by the query. */
 function narrowedBy(query: ImprovementListQuery = {}): ImprovementList {
@@ -120,10 +128,28 @@ describe('narrowingFacts', () => {
   });
 });
 
-describe('filterHints', () => {
+describe('filterActions', () => {
   it('should leave the keys of the filters to the help below the wide layout', () => {
-    expect(filterHints('narrow')).toEqual([]);
-    expect(filterHints('wide').map(({ key }) => key)).toEqual(['f', 'r', '/']);
+    const ways = { names: NAMES, first: nothing } as const;
+
+    const narrow = filterActions(STILL_FILTERS, { ...ways, layout: 'narrow' });
+    const wide = filterActions(STILL_FILTERS, { ...ways, layout: 'wide' });
+
+    expect(hintsOf(narrow)).toEqual([]);
+    expect(hintsOf(wide).map(({ key }) => key)).toEqual(['f', 'r', '/']);
+  });
+
+  it('should name in the list of commands where each filter goes next', () => {
+    const actions = filterActions(
+      { ...STILL_FILTERS, status: 'skipped', repositoryId: undefined },
+      { names: NAMES, first: nothing, layout: 'wide' },
+    );
+
+    expect(actions.map(({ command }) => command)).toEqual([
+      { title: 'Filter by the next status', target: 'every status' },
+      { title: 'Filter by the next repository', target: 'example/payments' },
+      { title: 'Filter by a part of the path' },
+    ]);
   });
 });
 

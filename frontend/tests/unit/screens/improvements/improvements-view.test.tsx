@@ -28,6 +28,7 @@ import {
   UNNARROWED,
 } from '#tests/support/sample-improvements';
 import { REPOSITORY_LIST } from '#tests/support/sample-repositories';
+import { improvementsActionsAt } from '#tests/support/still-ways';
 import {
   drawnAt,
   drawnWith,
@@ -102,6 +103,13 @@ function view({
       position={{ index, offset: 0 }}
       visible={visibleRowsOf(size)}
       focused={focused}
+      actions={improvementsActionsAt(
+        listing.answer?.outcome === 'answered'
+          ? listing.answer.improvements
+          : [],
+        names,
+        { index, focused, size },
+      )}
     />
   );
 }

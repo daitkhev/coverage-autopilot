@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type KeyHint, KeyHints } from '#components/key-hints';
+import { hintsOf, type KeyHint, KeyHints } from '#components/key-hints';
 import {
   drawnAt,
   drawnWith,
@@ -18,6 +18,26 @@ const FOOTER: readonly KeyHint[] = [
   { key: ':', label: 'commands' },
   { key: 'q', label: 'quit' },
 ];
+
+function nothing(): void {
+  // The hints of an action do not run it.
+}
+
+describe('hintsOf', () => {
+  it('should name the actions that have words, as the footer writes their keys', () => {
+    expect(
+      hintsOf([
+        { key: 'up', run: nothing, hint: { key: 'up-down', label: 'move' } },
+        { key: 'down', run: nothing },
+        { key: 'c', run: nothing, hint: { label: 'cancel', role: 'danger' } },
+        { run: nothing, hint: { label: 'a step without a key' } },
+      ]),
+    ).toEqual([
+      { key: 'up-down', label: 'move' },
+      { key: 'c', label: 'cancel', role: 'danger' },
+    ]);
+  });
+});
 
 describe('KeyHints', () => {
   it('should draw the keys of the footer', () => {

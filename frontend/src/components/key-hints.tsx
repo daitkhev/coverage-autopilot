@@ -3,6 +3,7 @@ import { Fragment, type ReactNode } from 'react';
 
 import { Glyph } from '#components/glyph';
 import { RoleText } from '#components/role-text';
+import type { ScreenAction } from '#hooks/use-screen-actions';
 import { useTheme } from '#hooks/use-theme';
 import type { Role } from '#theme/roles';
 import { keyTextOf } from '#theme/symbols';
@@ -38,6 +39,22 @@ function Hint({ hint }: { readonly hint: KeyHint }): ReactNode {
       {active ? null : <RoleText role="secondary">{hint.inactive}</RoleText>}
     </Box>
   );
+}
+
+/** The hints of the actions the footer names, in their order. */
+export function hintsOf(actions: readonly ScreenAction[]): KeyHint[] {
+  return actions.flatMap(({ key, hint }) => {
+    const written = hint?.key ?? key;
+    return hint === undefined || written === undefined
+      ? []
+      : [
+          {
+            key: written,
+            label: hint.label,
+            ...(hint.role === undefined ? {} : { role: hint.role }),
+          },
+        ];
+  });
 }
 
 /** The keys of the footer, or of a dialog. */

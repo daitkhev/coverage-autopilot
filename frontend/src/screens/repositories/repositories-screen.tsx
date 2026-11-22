@@ -10,10 +10,9 @@ import type { ClientSession } from '#api/client-session';
 import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
 import { problemOf } from '#components/problem-details';
-import { browseKeysOf } from '#hooks/list-keys';
 import { type DatedRequest, useDatedRequest } from '#hooks/use-dated-request';
 import { useFocusRing } from '#hooks/use-focus-ring';
-import { type KeyHandlers, useKeys } from '#hooks/use-keys';
+import { useScreenActions } from '#hooks/use-screen-actions';
 import { useSelection } from '#hooks/use-selection';
 import {
   type ConnectDialogParts,
@@ -21,15 +20,14 @@ import {
   RepositoriesView,
   visibleRowsOf,
 } from '#screens/repositories/repositories-view';
+import { repositoryActions } from '#screens/repositories/repository-actions';
 import {
   listRepositoryRows,
   type RepositoryListing,
-  type RepositoryRow,
   type RepositoryWork,
   rowsOf,
   workOf,
 } from '#screens/repositories/repository-listing';
-import { isScanning } from '#screens/repositories/repository-words';
 import {
   type ConnectDialog,
   useConnectDialog,
@@ -41,6 +39,7 @@ import {
 import { useSnapshotParameters } from '#screens/repositories/use-snapshot-parameters';
 import { ASK_EVERY_MS } from '#theme/moments';
 import { repositoryName } from '#theme/names';
+import { layoutOf } from '#theme/widths';
 
 interface RepositoriesScreenProps {
   readonly session: ClientSession;
@@ -48,6 +47,9 @@ interface RepositoriesScreenProps {
   /** `enter`: the files of the latest snapshot of a repository. */
   readonly onOpenFiles: (repositoryId: string) => void;
 }
+
+/** What the footer calls the list and the panel of the chosen repository. */
+const PANEL_WORDS = ['list', 'details'] as const;
 
 interface NumberedListing {
   /** The number of the last list request started. */
@@ -81,39 +83,6 @@ function useWork(
   return useDatedRequest(request, { now: session.now, everyMs: ASK_EVERY_MS });
 }
 
-/** The keys of the screen while no dialog is open. */
-function actionsOf({
-  chosen,
-  starting,
-  scans,
-  connect,
-  onOpenFiles,
-}: {
-  readonly chosen: RepositoryRow | undefined;
-  readonly starting: ReadonlySet<string>;
-  readonly scans: ScanStarts;
-  readonly connect: ConnectDialog;
-  readonly onOpenFiles: (repositoryId: string) => void;
-}): KeyHandlers {
-  if (chosen === undefined) {
-    return { a: connect.open };
-  }
-  const { id } = chosen.repository;
-  return {
-    a: connect.open,
-    enter: () => {
-      onOpenFiles(id);
-    },
-    ...(isScanning(chosen, starting)
-      ? {}
-      : {
-          s: () => {
-            scans.start(id);
-          },
-        }),
-  };
-}
-
 /** The repositories whose scan was started here and the list does not show. */
 function startingOf(
   listing: RepositoryListing | undefined,
@@ -138,6 +107,26 @@ function dialogPartsOf(connect: ConnectDialog): ConnectDialogParts | undefined {
       };
 }
 
+/** The scans and the dialog that connects a repository, and their notice. */
+function useStarts(
+  session: ClientSession,
+  asked: RefObject<number>,
+): {
+  readonly notice: string | undefined;
+  readonly scans: ScanStarts;
+  readonly connect: ConnectDialog;
+} {
+  const [notice, setNotice] = useState<string | undefined>(undefined);
+  const scans = useScanStarts({ session, asked, onNotice: setNotice });
+  const connect = useConnectDialog({
+    session,
+    onConnected: (repository) => {
+      setNotice(`${repositoryName(repository)} is connected.`);
+    },
+  });
+  return { notice, scans, connect };
+}
+
 /**
  * The first screen: which repositories are connected and what is known
  * of each. The list is asked for again every second, `s` scans the
@@ -160,22 +149,19 @@ export function RepositoriesScreen({
   const chosen = rows[selection.index];
   const work = useWork(session, chosen?.repository.id);
   const parameters = useSnapshotParameters(session.api, chosen?.repository);
-  const [notice, setNotice] = useState<string | undefined>(undefined);
-  const scans = useScanStarts({ session, asked, onNotice: setNotice });
-  const connect = useConnectDialog({
-    session,
-    onConnected: (repository) => {
-      setNotice(`${repositoryName(repository)} is connected.`);
-    },
-  });
+  const { notice, scans, connect } = useStarts(session, asked);
   const starting = startingOf(listing.answer, scans);
-  useKeys(
+  const actions = repositoryActions(
+    { chosen, starting, layout: layoutOf(frame.size) },
     {
-      ...browseKeysOf(selection, focus),
-      ...actionsOf({ chosen, starting, scans, connect, onOpenFiles }),
+      selection,
+      panels: { ring: focus, names: REPOSITORIES_PANELS, words: PANEL_WORDS },
+      connect: connect.open,
+      scan: scans.start,
+      openFiles: onOpenFiles,
     },
-    { active: connect.state === undefined },
   );
+  useScreenActions(actions, { active: connect.state === undefined });
   return (
     <RepositoriesView
       frame={frame}
@@ -190,6 +176,7 @@ export function RepositoriesScreen({
       starting={starting}
       notice={notice}
       connect={dialogPartsOf(connect)}
+      actions={actions}
     />
   );
 }

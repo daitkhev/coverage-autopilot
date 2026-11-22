@@ -6,6 +6,17 @@ import type {
 import type { ServiceAnswer } from '#api/service-api';
 import { faultWords } from '#components/problem-details';
 import type { ActionState } from '#hooks/use-action';
+import type { ScreenAction } from '#hooks/use-screen-actions';
+
+/** `r`, which the footer and the panel of actions name. */
+export const RESTART_HINT = { key: 'r', label: 'restart' } as const;
+
+/** What the actions of the screen do. */
+interface ServiceWays {
+  /** Gives the focus to the other panel. */
+  readonly next: () => void;
+  readonly restart: () => void;
+}
 
 /** Where the request to stop the service stands. */
 export type Restart = ActionState<ServiceAnswer<StopServiceResult>>;
@@ -44,4 +55,27 @@ export function restartNoticeOf(restart: Restart): string | undefined {
         ? 'The service stops, and starts again with the next request.'
         : restart.outcome.error.message;
   }
+}
+
+/**
+ * The actions of the screen: `tab` to the other panel, and `r` while the
+ * service can be restarted, which is when nothing blocks it.
+ */
+export function serviceActions(
+  block: string | undefined,
+  { next, restart }: ServiceWays,
+): ScreenAction[] {
+  return [
+    { key: 'tab', run: next, hint: { label: 'other panel' } },
+    ...(block === undefined
+      ? [
+          {
+            key: RESTART_HINT.key,
+            run: restart,
+            hint: { label: RESTART_HINT.label },
+            command: { title: 'Restart the service' },
+          },
+        ]
+      : []),
+  ];
 }

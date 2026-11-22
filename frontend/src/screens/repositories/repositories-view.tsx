@@ -5,12 +5,13 @@ import type { ScanParameters } from '@coverage-autopilot/api-contracts/snapshots
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { DataList } from '#components/data-list';
 import { EmptyState } from '#components/empty-state';
-import { type KeyHint, KeyHints } from '#components/key-hints';
+import { hintsOf, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
 import { type Problem, ProblemDetails } from '#components/problem-details';
 import { SplitView } from '#components/split-view';
 import { StatusLine } from '#components/status-line';
 import type { DatedRequest } from '#hooks/use-dated-request';
+import type { ScreenAction } from '#hooks/use-screen-actions';
 import type { ListPosition } from '#hooks/use-selection';
 import {
   ConnectDialogView,
@@ -72,6 +73,8 @@ interface RepositoriesViewProps {
   readonly starting: ReadonlySet<string>;
   readonly notice: string | undefined;
   readonly connect: ConnectDialogParts | undefined;
+  /** What the keys do while no dialog is open, as the footer names them. */
+  readonly actions: readonly ScreenAction[];
 }
 
 function ListPanel(props: RepositoriesViewProps): ReactNode {
@@ -142,22 +145,6 @@ function DetailsPanel(props: RepositoriesViewProps): ReactNode {
   );
 }
 
-function listHints(props: RepositoriesViewProps): KeyHint[] {
-  const chosen = rowsOf(props.listing.answer)[props.position.index];
-  const scannable = chosen !== undefined && !isScanning(chosen, props.starting);
-  return [
-    ...(chosen === undefined
-      ? []
-      : [
-          { key: 'up-down', label: 'move' },
-          { key: 'enter', label: 'open' },
-        ]),
-    ...(scannable ? [{ key: 's', label: 'scan' }] : []),
-    { key: 'a', label: 'add' },
-    { key: 'tab', label: 'details' },
-  ];
-}
-
 /** The footer of the list, or of the dialog while it is open. */
 function footerOf(props: RepositoriesViewProps): {
   readonly status: ReactNode;
@@ -191,7 +178,7 @@ function footerOf(props: RepositoriesViewProps): {
         freshness={freshness}
       />
     ),
-    keys: <KeyHints hints={listHints(props)} />,
+    keys: <KeyHints hints={hintsOf(props.actions)} />,
     ...(rows.length === 0
       ? {}
       : {

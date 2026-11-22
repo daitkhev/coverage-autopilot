@@ -3,24 +3,32 @@ import { cleanup, render } from 'ink-testing-library';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { browseKeysOf, listKeysOf } from '#hooks/list-keys';
+import { hintsOf } from '#components/key-hints';
+import {
+  listActionsOf,
+  MOVE_HINT,
+  panelActionsOf,
+  type PanelPair,
+} from '#hooks/list-keys';
 import { useFocusRing } from '#hooks/use-focus-ring';
 import { useKeys } from '#hooks/use-keys';
+import { keysOf } from '#hooks/use-screen-actions';
 import { useSelection } from '#hooks/use-selection';
 import { KEYS, press, screenOf } from '#tests/support/keys';
+import { stillPanels, stillSelection } from '#tests/support/still-ways';
 
 const ROWS = 20;
 const PAGE = 5;
 
 function List(): ReactNode {
   const selection = useSelection({ count: ROWS, visible: PAGE });
-  useKeys(listKeysOf(selection), { active: true });
+  useKeys(keysOf(listActionsOf(selection)), { active: true });
   return <Text>{`row ${String(selection.index + 1)}`}</Text>;
 }
 
 afterEach(cleanup);
 
-describe('listKeysOf', () => {
+describe('listActionsOf', () => {
   it('should move one row with the arrows', async () => {
     const terminal = render(<List />);
 
@@ -54,55 +62,67 @@ describe('listKeysOf', () => {
     await press(terminal, 'g');
     expect(screenOf(terminal)).toBe('row 1');
   });
+
+  it('should name the moves once in the footer, with the words it is given', () => {
+    expect(hintsOf(listActionsOf(stillSelection(), MOVE_HINT))).toEqual([
+      { key: 'up-down', label: 'move' },
+    ]);
+    expect(hintsOf(listActionsOf(stillSelection()))).toEqual([]);
+  });
+
+  it('should leave the moves out of the list of commands', () => {
+    expect(
+      listActionsOf(stillSelection(), MOVE_HINT).filter(
+        ({ command }) => command !== undefined,
+      ),
+    ).toEqual([]);
+  });
 });
 
 const PANELS = ['list', 'details'] as const;
 
-function Browser(): ReactNode {
-  const selection = useSelection({ count: ROWS, visible: PAGE });
+function Panels(): ReactNode {
   const ring = useFocusRing(PANELS);
-  useKeys(browseKeysOf(selection, ring), { active: true });
-  return (
-    <Text>{`row ${String(selection.index + 1)} in the ${ring.focused}`}</Text>
-  );
+  const pair: PanelPair<'list' | 'details'> = {
+    ring,
+    names: PANELS,
+    words: PANELS,
+  };
+  useKeys(keysOf(panelActionsOf(pair, 'wide')), { active: true });
+  return <Text>{`focus on the ${ring.focused}`}</Text>;
 }
 
-describe('browseKeysOf', () => {
-  it('should move the list while it has the focus', async () => {
-    const terminal = render(<Browser />);
-
-    await press(terminal, KEYS.down, 'j');
-
-    expect(screenOf(terminal)).toBe('row 3 in the list');
-  });
-
+describe('panelActionsOf', () => {
   it('should give the focus to the other panel on tab', async () => {
-    const terminal = render(<Browser />);
+    const terminal = render(<Panels />);
 
     await press(terminal, KEYS.tab);
-    expect(screenOf(terminal)).toBe('row 1 in the details');
+    expect(screenOf(terminal)).toBe('focus on the details');
 
     await press(terminal, KEYS.tab);
-    expect(screenOf(terminal)).toBe('row 1 in the list');
+    expect(screenOf(terminal)).toBe('focus on the list');
   });
 
   it('should open the details on the right arrow and go back on the left', async () => {
-    const terminal = render(<Browser />);
+    const terminal = render(<Panels />);
 
     await press(terminal, KEYS.right);
-    expect(screenOf(terminal)).toBe('row 1 in the details');
+    expect(screenOf(terminal)).toBe('focus on the details');
 
     await press(terminal, KEYS.left);
-    expect(screenOf(terminal)).toBe('row 1 in the list');
+    expect(screenOf(terminal)).toBe('focus on the list');
   });
 
-  describe('when the details have the focus', () => {
-    it('should not move the list', async () => {
-      const terminal = render(<Browser />);
-
-      await press(terminal, KEYS.right, KEYS.down, 'G');
-
-      expect(screenOf(terminal)).toBe('row 1 in the details');
-    });
-  });
+  it.each([
+    ['list', 'wide', { key: 'tab', label: 'details' }],
+    ['list', 'narrow', { key: 'right', label: 'details' }],
+    ['details', 'narrow', { key: 'tab', label: 'list' }],
+  ] as const)(
+    'should name the way from the %s in the %s layout',
+    (focused, layout, hint) => {
+      expect(hintsOf(panelActionsOf(stillPanels(focused), layout))).toEqual([
+        hint,
+      ]);
+    },
+  );
 });

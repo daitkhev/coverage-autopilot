@@ -29,6 +29,7 @@ interface CommandPaletteProps {
   readonly onClose: () => void;
 }
 
+/** A command that acts on nothing named gives its title the whole row. */
 function CommandRow({
   command,
   bold,
@@ -36,16 +37,23 @@ function CommandRow({
   readonly command: PaletteCommand;
   readonly bold: boolean;
 }): ReactNode {
+  const { target } = command;
   return (
     <Box gap={GAP}>
-      <Box width={COMMAND_TITLE_SHARE} flexShrink={0}>
+      <Box
+        {...(target === undefined
+          ? { flexGrow: 1 }
+          : { width: COMMAND_TITLE_SHARE, flexShrink: 0 })}
+      >
         <RoleText bold={bold} truncate>
           {command.title}
         </RoleText>
       </Box>
-      <Box flexGrow={1}>
-        <RoleText truncate>{command.target ?? ''}</RoleText>
-      </Box>
+      {target === undefined ? null : (
+        <Box flexGrow={1}>
+          <RoleText truncate>{target}</RoleText>
+        </Box>
+      )}
       <RoleText role="emphasis">{command.key ?? ''}</RoleText>
     </Box>
   );

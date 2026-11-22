@@ -9,18 +9,15 @@ import type {
 import type { ShellFrame } from '#components/app-shell';
 import { type ListFilter, useListFilter } from '#components/list-filter';
 import { useFocusRing } from '#hooks/use-focus-ring';
-import { useKeys } from '#hooks/use-keys';
+import { type ScreenAction, useScreenActions } from '#hooks/use-screen-actions';
 import { type Selection, useSelection } from '#hooks/use-selection';
 import {
-  FILE_LISTS,
   type FileList,
+  fileListAt,
   filesOf,
+  listAfter,
 } from '#screens/files/files-answer';
-import {
-  filesKeys,
-  type FilesKeysState,
-  type FilesPanel,
-} from '#screens/files/files-keys';
+import { filesActions, type FilesPanel } from '#screens/files/files-keys';
 import { type Layout, layoutOf } from '#theme/widths';
 
 /**
@@ -31,6 +28,9 @@ import { type Layout, layoutOf } from '#theme/widths';
 const CHROME_ROWS = 13;
 
 const PANELS: readonly [FilesPanel, FilesPanel] = ['list', 'details'];
+
+/** What the footer calls the two panels. */
+const PANEL_WORDS = ['list', 'details'] as const;
 
 /** The file the dialog that starts an improvement is open for, if any. */
 interface StartChoice {
@@ -46,9 +46,36 @@ export interface Browser {
   readonly rows: readonly FileCoverage[];
   readonly visible: number;
   readonly selection: Selection;
-  readonly state: FilesKeysState;
+  readonly focused: FilesPanel;
+  readonly selected: FileCoverage | undefined;
   readonly filter: ListFilter;
   readonly dialog: StartChoice;
+  /** What the keys do while neither the filter nor the dialog has them. */
+  readonly actions: readonly ScreenAction[];
+}
+
+/** The files of the chosen list that hold the filter, and the chosen one. */
+function useRows(
+  files: SnapshotFiles,
+  {
+    list,
+    filter,
+    frame,
+  }: {
+    readonly list: number;
+    readonly filter: ListFilter;
+    readonly frame: ShellFrame;
+  },
+): Pick<Browser, 'chosen' | 'rows' | 'visible' | 'selection'> {
+  const chosen = fileListAt(list);
+  const rows = filesOf(files.items, { list: chosen, filter: filter.text });
+  const visible = Math.max(1, frame.size.rows - CHROME_ROWS);
+  const selection = useSelection({
+    count: rows.length,
+    visible,
+    keys: rows.map(({ path }) => path),
+  });
+  return { chosen, rows, visible, selection };
 }
 
 function useStartChoice(): StartChoice {
@@ -81,33 +108,37 @@ export function useBrowser({
   const dialog = useStartChoice();
   const filter = useListFilter();
   const ring = useFocusRing(PANELS);
-  const chosen = FILE_LISTS[list] ?? FILE_LISTS[0];
-  const rows = filesOf(files.items, { list: chosen, filter: filter.text });
-  const visible = Math.max(1, frame.size.rows - CHROME_ROWS);
-  const selection = useSelection({
-    count: rows.length,
-    visible,
-    keys: rows.map(({ path }) => path),
-  });
+  const shown = useRows(files, { list, filter, frame });
+  const { rows, selection } = shown;
   const layout = layoutOf(frame.size);
   const selected = rows[selection.index];
-  const state = { focused: ring.focused, layout, selected };
-  useKeys(
-    filesKeys(state, {
+  const actions = filesActions(
+    { layout, list, selected },
+    {
       selection,
+      panels: { ring, names: PANELS, words: PANEL_WORDS },
       showList: (by) => {
-        setList((list + by + FILE_LISTS.length) % FILE_LISTS.length);
+        setList(listAfter(list, by));
         selection.first();
       },
       filter: filter.start,
-      ring,
       openWork: onOpenImprovement,
       improve: dialog.open,
       back: onBack,
-    }),
-    // The screen is not behind the backdrop of its own shell, so it says
-    // itself that the dialog takes every key.
-    { active: !filter.typing && dialog.file === undefined },
+    },
   );
-  return { layout, chosen, rows, visible, selection, state, filter, dialog };
+  // The screen is not behind the backdrop of its own shell, so it says
+  // itself that the dialog takes every key.
+  useScreenActions(actions, {
+    active: !filter.typing && dialog.file === undefined,
+  });
+  return {
+    ...shown,
+    layout,
+    focused: ring.focused,
+    selected,
+    filter,
+    dialog,
+    actions,
+  };
 }

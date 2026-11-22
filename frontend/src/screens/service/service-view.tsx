@@ -5,7 +5,7 @@ import type { Health } from '@coverage-autopilot/api-contracts/health';
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { FactLine } from '#components/fact-line';
 import { FactRow } from '#components/fact-row';
-import { type KeyHint, KeyHints } from '#components/key-hints';
+import { hintsOf, type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
 import { type Problem, ProblemDetails } from '#components/problem-details';
 import { Section } from '#components/section';
@@ -13,6 +13,7 @@ import { SplitView } from '#components/split-view';
 import { StatusIndicator } from '#components/status-indicator';
 import { StatusLine } from '#components/status-line';
 import type { DatedRequest } from '#hooks/use-dated-request';
+import type { ScreenAction } from '#hooks/use-screen-actions';
 import {
   environmentRows,
   headlineOf,
@@ -23,6 +24,7 @@ import {
 } from '#screens/service/health-words';
 import {
   type Restart,
+  RESTART_HINT,
   restartBlockOf,
   restartNoticeOf,
 } from '#screens/service/restart';
@@ -41,6 +43,8 @@ interface ServiceViewProps {
   readonly moment: Moment;
   readonly focused: ServicePanel;
   readonly restart: Restart;
+  /** What the keys do, as the footer names them. */
+  readonly actions: readonly ScreenAction[];
 }
 
 const PATH = ['Service'];
@@ -86,10 +90,12 @@ function StatusPanel({
   );
 }
 
+/** The panel of actions names `r` also when it waits, and says until when. */
 function restartHintOf(props: ServiceViewProps): KeyHint {
   const block = restartBlockOf(props.health.answer, props.restart);
-  const hint = { key: 'r', label: 'restart' };
-  return block === undefined ? hint : { ...hint, inactive: block };
+  return block === undefined
+    ? RESTART_HINT
+    : { ...RESTART_HINT, inactive: block };
 }
 
 function StoragePanel(props: ServiceViewProps): ReactNode {
@@ -108,14 +114,6 @@ function StoragePanel(props: ServiceViewProps): ReactNode {
       </Section>
     </Panel>
   );
-}
-
-function footerHints(props: ServiceViewProps): KeyHint[] {
-  const restart = restartHintOf(props);
-  return [
-    { key: 'tab', label: 'other panel' },
-    ...(restart.inactive === undefined ? [restart] : []),
-  ];
 }
 
 /**
@@ -154,7 +152,7 @@ export function ServiceView(props: ServiceViewProps): ReactNode {
           freshness={{ ...health, now: moment.now }}
         />
       }
-      keys={<KeyHints hints={footerHints(props)} />}
+      keys={<KeyHints hints={hintsOf(props.actions)} />}
     />
   );
 }

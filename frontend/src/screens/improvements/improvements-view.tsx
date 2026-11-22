@@ -4,16 +4,16 @@ import type { Improvement } from '@coverage-autopilot/api-contracts/improvements
 
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { EmptyState } from '#components/empty-state';
-import { type KeyHint, KeyHints } from '#components/key-hints';
+import { hintsOf, type KeyHint, KeyHints } from '#components/key-hints';
 import { TYPING_HINTS } from '#components/list-filter';
 import { Panel } from '#components/panel';
 import { type Problem, ProblemDetails } from '#components/problem-details';
 import { SplitView } from '#components/split-view';
 import { StatusLine } from '#components/status-line';
 import type { DatedRequest } from '#hooks/use-dated-request';
+import type { ScreenAction } from '#hooks/use-screen-actions';
 import type { ListPosition } from '#hooks/use-selection';
 import {
-  filterHints,
   isNarrowed,
   type Narrowing,
   narrowingFacts,
@@ -21,12 +21,9 @@ import {
 import { ImprovementList } from '#screens/improvements/improvement-list';
 import type { Listing } from '#screens/improvements/improvement-listing';
 import { ImprovementSummary } from '#screens/improvements/improvement-summary';
-import {
-  canBeCancelled,
-  groupOf,
-} from '#screens/improvements/improvement-words';
+import { groupOf } from '#screens/improvements/improvement-words';
 import { countWords } from '#theme/counts';
-import { type Layout, layoutOf } from '#theme/widths';
+import { layoutOf } from '#theme/widths';
 
 /** The list and the panel of the selected improvement. */
 export const IMPROVEMENTS_PANELS = ['list', 'details'] as const;
@@ -46,6 +43,8 @@ interface ImprovementsViewProps {
   readonly focused: ImprovementsPanel;
   /** The question before a cancel, over the list while it is open. */
   readonly question?: ReactNode;
+  /** What the keys do while the list has them, as the footer names them. */
+  readonly actions: readonly ScreenAction[];
 }
 
 const NO_NAMES: ReadonlyMap<string, string> = new Map();
@@ -143,37 +142,12 @@ function statusFacts(props: ImprovementsViewProps): string[] {
 /** The question lists its own keys. The one that always works is here. */
 const QUESTION_HINTS: readonly KeyHint[] = [{ key: 'esc', label: 'keep' }];
 
-/** `enter` opens the chosen work, and `c` cancels it while it runs. */
-function chosenHints(chosen: Improvement | undefined): KeyHint[] {
-  if (chosen === undefined) {
-    return [];
-  }
-  return [
-    { key: 'up-down', label: 'move' },
-    { key: 'enter', label: 'open' },
-    ...(canBeCancelled(chosen) ? [{ key: 'c', label: 'cancel' }] : []),
-  ];
-}
-
-function listHints(chosen: Improvement | undefined, layout: Layout): KeyHint[] {
-  return [
-    ...chosenHints(chosen),
-    ...filterHints(layout),
-    { key: 'tab', label: 'details' },
-  ];
-}
-
 /** The keys that work now: the question's, the filter's, or the list's. */
-function keyHintsOf(
-  props: ImprovementsViewProps,
-  improvements: readonly Improvement[],
-): KeyHint[] {
+function keyHintsOf(props: ImprovementsViewProps): readonly KeyHint[] {
   if (props.question !== undefined) {
-    return [...QUESTION_HINTS];
+    return QUESTION_HINTS;
   }
-  return props.narrowing.path.typing
-    ? [...TYPING_HINTS]
-    : listHints(improvements[props.position.index], layoutOf(props.frame.size));
+  return props.narrowing.path.typing ? TYPING_HINTS : hintsOf(props.actions);
 }
 
 /**
@@ -207,7 +181,7 @@ export function ImprovementsView(props: ImprovementsViewProps): ReactNode {
         : {
             position: `row ${String(position.index + 1)} of ${String(improvements.length)}`,
           })}
-      keys={<KeyHints hints={keyHintsOf(props, improvements)} />}
+      keys={<KeyHints hints={keyHintsOf(props)} />}
       dialog={props.question}
     />
   );

@@ -1,51 +1,19 @@
 import { cleanup } from 'ink-testing-library';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { ServiceApi } from '#api/service-api';
 import { ServiceUnreachableError } from '#api/service-unreachable-error';
-import { App } from '#app/app';
 import { KEYS, PATIENT, press } from '#tests/support/keys';
-import { wholeSession } from '#tests/support/sample-app-session';
+import {
+  openedApp as opened,
+  showApp as show,
+} from '#tests/support/sample-app';
 import { BUSY_HEALTH } from '#tests/support/sample-repositories';
-import { frameOf, renderAt } from '#tests/support/wide-terminal';
+import { frameOf } from '#tests/support/wide-terminal';
 import type { TerminalSize } from '#theme/widths';
 
-const WIDE: TerminalSize = { columns: 112, rows: 34 };
 const TOO_SMALL: TerminalSize = { columns: 60, rows: 20 };
 const SOCKET = '/tmp/service.sock';
 const TWICE = 2;
-
-interface Shown {
-  readonly scripted?: Partial<ServiceApi>;
-  readonly size?: TerminalSize;
-  readonly reviving?: boolean;
-}
-
-function show({ scripted = {}, size = WIDE, reviving = false }: Shown = {}) {
-  const session = wholeSession(scripted);
-  const log = { lost: 0, farewells: [] as (string | undefined)[] };
-  const app = (
-    <App
-      session={session}
-      reviving={reviving}
-      onLost={() => {
-        log.lost += 1;
-      }}
-      onQuit={(farewell) => {
-        log.farewells.push(farewell);
-      }}
-    />
-  );
-  return { terminal: renderAt(app, size), session, log };
-}
-
-async function opened(shown: Shown = {}) {
-  const app = show(shown);
-  await expect
-    .poll(() => frameOf(app.terminal), PATIENT)
-    .toContain('service up');
-  return app;
-}
 
 afterEach(cleanup);
 

@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 
 import { AppShell, type ShellFrame } from '#components/app-shell';
-import { KeyHints } from '#components/key-hints';
+import { hintsOf, KeyHints } from '#components/key-hints';
 import { type Freshness, StatusLine } from '#components/status-line';
-import { useKeys } from '#hooks/use-keys';
+import { type NamedAction, useScreenActions } from '#hooks/use-screen-actions';
 
 interface BareScreenProps {
   readonly frame: ShellFrame;
@@ -12,6 +12,16 @@ interface BareScreenProps {
   readonly body: ReactNode;
   readonly freshness: Freshness;
   readonly onBack: () => void;
+}
+
+/** `esc`, which goes back to the screen this one was opened from. */
+export function backAction(onBack: () => void): NamedAction {
+  return {
+    key: 'esc',
+    run: onBack,
+    hint: { label: 'back' },
+    command: { title: 'Go back' },
+  };
 }
 
 /**
@@ -25,13 +35,14 @@ export function BareScreen({
   freshness,
   onBack,
 }: BareScreenProps): ReactNode {
-  useKeys({ esc: onBack }, { active: true });
+  const actions = [backAction(onBack)];
+  useScreenActions(actions, { active: true });
   return (
     <AppShell
       {...frame}
       body={body}
       status={<StatusLine path={path} facts={[]} freshness={freshness} />}
-      keys={<KeyHints hints={[{ key: 'esc', label: 'back' }]} />}
+      keys={<KeyHints hints={hintsOf(actions)} />}
     />
   );
 }

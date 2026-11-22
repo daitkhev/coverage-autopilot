@@ -10,8 +10,8 @@ import { faultOf } from '#components/problem-details';
 import { useAction } from '#hooks/use-action';
 import { useDatedRequest } from '#hooks/use-dated-request';
 import { useFocusRing } from '#hooks/use-focus-ring';
-import { useKeys } from '#hooks/use-keys';
-import { restartBlockOf } from '#screens/service/restart';
+import { useScreenActions } from '#hooks/use-screen-actions';
+import { restartBlockOf, serviceActions } from '#screens/service/restart';
 import { SERVICE_PANELS, ServiceView } from '#screens/service/service-view';
 import { ASK_EVERY_MS } from '#theme/moments';
 
@@ -35,20 +35,13 @@ export function ServiceScreen({
   });
   const focus = useFocusRing(SERVICE_PANELS);
   const restart = useAction<ServiceAnswer<StopServiceResult>>();
-  const blocked = restartBlockOf(health.answer, restart.state) !== undefined;
-  useKeys(
-    {
-      tab: focus.next,
-      ...(blocked
-        ? {}
-        : {
-            r: () => {
-              restart.start(async () => session.api.stopService());
-            },
-          }),
+  const actions = serviceActions(restartBlockOf(health.answer, restart.state), {
+    next: focus.next,
+    restart: () => {
+      restart.start(async () => session.api.stopService());
     },
-    { active: true },
-  );
+  });
+  useScreenActions(actions, { active: true });
   return (
     <ServiceView
       frame={frame}
@@ -57,6 +50,7 @@ export function ServiceScreen({
       moment={{ now: session.now(), timeZone: session.timeZone }}
       focused={focus.focused}
       restart={restart.state}
+      actions={actions}
     />
   );
 }

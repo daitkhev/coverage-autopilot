@@ -6,13 +6,12 @@ import {
   improvementStatusSchema,
 } from '@coverage-autopilot/api-contracts/statuses';
 
-import type { KeyHint } from '#components/key-hints';
 import {
   holdsFilter,
   type ListFilter,
   useListFilter,
 } from '#components/list-filter';
-import type { KeyHandlers } from '#hooks/use-keys';
+import type { ScreenAction } from '#hooks/use-screen-actions';
 import type { Listing } from '#screens/improvements/improvement-listing';
 import type { Layout } from '#theme/widths';
 
@@ -23,16 +22,24 @@ export interface Narrowing {
   readonly path: ListFilter;
 }
 
-/** The narrowing of the list, and the keys that change it. */
+/** What the actions of the filters need from the screen. */
+export interface FilterWays {
+  /** `owner/name` by the id of each repository, in the order of the list. */
+  readonly names: ReadonlyMap<string, string>;
+  /** Goes to the first row, after a filter changed the list. */
+  readonly first: () => void;
+  readonly layout: Layout;
+}
+
+/** What changes the narrowing the service is asked for. */
+interface Choosers {
+  readonly status: (status: ImprovementStatus | undefined) => void;
+  readonly repositoryId: (repositoryId: string | undefined) => void;
+}
+
+/** The narrowing of the list, and what changes it. */
 export interface Filters extends Narrowing {
-  /**
-   * `f` and `r` step through the statuses and the repositories and then
-   * go to the first row; `/` types a part of a path.
-   */
-  readonly keysOf: (
-    repositoryIds: readonly string[],
-    first: () => void,
-  ) => KeyHandlers;
+  readonly choose: Choosers;
 }
 
 /**
@@ -78,31 +85,77 @@ export function isNarrowed({ status, repositoryId, path }: Narrowing): boolean {
   return status !== undefined || repositoryId !== undefined || path.text !== '';
 }
 
+function statusWords(status: ImprovementStatus): string {
+  return `only ${status.replaceAll('_', ' ')}`;
+}
+
+/** Whose improvements the list holds: one repository, or all of them. */
+function whoseOf(
+  repositoryId: string | undefined,
+  names: ReadonlyMap<string, string>,
+): string {
+  return repositoryId === undefined
+    ? 'all repositories'
+    : (names.get(repositoryId) ?? repositoryId);
+}
+
 /** What the status line says the list holds: whose, which, with what. */
 export function narrowingFacts(
   { status, repositoryId, path }: Narrowing,
   names: ReadonlyMap<string, string>,
 ): string[] {
-  const whose =
-    repositoryId === undefined
-      ? 'all repositories'
-      : (names.get(repositoryId) ?? repositoryId);
   return [
-    whose,
-    ...(status === undefined ? [] : [`only ${status.replaceAll('_', ' ')}`]),
+    whoseOf(repositoryId, names),
+    ...(status === undefined ? [] : [statusWords(status)]),
     ...(path.text === '' ? [] : [`holding "${path.text}"`]),
   ];
 }
 
-/** The keys of the filters, which below the wide layout are left to the help. */
-export function filterHints(layout: Layout): KeyHint[] {
-  return layout !== 'wide'
-    ? []
-    : [
-        { key: 'f', label: 'status' },
-        { key: 'r', label: 'repository' },
-        { key: '/', label: 'path' },
-      ];
+/**
+ * `f` and `r` step through the statuses and the repositories and then go
+ * to the first row; `/` types a part of a path. Below the wide layout the
+ * footer leaves them to the help.
+ */
+export function filterActions(
+  { status, repositoryId, path, choose }: Filters,
+  { names, first, layout }: FilterWays,
+): ScreenAction[] {
+  const named = layout === 'wide';
+  const nextStatus = nextOf(improvementStatusSchema.options, status);
+  const nextRepository = nextOf([...names.keys()], repositoryId);
+  return [
+    {
+      key: 'f',
+      run: () => {
+        choose.status(nextStatus);
+        first();
+      },
+      ...(named ? { hint: { label: 'status' } } : {}),
+      command: {
+        title: 'Filter by the next status',
+        target:
+          nextStatus === undefined ? 'every status' : statusWords(nextStatus),
+      },
+    },
+    {
+      key: 'r',
+      run: () => {
+        choose.repositoryId(nextRepository);
+        first();
+      },
+      ...(named ? { hint: { label: 'repository' } } : {}),
+      command: {
+        title: 'Filter by the next repository',
+        target: whoseOf(nextRepository, names),
+      },
+    },
+    {
+      key: '/',
+      run: path.start,
+      ...(named ? { hint: { label: 'path' } } : {}),
+      command: { title: 'Filter by a part of the path' },
+    },
+  ];
 }
 
 /**
@@ -118,16 +171,6 @@ export function useFilters(): Filters {
     status,
     repositoryId,
     path,
-    keysOf: (repositoryIds, first) => ({
-      f: () => {
-        setStatus(nextOf(improvementStatusSchema.options, status));
-        first();
-      },
-      r: () => {
-        setRepositoryId(nextOf(repositoryIds, repositoryId));
-        first();
-      },
-      '/': path.start,
-    }),
+    choose: { status: setStatus, repositoryId: setRepositoryId },
   };
 }

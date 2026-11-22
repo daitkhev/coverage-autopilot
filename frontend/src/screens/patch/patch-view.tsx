@@ -3,12 +3,12 @@ import { type ReactNode, useState } from 'react';
 
 import type { ClientSession } from '#api/client-session';
 import { AppShell, type ShellFrame } from '#components/app-shell';
-import { KeyHints } from '#components/key-hints';
+import { hintsOf, KeyHints } from '#components/key-hints';
 import { SplitView } from '#components/split-view';
 import { type Freshness, StatusLine } from '#components/status-line';
 import { type Action, useAction } from '#hooks/use-action';
 import { useFocusRing } from '#hooks/use-focus-ring';
-import { useKeys } from '#hooks/use-keys';
+import { type ScreenAction, useScreenActions } from '#hooks/use-screen-actions';
 import { type Selection, useSelection } from '#hooks/use-selection';
 import {
   type LoadedPatch,
@@ -26,8 +26,7 @@ import {
 } from '#screens/patch/patch-decision';
 import { Evidence } from '#screens/patch/patch-evidence';
 import {
-  patchHints,
-  patchKeys,
+  patchActions,
   type PatchKeysState,
   type PatchPanel,
   type Scroll,
@@ -48,6 +47,9 @@ interface PatchViewProps {
 }
 
 const PANELS: readonly [PatchPanel, PatchPanel] = ['patch', 'evidence'];
+
+/** What the footer calls the patch and the evidence. */
+const PANEL_WORDS = ['patch', 'evidence'] as const;
 
 /**
  * The rows that hold no line of the patch: the header, the footer, the
@@ -156,7 +158,9 @@ function noticeOf(deciding: Deciding): { readonly notice?: string } {
 
 /** Where the person is: the panel, the file, the line, the answer. */
 interface Place {
+  readonly focused: PatchPanel;
   readonly state: PatchKeysState;
+  readonly actions: readonly ScreenAction[];
   readonly files: readonly PatchFile[];
   readonly reading: Reading;
   readonly visible: number;
@@ -178,24 +182,29 @@ function usePlace(props: PatchViewProps): Place {
   );
   const reading = useReading(files, visible);
   const state = {
-    focused: ring.focused,
     layout: layoutOf(props.frame.size),
     asking: deciding.asking,
     files: files.length,
   };
-  useKeys(
-    patchKeys(state, {
-      scroll: reading.scroll,
-      choose: deciding.answer.moveBy,
-      pick: deciding.answer.moveTo,
-      confirm: deciding.confirm,
-      focus: ring.focus,
-      next: ring.next,
-      back: props.onBack,
-    }),
-    { active: true },
-  );
-  return { state, files, reading, visible, deciding, notice };
+  const actions = patchActions(state, {
+    scroll: reading.scroll,
+    choose: deciding.answer.moveBy,
+    pick: deciding.answer.moveTo,
+    confirm: deciding.confirm,
+    panels: { ring, names: PANELS, words: PANEL_WORDS },
+    back: props.onBack,
+  });
+  useScreenActions(actions, { active: true });
+  return {
+    focused: ring.focused,
+    state,
+    actions,
+    files,
+    reading,
+    visible,
+    deciding,
+    notice,
+  };
 }
 
 function Body({
@@ -207,7 +216,7 @@ function Body({
 }): ReactNode {
   const { improvement, patch, repository } = props.shown;
   const { state, reading, deciding } = place;
-  const reviewing = state.focused === 'patch';
+  const reviewing = place.focused === 'patch';
   return (
     <Box flexDirection="column" flexGrow={1}>
       <SplitView
@@ -285,7 +294,7 @@ export function PatchView(props: PatchViewProps): ReactNode {
         />
       }
       {...positionOf(place.reading)}
-      keys={<KeyHints hints={patchHints(place.state)} />}
+      keys={<KeyHints hints={hintsOf(place.actions)} />}
     />
   );
 }

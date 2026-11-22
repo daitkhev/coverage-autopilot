@@ -5,7 +5,7 @@ import type { Repository } from '@coverage-autopilot/api-contracts/repositories'
 
 import type { ClientSession } from '#api/client-session';
 import { AppShell, type ShellFrame } from '#components/app-shell';
-import { KeyHints } from '#components/key-hints';
+import { hintsOf, KeyHints } from '#components/key-hints';
 import { SplitView } from '#components/split-view';
 import { type Freshness, StatusLine } from '#components/status-line';
 import { endOf, hasEnded } from '#screens/improvement/improvement-answer';
@@ -17,7 +17,6 @@ import {
 import { Ending } from '#screens/improvement/improvement-ending';
 import { Facts } from '#screens/improvement/improvement-facts';
 import { History } from '#screens/improvement/improvement-history';
-import { improvementHints } from '#screens/improvement/improvement-keys';
 import { type Place, usePlace } from '#screens/improvement/improvement-place';
 import { StepLine } from '#screens/improvement/step-line';
 import { ageWords } from '#theme/moments';
@@ -43,13 +42,12 @@ function Body({
   readonly place: Place;
 }): ReactNode {
   const { improvement, repository, session } = props;
-  const { state } = place;
-  const work = state.focused === 'work';
+  const work = place.focused === 'work';
   const now = session.now();
   const threshold = repository.latestSnapshot?.threshold.percentage;
   return (
     <SplitView
-      layout={state.layout}
+      layout={place.layout}
       shown={work ? 'left' : 'right'}
       left={
         hasEnded(improvement) ? (
@@ -58,7 +56,7 @@ function Body({
             threshold={threshold}
             now={now}
             focused={work}
-            choices={state.choices}
+            choices={place.choices}
             chosen={place.choice.index}
           />
         ) : (
@@ -150,7 +148,7 @@ export function ImprovementView(props: ImprovementViewProps): ReactNode {
         <KeyHints
           hints={
             place.dialog === undefined
-              ? improvementHints(place.state)
+              ? hintsOf(place.actions)
               : dialogHints(place.dialog)
           }
         />

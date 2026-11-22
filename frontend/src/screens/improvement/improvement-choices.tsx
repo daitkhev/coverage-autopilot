@@ -1,6 +1,8 @@
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
 
+import { backAction } from '#components/bare-screen';
+import type { NamedAction } from '#hooks/use-screen-actions';
 import { acceptedOf } from '#screens/improvement/improvement-answer';
 import type { OpenDialog } from '#screens/improvement/improvement-dialog';
 import type { Choice } from '#screens/improvement/improvement-ending';
@@ -31,47 +33,70 @@ function againOf({ improvement, repository }: Failed): OpenDialog {
 
 /**
  * Only a spent budget is helped by larger limits. Every other failure has
- * a cause that more attempts, tokens or minutes do not remove.
+ * a cause that more attempts, tokens or minutes do not remove. The step
+ * has no key of its own: it is chosen from its list.
  */
-function againChoices(failed: Failed): Choice[] {
+function againActions(failed: Failed): NamedAction[] {
   return failed.improvement.failure?.reason === 'budget_exhausted'
     ? [
         {
-          label: 'Request it again with larger limits',
           run: () => {
             failed.open(againOf(failed));
           },
+          command: { title: 'Request it again with larger limits' },
         },
       ]
     : [];
 }
 
-function patchChoices({ improvement, onOpenPatch }: Failed): Choice[] {
+/** `p` shows the patch the gate accepted, whatever became of the work. */
+function patchActions({
+  improvement,
+  onOpenPatch,
+}: Pick<Failed, 'improvement' | 'onOpenPatch'>): NamedAction[] {
   const accepted = acceptedOf(improvement);
   return accepted === undefined
     ? []
     : [
         {
-          label: `Show the patch of attempt ${String(accepted.number)}`,
+          key: 'p',
           run: () => {
             onOpenPatch(improvement.id);
+          },
+          command: {
+            title: `Show the patch of attempt ${String(accepted.number)}`,
           },
         },
       ];
 }
 
 /**
- * The next steps of a failed improvement: to ask for it again with larger
- * limits when the budget ran out, its patch when one passed, and the way
- * back. Any other improvement has none.
+ * What a failed improvement offers among its next steps, each an action
+ * of the screen: to ask for it again with larger limits when the budget
+ * ran out, its patch when one passed, and the way back.
  */
-export function choicesOf(failed: Failed): Choice[] {
-  if (failed.improvement.status !== 'failed') {
-    return [];
-  }
-  return [
-    ...againChoices(failed),
-    ...patchChoices(failed),
-    { label: 'Go back', run: failed.onBack },
-  ];
+export interface Steps {
+  readonly again: readonly NamedAction[];
+  readonly patch: readonly NamedAction[];
+  readonly back: NamedAction;
+  /** The steps as their list shows them. Work that did not fail has none. */
+  readonly choices: readonly Choice[];
+}
+
+function choicesOf(steps: readonly NamedAction[]): Choice[] {
+  return steps.map(({ run, command }) => ({ label: command.title, run }));
+}
+
+/** The actions of the next steps, and the list a failure shows them in. */
+export function stepsOf(failed: Failed): Steps {
+  const hasFailed = failed.improvement.status === 'failed';
+  const again = hasFailed ? againActions(failed) : [];
+  const patch = patchActions(failed);
+  const back = backAction(failed.onBack);
+  return {
+    again,
+    patch,
+    back,
+    choices: hasFailed ? choicesOf([...again, ...patch, back]) : [],
+  };
 }

@@ -90,6 +90,16 @@ export const FILE_LISTS: readonly [FileList, ...FileList[]] = [
   },
 ];
 
+/** The place of the list a step from another, round the four. */
+export function listAfter(list: number, by: number): number {
+  return (list + by + FILE_LISTS.length) % FILE_LISTS.length;
+}
+
+/** The list at a place among the four. */
+export function fileListAt(list: number): FileList {
+  return FILE_LISTS[list] ?? FILE_LISTS[0];
+}
+
 /** The files of a list whose path holds the filter, in any case. */
 export function filesOf(
   items: readonly FileCoverage[],

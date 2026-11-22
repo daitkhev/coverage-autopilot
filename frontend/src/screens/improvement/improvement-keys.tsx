@@ -3,178 +3,144 @@ import type {
   PullRequest,
 } from '@coverage-autopilot/api-contracts/improvements';
 
-import type { KeyHint } from '#components/key-hints';
-import type { KeyHandlers } from '#hooks/use-keys';
+import { panelActionsOf, type PanelPair } from '#hooks/list-keys';
+import type { ScreenAction } from '#hooks/use-screen-actions';
 import type { Selection } from '#hooks/use-selection';
-import { acceptedOf, hasEnded } from '#screens/improvement/improvement-answer';
-import type { Choice } from '#screens/improvement/improvement-ending';
+import { hasEnded } from '#screens/improvement/improvement-answer';
+import type { Steps } from '#screens/improvement/improvement-choices';
 import type { Layout } from '#theme/widths';
 
 /** The two panels of the screen: the work, and the facts beside it. */
 export type ImprovementPanel = 'work' | 'facts';
 
-/** What the keys of the screen act on. */
+/** What the actions of the screen act on. */
 export interface ImprovementKeysState {
-  readonly focused: ImprovementPanel;
   readonly layout: Layout;
   readonly improvement: Improvement;
-  /** The next steps of a failed improvement, empty for any other. */
-  readonly choices: readonly Choice[];
   /** The pull request `o` opens, when there is one and a browser to show it. */
   readonly pullRequest: PullRequest | undefined;
+  readonly steps: Steps;
 }
 
-/** What the keys of the screen do. */
+/** What the actions of the screen do. */
 export interface ImprovementActions {
+  /** The chosen next step of failed work. */
   readonly choice: Selection;
-  readonly focus: (panel: ImprovementPanel) => void;
-  readonly next: () => void;
+  readonly panels: PanelPair<ImprovementPanel>;
   /** Opens the question before a cancel. */
   readonly ask: () => void;
-  readonly openPatch: (improvementId: string) => void;
   readonly openPullRequest: (pullRequest: PullRequest) => void;
   /** Looks for the next file below the threshold, to start work on it. */
   readonly nextFile: (improvement: Improvement) => void;
-  readonly back: () => void;
 }
 
-/** The choices take the arrows and `enter` while the work has the focus. */
-function choiceKeys(
+/** Whether the next steps of failed work take the arrows and `enter`. */
+function isChoosing(
   state: ImprovementKeysState,
   actions: ImprovementActions,
-): KeyHandlers {
-  const { choices } = state;
-  if (choices.length === 0 || state.focused !== 'work') {
-    return {};
-  }
+): boolean {
+  return (
+    state.steps.choices.length > 0 && actions.panels.ring.focused === 'work'
+  );
+}
+
+/** The arrows choose a next step, and `enter` takes it. */
+function choiceActions(
+  state: ImprovementKeysState,
+  { choice }: ImprovementActions,
+): ScreenAction[] {
   const by = (rows: number) => (): void => {
-    actions.choice.moveBy(rows);
+    choice.moveBy(rows);
   };
-  return {
-    up: by(-1),
-    k: by(-1),
-    down: by(1),
-    j: by(1),
-    enter: () => {
-      choices[actions.choice.index]?.run();
+  return [
+    { key: 'up', run: by(-1), hint: { key: 'up-down', label: 'choose' } },
+    { key: 'k', run: by(-1) },
+    { key: 'down', run: by(1) },
+    { key: 'j', run: by(1) },
+    {
+      key: 'enter',
+      run: () => {
+        state.steps.choices[choice.index]?.run();
+      },
+      hint: { label: 'confirm' },
     },
-  };
+  ];
+}
+
+/** `o` shows the pull request; at 80 columns the footer names it in short. */
+function pullRequestActions(
+  state: ImprovementKeysState,
+  actions: ImprovementActions,
+): ScreenAction[] {
+  const { pullRequest } = state;
+  if (pullRequest === undefined) {
+    return [];
+  }
+  const label =
+    state.layout === 'narrow' ? 'pull request' : 'open the pull request';
+  return [
+    {
+      key: 'o',
+      run: () => {
+        actions.openPullRequest(pullRequest);
+      },
+      hint: { label },
+      command: {
+        title: 'Open the pull request',
+        target: `#${String(pullRequest.number)}`,
+      },
+    },
+  ];
 }
 
 /**
  * After an ending `n` goes on to the next file below the threshold, and
  * before it `c` cancels the work.
  */
-function endedKeys(
-  state: ImprovementKeysState,
+function endingAction(
+  { improvement }: ImprovementKeysState,
   actions: ImprovementActions,
-): KeyHandlers {
-  const { improvement } = state;
+): ScreenAction {
   return hasEnded(improvement)
     ? {
-        n: () => {
+        key: 'n',
+        run: () => {
           actions.nextFile(improvement);
         },
+        hint: { label: 'next file' },
+        command: { title: 'Go on to the next file' },
       }
-    : { c: actions.ask };
-}
-
-/** `p` opens a patch the gate accepted; `o` shows its pull request. */
-function letterKeys(
-  state: ImprovementKeysState,
-  actions: ImprovementActions,
-): KeyHandlers {
-  const { improvement, pullRequest } = state;
-  return {
-    ...endedKeys(state, actions),
-    ...(pullRequest === undefined
-      ? {}
-      : {
-          o: () => {
-            actions.openPullRequest(pullRequest);
-          },
-        }),
-    ...(acceptedOf(improvement) === undefined
-      ? {}
-      : {
-          p: () => {
-            actions.openPatch(improvement.id);
-          },
-        }),
-  };
-}
-
-/** The keys of the screen. Both panels take the letters and `tab`. */
-export function improvementKeys(
-  state: ImprovementKeysState,
-  actions: ImprovementActions,
-): KeyHandlers {
-  return {
-    tab: actions.next,
-    right: () => {
-      actions.focus('facts');
-    },
-    left: () => {
-      actions.focus('work');
-    },
-    esc: actions.back,
-    ...letterKeys(state, actions),
-    ...choiceKeys(state, actions),
-  };
-}
-
-/** At 80 columns `→` opens the facts in place of the work. */
-function panelHint(state: ImprovementKeysState): KeyHint {
-  if (state.focused === 'facts') {
-    return { key: 'tab', label: 'work' };
-  }
-  return state.layout === 'narrow'
-    ? { key: 'right', label: 'details' }
-    : { key: 'tab', label: 'details' };
-}
-
-/** At 80 columns the address of the pull request is named in short. */
-function pullRequestHints(state: ImprovementKeysState): KeyHint[] {
-  if (state.pullRequest === undefined) {
-    return [];
-  }
-  const label =
-    state.layout === 'narrow' ? 'pull request' : 'open the pull request';
-  return [{ key: 'o', label }];
-}
-
-/** Whether the next steps of a failed improvement take the arrows. */
-function isChoosing(state: ImprovementKeysState): boolean {
-  return state.choices.length > 0 && state.focused === 'work';
+    : {
+        key: 'c',
+        run: actions.ask,
+        hint: { label: 'cancel' },
+        command: {
+          title: 'Cancel the improvement',
+          target: improvement.targetFile,
+        },
+      };
 }
 
 /**
- * The letters the footer lists. While the next steps are chosen, the
- * patch is one of them, so `p` is not named twice.
+ * The actions of the screen, in the order the footer names them. Both
+ * panels take the letters and `tab`. While the next steps are chosen the
+ * patch is one of them, so the footer does not name `p` twice.
  */
-function letterHints(state: ImprovementKeysState): KeyHint[] {
-  const { improvement } = state;
-  const patch = acceptedOf(improvement) !== undefined && !isChoosing(state);
+export function improvementActions(
+  state: ImprovementKeysState,
+  actions: ImprovementActions,
+): ScreenAction[] {
+  const choosing = isChoosing(state, actions);
+  const { again, patch, back } = state.steps;
   return [
-    ...pullRequestHints(state),
-    ...(patch ? [{ key: 'p', label: 'patch' }] : []),
-    hasEnded(improvement)
-      ? { key: 'n', label: 'next file' }
-      : { key: 'c', label: 'cancel' },
-  ];
-}
-
-/** The keys the footer lists: only those that work now. */
-export function improvementHints(state: ImprovementKeysState): KeyHint[] {
-  return [
-    ...(isChoosing(state)
-      ? [
-          { key: 'up-down', label: 'choose' },
-          { key: 'enter', label: 'confirm' },
-        ]
-      : []),
-    ...letterHints(state),
-    panelHint(state),
-    { key: 'esc', label: 'back' },
+    ...(choosing ? choiceActions(state, actions) : []),
+    ...again,
+    ...pullRequestActions(state, actions),
+    ...(choosing
+      ? patch
+      : patch.map((each) => ({ ...each, hint: { label: 'patch' } }))),
+    endingAction(state, actions),
+    ...panelActionsOf(actions.panels, state.layout),
+    back,
   ];
 }

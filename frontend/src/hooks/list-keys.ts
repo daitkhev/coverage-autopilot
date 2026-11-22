@@ -1,56 +1,96 @@
 import type { FocusRing } from '#hooks/use-focus-ring';
-import type { KeyHandlers } from '#hooks/use-keys';
+import type { ActionHint, ScreenAction } from '#hooks/use-screen-actions';
 import type { Selection } from '#hooks/use-selection';
+import type { Layout } from '#theme/widths';
 
-/** A screen of a list on the left and the selected item on the right. */
-type ListPanel = 'list' | 'details';
+/** The words of the footer for the moves through a list: `↑↓` move. */
+export const MOVE_HINT: ActionHint = { key: 'up-down', label: 'move' };
+
+/** Two panels of a screen, one of which has the focus. */
+export interface PanelPair<Name extends string> {
+  readonly ring: FocusRing<Name>;
+  /** The first panel, and the second one that `→` opens. */
+  readonly names: readonly [Name, Name];
+  /** What the footer calls each of them. */
+  readonly words: readonly [string, string];
+}
 
 /**
  * The keys that move through a list, as the table of keys writes them:
  * one row with the arrows or `j` and `k`, one page, the first and the
- * last row.
+ * last row. The footer names them once, by the arrows, with the words it
+ * is given.
  */
-export function listKeysOf(selection: Selection): KeyHandlers {
+export function listActionsOf(
+  selection: Selection,
+  hint?: ActionHint,
+): ScreenAction[] {
   const up = (): void => {
     selection.moveBy(-1);
   };
   const down = (): void => {
     selection.moveBy(1);
   };
-  return {
-    up,
-    k: up,
-    down,
-    j: down,
-    pgup: () => {
-      selection.pageBy(-1);
+  return [
+    { key: 'up', run: up, ...(hint === undefined ? {} : { hint }) },
+    { key: 'k', run: up },
+    { key: 'down', run: down },
+    { key: 'j', run: down },
+    {
+      key: 'pgup',
+      run: () => {
+        selection.pageBy(-1);
+      },
     },
-    pgdn: () => {
-      selection.pageBy(1);
+    {
+      key: 'pgdn',
+      run: () => {
+        selection.pageBy(1);
+      },
     },
-    g: selection.first,
-    G: selection.last,
-  };
+    { key: 'g', run: selection.first },
+    { key: 'G', run: selection.last },
+  ];
 }
 
 /**
- * The keys of a list and its details: the list moves only while it has
- * the focus, `tab` gives the focus to the other panel, `→` opens the
- * details, which in one panel take the place of the list, and `←` goes
- * back to the list.
+ * The way to the other panel the footer names. At 80 columns `→` opens
+ * the second panel in place of the first.
  */
-export function browseKeysOf(
-  selection: Selection,
-  ring: FocusRing<ListPanel>,
-): KeyHandlers {
-  return {
-    ...(ring.focused === 'list' ? listKeysOf(selection) : {}),
-    tab: ring.next,
-    right: () => {
-      ring.focus('details');
+function panelHintOf<Name extends string>(
+  { ring, names, words }: PanelPair<Name>,
+  layout: Layout,
+): ActionHint {
+  if (ring.focused !== names[0]) {
+    return { label: words[0] };
+  }
+  return layout === 'narrow'
+    ? { key: 'right', label: words[1] }
+    : { label: words[1] };
+}
+
+/**
+ * The keys between two panels: `tab` gives the focus to the other one,
+ * `→` opens the second and `←` goes back to the first.
+ */
+export function panelActionsOf<Name extends string>(
+  pair: PanelPair<Name>,
+  layout: Layout,
+): ScreenAction[] {
+  const { ring, names } = pair;
+  return [
+    { key: 'tab', run: ring.next, hint: panelHintOf(pair, layout) },
+    {
+      key: 'right',
+      run: () => {
+        ring.focus(names[1]);
+      },
     },
-    left: () => {
-      ring.focus('list');
+    {
+      key: 'left',
+      run: () => {
+        ring.focus(names[0]);
+      },
     },
-  };
+  ];
 }

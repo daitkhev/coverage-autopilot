@@ -9,10 +9,11 @@ import {
   RepositoriesView,
   visibleRowsOf,
 } from '#screens/repositories/repositories-view';
-import type {
-  RepositoryListing,
-  RepositoryRow,
-  RepositoryWork,
+import {
+  type RepositoryListing,
+  type RepositoryRow,
+  type RepositoryWork,
+  rowsOf,
 } from '#screens/repositories/repository-listing';
 import {
   answered as serviceAnswered,
@@ -34,6 +35,7 @@ import {
   SCANNED_REPOSITORY,
   SCANNING_REPOSITORY,
 } from '#tests/support/sample-repositories';
+import { repositoryActionsAt } from '#tests/support/still-ways';
 import {
   drawnAt,
   drawnWith,
@@ -127,6 +129,11 @@ function view({
               onClose: vi.fn(),
             }
       }
+      actions={repositoryActionsAt(rowsOf(listing.answer), starting, {
+        index,
+        focused,
+        size,
+      })}
     />
   );
 }
@@ -184,7 +191,6 @@ describe('RepositoriesView', () => {
     // Both rows, and the panel of the chosen one.
     expect(drawn.match(/a scan waits for its turn/gu)).toHaveLength(3);
     expect(drawn).toContain('2 scans running');
-    expect(drawn).not.toContain('s scan');
   });
 
   describe('when another repository is chosen', () => {
@@ -195,11 +201,6 @@ describe('RepositoriesView', () => {
       expect(drawn).toContain('The first scan runs.');
       expect(drawn).not.toContain('Press s to scan it.');
       expect(drawn).toContain('asking the service');
-      expect(drawn).not.toContain('s scan');
-    });
-
-    it('should offer to scan one never scanned', () => {
-      expect(draw({ index: 3 })).toContain('s scan');
     });
   });
 
@@ -299,10 +300,7 @@ describe('RepositoriesView', () => {
 
   describe('when the window has room for one panel', () => {
     it('should show the chosen repository in place of the list', () => {
-      const drawn = draw({
-        size: NARROW,
-        focused: 'details',
-      });
+      const drawn = draw({ size: NARROW, focused: 'details' });
 
       expect(drawn).toContain('COVERAGE');
       expect(drawn).not.toContain('example/gateway');
