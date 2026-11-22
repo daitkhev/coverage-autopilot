@@ -1,15 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { CaptureSnapshotHandler } from '#coverage/application/commands/capture-snapshot/capture-snapshot.handler';
-import { RunTestsHandler } from '#coverage/application/commands/run-tests/run-tests.handler';
-import { CoverageApi } from '#coverage/application/coverage-api';
-import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
-import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
 import { RepositoryId } from '#kernel/primitives/repository-id';
 import {
-  type CoverageApplication,
+  coverageApiOf,
   coverageApplication,
   FIRST_ID,
 } from '#tests/support/coverage-application';
@@ -20,25 +15,13 @@ import {
 import { PASSED } from '#tests/support/recording-sandbox';
 import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
 
-function apiOf(application: CoverageApplication): CoverageApi {
-  const { snapshots, capture, transactions, detector, tests, thresholds } =
-    application;
-  return new CoverageApi(
-    new CaptureSnapshotHandler(snapshots, capture, transactions, thresholds),
-    application.preparation,
-    new RunTestsHandler(detector, tests, application.testReports),
-    new GetSnapshotHandler(snapshots, thresholds),
-    new GetFileCoverageHandler(snapshots, thresholds),
-  );
-}
-
 const LOAN = { workingCopyPath: WORKING_COPY_PATH, owner: 'improvement:1' };
 
 const RUNNING = new AbortController().signal;
 
 describe('CoverageApi', () => {
   it('should capture a snapshot and then find it and its files', async () => {
-    const api = apiOf(coverageApplication());
+    const api = coverageApiOf(coverageApplication());
 
     const captured = await api.captureSnapshot(
       {
@@ -61,7 +44,7 @@ describe('CoverageApi', () => {
 
   describe('prepareProject', () => {
     it('should describe the project it prepared', async () => {
-      const api = apiOf(coverageApplication());
+      const api = coverageApiOf(coverageApplication());
 
       const prepared = await api.prepareProject(LOAN, RUNNING);
 
@@ -87,7 +70,10 @@ describe('CoverageApi', () => {
         const application = coverageApplication();
         application.sandbox.answer({ ...PASSED, exitCode: 1 });
 
-        const prepared = await apiOf(application).prepareProject(LOAN, RUNNING);
+        const prepared = await coverageApiOf(application).prepareProject(
+          LOAN,
+          RUNNING,
+        );
 
         expect(prepared).toEqual({
           outcome: 'install_failed',
@@ -102,7 +88,7 @@ describe('CoverageApi', () => {
     it('should run the tests in the working copy it is lent', async () => {
       const application = coverageApplication();
 
-      const result = await apiOf(application).runTests(
+      const result = await coverageApiOf(application).runTests(
         { ...LOAN, testFiles: [], withCoverage: false },
         RUNNING,
       );

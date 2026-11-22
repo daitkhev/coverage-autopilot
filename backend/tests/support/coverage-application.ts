@@ -1,11 +1,16 @@
+import { CaptureSnapshotHandler } from '#coverage/application/commands/capture-snapshot/capture-snapshot.handler';
 import { SnapshotCapture } from '#coverage/application/commands/capture-snapshot/snapshot-capture';
 import { PrepareProjectHandler } from '#coverage/application/commands/prepare-project/prepare-project.handler';
+import { RunTestsHandler } from '#coverage/application/commands/run-tests/run-tests.handler';
 import { TestExecution } from '#coverage/application/commands/run-tests/test-execution';
+import { CoverageApi } from '#coverage/application/coverage-api';
 import type { CoverageReport } from '#coverage/application/ports/coverage-report-reader.port';
 import type {
   PackageInstall,
   SupportedProject,
 } from '#coverage/application/ports/project-detector.port';
+import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
+import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
 import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import type { ReportedCoverage } from '#coverage/domain/services/file-state.service';
 import type { FileCoverage } from '#coverage/domain/value-objects/file-coverage.vo';
@@ -64,7 +69,8 @@ export function supportedProject(): SupportedProject {
   };
 }
 
-function rowOf(file: FileCoverage): [string, ReportedCoverage] {
+/** The row a report of the runner has for a measured file. */
+export function reportRowOf(file: FileCoverage): [string, ReportedCoverage] {
   return [
     file.path.value,
     { counters: file.counters, uncovered: file.uncovered },
@@ -74,7 +80,7 @@ function rowOf(file: FileCoverage): [string, ReportedCoverage] {
 /** What Jest reports for the fixture project: the two files with code. */
 function fixtureReport(): CoverageReport {
   const { used, unused } = fixtureFiles();
-  return new Map([rowOf(used), rowOf(unused)]);
+  return new Map([reportRowOf(used), reportRowOf(unused)]);
 }
 
 /** Every stand-in of the application, and the parts wired over them. */
@@ -141,4 +147,17 @@ export function coverageApplication(): CoverageApplication {
     capture,
     thresholds: new RepositoryThresholds(repositories),
   };
+}
+
+/** The contract of the coverage module, answered by its application. */
+export function coverageApiOf(application: CoverageApplication): CoverageApi {
+  const { snapshots, capture, transactions, detector, tests, thresholds } =
+    application;
+  return new CoverageApi(
+    new CaptureSnapshotHandler(snapshots, capture, transactions, thresholds),
+    application.preparation,
+    new RunTestsHandler(detector, tests, application.testReports),
+    new GetSnapshotHandler(snapshots, thresholds),
+    new GetFileCoverageHandler(snapshots, thresholds),
+  );
 }
