@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ProblemDetails > should say what the service refused with and its code 1`] = `
+"✕ The list could not be read  internal_error
+
+THE SERVICE ANSWERED ───────────────────────────────────────────────────────────────────────────────────────────
+The service failed to answer.
+
+WHAT TO DO ─────────────────────────────────────────────────────────────────────────────────────────────────────
+The screen asks again every second."
+`;
