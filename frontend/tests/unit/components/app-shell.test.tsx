@@ -3,7 +3,7 @@ import { cleanup, render } from 'ink-testing-library';
 import { type ReactNode, useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { AppShell } from '#components/app-shell';
+import { AppShell, type ShellFrame } from '#components/app-shell';
 import { DataList } from '#components/data-list';
 import { Dialog } from '#components/dialog';
 import { KeyHints } from '#components/key-hints';
@@ -147,6 +147,39 @@ function Screen({ asking }: { readonly asking: boolean }): ReactNode {
   );
 }
 
+/** A screen in the frame the app hands it, where the app owns `q`. */
+function Framed({
+  typing = false,
+  asking = false,
+}: {
+  readonly typing?: boolean;
+  readonly asking?: boolean;
+}): ReactNode {
+  const [log, setLog] = useState<readonly string[]>([]);
+  const frame: ShellFrame = {
+    size: { columns: 100, rows: 30 },
+    title: 'coverage-autopilot',
+    commands: ['coverage-autopilot list'],
+    header: <Text>header</Text>,
+    help: <Text>help</Text>,
+    globalKeys: {
+      q: () => {
+        setLog((last) => [...last, 'quit']);
+      },
+    },
+  };
+  return (
+    <AppShell
+      {...frame}
+      typing={typing}
+      body={<Text>{`log: ${log.join(', ') || 'empty'}`}</Text>}
+      status={<Text>status</Text>}
+      keys={<Text>keys</Text>}
+      {...(asking ? { dialog: question(() => undefined) } : {})}
+    />
+  );
+}
+
 afterEach(cleanup);
 
 describe('AppShell', () => {
@@ -209,6 +242,57 @@ describe('AppShell', () => {
       await press(terminal, KEYS.down, KEYS.enter);
 
       expect(screenOf(terminal)).toContain('log: list moved, list opened');
+    });
+  });
+
+  describe('when the app gives the keys that work anywhere', () => {
+    it('should run a key of the app', async () => {
+      const terminal = render(<Framed />);
+
+      await press(terminal, 'q');
+
+      expect(screenOf(terminal)).toContain('log: quit');
+    });
+
+    it('should run a key of the app in a window that is too small', async () => {
+      const log: string[] = [];
+      const terminal = render(
+        <AppShell
+          size={{ columns: 60, rows: 16 }}
+          title="coverage-autopilot"
+          commands={[]}
+          globalKeys={{
+            q: () => {
+              log.push('quit');
+            },
+          }}
+          header={null}
+          body={null}
+          status={null}
+          keys={null}
+          help={null}
+        />,
+      );
+
+      await press(terminal, 'q');
+
+      expect(log).toEqual(['quit']);
+    });
+
+    it('should not run a key of the app behind a dialog', async () => {
+      const terminal = render(<Framed asking />);
+
+      await press(terminal, 'q');
+
+      expect(screenOf(terminal)).toContain('log: empty');
+    });
+
+    it('should not run a key of the app while a text field types', async () => {
+      const terminal = render(<Framed typing />);
+
+      await press(terminal, 'q');
+
+      expect(screenOf(terminal)).toContain('log: empty');
     });
   });
 });

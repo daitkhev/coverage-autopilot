@@ -6,6 +6,7 @@ import { KeyHints } from '#components/key-hints';
 import { RoleText } from '#components/role-text';
 import { BackdropContext } from '#hooks/use-backdrop';
 import { useBorder } from '#hooks/use-border';
+import { type KeyHandlers, useKeys } from '#hooks/use-keys';
 import { useTheme } from '#hooks/use-theme';
 import { frameOf } from '#theme/symbols';
 import { GAP, layoutOf, SMALLEST_SIZE, type TerminalSize } from '#theme/widths';
@@ -29,16 +30,45 @@ interface AppShellProps {
   readonly help: ReactNode;
   /** A dialog drawn over the screen. Everything behind it is dim. */
   readonly dialog?: ReactNode;
+  /**
+   * The keys that work on every screen, which the app owns: the sections,
+   * the commands, the help and quitting. A dialog takes them while it is
+   * open, as it takes every key.
+   */
+  readonly globalKeys?: KeyHandlers;
+  /** A text field has the keys: letters type and run no action. */
+  readonly typing?: boolean;
 }
 
-function TooSmall({
-  size,
-  title,
-  commands,
-}: Pick<AppShellProps, 'size' | 'title' | 'commands'>): ReactNode {
+/**
+ * What the app hands every screen, which the screen passes on to its
+ * shell with the parts only the screen knows.
+ */
+export type ShellFrame = Pick<
+  AppShellProps,
+  'size' | 'title' | 'commands' | 'header' | 'help' | 'notice' | 'globalKeys'
+>;
+
+/** Takes the keys of the app. It draws nothing. */
+function GlobalKeys({
+  globalKeys,
+  typing = false,
+}: Pick<AppShellProps, 'globalKeys' | 'typing'>): ReactNode {
+  useKeys(globalKeys ?? {}, { active: globalKeys !== undefined && !typing });
+  return null;
+}
+
+function TooSmall(
+  props: Pick<
+    AppShellProps,
+    'size' | 'title' | 'commands' | 'globalKeys' | 'typing'
+  >,
+): ReactNode {
+  const { size, title, commands } = props;
   const needed = `${String(SMALLEST_SIZE.columns)} x ${String(SMALLEST_SIZE.rows)}`;
   return (
     <Box flexDirection="column" padding={1} gap={1}>
+      <GlobalKeys {...props} />
       <RoleText role="emphasis">{title}</RoleText>
       <Box flexDirection="column">
         <Text>
@@ -143,6 +173,7 @@ export function AppShell(props: AppShellProps): ReactNode {
       paddingX={1}
     >
       <BackdropContext value={dialog !== undefined}>
+        <GlobalKeys {...props} />
         <Ruled edge="bottom">{props.header}</Ruled>
         {props.context === undefined ? null : (
           <Box marginTop={1}>{props.context}</Box>
