@@ -1,5 +1,4 @@
-/** The levels the service writes a line at when something went wrong. */
-const ALARMING = new Set(['warn', 'error']);
+import { unexplainedLines } from '#tests/support/job-lines';
 
 /** The line a program writes once it ended, at debug. */
 const PROGRAM_ENDED = 'A program ended.';
@@ -7,37 +6,27 @@ const PROGRAM_ENDED = 'A program ended.';
 /** The programs shown beside the faults, enough to find the one that failed. */
 const SHOWN_PROGRAMS = 40;
 
-interface LogLine {
-  readonly level?: unknown;
-  readonly message?: unknown;
-  readonly fields?: { readonly exitCode?: unknown };
-}
-
-function parsed(line: string): LogLine | null {
-  try {
-    return JSON.parse(line) as LogLine;
-  } catch {
-    return null;
-  }
-}
-
-function faultOf(line: string): string | null {
-  const read = parsed(line);
-  if (read === null) {
-    return `A line of the log is not JSON: ${line}`;
-  }
-  return typeof read.level === 'string' && ALARMING.has(read.level)
-    ? line
-    : null;
-}
+/**
+ * A job given up once stops spent all its runs is explained by them. The
+ * storm stops its service only once it is idle, so no stop spends a run,
+ * and a job given up is a fault whatever its runs.
+ */
+const NO_STOP_SPENDS_RUNS = Number.POSITIVE_INFINITY;
 
 /**
  * A program that did not end with 0. Many do so by design, such as a
  * look for a commit the mirror lacks, so this is no fault on its own.
  */
 function failedProgram(line: string): boolean {
-  const read = parsed(line);
-  return read?.message === PROGRAM_ENDED && read.fields?.exitCode !== 0;
+  try {
+    const read = JSON.parse(line) as {
+      readonly message?: unknown;
+      readonly fields?: { readonly exitCode?: unknown };
+    };
+    return read.message === PROGRAM_ENDED && read.fields?.exitCode !== 0;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -48,7 +37,8 @@ function failedProgram(line: string): boolean {
  * - "The handler of a job failed." is an error nobody foresaw: a cancel
  *   or a lost lease stops a job without it.
  * - "A job was put back in the queue." is a fault that may pass, and no
- *   stand-in fails, so only the service itself could have caused it.
+ *   stand-in fails, so only the service itself could have caused it. The
+ *   one a stop explains cannot come: the service stops once it is idle.
  * - "A job was given up", "The end of a job could not be written.", "No
  *   job could be claimed." and a payload that cannot be read are writes
  *   or reads the database refused.
@@ -56,20 +46,23 @@ function failedProgram(line: string): boolean {
  * - The lines of the start about images and leftovers name an engine the
  *   stand-in always answers, and a folder that is new.
  *
- * So every line at warn or error is a finding, and so is a line that is
- * not JSON, which would be a write to the standard error the logger did
- * not make. A fault of a job names only its code, so the programs that
- * failed come after the faults, to tell which one it was.
+ * So every line at warn or error is a finding, as is a job stopped for
+ * another reason than a cancel and a line that is not JSON, which the
+ * logger did not write. A fault of a job names only its code, so the
+ * programs that failed come after the faults, to tell which one it was.
  */
 export function logFaults(log: string): string[] {
-  const lines = log.split('\n').filter((line) => line !== '');
-  const faults = lines.flatMap((line) => {
-    const fault = faultOf(line);
-    return fault === null ? [] : [fault];
-  });
+  const faults = unexplainedLines(log, NO_STOP_SPENDS_RUNS).map((line) =>
+    typeof line === 'string'
+      ? `A line of the log is not JSON: ${line}`
+      : JSON.stringify(line),
+  );
   if (faults.length === 0) {
     return [];
   }
-  const programs = lines.filter(failedProgram).slice(0, SHOWN_PROGRAMS);
+  const programs = log
+    .split('\n')
+    .filter(failedProgram)
+    .slice(0, SHOWN_PROGRAMS);
   return [...faults, ...programs.map((line) => `Beside them: ${line}`)];
 }
