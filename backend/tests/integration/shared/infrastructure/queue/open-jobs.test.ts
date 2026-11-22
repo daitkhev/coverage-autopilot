@@ -119,4 +119,19 @@ describe('SqliteJobQueue', () => {
       );
     });
   });
+
+  describe('the open jobs of a subject', () => {
+    it('should be found through an index, not by reading every job', () => {
+      const plan = bench.connection
+        .prepare(
+          `EXPLAIN QUERY PLAN SELECT id FROM jobs
+           WHERE subject_id = ? AND status IN ('pending', 'leased')`,
+        )
+        .all(SUBJECT);
+
+      expect(plan.map((step) => step['detail'])).toEqual([
+        'SEARCH jobs USING INDEX jobs_open_by_subject (subject_id=?)',
+      ]);
+    });
+  });
 });
