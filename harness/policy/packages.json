@@ -74,7 +74,11 @@
     },
     {
       "packages": ["@coverage-autopilot/api-contracts"],
-      "in": ["backend/src/modules/*/presentation/", "frontend/src/"]
+      "in": [
+        "backend/src/modules/*/presentation/",
+        "backend/src/shared/infrastructure/http/",
+        "frontend/src/"
+      ]
     },
     {
       "packages": ["ink", "react"],
@@ -87,7 +91,7 @@
       ]
     },
     {
-      "packages": ["reflect-metadata", "rxjs"],
+      "packages": ["@nestjs/platform-express", "reflect-metadata", "rxjs"],
       "in": ["backend/src/*.ts"]
     },
     {
