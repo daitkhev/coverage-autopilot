@@ -919,3 +919,26 @@ Where this log and the plan differ, this log and the code are right.
   start.
 - A request has no time limit, so a service that takes a connection and
   never answers holds the client.
+
+### The routes are infrastructure, and the contracts are application
+
+- The plan gave a module five folders: `domain`, `application`,
+  `infrastructure`, `presentation` and `contracts`. A controller is an
+  adapter of the framework as a repository of SQLite is, and the
+  contracts of a module are the face of its application layer, so a
+  module has three layers now. The routes are in `infrastructure/http/`
+  and the contracts in `application/contracts/`.
+- Each of the two keeps the rule it had as a layer. The routes import
+  the application layer of their module and nothing else of it, and
+  nothing but the module file imports them, so an adapter cannot call a
+  route. The contracts import nothing else of their module, and another
+  module enters a module through them only.
+- How: the policy may give a part of a layer a rule of its own. A layer
+  named with two folders, such as `application/contracts`, is that part,
+  and a file in it is judged by the rule of the part, not by the rule of
+  the layer around it. The policy also names which layers are the
+  contracts, so the rule of the boundary holds no name of a folder.
+- A unit test may not load a route, as it may not load any other
+  infrastructure.
+- Where: `harness/policy/structure.json`, `harness/architecture/places.ts`,
+  `harness/architecture/rules/module-boundary.ts`.
