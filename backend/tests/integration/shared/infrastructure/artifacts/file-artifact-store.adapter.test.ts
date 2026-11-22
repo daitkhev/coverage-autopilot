@@ -3,12 +3,13 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -232,6 +233,47 @@ describe('FileArtifactStore', () => {
         await expect(store.read(reference)).rejects.toThrow(
           new ArtifactStorageError(
             `The output ${reference} could not be read.`,
+          ),
+        );
+      });
+    });
+  });
+
+  describe('pathOf', () => {
+    it('should say the absolute path of the file of a reference', async () => {
+      const reference = await store.save({
+        owner: OWNER,
+        label: LABEL,
+        content: OUTPUT,
+      });
+
+      expect(store.pathOf(reference)).toBe(join(root, reference));
+      expect(readFileSync(store.pathOf(reference), 'utf8')).toBe(OUTPUT);
+    });
+
+    it('should make the path absolute when the folder was given relative', () => {
+      const relative = new FileArtifactStore(
+        'instance/artifacts',
+        new SequentialIdGenerator(),
+      );
+
+      expect(relative.pathOf(referenceOf(OUTPUT))).toBe(
+        resolve('instance/artifacts', referenceOf(OUTPUT)),
+      );
+    });
+
+    it('should say where a file that is gone was kept', () => {
+      expect(store.pathOf(referenceOf('never saved'))).toBe(
+        join(root, referenceOf('never saved')),
+      );
+    });
+
+    describe('when the reference is not one the store gives', () => {
+      it('should throw InvalidArtifactReferenceError rather than lead outside', () => {
+        expect(() => store.pathOf('../../etc/passwd')).toThrow(
+          new InvalidArtifactReferenceError(
+            '"../../etc/passwd" is not a reference the store of tool ' +
+              'output gives.',
           ),
         );
       });

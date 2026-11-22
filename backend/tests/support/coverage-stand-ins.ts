@@ -95,6 +95,9 @@ export interface InMemoryArtifacts extends ArtifactStore {
   readonly saved: SaveArtifactRequest[];
 }
 
+/** Where the stand-in says its files are. Nothing is written there. */
+const IN_MEMORY_ARTIFACTS_FOLDER = '/instance/artifacts';
+
 /** Keeps the n-th output under `artifact-<n>`. */
 export function inMemoryArtifacts(): InMemoryArtifacts {
   const saved: SaveArtifactRequest[] = [];
@@ -108,6 +111,7 @@ export function inMemoryArtifacts(): InMemoryArtifacts {
       const index = Number(reference.replace('artifact-', '')) - 1;
       return Promise.resolve(saved[index]?.content ?? null);
     },
+    pathOf: (reference) => `${IN_MEMORY_ARTIFACTS_FOLDER}/${reference}`,
   };
 }
 

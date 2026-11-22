@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -58,6 +58,12 @@ function digestOf(reference: string): string | undefined {
     : REFERENCE.exec(reference)?.[1];
 }
 
+function invalidReference(text: string): InvalidArtifactReferenceError {
+  return new InvalidArtifactReferenceError(
+    `"${text}" is not a reference the store of tool output gives.`,
+  );
+}
+
 function sha256(bytes: Buffer): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
@@ -108,14 +114,24 @@ export class FileArtifactStore implements ArtifactStore {
   public async read(reference: ArtifactReference): Promise<string | null> {
     const digest = digestOf(reference);
     if (digest === undefined) {
-      throw new InvalidArtifactReferenceError(
-        `"${reference}" is not a reference the store of tool output gives.`,
-      );
+      throw invalidReference(reference);
     }
     const bytes = await this.bytesOf(reference);
     return bytes !== null && sha256(bytes) === digest
       ? bytes.toString('utf8')
       : null;
+  }
+
+  /**
+   * A text `save` never gives is refused here too, so no path leads out
+   * of the folder. The path is absolute even when the folder was given
+   * relative.
+   */
+  public pathOf(reference: ArtifactReference): string {
+    if (digestOf(reference) === undefined) {
+      throw invalidReference(reference);
+    }
+    return resolve(this.directory, reference);
   }
 
   private async bytesOf(reference: ArtifactReference): Promise<Buffer | null> {

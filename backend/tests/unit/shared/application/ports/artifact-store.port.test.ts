@@ -35,4 +35,11 @@ describe('ArtifactStore', () => {
       string | null
     >();
   });
+
+  it('should say where the file of a reference is without reading it', () => {
+    expectTypeOf<ArtifactStore['pathOf']>()
+      .parameter(0)
+      .toEqualTypeOf<ArtifactReference>();
+    expectTypeOf<ArtifactStore['pathOf']>().returns.toEqualTypeOf<string>();
+  });
 });

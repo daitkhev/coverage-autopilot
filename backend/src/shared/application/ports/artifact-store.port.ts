@@ -24,6 +24,13 @@ export type ArtifactReference = string;
 export interface ArtifactStore {
   save(request: SaveArtifactRequest): Promise<ArtifactReference>;
   read(reference: ArtifactReference): Promise<string | null>;
+
+  /**
+   * Where the file of a reference is kept, as an absolute path a person
+   * can open on the machine of the service. It reads nothing, so it does
+   * not say whether the file is still there.
+   */
+  pathOf(reference: ArtifactReference): string;
 }
 
 /** The injection token of the artifact store. */
