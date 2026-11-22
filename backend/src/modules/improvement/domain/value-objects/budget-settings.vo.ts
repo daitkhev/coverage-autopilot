@@ -7,8 +7,13 @@ import {
 } from '#improvement/domain/value-objects/budget.vo';
 import { ValueObject } from '#kernel/primitives/value-object';
 
-/** What a request asks for. A limit it leaves out is the default. */
-export type BudgetRequest = Partial<BudgetLimits>;
+/**
+ * What a request asks for. A limit it leaves out, or gives as
+ * `undefined`, is the default.
+ */
+export type BudgetRequest = {
+  readonly [Limit in BudgetLimit]?: BudgetLimits[Limit] | undefined;
+};
 
 interface BudgetSettingsProps {
   readonly defaults: Budget;
@@ -62,9 +67,18 @@ export class BudgetSettings extends ValueObject<BudgetSettingsProps> {
     return this.props.maximums;
   }
 
-  /** The budget of a request: what it asks for, within the maximums. */
+  /**
+   * The budget of a request: what it asks for, within the maximums. No
+   * limit of tokens is `null`, which a request may ask for, so only
+   * `undefined` is left out.
+   */
   public fill(request: BudgetRequest): Budget {
-    const budget = Budget.create({ ...this.defaults.limits, ...request });
+    const { defaults } = this;
+    const budget = Budget.create({
+      attempts: request.attempts ?? defaults.attempts,
+      tokens: request.tokens === undefined ? defaults.tokens : request.tokens,
+      minutes: request.minutes ?? defaults.minutes,
+    });
     const above = firstAbove(budget, this.maximums);
     if (above !== undefined) {
       throw new BudgetAboveMaximumError(

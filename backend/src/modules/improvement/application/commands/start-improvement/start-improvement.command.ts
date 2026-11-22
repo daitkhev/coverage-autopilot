@@ -6,18 +6,19 @@ import type { QualityPolicyProps } from '#improvement/domain/value-objects/quali
 
 /**
  * Raise the coverage of one file of a snapshot, as the route parsed the
- * request. A choice left out is filled from the settings of the service.
- * The prompt and who pays always come from the settings.
+ * request. A choice left out, or given as `undefined`, is filled from the
+ * settings of the service. The prompt and who pays always come from the
+ * settings.
  */
 export interface StartImprovementCommand {
   /** The key the client made for this command, from its header. */
   readonly requestKey: string;
   readonly snapshotId: string;
   readonly filePath: string;
-  readonly mode?: ImprovementMode;
-  readonly budget?: BudgetRequest;
-  readonly qualityPolicy?: QualityPolicyProps;
-  readonly generator?: Pick<GeneratorConfigProps, 'cli' | 'model'>;
+  readonly mode?: ImprovementMode | undefined;
+  readonly budget?: BudgetRequest | undefined;
+  readonly qualityPolicy?: QualityPolicyProps | undefined;
+  readonly generator?: Pick<GeneratorConfigProps, 'cli' | 'model'> | undefined;
 }
 
 /**

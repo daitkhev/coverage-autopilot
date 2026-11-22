@@ -64,6 +64,12 @@ describe('BudgetSettings', () => {
       });
     });
 
+    it('should give the default of a limit a request gives as undefined', () => {
+      expect(
+        limitsOf(key.fill({ attempts: undefined, tokens: undefined })),
+      ).toEqual({ attempts: 3, tokens: 200_000, minutes: 30 });
+    });
+
     it('should keep what a request asks for within the maximums', () => {
       expect(
         limitsOf(key.fill({ attempts: 10, tokens: 1_000_000, minutes: 5 })),
