@@ -58,6 +58,13 @@ const FROM_GIT =
 /** pnpm 10 installs these and runs the hooks they bring as it starts. */
 const CONFIG_DEPENDENCIES = 'configDependencies';
 
+/**
+ * pnpm keeps the checksum of the `.pnpmfile.cjs` it ran in the lockfile.
+ * pnpm 10.34.9 failed a frozen install with `--ignore-pnpmfile` on such a
+ * lockfile, since its hooks may have changed what it resolved.
+ */
+const PNPMFILE_HOOKED = /^pnpmfileChecksum:/mu;
+
 /** Sandboxed, no script and no `.pnpmfile.cjs` of the repository runs. */
 const CODE_SWITCHES: Readonly<Record<InstallMode, readonly string[]>> = {
   sandboxed: ['--ignore-scripts', '--ignore-pnpmfile'],
@@ -121,6 +128,13 @@ function codeFoundIn(root: string, lockfile: string): string | null {
     return (
       `${PNPM_WORKSPACE} names ${CONFIG_DEPENDENCIES}, whose hooks pnpm ` +
       'runs while it installs.'
+    );
+  }
+  if (PNPMFILE_HOOKED.test(lockfile)) {
+    return (
+      `${PNPM_LOCKFILE} was written with the hooks of a .pnpmfile.cjs, ` +
+      'which pnpm runs while it installs, and a frozen install without ' +
+      'them fails.'
     );
   }
   return FROM_GIT.test(lockfile)

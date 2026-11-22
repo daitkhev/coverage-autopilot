@@ -42,6 +42,14 @@ const RUNS_CODE: readonly (readonly [
     'pnpm-workspace.yaml names configDependencies',
   ],
   [
+    'a lockfile written with the hooks of a pnpmfile',
+    {
+      'pnpm-lock.yaml':
+        "lockfileVersion: '9.0'\n\npnpmfileChecksum: sha256-0a1b\n",
+    },
+    'pnpm-lock.yaml was written with the hooks of a .pnpmfile.cjs',
+  ],
+  [
     'a package from git',
     {
       'pnpm-lock.yaml':
