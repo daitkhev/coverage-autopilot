@@ -30,6 +30,17 @@ const NOT_FOUND = 404;
 /** An answer is cut to this many characters in a finding. */
 const SHOWN_CHARACTERS = 600;
 
+/**
+ * macOS queues 128 connections a socket has not accepted yet, as
+ * `kern.ipc.somaxconn` says, and refuses the next one with
+ * `ECONNREFUSED`, however alive the service is. A service that is busy
+ * accepts late, so a run that opens more at once is refused by the
+ * system, not by the service. The run keeps fewer open, and the rest wait
+ * in the client: the service still serves this many at once, far more
+ * than the client of a person opens.
+ */
+const OPEN_AT_ONCE = 96;
+
 /** The status and the body of an answer, read as JSON. */
 export type Answer = Awaited<ReturnType<typeof askOver>>;
 
@@ -173,6 +184,9 @@ export class ContractLedger {
   private readonly socket: string;
   private readonly breaches: string[] = [];
   private sent = 0;
+  private open = 0;
+  /** The requests that wait for a place, each woken when one is free. */
+  private readonly waiting: (() => void)[] = [];
 
   public constructor(socket: string) {
     this.socket = socket;
@@ -190,6 +204,7 @@ export class ContractLedger {
   public async send(path: string, asked: Asked = {}): Promise<Answer> {
     const method = asked.method ?? 'GET';
     this.sent += 1;
+    await this.place();
     try {
       const answer = await askOver(this.socket, path, asked);
       const breach = breachOf(method, path, answer);
@@ -200,6 +215,31 @@ export class ContractLedger {
     } catch (error) {
       this.breaches.push(`${method} ${path} got no answer: ${String(error)}`);
       throw error;
+    } finally {
+      this.free();
     }
+  }
+
+  /** Waits until fewer than the limit are open, and takes the place. */
+  private async place(): Promise<void> {
+    if (this.open < OPEN_AT_ONCE) {
+      this.open += 1;
+      return;
+    }
+    const turn = Promise.withResolvers<undefined>();
+    this.waiting.push(() => {
+      turn.resolve(undefined);
+    });
+    await turn.promise;
+  }
+
+  /** Hands the place to the next request that waits, or gives it up. */
+  private free(): void {
+    const next = this.waiting.shift();
+    if (next === undefined) {
+      this.open -= 1;
+      return;
+    }
+    next();
   }
 }
