@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { Glyph } from '#components/glyph';
 import { KeyHints } from '#components/key-hints';
 import { RoleText } from '#components/role-text';
-import { BackdropContext } from '#hooks/use-backdrop';
+import { BackdropContext, useBackdrop } from '#hooks/use-backdrop';
 import { useBorder } from '#hooks/use-border';
 import { type KeyHandlers, useKeys } from '#hooks/use-keys';
 import { useTheme } from '#hooks/use-theme';
@@ -134,7 +134,11 @@ function Footer(
   );
 }
 
-function Overlay({
+/**
+ * A part drawn over the whole terminal, in its middle: a dialog of a
+ * screen, or one of the app over every screen.
+ */
+export function Overlay({
   size,
   children,
 }: {
@@ -162,6 +166,8 @@ function Overlay({
  */
 export function AppShell(props: AppShellProps): ReactNode {
   const { size, dialog } = props;
+  // A dialog of the app is over the whole screen, its own dialog included.
+  const behind = useBackdrop();
   if (layoutOf(size) === 'too-small') {
     return <TooSmall {...props} />;
   }
@@ -172,7 +178,7 @@ export function AppShell(props: AppShellProps): ReactNode {
       flexDirection="column"
       paddingX={1}
     >
-      <BackdropContext value={dialog !== undefined}>
+      <BackdropContext value={behind || dialog !== undefined}>
         <GlobalKeys {...props} />
         <Ruled edge="bottom">{props.header}</Ruled>
         {props.context === undefined ? null : (
