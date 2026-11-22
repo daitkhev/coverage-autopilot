@@ -92,7 +92,7 @@ describe('readStructure', () => {
   it('should take for I/O the layer and the modules a unit test may not reach', () => {
     const tests = readStructure().tests;
 
-    expect(tests.ioLayers).toEqual(['infrastructure']);
+    expect(tests.ioLayers).toEqual(['infrastructure', 'infrastructure/http']);
     expect(tests.ioModules).toEqual(
       expect.arrayContaining([
         'child_process',
@@ -127,6 +127,22 @@ describe('readStructure', () => {
     expect(layers).toEqual(
       expect.arrayContaining([...readStructure().backend.reachOtherModules]),
     );
+  });
+
+  it('should let no layer import the routes of a module but themselves', () => {
+    const importers = [...readStructure().backend.layers.entries()]
+      .filter(([, rule]) => rule.layers.includes('infrastructure/http'))
+      .map(([name]) => name);
+
+    expect(importers).toEqual(['infrastructure/http']);
+  });
+
+  it('should let the contracts of a module import nothing else of it', () => {
+    const { layers, contracts } = readStructure().backend;
+
+    for (const name of contracts) {
+      expect(layers.get(name)?.layers).toEqual([name]);
+    }
   });
 
   it('should let no layer import the layer of the presentation but itself', () => {

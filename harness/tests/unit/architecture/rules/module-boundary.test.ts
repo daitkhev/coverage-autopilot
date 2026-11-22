@@ -49,6 +49,38 @@ describe('moduleBoundary', () => {
     ).toEqual([BY_CONTRACTS]);
   });
 
+  describe('when the contracts are a part of the application layer', () => {
+    const inside = backendOf();
+    const nested = moduleBoundary({
+      ...inside,
+      layers: new Map([
+        ...inside.layers,
+        ['application/contracts', { layers: [], shared: [] }],
+      ]),
+      contracts: ['application/contracts'],
+    });
+
+    it('should pass a module that enters another through them', () => {
+      expect(
+        detailsBetween(
+          nested,
+          `${MODULES}/reports/application/build.ts`,
+          `${MODULES}/store/application/contracts/item.dto.ts`,
+        ),
+      ).toEqual([]);
+    });
+
+    it('should report a reach into the rest of the application layer', () => {
+      expect(
+        detailsBetween(
+          nested,
+          `${MODULES}/reports/application/build.ts`,
+          `${MODULES}/store/application/dto/item.dto.ts`,
+        ),
+      ).toEqual([BY_CONTRACTS]);
+    });
+  });
+
   it.each(['application', 'contracts'])(
     'should pass %s importing the contracts of another module',
     (layer) => {

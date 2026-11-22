@@ -3,11 +3,11 @@ import { moduleOf } from '#harness/architecture/places';
 import type { Rule } from '#harness/architecture/project';
 import type { Backend } from '#harness/shared/structure';
 
-const CONTRACTS = 'contracts';
 const BY_MODULE_FILE = 'A module is wired in through its module file only.';
 
 function fromLayer(edge: Edge, layer: string, backend: Backend): string {
-  const intoContracts = edge.to.kind === 'layer' && edge.to.layer === CONTRACTS;
+  const intoContracts =
+    edge.to.kind === 'layer' && backend.contracts.includes(edge.to.layer);
   if (!intoContracts) {
     return 'Another module is reached through its contracts/ only.';
   }

@@ -26,6 +26,8 @@ export interface Backend {
   /** Each module, with the modules it may use. */
   readonly modules: ReadonlyMap<string, readonly string[]>;
   readonly layers: ReadonlyMap<string, LayerRule>;
+  /** The layers another module may import: the contracts of a module. */
+  readonly contracts: readonly string[];
   /** Layers that may import the contracts of another module. */
   readonly reachOtherModules: readonly string[];
   /** Each folder of the shared code, with the folders it may import. */
@@ -121,6 +123,7 @@ function backendOf(file: JsonRecord): Backend {
     migrations: stringAt(backend, 'migrations'),
     modules: stringListsAt(backend, 'modules'),
     layers: layersOf(backend),
+    contracts: stringListAt(backend, 'contracts'),
     reachOtherModules: stringListAt(backend, 'reachOtherModules'),
     shared: stringListsAt(backend, 'shared'),
     suffixes: stringListsAt(backend, 'suffixes'),

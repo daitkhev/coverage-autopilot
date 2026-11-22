@@ -27,15 +27,35 @@ export type Place =
 const OTHER: Place = { kind: 'other' };
 const UNKNOWN: Place = { kind: 'unknown' };
 
-function inModules(rest: string): Place {
+/** A part of a layer has a folder of its own and files in it. */
+const PART_DEPTH = 2;
+
+/**
+ * The layer a path inside a module is in. A layer may have a part with a
+ * rule of its own, such as `application/contracts`: the policy lists it
+ * as a layer by its path, and a file in it is in the part, not in the
+ * layer around it.
+ */
+function layerOf(inside: readonly string[], backend: Backend): string {
+  const part = inside.slice(0, PART_DEPTH).join('/');
+  return inside.length > PART_DEPTH && backend.layers.has(part)
+    ? part
+    : (inside[0] ?? '');
+}
+
+function inModules(rest: string, backend: Backend): Place {
   const [module = '', ...inside] = rest.split('/');
-  const layer = inside[0] ?? '';
   if (inside.length === 0) {
     return UNKNOWN;
   }
   return inside.length === 1
-    ? { kind: 'module-file', module, inside: layer }
-    : { kind: 'layer', module, layer, inside: inside.join('/') };
+    ? { kind: 'module-file', module, inside: inside[0] ?? '' }
+    : {
+        kind: 'layer',
+        module,
+        layer: layerOf(inside, backend),
+        inside: inside.join('/'),
+      };
 }
 
 function inShared(rest: string): Place {
@@ -49,7 +69,7 @@ export function placeOf(path: string, backend: Backend): Place {
   }
   const rest = path.slice(backend.source.length);
   if (rest.startsWith(MODULES)) {
-    return inModules(rest.slice(MODULES.length));
+    return inModules(rest.slice(MODULES.length), backend);
   }
   if (rest.startsWith(SHARED)) {
     return inShared(rest.slice(SHARED.length));

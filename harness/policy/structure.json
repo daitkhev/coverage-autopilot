@@ -80,7 +80,7 @@
     "kinds": ["unit", "integration", "e2e", "stress"],
     "mirrored": "unit",
     "support": "support",
-    "ioLayers": ["infrastructure"],
+    "ioLayers": ["infrastructure", "infrastructure/http"],
     "ioModules": [
       "child_process",
       "cluster",
@@ -130,12 +130,25 @@
         "shared": ["kernel"]
       },
       "application": {
-        "layers": ["application", "contracts", "domain"],
+        "layers": [
+          "application",
+          "application/contracts",
+          "contracts",
+          "domain"
+        ],
         "shared": ["application", "kernel"]
+      },
+      "application/contracts": {
+        "layers": ["application/contracts"],
+        "shared": ["kernel"]
       },
       "infrastructure": {
         "layers": ["application", "domain", "infrastructure"],
         "shared": ["application", "infrastructure", "kernel"]
+      },
+      "infrastructure/http": {
+        "layers": ["application", "infrastructure/http"],
+        "shared": ["kernel"]
       },
       "presentation": {
         "layers": ["application", "presentation"],
@@ -146,7 +159,8 @@
         "shared": ["kernel"]
       }
     },
-    "reachOtherModules": ["application", "contracts"],
+    "contracts": ["application/contracts", "contracts"],
+    "reachOtherModules": ["application", "application/contracts", "contracts"],
     "shared": {
       "kernel": [],
       "application": ["kernel"],
@@ -167,9 +181,9 @@
       ".command.ts": ["application/commands/"],
       ".query.ts": ["application/queries/"],
       ".handler.ts": ["application/commands/", "application/queries/"],
-      ".dto.ts": ["application/dto/", "contracts/"],
+      ".dto.ts": ["application/dto/", "application/contracts/", "contracts/"],
       ".schema.ts": ["infrastructure/"],
-      ".controller.ts": ["presentation/http/"]
+      ".controller.ts": ["infrastructure/http/", "presentation/http/"]
     }
   }
 }

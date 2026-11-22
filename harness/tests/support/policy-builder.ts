@@ -41,6 +41,7 @@ export function backendOf(): Backend {
       ],
       ['contracts', { layers: ['contracts'], shared: ['kernel'] }],
     ]),
+    contracts: ['contracts'],
     reachOtherModules: ['application', 'contracts'],
     shared: new Map([
       ['kernel', []],

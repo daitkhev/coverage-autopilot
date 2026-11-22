@@ -8,7 +8,7 @@ import type { Structure } from '#harness/shared/structure';
 
 /** What the baseline records: lists, and no number. */
 export interface Lists {
-  /** The names each module exports from its `contracts/`, sorted. */
+  /** The names each module exports from its contracts, sorted. */
   readonly contracts: Readonly<Record<string, readonly string[]>>;
   /** The SHA-256 of each migration, by its path. */
   readonly migrations: Readonly<Record<string, string>>;
@@ -24,9 +24,11 @@ interface Tree {
 function contractsOf(tree: Tree, structure: Structure): [string, string[]][] {
   const { backend } = structure;
   return [...backend.modules.keys()].sort().map((module) => {
-    const folder = `${backend.source}modules/${module}/contracts/`;
+    const folders = backend.contracts.map(
+      (layer) => `${backend.source}modules/${module}/${layer}/`,
+    );
     const names = tree.files
-      .filter((path) => path.startsWith(folder))
+      .filter((path) => folders.some((folder) => path.startsWith(folder)))
       .filter((path) => structure.extensions.includes(posix.extname(path)))
       .flatMap((path) =>
         parseExports(path, readFileSync(join(tree.root, path), 'utf8')),
