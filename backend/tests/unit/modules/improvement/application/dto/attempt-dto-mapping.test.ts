@@ -5,11 +5,13 @@ import { Attempt } from '#improvement/domain/entities/attempt.entity';
 import { VerificationReport } from '#improvement/domain/value-objects/verification-report.vo';
 import {
   checkOf,
+  failedRunReportProps,
   hashOf,
   minutesIn,
   patchOf,
   reportOf,
   reportPropsOf,
+  RUN_FAILURE,
 } from '#tests/support/improvement-values';
 
 const OPENED_AT = minutesIn(4);
@@ -75,6 +77,7 @@ describe('attemptDtoOf', () => {
             durationMs: 1200,
             runs: null,
             message: 'The new test does not pass.',
+            testFailure: null,
           },
         ],
         coverageBefore: {
@@ -99,6 +102,17 @@ describe('attemptDtoOf', () => {
         pathOf('outputs/new-tests.txt'),
       ],
     });
+  });
+
+  it('should show what the failed run of tests said first', () => {
+    const report = VerificationReport.create(failedRunReportProps());
+
+    const shown = attemptDtoOf(
+      generatedAttempt().withReport(report, JUDGED_AT),
+      pathOf,
+    );
+
+    expect(shown.report?.checks[0]?.testFailure).toEqual(RUN_FAILURE);
   });
 
   it('should give the raw output of the generator and of the checks once each', () => {

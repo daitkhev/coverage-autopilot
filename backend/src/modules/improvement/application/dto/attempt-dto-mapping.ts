@@ -4,10 +4,12 @@ import type {
 } from '#coverage/application/contracts/coverage-public-api';
 import type {
   AttemptDto,
+  CheckResultDto,
   VerificationReportDto,
 } from '#improvement/application/dto/attempt.dto';
 import type { Attempt } from '#improvement/domain/entities/attempt.entity';
 import type {
+  CheckResult,
   TargetCoverage,
   VerificationReport,
 } from '#improvement/domain/value-objects/verification-report.vo';
@@ -43,20 +45,33 @@ function countersDtoOf(
       };
 }
 
+function checkDtoOf(check: CheckResult): CheckResultDto {
+  const { testFailure } = check;
+  return {
+    name: check.name,
+    status: check.status,
+    retryable: check.retryable,
+    durationMs: check.durationMs,
+    runs: check.runs,
+    message: check.message,
+    testFailure:
+      testFailure === null
+        ? null
+        : {
+            file: testFailure.file,
+            test: testFailure.test,
+            lines: [...testFailure.lines],
+          },
+  };
+}
+
 function reportDtoOf(report: VerificationReport): VerificationReportDto {
   const { mutants } = report;
   return {
     patchHash: report.patchHash,
     verdict: report.verdict,
     reasons: [...report.reasons],
-    checks: report.checks.map((check) => ({
-      name: check.name,
-      status: check.status,
-      retryable: check.retryable,
-      durationMs: check.durationMs,
-      runs: check.runs,
-      message: check.message,
-    })),
+    checks: report.checks.map(checkDtoOf),
     coverageBefore: countersDtoOf(report.coverageBefore),
     coverageAfter: countersDtoOf(report.coverageAfter),
     mutants:

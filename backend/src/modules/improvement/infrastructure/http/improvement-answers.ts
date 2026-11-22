@@ -1,5 +1,6 @@
 import type {
   Attempt,
+  CheckResult,
   VerificationReport,
 } from '@coverage-autopilot/api-contracts/attempts';
 import type {
@@ -10,6 +11,7 @@ import type { Progress } from '@coverage-autopilot/api-contracts/progress';
 
 import type {
   AttemptDto,
+  CheckResultDto,
   VerificationReportDto,
 } from '#improvement/application/dto/attempt.dto';
 import type {
@@ -24,11 +26,26 @@ function momentOf(instant: Instant | null): string | null {
   return instant === null ? null : instant.toString();
 }
 
+function checkAnswerOf(check: CheckResultDto): CheckResult {
+  const { testFailure } = check;
+  return {
+    ...check,
+    testFailure:
+      testFailure === null
+        ? null
+        : {
+            file: testFailure.file.value,
+            test: testFailure.test,
+            lines: [...testFailure.lines],
+          },
+  };
+}
+
 function reportAnswerOf(report: VerificationReportDto): VerificationReport {
   return {
     ...report,
     reasons: [...report.reasons],
-    checks: [...report.checks],
+    checks: report.checks.map(checkAnswerOf),
     survivingMutants: [...report.survivingMutants],
   };
 }

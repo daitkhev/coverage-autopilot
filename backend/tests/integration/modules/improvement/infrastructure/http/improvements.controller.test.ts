@@ -8,6 +8,7 @@ import {
 } from '@coverage-autopilot/api-contracts/improvements';
 import { improvementStatusSchema } from '@coverage-autopilot/api-contracts/statuses';
 
+import { VerificationReport } from '#improvement/domain/value-objects/verification-report.vo';
 import { ImprovementsController } from '#improvement/infrastructure/http/improvements.controller';
 import { IN_MEMORY_ARTIFACTS_FOLDER } from '#tests/support/coverage-stand-ins';
 import type { HttpService } from '#tests/support/http-service';
@@ -18,11 +19,13 @@ import {
 import { ImprovementRequestWorld } from '#tests/support/improvement-request-world';
 import { improvementRoutes } from '#tests/support/improvement-routes';
 import {
+  failedRunReportProps,
   hashOf,
   IMPROVEMENT_ID,
   minutesIn,
   patchOf,
   REPOSITORY_ID,
+  RUN_FAILURE,
 } from '#tests/support/improvement-values';
 
 const MISSING_ID = '00000000-0000-4000-8000-000000000999';
@@ -125,6 +128,22 @@ describe('ImprovementsController', () => {
         `${IN_MEMORY_ARTIFACTS_FOLDER}/outputs/generator.json`,
         `${IN_MEMORY_ARTIFACTS_FOLDER}/outputs/new-tests.txt`,
       ]);
+    });
+
+    it('should give what the failed run of tests said first, its file as text', async () => {
+      const improvement = improvementIn('verifying');
+      improvement.recordVerdict(
+        VerificationReport.create(failedRunReportProps()),
+        minutesIn(6),
+      );
+      await world.stored(improvement);
+
+      const { improvement: answered } = await shown();
+
+      expect(answered.attempts[0]?.report?.checks[0]?.testFailure).toEqual({
+        ...RUN_FAILURE,
+        file: RUN_FAILURE.file.value,
+      });
     });
 
     it('should give every moment as the one text of the contract', async () => {

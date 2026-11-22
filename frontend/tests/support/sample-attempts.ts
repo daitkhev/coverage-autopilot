@@ -16,6 +16,7 @@ const PASSED = {
   retryable: false,
   runs: null,
   message: null,
+  testFailure: null,
 } as const;
 
 /** The seven checks of the gate in their order, each passed in its time. */
@@ -51,6 +52,7 @@ export const REJECTED_ATTEMPT: Attempt = {
         durationMs: 298_000,
         runs: null,
         message: 'The new tests detect 0 of 14 mutants.',
+        testFailure: null,
       },
     ],
     coverageBefore: INVOICE_COVERAGE,

@@ -10,13 +10,29 @@ import {
 } from '#api-contracts/statuses';
 import {
   countSchema,
+  filePathSchema,
   ordinalSchema,
   patchHashSchema,
   textSchema,
   timestampSchema,
 } from '#api-contracts/values';
 
-/** `retryable` matters for `error` only: it says whether a rerun can help. */
+/**
+ * What a failed run of tests said first, in a few short lines of the
+ * runner. `test` is `null` when the file failed before any test ran.
+ */
+export const testFailureSchema = z.strictObject({
+  file: filePathSchema,
+  test: textSchema.nullable(),
+  lines: z.array(textSchema).min(1),
+});
+
+export type TestFailure = z.infer<typeof testFailureSchema>;
+
+/**
+ * `retryable` matters for `error` only: it says whether a rerun can help.
+ * Only a failed check that ran tests names a `testFailure`.
+ */
 export const checkResultSchema = z.strictObject({
   name: checkNameSchema,
   status: checkStatusSchema,
@@ -24,6 +40,7 @@ export const checkResultSchema = z.strictObject({
   durationMs: countSchema.nullable(),
   runs: countSchema.nullable(),
   message: textSchema.nullable(),
+  testFailure: testFailureSchema.nullable(),
 });
 
 export type CheckResult = z.infer<typeof checkResultSchema>;

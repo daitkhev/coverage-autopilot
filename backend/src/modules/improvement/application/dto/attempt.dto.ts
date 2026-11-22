@@ -5,16 +5,25 @@ import type {
   CheckResult,
   Verdict,
 } from '#improvement/domain/value-objects/verification-report.vo';
+import type { FilePath } from '#kernel/primitives/file-path';
 import type { Instant } from '#kernel/time/instant';
 
+/** What a failed run of tests said first; `test` is `null` if none ran. */
+interface TestFailureDto {
+  readonly file: FilePath;
+  readonly test: string | null;
+  readonly lines: readonly string[];
+}
+
 /** `retryable` matters for `error` only: whether a rerun can help. */
-interface CheckResultDto {
+export interface CheckResultDto {
   readonly name: CheckName;
   readonly status: CheckResult['status'];
   readonly retryable: boolean;
   readonly durationMs: number | null;
   readonly runs: number | null;
   readonly message: string | null;
+  readonly testFailure: TestFailureDto | null;
 }
 
 /** What the new tests add, not the score a mutation tool prints. */

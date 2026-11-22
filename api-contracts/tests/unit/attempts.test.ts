@@ -13,6 +13,13 @@ const check = {
   durationMs: 5400,
   runs: 3,
   message: null,
+  testFailure: null,
+};
+
+const failure = {
+  file: 'tests/helpers/utils.test.ts',
+  test: null,
+  lines: ['● Test suite failed to run'],
 };
 
 const rejected = {
@@ -59,9 +66,31 @@ describe('checkResultSchema', () => {
   });
 
   it.each([
+    ['a file that failed to run', failure],
+    ['a test that failed', { ...failure, test: 'utils makes an id' }],
+  ])('should accept a failed check that names %s', (_name, testFailure) => {
+    const failed = { ...check, status: 'failed', testFailure };
+
+    expect(checkResultSchema.safeParse(failed).success).toBe(true);
+  });
+
+  it.each([
     ['an unknown check', { ...check, name: 'lint' }],
     ['a verdict as a status', { ...check, status: 'accepted' }],
     ['a missing retry flag', { ...check, retryable: undefined }],
+    ['a missing failure', { ...check, testFailure: undefined }],
+    [
+      'a failure with no line',
+      { ...check, testFailure: { ...failure, lines: [] } },
+    ],
+    [
+      'a failure outside the repository',
+      { ...check, testFailure: { ...failure, file: '../a.test.ts' } },
+    ],
+    [
+      'a failure with an unknown key',
+      { ...check, testFailure: { ...failure, stack: 'at y' } },
+    ],
   ])('should refuse %s', (_name, value) => {
     expect(checkResultSchema.safeParse(value).success).toBe(false);
   });

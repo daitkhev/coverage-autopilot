@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import type {
+  Attempt,
+  TestFailure,
+} from '@coverage-autopilot/api-contracts/attempts';
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 
 import { History } from '#screens/improvement/improvement-history';
@@ -9,6 +13,9 @@ import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
 import { drawnAt, USUAL_COLUMNS } from '#tests/support/terminal-text';
 
 const { verifying, generating } = IMPROVEMENT_BY_STATUS;
+
+/** A result under a step, between its mark and the right border. */
+const RESULT_LINE = /└ (.*?) *│$/u;
 
 function history(improvement: Improvement): string {
   return drawnAt(
@@ -49,6 +56,74 @@ describe('History', () => {
 
       expect(drawn).toContain('└ lines 41.2% · no branches');
       expect(drawn).not.toContain('no test detects');
+    });
+  });
+
+  describe('when the tests of a rejected attempt failed', () => {
+    function failedWith(testFailure: TestFailure): Attempt {
+      const { report } = REJECTED_ATTEMPT;
+      return {
+        ...REJECTED_ATTEMPT,
+        report: report && {
+          ...report,
+          reasons: ['The new tests fail.'],
+          checks: report.checks.map((check) =>
+            check.name === 'new_tests_pass'
+              ? { ...check, status: 'failed', testFailure }
+              : check,
+          ),
+        },
+      };
+    }
+
+    /** The results under the attempt, each without the border of the panel. */
+    function attemptResultsOf(testFailure: TestFailure): string[] {
+      const drawn = history({
+        ...generating,
+        attempts: [failedWith(testFailure)],
+      });
+      return drawn
+        .split('\n')
+        .flatMap((line) => {
+          const result = RESULT_LINE.exec(line)?.[1];
+          return result === undefined ? [] : [result];
+        })
+        .slice(1);
+    }
+
+    it('should say where the run failed first and its first two lines', () => {
+      expect(
+        attemptResultsOf({
+          file: 'tests/helpers/utils.test.ts',
+          test: null,
+          lines: [
+            '● Test suite failed to run',
+            "src/helpers/utils.ts:3:25 - error TS2307: Cannot find module 'crypto'",
+            "3 import { randomUUID } from 'crypto';",
+          ],
+        }),
+      ).toEqual([
+        'The new tests fail.',
+        'tests/helpers/utils.test.ts failed to run:',
+        '● Test suite failed to run',
+        "src/helpers/utils.ts:3:25 - error TS2307: Cannot find module 'crypto'",
+        'the reasons went to the generator',
+      ]);
+    });
+
+    it('should name the test that failed', () => {
+      expect(
+        attemptResultsOf({
+          file: 'tests/price.test.ts',
+          test: 'price adds one',
+          lines: ['Expected: 4'],
+        }),
+      ).toEqual([
+        'The new tests fail.',
+        'price adds one failed in tests/price.test.ts:',
+        'Expected: 4',
+        'the reasons went to the generator',
+      ]);
     });
   });
 
