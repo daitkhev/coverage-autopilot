@@ -6,11 +6,10 @@ import type { Improvement } from '@coverage-autopilot/api-contracts/improvements
 import type { Answer } from '#components/answer-list';
 import { Dialog } from '#components/dialog';
 import type { KeyHint } from '#components/key-hints';
-import { BusyLine, FaultLine, RefusalLine } from '#components/outcome-line';
-import { faultWords } from '#components/problem-details';
+import { ReplyOutcome } from '#components/outcome-line';
 import { RoleText } from '#components/role-text';
 import type { Reply } from '#components/unanswered-body';
-import { type ActionState, useAction } from '#hooks/use-action';
+import { useAction } from '#hooks/use-action';
 import { countWords } from '#theme/counts';
 import { DIALOG_WIDTH } from '#theme/widths';
 
@@ -29,28 +28,6 @@ const HINTS: readonly KeyHint[] = [
 ];
 
 const TOKENS = new Intl.NumberFormat('en');
-
-type Cancelling = ActionState<Reply<unknown>>;
-
-/** What the service said to the cancel, while it is not yet done. */
-function Outcome({ state }: { readonly state: Cancelling }): ReactNode {
-  switch (state.phase) {
-    case 'idle':
-      return null;
-    case 'running':
-      return <BusyLine doing="Cancelling the improvement" />;
-    case 'failed':
-      return (
-        <FaultLine
-          sentence={`Nothing answered the cancel: ${faultWords(state.failure)}`}
-        />
-      );
-    case 'ended':
-      return state.outcome.outcome === 'refused' ? (
-        <RefusalLine error={state.outcome.error} />
-      ) : null;
-  }
-}
 
 interface CancelQuestionProps {
   readonly improvement: Pick<Improvement, 'usage'>;
@@ -97,7 +74,11 @@ export function CancelQuestion({
     >
       <RoleText>{`${spent} are already spent and will not come back. Nothing will be published.`}</RoleText>
       <Box>
-        <Outcome state={cancel.state} />
+        <ReplyOutcome
+          state={cancel.state}
+          doing="Cancelling the improvement"
+          request="the cancel"
+        />
       </Box>
     </Dialog>
   );

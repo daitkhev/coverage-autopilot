@@ -5,7 +5,7 @@ import type { ScanParameters } from '@coverage-autopilot/api-contracts/snapshots
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { DataList } from '#components/data-list';
 import { EmptyState } from '#components/empty-state';
-import { hintsOf, KeyHints } from '#components/key-hints';
+import { hintsOf, type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
 import { type Problem, ProblemDetails } from '#components/problem-details';
 import { SplitView } from '#components/split-view';
@@ -28,6 +28,11 @@ import {
 } from '#screens/repositories/repository-listing';
 import { RepositoryRowLines } from '#screens/repositories/repository-row';
 import { isScanning } from '#screens/repositories/repository-words';
+import {
+  THRESHOLD_HINTS,
+  ThresholdDialog,
+  type ThresholdDialogParts,
+} from '#screens/repositories/threshold-dialog';
 import { countWords } from '#theme/counts';
 import { repositoryName } from '#theme/names';
 import { BAR_CELLS, layoutOf, type TerminalSize } from '#theme/widths';
@@ -73,6 +78,7 @@ interface RepositoriesViewProps {
   readonly starting: ReadonlySet<string>;
   readonly notice: string | undefined;
   readonly connect: ConnectDialogParts | undefined;
+  readonly threshold: ThresholdDialogParts | undefined;
   /** What the keys do while no dialog is open, as the footer names them. */
   readonly actions: readonly ScreenAction[];
 }
@@ -145,24 +151,38 @@ function DetailsPanel(props: RepositoriesViewProps): ReactNode {
   );
 }
 
+/** Where the open dialog stands, and its keys, for the footer. */
+function dialogFooterOf(
+  props: RepositoriesViewProps,
+): { readonly fact: string; readonly hints: readonly KeyHint[] } | undefined {
+  const { connect, threshold } = props;
+  if (threshold !== undefined) {
+    const name = repositoryName(threshold.repository);
+    return { fact: `type the threshold of ${name}`, hints: THRESHOLD_HINTS };
+  }
+  return connect === undefined
+    ? undefined
+    : {
+        fact: connectStatusOf(connect.state),
+        hints: connectHintsOf(connect.state.phase),
+      };
+}
+
 /** The footer of the list, or of the dialog while it is open. */
 function footerOf(props: RepositoriesViewProps): {
   readonly status: ReactNode;
   readonly keys: ReactNode;
   readonly position?: string;
 } {
-  const { connect, listing, position, starting } = props;
+  const { listing, position, starting } = props;
   const freshness = { ...listing, now: props.now };
-  if (connect !== undefined) {
+  const dialog = dialogFooterOf(props);
+  if (dialog !== undefined) {
     return {
       status: (
-        <StatusLine
-          path={PATH}
-          facts={[connectStatusOf(connect.state)]}
-          freshness={freshness}
-        />
+        <StatusLine path={PATH} facts={[dialog.fact]} freshness={freshness} />
       ),
-      keys: <KeyHints hints={connectHintsOf(connect.state.phase)} />,
+      keys: <KeyHints hints={dialog.hints} />,
     };
   }
   const rows = rowsOf(listing.answer);
@@ -187,15 +207,30 @@ function footerOf(props: RepositoriesViewProps): {
   };
 }
 
+/** The dialog that is open: the one of a threshold, or the one that connects. */
+function dialogOf(props: RepositoriesViewProps): {
+  readonly dialog?: ReactNode;
+} {
+  const { connect, threshold } = props;
+  if (threshold !== undefined) {
+    return { dialog: <ThresholdDialog {...threshold} /> };
+  }
+  return connect === undefined
+    ? {}
+    : { dialog: <ConnectDialogView {...connect} now={props.now} /> };
+}
+
 /**
  * Which repositories are connected and what is known of each: a list of
- * two lines a row, the selected one beside it, and the dialog that
- * connects one more.
+ * two lines a row, the selected one beside it, the dialog that connects
+ * one more, and the one of a threshold.
  */
 export function RepositoriesView(props: RepositoriesViewProps): ReactNode {
-  const { frame, connect } = props;
+  const { frame, connect, threshold } = props;
   const notice = frame.notice ?? props.notice;
-  const typing = connect !== undefined && isEditable(connect.state.phase);
+  const typing =
+    threshold !== undefined ||
+    (connect !== undefined && isEditable(connect.state.phase));
   return (
     <AppShell
       {...frame}
@@ -210,9 +245,7 @@ export function RepositoriesView(props: RepositoriesViewProps): ReactNode {
         />
       }
       {...footerOf(props)}
-      {...(connect === undefined
-        ? {}
-        : { dialog: <ConnectDialogView {...connect} now={props.now} /> })}
+      {...dialogOf(props)}
     />
   );
 }

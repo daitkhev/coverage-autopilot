@@ -28,6 +28,7 @@ import {
   rowsOf,
   workOf,
 } from '#screens/repositories/repository-listing';
+import { thresholdWords } from '#screens/repositories/threshold-dialog';
 import {
   type ConnectDialog,
   useConnectDialog,
@@ -37,6 +38,10 @@ import {
   useScanStarts,
 } from '#screens/repositories/use-scan-starts';
 import { useSnapshotParameters } from '#screens/repositories/use-snapshot-parameters';
+import {
+  type ThresholdDialog,
+  useThresholdDialog,
+} from '#screens/repositories/use-threshold-dialog';
 import { ASK_EVERY_MS } from '#theme/moments';
 import { repositoryName } from '#theme/names';
 import { layoutOf } from '#theme/widths';
@@ -107,7 +112,15 @@ function dialogPartsOf(connect: ConnectDialog): ConnectDialogParts | undefined {
       };
 }
 
-/** The scans and the dialog that connects a repository, and their notice. */
+/** The keys of the screen work only while no dialog takes them. */
+function noDialog(connect: ConnectDialog, threshold: ThresholdDialog): boolean {
+  return connect.state === undefined && threshold.parts === undefined;
+}
+
+/**
+ * The scans, the dialog that connects a repository and the one of a
+ * threshold, and their notice.
+ */
 function useStarts(
   session: ClientSession,
   asked: RefObject<number>,
@@ -115,6 +128,7 @@ function useStarts(
   readonly notice: string | undefined;
   readonly scans: ScanStarts;
   readonly connect: ConnectDialog;
+  readonly threshold: ThresholdDialog;
 } {
   const [notice, setNotice] = useState<string | undefined>(undefined);
   const scans = useScanStarts({ session, asked, onNotice: setNotice });
@@ -124,13 +138,23 @@ function useStarts(
       setNotice(`${repositoryName(repository)} is connected.`);
     },
   });
-  return { notice, scans, connect };
+  const threshold = useThresholdDialog({
+    session,
+    onChanged: (repository) => {
+      setNotice(
+        `${repositoryName(repository)} is judged by ` +
+          `${thresholdWords(repository.threshold)}.`,
+      );
+    },
+  });
+  return { notice, scans, connect, threshold };
 }
 
 /**
  * The first screen: which repositories are connected and what is known
  * of each. The list is asked for again every second, `s` scans the
- * selected repository and `a` connects one more.
+ * selected repository, `t` changes its threshold and `a` connects one
+ * more.
  */
 export function RepositoriesScreen({
   session,
@@ -149,7 +173,7 @@ export function RepositoriesScreen({
   const chosen = rows[selection.index];
   const work = useWork(session, chosen?.repository.id);
   const parameters = useSnapshotParameters(session.api, chosen?.repository);
-  const { notice, scans, connect } = useStarts(session, asked);
+  const { notice, scans, connect, threshold } = useStarts(session, asked);
   const starting = startingOf(listing.answer, scans);
   const actions = repositoryActions(
     { chosen, starting, layout: layoutOf(frame.size) },
@@ -159,9 +183,10 @@ export function RepositoriesScreen({
       connect: connect.open,
       scan: scans.start,
       openFiles: onOpenFiles,
+      changeThreshold: threshold.open,
     },
   );
-  useScreenActions(actions, { active: connect.state === undefined });
+  useScreenActions(actions, { active: noDialog(connect, threshold) });
   return (
     <RepositoriesView
       frame={frame}
@@ -176,6 +201,7 @@ export function RepositoriesScreen({
       starting={starting}
       notice={notice}
       connect={dialogPartsOf(connect)}
+      threshold={threshold.parts}
       actions={actions}
     />
   );

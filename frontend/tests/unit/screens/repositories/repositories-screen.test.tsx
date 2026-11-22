@@ -24,6 +24,7 @@ import { IMPROVEMENT_LIST } from '#tests/support/sample-improvements';
 import {
   ACCESS_PASSED,
   NEVER_SCANNED_REPOSITORY,
+  OWN_THRESHOLD_REPOSITORY,
   REPOSITORY_LIST,
   SCAN_BY_STATUS,
 } from '#tests/support/sample-repositories';
@@ -183,6 +184,31 @@ describe('RepositoriesScreen', () => {
       await expect
         .poll(() => screenOf(terminal), PATIENT)
         .toContain('The scan was not started:');
+    });
+  });
+
+  describe('when t is pressed', () => {
+    it('should give the chosen repository a threshold and say what it is judged by', async () => {
+      const session = sessionOf({
+        changeThreshold: () =>
+          Promise.resolve(answered(OWN_THRESHOLD_REPOSITORY)),
+      });
+      const { terminal, opened } = await shown(session);
+
+      await press(terminal, 't', 's', '9', '0');
+      expect(screenOf(terminal)).toContain('type the threshold of');
+      expect(screenOf(terminal)).toContain('Percent 90█');
+      await press(terminal, KEYS.enter);
+
+      await expect
+        .poll(() => screenOf(terminal), PATIENT)
+        .toContain('example/payments is judged by 90.0% of lines, its own.');
+      expect(callsOf(session, 'changeThreshold')[0]?.arguments).toEqual([
+        'repository-payments',
+        { percentage: 90 },
+      ]);
+      expect(callsOf(session, 'startScan')).toEqual([]);
+      expect(opened).toEqual([]);
     });
   });
 

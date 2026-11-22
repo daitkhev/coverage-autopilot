@@ -34,7 +34,7 @@ exports[`RepositoriesView > should list the repositories with the first chosen 1
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  Repositories · 4 repositories · 1 scan running · updated 1s ago                                     row 1 of 4
- ↑↓ move    enter open    s scan    a add    tab details                                                 ? help"
+ ↑↓ move    enter open    s scan    t threshold    a add    tab details                                  ? help"
 `;
 
 exports[`RepositoriesView > when no answer came yet > should draw the panels empty and say it asks the service 1`] = `
@@ -182,5 +182,5 @@ exports[`RepositoriesView > when the last request failed > should keep the last 
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  Repositories · 4 repositories · 1 scan running · ! not fresh, updated 1s ago                        row 1 of 4
- ↑↓ move    enter open    s scan    a add    tab details                                                 ? help"
+ ↑↓ move    enter open    s scan    t threshold    a add    tab details                                  ? help"
 `;

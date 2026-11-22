@@ -68,6 +68,7 @@ export function repositoryActionsAt(
       connect: nothing,
       scan: nothing,
       openFiles: nothing,
+      changeThreshold: nothing,
     },
   );
 }

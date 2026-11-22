@@ -129,6 +129,7 @@ function view({
               onClose: vi.fn(),
             }
       }
+      threshold={undefined}
       actions={repositoryActionsAt(rowsOf(listing.answer), starting, {
         index,
         focused,

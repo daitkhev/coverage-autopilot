@@ -1,3 +1,5 @@
+import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
+
 import {
   listActionsOf,
   MOVE_HINT,
@@ -28,9 +30,14 @@ export interface RepositoriesWays {
   readonly connect: () => void;
   readonly scan: (repositoryId: string) => void;
   readonly openFiles: (repositoryId: string) => void;
+  /** Opens the dialog of the threshold of a repository. */
+  readonly changeThreshold: (repository: Repository) => void;
 }
 
-/** `enter` opens the files of the chosen repository; `s` scans it, once. */
+/**
+ * `enter` opens the files of the chosen repository; `s` scans it, once;
+ * `t` changes its threshold, also while it is scanned.
+ */
 function chosenActions(
   { chosen, starting }: RepositoriesState,
   ways: RepositoriesWays,
@@ -56,7 +63,17 @@ function chosenActions(
     hint: { label: 'scan' },
     command: { title: 'Scan this repository', target },
   };
-  return isScanning(chosen, starting) ? [open] : [open, scan];
+  const threshold: ScreenAction = {
+    key: 't',
+    run: () => {
+      ways.changeThreshold(chosen.repository);
+    },
+    hint: { label: 'threshold' },
+    command: { title: 'Set its threshold', target },
+  };
+  return isScanning(chosen, starting)
+    ? [open, threshold]
+    : [open, scan, threshold];
 }
 
 /**
