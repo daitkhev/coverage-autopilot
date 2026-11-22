@@ -27,6 +27,11 @@ export const PACKAGE_BUILD = {
     from: 'backend/src/shared/infrastructure/sandbox/generator.Dockerfile',
     to: 'dist/bin/shared/infrastructure/sandbox/generator.Dockerfile',
   },
+  /** What the image of the commands of a repository is built from. */
+  sandboxImage: {
+    from: 'backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile',
+    to: 'dist/bin/shared/infrastructure/sandbox/sandbox.Dockerfile',
+  },
 } as const;
 
 /** What the build of one program reads and writes. */
@@ -110,15 +115,17 @@ async function write(
 }
 
 /**
- * The migrations, the file of the image and the manifest, which the built
- * service reads.
+ * The migrations, the files of the images and the manifest, which the
+ * built service reads.
  */
 function writeBeside(root: string): void {
-  const { migrations, generatorImage, manifest } = PACKAGE_BUILD;
+  const { migrations, generatorImage, sandboxImage, manifest } = PACKAGE_BUILD;
   cpSync(join(root, migrations.from), join(root, migrations.to), {
     recursive: true,
   });
-  cpSync(join(root, generatorImage.from), join(root, generatorImage.to));
+  for (const image of [generatorImage, sandboxImage]) {
+    cpSync(join(root, image.from), join(root, image.to));
+  }
   const program = relative(PACKAGE_BUILD.folder, CLIENT_BUILD.file);
   const text = JSON.stringify(
     packageManifestOf(root, program),
@@ -131,8 +138,8 @@ function writeBeside(root: string): void {
 
 /**
  * Builds the package a person installs: the client and the service, each
- * as one file plain Node runs, the migrations, the file of the image of
- * the generator and the manifest. The folder is emptied first, so nothing
+ * as one file plain Node runs, the migrations, the files of the two
+ * images and the manifest. The folder is emptied first, so nothing
  * of an earlier build is taken for a part of this one.
  * A warning of the bundler fails the build like an error: an import it
  * could not follow would otherwise fail only when the built service
