@@ -69,4 +69,41 @@ describe('QualityPolicy', () => {
       });
     });
   });
+
+  describe('requested', () => {
+    it('should keep a policy that requires test_files_only', () => {
+      const policy = QualityPolicy.requested(POLICY);
+
+      expect(policy.requiredChecks).toEqual(CHECK_NAMES);
+      expect(policy.isUsable).toBe(true);
+    });
+
+    it('should refuse a policy without test_files_only, which the gate refuses', () => {
+      expect(() =>
+        QualityPolicy.requested({ ...POLICY, requiredChecks: ['type_check'] }),
+      ).toThrow(
+        new InvalidImprovementValueError(
+          'The quality policy does not require test_files_only, without ' +
+            'which the gate applies no patch.',
+        ),
+      );
+    });
+
+    it('should refuse what create refuses', () => {
+      expect(() =>
+        QualityPolicy.requested({ ...POLICY, repeatedRuns: 0 }),
+      ).toThrow(InvalidImprovementValueError);
+    });
+  });
+
+  describe('isUsable', () => {
+    it('should say that a stored policy without test_files_only cannot be judged by', () => {
+      const stored = QualityPolicy.create({
+        ...POLICY,
+        requiredChecks: ['type_check'],
+      });
+
+      expect(stored.isUsable).toBe(false);
+    });
+  });
 });

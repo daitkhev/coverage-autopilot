@@ -18,6 +18,12 @@ import {
 const NEVER = new AbortController().signal;
 const FIRST_ID = '00000000-0000-4000-8000-000000000001';
 
+const POLICY = {
+  requiredChecks: ['test_files_only', 'new_tests_pass'],
+  repeatedRuns: 2,
+  mutationThreshold: 50,
+} as const;
+
 let world: ImprovementRequestWorld;
 
 beforeEach(() => {
@@ -262,6 +268,12 @@ describe('StartImprovementHandler', () => {
           { filePath: 'src//price.ts' },
           '"src//price.ts" is not a path as git stores it: it has an ' +
             'empty, a "." or a ".." part.',
+        ],
+        [
+          'a quality policy',
+          { qualityPolicy: { ...POLICY, requiredChecks: ['type_check'] } },
+          'The quality policy does not require test_files_only, without ' +
+            'which the gate applies no patch.',
         ],
       ] as const)(
         'should refuse with invalid_request for %s before it asks anything',

@@ -88,6 +88,11 @@ describe('askedImprovementOf', () => {
         InvalidImprovementValueError,
       ],
       [
+        'a policy the gate refuses',
+        { qualityPolicy: { ...POLICY, requiredChecks: ['mutation_gain'] } },
+        InvalidImprovementValueError,
+      ],
+      [
         'a model',
         { generator: { cli: 'claude_code', model: '' } },
         InvalidImprovementValueError,

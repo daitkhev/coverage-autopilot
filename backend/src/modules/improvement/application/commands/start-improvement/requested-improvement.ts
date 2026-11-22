@@ -65,7 +65,7 @@ export function askedImprovementOf(
     policy:
       qualityPolicy === undefined
         ? settings.policy
-        : QualityPolicy.create(qualityPolicy),
+        : QualityPolicy.requested(qualityPolicy),
     generator: generatorOf(command, settings),
   };
 }

@@ -16,6 +16,13 @@ export type CheckName = (typeof CHECK_NAMES)[number];
 
 const MAX_PERCENTAGE = 100;
 
+/**
+ * The check the gate applies a patch after. Without it any file of the
+ * commit could change before the tests run, so the gate refuses a policy
+ * that does not require it.
+ */
+const GUARD: CheckName = 'test_files_only';
+
 export interface QualityPolicyProps {
   /** A check that is not listed is skipped. */
   readonly requiredChecks: readonly CheckName[];
@@ -59,6 +66,27 @@ export class QualityPolicy extends ValueObject<QualityPolicyProps> {
       ...props,
       requiredChecks: Object.freeze([...props.requiredChecks]),
     });
+  }
+
+  /**
+   * A policy a new request asks for. One the gate would refuse is refused
+   * here, before any work starts. A stored policy is restored with
+   * `create`, as it was asked for then.
+   */
+  public static requested(props: QualityPolicyProps): QualityPolicy {
+    const policy = QualityPolicy.create(props);
+    if (!policy.isUsable) {
+      throw new InvalidImprovementValueError(
+        `The quality policy does not require ${GUARD}, without which the ` +
+          'gate applies no patch.',
+      );
+    }
+    return policy;
+  }
+
+  /** Whether the gate can judge a patch under this policy at all. */
+  public get isUsable(): boolean {
+    return this.props.requiredChecks.includes(GUARD);
   }
 
   public get requiredChecks(): readonly CheckName[] {

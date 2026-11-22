@@ -45,6 +45,14 @@ function billingProblemsOf(settings: ImprovementSettings): string[] {
 }
 
 /**
+ * A request that names no quality policy gets the one of the settings,
+ * so a policy the gate refuses would fail every such request.
+ */
+function policyProblemsOf(settings: ImprovementSettings): string[] {
+  return settings.policy.isUsable ? [] : ['policy.requiredChecks: unusable'];
+}
+
+/**
  * Refuses settings no improvement can run with, as the service starts
  * rather than at the first request. The message names what is wrong and
  * never a value, because one of the values is the credential.
@@ -61,6 +69,7 @@ export function checkImprovementSettings(
           (issue) => `${issue.path.join('.')}: ${issue.code}`,
         )),
     ...billingProblemsOf(settings),
+    ...policyProblemsOf(settings),
   ];
   if (problems.length > 0) {
     throw new InvalidImprovementSettingsError(
