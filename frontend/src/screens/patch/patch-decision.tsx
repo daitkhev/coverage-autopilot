@@ -5,8 +5,7 @@ import type { Improvement } from '@coverage-autopilot/api-contracts/improvements
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
 
 import type { ServiceAnswer, ServiceApi } from '#api/service-api';
-import { AnswerList } from '#components/answer-list';
-import type { Answer } from '#components/dialog';
+import { type Answer, AnswerList } from '#components/answer-list';
 import { Glyph } from '#components/glyph';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';

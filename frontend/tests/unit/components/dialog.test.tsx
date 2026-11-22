@@ -3,7 +3,8 @@ import { cleanup, render } from 'ink-testing-library';
 import { type ReactNode, useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { type Answer, Dialog } from '#components/dialog';
+import type { Answer } from '#components/answer-list';
+import { Dialog } from '#components/dialog';
 import type { KeyHint } from '#components/key-hints';
 import { KEYS, press, screenOf } from '#tests/support/keys';
 import {

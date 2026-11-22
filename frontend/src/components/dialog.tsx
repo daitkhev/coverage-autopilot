@@ -1,19 +1,12 @@
 import { Box, Text } from 'ink';
 import type { ReactNode } from 'react';
 
-import { DataList } from '#components/data-list';
+import { type Answer, AnswerList } from '#components/answer-list';
 import { type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel, type PanelTone } from '#components/panel';
-import { RoleText } from '#components/role-text';
 import { type KeyHandlers, useKeys } from '#hooks/use-keys';
 import { useSelection } from '#hooks/use-selection';
 import { useTerminalSize } from '#hooks/use-terminal-size';
-
-/** A numbered answer. The answer that destroys work is drawn red. */
-export interface Answer {
-  readonly label: string;
-  readonly destroys?: boolean;
-}
 
 interface DialogProps {
   readonly title: string;
@@ -60,35 +53,6 @@ function digitKeys(count: number, pick: (answer: number) => void): KeyHandlers {
   );
 }
 
-function Answers({
-  answers,
-  selected,
-}: {
-  readonly answers: readonly Answer[];
-  readonly selected: number;
-}): ReactNode {
-  return (
-    <Box marginTop={1}>
-      <DataList
-        items={answers}
-        selected={selected}
-        offset={0}
-        visible={answers.length}
-        focused
-        keyOf={(answer) => answer.label}
-        renderRow={(answer, row) => (
-          <RoleText
-            role={answer.destroys === true ? 'danger' : 'primary'}
-            bold={row.bold}
-          >
-            {`${String(answers.indexOf(answer) + 1)}. ${answer.label}`}
-          </RoleText>
-        )}
-      />
-    </Box>
-  );
-}
-
 /**
  * A panel over the screen: a question or a form. It takes every key while
  * it is open. A digit picks an answer and only `enter` confirms it, so
@@ -126,7 +90,9 @@ export function Dialog(props: DialogProps): ReactNode {
       >
         {props.children}
         {answers.length === 0 ? null : (
-          <Answers answers={answers} selected={selection.index} />
+          <Box marginTop={1}>
+            <AnswerList answers={answers} selected={selection.index} focused />
+          </Box>
         )}
         <Box marginTop={1}>
           <KeyHints hints={props.hints} joined />

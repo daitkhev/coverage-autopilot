@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { AnswerList } from '#components/answer-list';
-import type { Answer } from '#components/dialog';
+import { type Answer, AnswerList } from '#components/answer-list';
 import {
   drawnAt,
   drawnWith,
