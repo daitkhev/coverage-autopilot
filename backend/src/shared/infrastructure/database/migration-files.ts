@@ -35,12 +35,19 @@ function versionOf(file: string, expected: number): number {
 /**
  * The migrations in a folder, in the order they are applied. The folder is
  * given and never found from the place of this file: the service ships as
- * one bundled file, so only its entry file knows where it was put.
+ * one bundled file, so only its entry file knows where it was put. A
+ * folder with none is refused: a service would start on a database with
+ * no table, and fail at its first request instead of at its start.
  */
 export function readMigrations(directory: string): Migration[] {
   const files = readdirSync(directory)
     .filter((file) => !file.startsWith(HIDDEN))
     .sort();
+  if (files.length === 0) {
+    throw new InvalidMigrationFileError(
+      `${directory} holds no migration. The versions start at 1.`,
+    );
+  }
   return files.map((file, index) => ({
     version: versionOf(file, index + 1),
     name: file,

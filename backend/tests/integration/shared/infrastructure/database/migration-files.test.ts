@@ -47,8 +47,16 @@ describe('readMigrations', () => {
     expect(readMigrations(folder)).toHaveLength(1);
   });
 
-  it('should give no migrations for an empty folder', () => {
-    expect(readMigrations(folder)).toEqual([]);
+  describe('when the folder holds no migration', () => {
+    it('should throw InvalidMigrationFileError, also with hidden files only', () => {
+      write('.DS_Store');
+
+      expect(() => readMigrations(folder)).toThrow(
+        new InvalidMigrationFileError(
+          `${folder} holds no migration. The versions start at 1.`,
+        ),
+      );
+    });
   });
 
   describe('when a file is not named as a migration', () => {

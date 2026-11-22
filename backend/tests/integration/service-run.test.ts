@@ -122,6 +122,19 @@ describe('runService', () => {
       expect(existsSync(bench.config.instance.socket)).toBe(false);
       expect(existsSync(`${bench.config.instance.database}-wal`)).toBe(false);
     });
+
+    it('should refuse a folder of migrations that is empty', async () => {
+      bench = serviceBench();
+      const migrations = join(dirname(bench.config.instance.directory), 'none');
+      mkdirSync(migrations);
+
+      await expect(bench.run(migrations)).rejects.toThrow(
+        new InvalidMigrationFileError(
+          `${migrations} holds no migration. The versions start at 1.`,
+        ),
+      );
+      expect(bench.lockIsFree()).toBe(true);
+    });
   });
 
   describe('when the generator has no credential', () => {
