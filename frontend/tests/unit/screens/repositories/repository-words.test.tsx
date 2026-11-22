@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 import type { ProgressStep } from '@coverage-autopilot/api-contracts/progress';
 import type { Scan } from '@coverage-autopilot/api-contracts/scans';
 
-import { rowFacts, stepAt } from '#screens/repositories/repository-words';
+import {
+  rowFacts,
+  runnerWords,
+  stepAt,
+} from '#screens/repositories/repository-words';
 import { SAMPLE_NOW } from '#tests/support/fake-service-api';
 import {
   SCAN_BY_STATUS,
@@ -59,5 +63,22 @@ describe('rowFacts', () => {
     );
 
     expect(time?.text).toBe('42s');
+  });
+});
+
+describe('runnerWords', () => {
+  it('should name the runner with its major version', () => {
+    expect(
+      runnerWords({ testRunner: 'jest', testRunnerVersion: '29.7.0' }),
+    ).toBe('Jest 29');
+    expect(
+      runnerWords({ testRunner: 'vitest', testRunnerVersion: '4.1.12' }),
+    ).toBe('Vitest 4');
+  });
+
+  it('should keep a version that has no dot as it is', () => {
+    expect(runnerWords({ testRunner: 'jest', testRunnerVersion: '30' })).toBe(
+      'Jest 30',
+    );
   });
 });

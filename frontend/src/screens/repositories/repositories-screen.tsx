@@ -38,6 +38,7 @@ import {
   type ScanStarts,
   useScanStarts,
 } from '#screens/repositories/use-scan-starts';
+import { useSnapshotParameters } from '#screens/repositories/use-snapshot-parameters';
 import { ASK_EVERY_MS } from '#theme/moments';
 import { repositoryName } from '#theme/names';
 
@@ -154,6 +155,7 @@ export function RepositoriesScreen({
   const focus = useFocusRing(REPOSITORIES_PANELS);
   const chosen = rows[selection.index];
   const work = useWork(session, chosen?.repository.id);
+  const parameters = useSnapshotParameters(session.api, chosen?.repository);
   const [notice, setNotice] = useState<string | undefined>(undefined);
   const scans = useScanStarts({ session, asked, onNotice: setNotice });
   const connect = useConnectDialog({
@@ -175,6 +177,7 @@ export function RepositoriesScreen({
       frame={frame}
       listing={listing}
       work={work.answer}
+      parameters={parameters}
       problem={problemOf(listing, isServiceUnreachable)}
       now={session.now()}
       position={selection}

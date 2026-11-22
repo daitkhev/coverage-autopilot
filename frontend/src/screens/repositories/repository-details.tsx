@@ -2,12 +2,15 @@ import { Box } from 'ink';
 import type { ReactNode } from 'react';
 
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
-import type { SnapshotSummary } from '@coverage-autopilot/api-contracts/snapshots';
+import type {
+  ScanParameters,
+  SnapshotSummary,
+} from '@coverage-autopilot/api-contracts/snapshots';
 
 import { CoverageBar } from '#components/coverage-bar';
 import { counterCoverage } from '#components/coverage-change';
 import { EmptyState } from '#components/empty-state';
-import { FactLine } from '#components/fact-line';
+import { type Fact, FactLine } from '#components/fact-line';
 import { FactRow } from '#components/fact-row';
 import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
@@ -19,6 +22,7 @@ import type {
 import {
   detailFacts,
   rowStateOf,
+  runnerWords,
 } from '#screens/repositories/repository-words';
 import { COUNTER_NAMES, COUNTERS, percentWords } from '#theme/counts';
 import { ageWords } from '#theme/moments';
@@ -39,22 +43,35 @@ interface RepositoryDetailsProps {
   readonly now: string;
   /** The cells of a bar, which the width of the panel decides. */
   readonly cells: number;
+  /** How the latest snapshot was measured, once the service said it. */
+  readonly parameters?: ScanParameters | undefined;
+}
+
+/** What the counters are held to, and the test runner that measured them. */
+function measuredFacts(
+  { percentage, metric }: SnapshotSummary['threshold'],
+  parameters: ScanParameters | undefined,
+): Fact[] {
+  return [
+    { text: `threshold ${percentWords(percentage)} of ${metric}` },
+    ...(parameters === undefined ? [] : [{ text: runnerWords(parameters) }]),
+  ];
 }
 
 function Measured({
   snapshot,
   cells,
+  parameters,
 }: {
   readonly snapshot: SnapshotSummary;
   readonly cells: number;
+  readonly parameters: ScanParameters | undefined;
 }): ReactNode {
   const { threshold, totals, files } = snapshot;
   return (
     <>
       <Section title="COVERAGE">
-        <RoleText role="secondary">
-          {`threshold ${percentWords(threshold.percentage)} of ${threshold.metric}`}
-        </RoleText>
+        <FactLine facts={measuredFacts(threshold, parameters)} />
         {COUNTERS.map((metric) => (
           <FactRow key={metric} label={COUNTER_NAMES[metric]}>
             <CoverageBar
@@ -140,7 +157,8 @@ function Work({
 
 /**
  * The selected repository: its latest snapshot with the four counters,
- * how its files divide, and its latest work.
+ * the test runner that measured them, how its files divide, and its
+ * latest work.
  */
 export function RepositoryDetails({
   row,
@@ -148,6 +166,7 @@ export function RepositoryDetails({
   work,
   now,
   cells,
+  parameters,
 }: RepositoryDetailsProps): ReactNode {
   const { repository } = row;
   const snapshot = repository.latestSnapshot;
@@ -160,7 +179,7 @@ export function RepositoryDetails({
           <NotMeasured scanning={state === 'scanning'} />
         </Box>
       ) : (
-        <Measured snapshot={snapshot} cells={cells} />
+        <Measured snapshot={snapshot} cells={cells} parameters={parameters} />
       )}
       <Section title="WORK">
         <Work items={workItemsOf(work, repository.id)} now={now} />

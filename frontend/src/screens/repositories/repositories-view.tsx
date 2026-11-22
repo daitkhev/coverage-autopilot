@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import type { ScanParameters } from '@coverage-autopilot/api-contracts/snapshots';
+
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { DataList } from '#components/data-list';
 import { EmptyState } from '#components/empty-state';
@@ -58,6 +60,8 @@ interface RepositoriesViewProps {
   readonly frame: ShellFrame;
   readonly listing: DatedRequest<RepositoryListing>;
   readonly work: RepositoryWork | undefined;
+  /** How the latest snapshot of the chosen repository was measured. */
+  readonly parameters?: ScanParameters | undefined;
   /** What went wrong with the last request, beside the list it keeps. */
   readonly problem: Problem | undefined;
   readonly now: string;
@@ -125,6 +129,7 @@ function DetailsPanel(props: RepositoriesViewProps): ReactNode {
           row={chosen}
           starting={props.starting.has(chosen.repository.id)}
           work={props.work}
+          parameters={props.parameters}
           now={props.now}
           cells={
             layoutOf(props.frame.size) === 'wide'

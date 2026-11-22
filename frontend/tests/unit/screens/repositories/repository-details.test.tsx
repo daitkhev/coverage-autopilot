@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
+import type { ScanParameters } from '@coverage-autopilot/api-contracts/snapshots';
 
 import { RepositoryDetails } from '#screens/repositories/repository-details';
 import type { RepositoryWork } from '#screens/repositories/repository-listing';
@@ -8,6 +9,7 @@ import { answered, refused, SAMPLE_NOW } from '#tests/support/fake-service-api';
 import { IMPROVEMENT_LIST } from '#tests/support/sample-improvements';
 import {
   NEVER_SCANNED_REPOSITORY,
+  PAYMENTS_SNAPSHOTS,
   SCANNED_REPOSITORY,
 } from '#tests/support/sample-repositories';
 import { drawnAt } from '#tests/support/terminal-text';
@@ -20,16 +22,19 @@ function draw({
   repository = SCANNED_REPOSITORY,
   starting = false,
   work,
+  parameters,
 }: {
   readonly repository?: Repository;
   readonly starting?: boolean;
   readonly work?: RepositoryWork;
+  readonly parameters?: ScanParameters | undefined;
 }): string {
   return drawnAt(
     <RepositoryDetails
       row={{ repository, scan: undefined }}
       starting={starting}
       work={work}
+      parameters={parameters}
       now={SAMPLE_NOW}
       cells={BAR_CELLS.detail}
     />,
@@ -45,6 +50,12 @@ describe('RepositoryDetails', () => {
     expect(drawn).toMatch(/Branches +━+─+┼── {3}61\.3%/u);
     expect(drawn).toContain('12 below 80.0% · 30 at or above');
     expect(drawn).toContain('2 not measured · 4 no code');
+  });
+
+  it('should name the test runner beside the threshold once it is known', () => {
+    const drawn = draw({ parameters: PAYMENTS_SNAPSHOTS.items[0]?.parameters });
+
+    expect(drawn).toContain('threshold 80.0% of lines · Jest 29');
   });
 
   it('should show the latest work of the repository', () => {

@@ -1,6 +1,7 @@
 import type { ProgressStep } from '@coverage-autopilot/api-contracts/progress';
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
 import type { Scan } from '@coverage-autopilot/api-contracts/scans';
+import type { ScanParameters } from '@coverage-autopilot/api-contracts/snapshots';
 
 import type { Fact } from '#components/fact-line';
 import {
@@ -34,6 +35,15 @@ const STEP_WORDS: ReadonlyMap<string, string> = new Map([
   ['test_run', 'running the tests'],
   ['read_report', 'reading the report'],
 ]);
+
+/** The test runner a snapshot was measured with and its major version, as `Jest 29`. */
+export function runnerWords({
+  testRunner,
+  testRunnerVersion,
+}: Pick<ScanParameters, 'testRunner' | 'testRunnerVersion'>): string {
+  const name = `${testRunner.charAt(0).toUpperCase()}${testRunner.slice(1)}`;
+  return `${name} ${testRunnerVersion.replace(/\..*$/u, '')}`;
+}
 
 /** A scan runs, or this screen started one the list does not show yet. */
 export function isScanning(
