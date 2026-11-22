@@ -63,7 +63,7 @@ function storeOf(
  * The rows an improvement of the values refers to: its repository, its
  * source and baseline snapshots, and the files of the source snapshot.
  */
-function seed(rows: SchemaRows): void {
+export function seedImprovementRows(rows: SchemaRows): void {
   rows.repository({ id: REPOSITORY_ID });
   rows.snapshot(REPOSITORY_ID, { id: SOURCE_SNAPSHOT_ID });
   rows.snapshot(REPOSITORY_ID, { id: BASELINE_SNAPSHOT_ID });
@@ -79,7 +79,7 @@ export function sqliteStore(): ImprovementStore & {
   readonly database: TemporaryDatabase;
 } {
   const database = createMigratedDatabase();
-  seed(new SchemaRows(database.connection));
+  seedImprovementRows(new SchemaRows(database.connection));
   const store = storeOf(
     new SqliteImprovementRepository(database.connection),
     new SqliteTransactionRunner(database.connection),
