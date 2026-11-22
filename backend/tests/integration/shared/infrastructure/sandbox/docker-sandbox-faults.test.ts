@@ -6,6 +6,7 @@ import { InvalidSandboxRequestError } from '#infrastructure/sandbox/errors/inval
 import { SandboxEngineMissingError } from '#infrastructure/sandbox/errors/sandbox-engine-missing.error';
 import { SandboxEngineNotRunningError } from '#infrastructure/sandbox/errors/sandbox-engine-not-running.error';
 import { SandboxStartFailedError } from '#infrastructure/sandbox/errors/sandbox-start-failed.error';
+import { SandboxImages } from '#infrastructure/sandbox/sandbox-images';
 import {
   SANDBOX_SETTINGS,
   type SandboxSettings,
@@ -165,6 +166,7 @@ describe('DockerSandbox', () => {
         providers: [
           { provide: SANDBOX, useClass: DockerSandbox },
           { provide: SANDBOX_SETTINGS, useValue: bench.settings() },
+          SandboxImages,
           { provide: CLOCK, useValue: bench.clock },
           { provide: ID_GENERATOR, useClass: SequentialIdGenerator },
           { provide: LOGGER, useValue: bench.logger },
@@ -176,10 +178,11 @@ describe('DockerSandbox', () => {
         commandRequest(),
         new AbortController().signal,
       );
+      await module.close();
 
       expect(sandbox).toBeInstanceOf(DockerSandbox);
       expect(result.outcome).toBe('exited');
-      expect(bench.calls()[0]?.arguments[2]).toBe(FIRST_CONTAINER);
+      expect(bench.containerCalls()[0]).toContain(FIRST_CONTAINER);
     });
   });
 });

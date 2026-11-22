@@ -68,7 +68,7 @@ describe('DockerSandbox', () => {
       const running = bench.run({ removal: { endless: true } });
       await vi.waitFor(
         () => {
-          expect(bench.calls()).toHaveLength(2);
+          expect(bench.calls()).toHaveLength(3);
         },
         { timeout: 10_000 },
       );
@@ -90,6 +90,7 @@ describe('DockerSandbox', () => {
         { endless: true, removal: refusedWith(BUSY) },
         { timeoutMs: 5 * MINUTE },
       );
+      await bench.started();
       vi.advanceTimersByTime(5 * MINUTE);
 
       await expect(running).rejects.toThrow(SandboxContainerLeftError);
@@ -105,6 +106,7 @@ describe('DockerSandbox', () => {
       );
 
       const running = sandbox.run(commandRequest(), controller.signal);
+      await bench.started();
       controller.abort(reason);
 
       await expect(running).rejects.toBe(reason);

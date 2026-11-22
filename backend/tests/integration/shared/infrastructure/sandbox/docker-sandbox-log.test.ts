@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { FIRST_CONTAINER, useSandboxBench } from '#tests/support/sandbox-bench';
+import {
+  FIRST_CONTAINER,
+  MISSING_IMAGE,
+  useSandboxBench,
+} from '#tests/support/sandbox-bench';
+import {
+  SHIPPED_IMAGE_FILE,
+  shippedImageLabel,
+} from '#tests/support/shipped-image';
 
 /** What a generator is asked: it may quote the text of a file. */
 const PROMPT = 'Write tests for: export const secretSauce = 1;';
@@ -15,22 +23,27 @@ function shownArguments(): string[] {
     .map((line) => String(line.fields['arguments']));
 }
 
+function exitCodes(): unknown[] {
+  return bench.logger.at('debug').map((line) => line.fields['exitCode']);
+}
+
 describe('DockerSandbox', () => {
   describe('when a command runs', () => {
     it('should write one debug line for each start of the engine', async () => {
       await bench.run({ exitCode: 2 });
 
-      expect(bench.logger.lines).toHaveLength(2);
-      expect(bench.logger.at('debug')[0]?.fields).toMatchObject({
+      expect(bench.logger.lines).toHaveLength(3);
+      expect(bench.logger.at('debug')[1]?.fields).toMatchObject({
         component: 'tools',
         program: process.execPath,
         exitCode: 2,
         durationMs: 0,
       });
-      expect(bench.logger.at('debug')[1]?.fields).toMatchObject({
-        exitCode: 0,
-      });
-      expect(shownArguments()[1]).toMatch(
+      expect(exitCodes()).toEqual([0, 2, 0]);
+      expect(shownArguments()[0]).toMatch(
+        / image inspect .+ sandbox-image:1$/u,
+      );
+      expect(shownArguments()[2]).toMatch(
         new RegExp(` rm --force ${FIRST_CONTAINER}$`, 'u'),
       );
     });
@@ -44,11 +57,30 @@ describe('DockerSandbox', () => {
         },
       );
 
-      expect(shownArguments()[0]).toMatch(/ sandbox-image:1 claude$/u);
-      expect(bench.calls()[0]?.arguments).toContain(PROMPT);
+      expect(shownArguments()[1]).toMatch(/ sandbox-image:1 claude$/u);
+      expect(bench.containerCalls()[0]).toContain(PROMPT);
       const written = JSON.stringify(bench.logger.lines);
       expect(written).not.toContain(PROMPT);
       expect(written).not.toContain(TOKEN);
+    });
+  });
+
+  describe('when the image of a command is prepared first', () => {
+    it('should show every argument of a build, which carries no secret', async () => {
+      await bench.runOn(bench.builtSettings({ inspection: MISSING_IMAGE }));
+
+      expect(exitCodes()).toEqual([1, 0, 0, 0]);
+      expect(shownArguments()[1]).toContain(
+        ' build --tag built-image:1 --label ' +
+          `coverage-autopilot.build-file-sha256=${shippedImageLabel()} ` +
+          `--file ${SHIPPED_IMAGE_FILE} `,
+      );
+    });
+
+    it('should show the pull of an image the engine lacks', async () => {
+      await bench.runOn(bench.settings({ inspection: MISSING_IMAGE }));
+
+      expect(shownArguments()[1]).toMatch(/ pull sandbox-image:1$/u);
     });
   });
 });

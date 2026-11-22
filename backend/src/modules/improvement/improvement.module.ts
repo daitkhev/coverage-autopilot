@@ -62,6 +62,7 @@ import { ImprovementsController } from '#improvement/infrastructure/http/improve
 import { checkImprovementSettings } from '#improvement/infrastructure/improvement-settings.schema';
 import { SqliteImprovementRepository } from '#improvement/infrastructure/persistence/sqlite-improvement.repository';
 import { DockerSandbox } from '#infrastructure/sandbox/docker-sandbox.adapter';
+import { SandboxImages } from '#infrastructure/sandbox/sandbox-images';
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
 import { ID_GENERATOR, type IdGenerator } from '#kernel/id/id-generator';
 import { CLOCK, type Clock } from '#kernel/time/clock';
@@ -71,6 +72,14 @@ import type { Sandbox } from '#ports/sandbox.port';
 
 /** One step for each status that has work, in the order of the path. */
 const STEPS = [AnalyzingStep, GeneratingStep, VerifyingStep, PublishingStep];
+
+/** What the sandbox of the generator takes from the service, in order. */
+type SharedWithSandbox = [
+  clock: Clock,
+  ids: IdGenerator,
+  logger: Logger,
+  images: SandboxImages,
+];
 
 /** The settings of the module and of its generator, as plain values. */
 interface ImprovementValues {
@@ -117,11 +126,11 @@ function settingsOf(values: ImprovementValues): ImprovementSettings {
  * It takes from the modules around it: the contracts of `repositories`,
  * `coverage` and `verification`, the queue, the transaction manager, the
  * SQLite connection, the clock, the alarm, the id generator, the store of
- * tool output, the sandbox of the generator, and the settings of this
- * module and of the generator. `register` binds the last three. It answers
- * the port `FILE_IMPROVEMENTS` of the coverage module, so the files of a
- * snapshot show the work on each. The service lists
- * `RunImprovementHandler` among the handlers of its worker.
+ * tool output, the images of the sandboxes, the sandbox of the generator,
+ * and the settings of this module and of the generator. `register` binds
+ * the last three. It answers the port `FILE_IMPROVEMENTS` of the coverage
+ * module, so the files of a snapshot show the work on each. The service
+ * lists `RunImprovementHandler` among the handlers of its worker.
  */
 @Module({
   controllers: [
@@ -176,9 +185,11 @@ export class ImprovementModule implements OnModuleInit {
   /**
    * The module with its settings, and the sandbox the CLI runs in: a
    * second `DockerSandbox`, with the image of the CLI and a larger limit
-   * of output, on the clock and the ids the service shares. It is global
-   * like the modules below it, so the coverage module finds the answer to
-   * its port, which it cannot import.
+   * of output, on the clock, the ids, the logger and the images the
+   * service shares, so the start and every command wait for one
+   * preparation of the image. It is global like the modules below it, so
+   * the coverage module finds the answer to its port, which it cannot
+   * import.
    */
   public static register(values: ImprovementValues): DynamicModule {
     return {
@@ -189,12 +200,9 @@ export class ImprovementModule implements OnModuleInit {
         { provide: GENERATOR_SETTINGS, useValue: values.adapter },
         {
           provide: GENERATOR_SANDBOX,
-          useFactory: (
-            clock: Clock,
-            ids: IdGenerator,
-            logger: Logger,
-          ): Sandbox => new DockerSandbox(values.sandbox, clock, ids, logger),
-          inject: [CLOCK, ID_GENERATOR, LOGGER],
+          useFactory: (...shared: SharedWithSandbox): Sandbox =>
+            new DockerSandbox(values.sandbox, ...shared),
+          inject: [CLOCK, ID_GENERATOR, LOGGER, SandboxImages],
         },
       ],
     };

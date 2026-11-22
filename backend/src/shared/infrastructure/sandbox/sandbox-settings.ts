@@ -20,6 +20,12 @@ interface SandboxLimits {
   readonly outputBytes: number;
 }
 
+/** What the service builds the image of a sandbox from. */
+export interface ImageBuild {
+  /** The file the engine builds the image from, as an absolute path. */
+  readonly file: string;
+}
+
 /** Everything a sandbox is started with, as one value of the settings. */
 export interface SandboxSettings {
   readonly engine: SandboxEngine;
@@ -29,6 +35,12 @@ export interface SandboxSettings {
    */
   readonly instance: string;
   readonly image: string;
+  /**
+   * Set for an image the service makes itself, which it builds when the
+   * engine lacks it or has it from another file. Left out, the engine
+   * pulls the image when it lacks it.
+   */
+  readonly build?: ImageBuild;
   /**
    * `<uid>:<gid>` the command runs as: never root, and the owner of the
    * working copies, so that it can write into them.

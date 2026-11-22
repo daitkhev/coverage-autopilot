@@ -37,6 +37,7 @@ import { JobWorkerScheduler } from '#infrastructure/queue/job-worker-scheduler';
 import { JOB_WORKER_SETTINGS } from '#infrastructure/queue/job-worker-settings';
 import { SqliteJobQueue } from '#infrastructure/queue/sqlite-job-queue.adapter';
 import { DockerSandbox } from '#infrastructure/sandbox/docker-sandbox.adapter';
+import { SandboxImages } from '#infrastructure/sandbox/sandbox-images';
 import { SANDBOX_SETTINGS } from '#infrastructure/sandbox/sandbox-settings';
 import type { ServiceConnection } from '#infrastructure/service/service-start';
 import { SystemClock } from '#infrastructure/time/system-clock.adapter';
@@ -74,6 +75,7 @@ const SHARED = [
   TRANSACTION_MANAGER,
   JOB_QUEUE,
   SANDBOX,
+  SandboxImages,
   ARTIFACT_STORE,
 ];
 
@@ -123,6 +125,7 @@ export class AppModule implements OnModuleInit {
         SqliteJobTable,
         { provide: JOB_QUEUE, useClass: SqliteJobQueue },
         { provide: SANDBOX_SETTINGS, useValue: settings.sandbox },
+        SandboxImages,
         { provide: SANDBOX, useClass: DockerSandbox },
         { provide: ARTIFACT_DIRECTORY, useValue: settings.artifacts },
         { provide: ARTIFACT_STORE, useClass: FileArtifactStore },

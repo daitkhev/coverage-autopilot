@@ -29,7 +29,8 @@ function megabytes(value: number): string {
  * mounted at the path it has on the host, so a path a tool writes into a
  * report is the path the service reads the report by. Its label names
  * the instance that started it. Without `--network`, the engine gives its
- * default network.
+ * default network. The sandbox has made the image ready, so the engine
+ * never looks for it in a registry, and a name it lacks fails the run.
  */
 export function runArguments(
   settings: SandboxSettings,
@@ -41,7 +42,8 @@ export function runArguments(
   const copy = request.workingCopyPath;
   const label = `${INSTANCE_LABEL}=${settings.instance}`;
   return [
-    ...['run', '--name', name, '--label', label, '--rm', '--init'],
+    ...['run', '--name', name, '--pull=never', '--label', label],
+    ...['--rm', '--init'],
     ...network,
     ...['--cap-drop', 'ALL', '--security-opt', 'no-new-privileges'],
     ...['--user', settings.user, '--read-only'],

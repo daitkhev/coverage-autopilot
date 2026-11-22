@@ -20,6 +20,7 @@ import {
   NEW_TESTS,
   patchedReport,
 } from '#tests/support/mutation-reports';
+import { shippedImageLabel } from '#tests/support/shipped-image';
 import {
   coverageReportOf,
   holdsNewTests,
@@ -201,12 +202,18 @@ function runOf(args: readonly string[], input: string): PlayedRun {
 }
 
 /**
- * Records each `run` and plays its tool. Any other call, such as the
- * removal of a container, succeeds: no container was ever made.
+ * Records each `run` and plays its tool. Every image is there, labelled as
+ * one built from the file the service ships, so no build or pull is
+ * asked. Any other call, such as the removal of a container, succeeds: no
+ * container was ever made.
  */
 function main(): void {
   const [folder = '', ...args] = argv.slice(FOLDER_ARGUMENT);
   const input = readFileSync(0, 'utf8');
+  if (args[0] === 'image') {
+    stdout.write(`${shippedImageLabel()}\n`);
+    return;
+  }
   if (args[0] !== 'run') {
     return;
   }

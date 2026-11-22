@@ -1,3 +1,5 @@
+import { writeFileSync } from 'node:fs';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -14,7 +16,7 @@ const MINUTE = 60_000;
 const bench = useSandboxBench();
 
 function argumentsOfCalls(): (readonly string[])[] {
-  return bench.calls().map((call) => call.arguments);
+  return bench.containerCalls();
 }
 
 afterEach(() => {
@@ -30,6 +32,7 @@ describe('DockerSandbox', () => {
         'run',
         '--name',
         FIRST_CONTAINER,
+        '--pull=never',
         '--label',
         `coverage-autopilot.instance=${BENCH_INSTANCE}`,
         '--rm',
@@ -72,10 +75,11 @@ describe('DockerSandbox', () => {
 
       const open = argumentsOfCalls()[0] ?? [];
       expect(open).not.toContain('--network');
-      expect(open.slice(0, 9)).toEqual([
+      expect(open.slice(0, 10)).toEqual([
         'run',
         '--name',
         FIRST_CONTAINER,
+        '--pull=never',
         '--label',
         `coverage-autopilot.instance=${BENCH_INSTANCE}`,
         '--rm',
@@ -90,7 +94,9 @@ describe('DockerSandbox', () => {
 
       await bench.run({}, { environment });
 
-      const [call] = bench.calls();
+      const call = bench
+        .calls()
+        .find(({ arguments: [verb] }) => verb === 'run');
       expect(call?.input).toBe('HOME=/tmp\nCI=true\nMODEL_KEY=zz-private\n');
       expect(call?.arguments.join(' ')).not.toContain('zz-private');
     });
@@ -102,21 +108,25 @@ describe('DockerSandbox', () => {
         .sandbox(settings)
         .run(commandRequest(), new AbortController().signal);
 
-      expect(bench.calls()).toHaveLength(2);
+      expect(bench.calls()).toHaveLength(3);
       for (const call of bench.calls()) {
         expect(call.environment).toEqual(settings.engine.environment);
       }
     });
 
     it('should answer a command that failed with its exit code and its output', async () => {
+      const ended = bench.place('ended');
       const running = bench.run({
         output: [
           { stream: 'stdout', text: 'FAIL src/a.test.ts\n' },
           { stream: 'stdout', text: 'Tests  1 failed (3)\n' },
         ],
         exitCode: 1,
+        until: ended,
       });
+      await bench.started();
       bench.clock.advance(4_250);
+      writeFileSync(ended, '');
 
       await expect(running).resolves.toEqual({
         outcome: 'exited',
@@ -188,6 +198,7 @@ describe('DockerSandbox', () => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
         const running = bench.run({ endless: true }, { timeoutMs: 5 * MINUTE });
+        await bench.started();
         bench.clock.advance(5 * MINUTE);
         vi.advanceTimersByTime(5 * MINUTE);
 
@@ -213,6 +224,7 @@ describe('DockerSandbox', () => {
         const sandbox = bench.sandbox(bench.settings({ endless: true }));
 
         const running = sandbox.run(commandRequest(), controller.signal);
+        await bench.started();
         controller.abort(reason);
 
         await expect(running).rejects.toBe(reason);

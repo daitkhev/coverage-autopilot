@@ -6,15 +6,16 @@ import {
   runArguments,
 } from '#infrastructure/sandbox/container-arguments';
 import { removeContainer } from '#infrastructure/sandbox/container-removal';
+import { notRunningFault } from '#infrastructure/sandbox/engine-faults';
 import {
   type EngineExit,
   EngineProcess,
 } from '#infrastructure/sandbox/engine-process';
 import { SandboxContainerLeftError } from '#infrastructure/sandbox/errors/sandbox-container-left.error';
-import { SandboxEngineNotRunningError } from '#infrastructure/sandbox/errors/sandbox-engine-not-running.error';
 import { SandboxStartFailedError } from '#infrastructure/sandbox/errors/sandbox-start-failed.error';
 import type { OutputTail } from '#infrastructure/sandbox/output-tail';
 import { limitRun } from '#infrastructure/sandbox/run-limit';
+import { SandboxImages } from '#infrastructure/sandbox/sandbox-images';
 import {
   checkRequest,
   environmentFile,
@@ -38,10 +39,6 @@ import type {
  */
 const ENGINE_FAILED = 125;
 
-/** What docker and podman print when no engine answers them. */
-const NOT_RUNNING =
-  /cannot connect to the docker daemon|failed to connect to the docker api|is the docker daemon running|cannot connect to podman/i;
-
 type Ending = Omit<SandboxCommandResult, 'durationMs'>;
 
 function textOf(
@@ -55,13 +52,12 @@ function endingOf(exit: EngineExit, output: OutputTail): Ending {
     return { outcome: 'exited', exitCode: exit.code, ...textOf(output) };
   }
   const said = output.text().trim();
-  throw NOT_RUNNING.test(said)
-    ? new SandboxEngineNotRunningError(
-        `No container engine answers. Start it and try again. It said: ${said}`,
-      )
-    : new SandboxStartFailedError(
-        `The container engine did not start the command. It said: ${said}`,
-      );
+  throw (
+    notRunningFault(said) ??
+    new SandboxStartFailedError(
+      `The container engine did not start the command. It said: ${said}`,
+    )
+  );
 }
 
 /**
@@ -70,6 +66,8 @@ function endingOf(exit: EngineExit, output: OutputTail): Ending {
  * every path: after an exit, a time limit, an abort and a fault. A run
  * whose container may still live after its command is a fault, since the
  * container may still write into the copy the caller is about to read.
+ * Before its first command the engine is made to have the image, so the
+ * engine never looks for it in a registry on its own.
  */
 @Injectable()
 export class DockerSandbox implements Sandbox {
@@ -77,17 +75,20 @@ export class DockerSandbox implements Sandbox {
   private readonly clock: Clock;
   private readonly ids: IdGenerator;
   private readonly log: ToolLog;
+  private readonly images: SandboxImages;
 
   public constructor(
     @Inject(SANDBOX_SETTINGS) settings: SandboxSettings,
     @Inject(CLOCK) clock: Clock,
     @Inject(ID_GENERATOR) ids: IdGenerator,
     @Inject(LOGGER) logger: Logger,
+    @Inject(SandboxImages) images: SandboxImages,
   ) {
     this.settings = settings;
     this.clock = clock;
     this.ids = ids;
     this.log = new ToolLog(logger, clock);
+    this.images = images;
   }
 
   public async run(
@@ -96,6 +97,7 @@ export class DockerSandbox implements Sandbox {
   ): Promise<SandboxCommandResult> {
     signal.throwIfAborted();
     checkRequest(request);
+    await this.images.ready(this.settings, signal);
     const name = `${NAME_PREFIX}${this.ids.generate()}`;
     const started = this.clock.now().epochMilliseconds;
     const ending = await this.attendOrRemove(name, request, signal);
