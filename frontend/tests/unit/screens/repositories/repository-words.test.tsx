@@ -3,11 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ProgressStep } from '@coverage-autopilot/api-contracts/progress';
 import type { Scan } from '@coverage-autopilot/api-contracts/scans';
 
-import {
-  coverageOf,
-  rowFacts,
-  stepAt,
-} from '#screens/repositories/repository-words';
+import { rowFacts, stepAt } from '#screens/repositories/repository-words';
 import { SAMPLE_NOW } from '#tests/support/fake-service-api';
 import {
   SCAN_BY_STATUS,
@@ -63,13 +59,5 @@ describe('rowFacts', () => {
     );
 
     expect(time?.text).toBe('42s');
-  });
-});
-
-describe('coverageOf', () => {
-  it('should say a counter with no code has no percentage', () => {
-    expect(coverageOf({ covered: 0, total: 0, percentage: null })).toEqual({
-      state: 'no_executable_code',
-    });
   });
 });

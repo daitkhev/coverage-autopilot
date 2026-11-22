@@ -6,6 +6,7 @@ import type { SnapshotSummary } from '@coverage-autopilot/api-contracts/snapshot
 import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses';
 
 import { CoverageBar } from '#components/coverage-bar';
+import { counterCoverage } from '#components/coverage-change';
 import { EmptyState } from '#components/empty-state';
 import { FactLine } from '#components/fact-line';
 import { FactRow } from '#components/fact-row';
@@ -17,7 +18,6 @@ import type {
   RepositoryWork,
 } from '#screens/repositories/repository-listing';
 import {
-  coverageOf,
   detailFacts,
   rowStateOf,
 } from '#screens/repositories/repository-words';
@@ -67,7 +67,7 @@ function Measured({
         {COUNTERS.map(([metric, label]) => (
           <FactRow key={metric} label={label}>
             <CoverageBar
-              coverage={coverageOf(totals[metric])}
+              coverage={counterCoverage(totals[metric])}
               threshold={threshold.percentage}
               cells={cells}
             />

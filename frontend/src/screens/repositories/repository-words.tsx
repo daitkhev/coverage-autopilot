@@ -1,9 +1,7 @@
-import type { CoverageCounter } from '@coverage-autopilot/api-contracts/coverage';
 import type { ProgressStep } from '@coverage-autopilot/api-contracts/progress';
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
 import type { Scan } from '@coverage-autopilot/api-contracts/scans';
 
-import type { Coverage } from '#components/coverage-bar';
 import type { Fact } from '#components/fact-line';
 import {
   ageWords,
@@ -80,13 +78,6 @@ export function stepAt(steps: readonly ProgressStep[]): number {
   }
   const pending = steps.findIndex((step) => step.status === 'pending');
   return pending === -1 ? steps.length - 1 : pending;
-}
-
-/** What a snapshot says of a counter: a percentage, or no code at all. */
-export function coverageOf(counter: CoverageCounter): Coverage {
-  return counter.percentage === null
-    ? { state: 'no_executable_code' }
-    : { state: 'measured', percent: counter.percentage };
 }
 
 function stepWords(steps: readonly ProgressStep[]): string {

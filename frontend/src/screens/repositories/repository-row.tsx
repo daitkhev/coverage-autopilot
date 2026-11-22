@@ -2,13 +2,13 @@ import { Box } from 'ink';
 import type { ReactNode } from 'react';
 
 import { CoverageBar } from '#components/coverage-bar';
+import { counterCoverage } from '#components/coverage-change';
 import { FactLine } from '#components/fact-line';
 import { Glyph } from '#components/glyph';
 import { ProgressMeter } from '#components/progress-meter';
 import { RoleText } from '#components/role-text';
 import type { RepositoryRow } from '#screens/repositories/repository-listing';
 import {
-  coverageOf,
   ROW_LOOKS,
   rowFacts,
   type RowState,
@@ -54,7 +54,7 @@ function Measure({
   return (
     <Box gap={GAP} flexShrink={0}>
       <CoverageBar
-        coverage={coverageOf(snapshot.totals[snapshot.threshold.metric])}
+        coverage={counterCoverage(snapshot.totals[snapshot.threshold.metric])}
         threshold={snapshot.threshold.percentage}
         cells={BAR_CELLS.list}
       />
