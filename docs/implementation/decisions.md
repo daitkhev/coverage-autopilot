@@ -1738,10 +1738,10 @@ fails the improvement as an exposed credential and keeps its tokens.
   test, so it reads how the repository configures the runner and
   TypeScript first; and, when a failure is shown, it removes its cause,
   since tests that fail the same way are refused again. The failure is
-  in the data as quoted lines, `> ` first, so no line can end it: 4 lines
-  of 120 characters, names of 80, and backticks made `'`. The credential
-  of the generator is hidden before any text is cut. A new improvement
-  takes version 2; one that began before keeps version 1.
+  in the data as quoted lines, each after a `>`, so no line can end it:
+  4 lines of 120 characters, names of 80, and backticks made `'`. The
+  credential of the generator is hidden before any text is cut. A new
+  improvement takes version 2; one that began before keeps version 1.
 - A check of the contract gained `testFailure`, the file, the test or
   `null`, and the lines. A strict object gained a field, so a client of
   the version before refuses the answer. `CONTRACT_VERSION` was not
