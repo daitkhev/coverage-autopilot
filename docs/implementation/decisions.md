@@ -512,3 +512,141 @@ Where this log and the plan differ, this log and the code are right.
 - The wait and its job share a transaction on the real database in the
   test of the module alone, with stand-ins below it. A run with real
   git, a real gate and a real generator is owed to the end-to-end wave.
+
+## 2026-11-22
+
+### The service is one package, built into files plain Node runs
+
+- The client and the service are one application and one package: one
+  build, one list of dependencies, one install.
+- The build bundles the code of this repository, with the contracts and
+  every `#` import resolved, and leaves the packages of npm as imports.
+  They come with the install of the package. A bundle with every package
+  inside started from an empty folder as well and stays a later option.
+- Why: an ordinary package first. The end-to-end tests start the built
+  file as a process, so they test what a person installs, and no loader
+  of TypeScript is needed to run the service from source.
+- The bundler is the one the test runner brings already, so the tree
+  gains no package.
+- A file of the service is never found from the place of another source
+  file, since a bundle moves them all. The entry file gives the folder of
+  the migrations from its own place.
+- Where: `backend/src/shared/infrastructure/database/migration-files.ts`.
+  The build step itself comes with the entry file.
+
+### A service starts in one order, under one lock
+
+- The instance directory is made and kept to its owner, then the lock is
+  taken, then the database is migrated and checked, and only then a
+  socket a crashed service left is removed.
+- The lock is an exclusive transaction on a SQLite file of its own, taken
+  with no wait: a second service is told at once and exits. Nothing but
+  `BEGIN EXCLUSIVE` is needed, and it holds between processes. The file
+  is never deleted.
+- The holder keeps a reference to the lock for its whole life: a lock the
+  garbage collector takes closes its connection and is released.
+- Removing the stale socket and narrowing the new one take the held lock
+  as an argument and check it, so the type and the code both say who may
+  touch the socket. A path that holds anything but a socket is refused
+  and left alone.
+- A step that fails gives back what the steps before it took, so the next
+  start begins from the same place.
+- Where: `backend/src/shared/infrastructure/database/instance-lock.ts`,
+  `backend/src/shared/infrastructure/service/`.
+
+### git is told who commits, and an old git is refused
+
+- git gets its `PATH`, its `HOME` and the four variables of the author
+  and the committer from the configuration, and nothing else of the
+  environment of the service.
+- The author is `Coverage Autopilot` with an address in the reserved
+  domain `.invalid`, unless two variables of the service name another.
+  Why: git would otherwise make an author up from the user and the
+  machine, and that would reach a public pull request. An address that
+  reaches no one credits no account of a code host with the commit.
+- The module refuses to start with settings that do not say who commits.
+- The access check fails, as a value, for a git older than 2.36: every
+  call passes `core.fsmonitor=false`, and an older git takes `false` for
+  the name of a program and starts it.
+- Where: `backend/src/shared/infrastructure/config/service-config.ts`,
+  `backend/src/modules/repositories/application/commands/check-access/git-version.ts`.
+
+### A scan is its job, read in the words of a scan
+
+- The id of a scan is the id of its job, and no table of scans exists.
+  The answer is made from the job: `pending` is `queued`, `leased` is
+  `running`, and a completed job is read by its outcome. The table is in
+  the code, and a record over the kinds of outcome makes every outcome
+  the scan writes have a reading.
+- The contract has no reason for a fault that ends a scan, so a fault
+  that is not retried, a removed repository and a dead job are all
+  `retries_exhausted`: to a person each means that nothing runs it again.
+- A job keeps the moment of its first claim, and a later claim keeps it.
+  The moment it ended is its last change, since no statement writes a job
+  that has ended.
+- The steps of a scan are shown only when they belong to this job: the
+  subject of a scan is its repository, and another scan of it may run.
+- Cancelling a scan that has ended answers it as it is, with no write.
+- The files of a snapshot are one query with three filters. `below` and
+  `metric` make the threshold the files are judged by, and `metric` alone
+  narrows nothing.
+- Where: `backend/migrations/0007-keep-the-moment-a-job-started.sql`,
+  `backend/src/modules/coverage/application/dto/scan-dto-mapping.ts`,
+  `backend/src/modules/coverage/application/queries/list-snapshot-files/`.
+
+### What an improvement answers, and three of its rules
+
+- What the job of an improvement waits for wins over its own wait for a
+  limit: approval first, then a worker or the repository as the queue
+  says, and only then the limit. A window that has opened while the job
+  waits for its repository is shown as that.
+- A working improvement always has a deadline. Loading a stored one
+  without it is refused, and every step reads the same getter.
+- A call that wrote a `.git` into its working copy fails the improvement
+  as `credential_exposed`, and what the call spent is kept with the
+  attempt. Why this reason: the run started and ran well, so
+  `generator_unavailable` would send a person to the wrong place, and
+  only content of the repository can have told the run to do it while it
+  held the credential.
+- Nothing but the gate has to check the files of a patch before it is
+  published: the gate reads the text strictly, always requires the check
+  of test files, and the attempt keeps exactly that text with its hash.
+  Tests at the publishing step and of the module hold this.
+- Where: `backend/src/modules/improvement/application/dto/improvement-views.ts`,
+  `backend/src/modules/improvement/application/commands/run-improvement/generation-record.ts`,
+  `backend/src/modules/improvement/domain/services/stored-state.service.ts`.
+
+### One way to read a request and one shape of a refusal
+
+- A value that crosses the socket is read with `parseAs` and a schema of
+  the contracts. A mismatch is one error of the contracts package, for
+  the service and the client alike. It names the place and the rule and
+  never the value, which may be a secret.
+- One filter answers everything that is not a success: 400 for a
+  mismatch, the status and the body a route refused with, and 500 for a
+  fault. A route refuses with an exception of the framework that carries
+  the body of the contract.
+- The words of a fault and of a refusal of the framework never reach the
+  client: both can repeat a part of the request or a path. The log keeps
+  the fault with its route and its code.
+- A route passes the signal of its request to a use case that starts a
+  tool. Node gives every request that signal from 26.1 on, and a test
+  holds the platform to it.
+- Why the reading lives in the contracts package: a presentation layer
+  may import the contracts and the kernel and nothing else that is
+  shared, and the client reads answers the same way.
+- Where: `api-contracts/src/parsing.ts`,
+  `backend/src/shared/infrastructure/http/`,
+  `backend/tests/support/http-service.ts`.
+
+### A route belongs to the lowest module that knows its whole answer
+
+- The answer for a repository holds its newest snapshot, its scan that
+  has not ended and whether it is outdated, so the routes of a repository
+  are in the module `coverage`. The files of a snapshot name the newest
+  improvement of each file, so that route is in the module `improvement`.
+  Only the access check is a route of the module `repositories`.
+- Why: a presentation layer may not reach another module, and a module
+  may reach only the contracts of the modules below it. The alternative,
+  a client that joins the answers, would cost the list of repositories
+  one request for each row.
