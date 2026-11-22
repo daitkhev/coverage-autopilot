@@ -117,7 +117,7 @@ function scanFacts(scan: Scan | undefined, now: string): Fact[] {
 }
 
 /** The branch and the latest snapshot: its commit and its age. */
-export function snapshotFacts(repository: Repository, now: string): Fact[] {
+function snapshotFacts(repository: Repository, now: string): Fact[] {
   const { latestSnapshot, outdated, defaultBranch } = repository;
   if (latestSnapshot === null) {
     return [{ text: defaultBranch }, { text: 'press s to scan' }];
