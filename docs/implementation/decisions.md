@@ -28,6 +28,8 @@ Where this log and the plan differ, this log and the code are right.
   `backend/src/shared/infrastructure/time/system-clock.adapter.ts`,
   `backend/tests/support/fixed-clock.ts`, `timestampSchema` in
   `api-contracts/src/values.ts`.
+- Changed on 2026-11-22: the arithmetic and the clock are those of
+  `Temporal` now. See "Time is the Temporal of the platform".
 
 ### The generator is paid by a subscription or by a key
 
@@ -756,6 +758,28 @@ Where this log and the plan differ, this log and the code are right.
 - Where: `backend/src/modules/coverage/application/commands/`
   (`capture-snapshot/snapshot-capture.ts`, `run-tests/test-execution.ts`),
   `backend/src/modules/coverage/infrastructure/runners/vitest-command.ts`.
+
+### Time is the Temporal of the platform
+
+- The client needs what the service needs, the age of a moment and its
+  one text, and also the time zone of its user. It cannot import the
+  kernel of the service, so a second arithmetic of time would have been
+  written beside the first. Instead both use `Temporal`, which Node has
+  from 26.0 on with no flag.
+- `Instant` of the kernel keeps its interface and its strict text. Inside
+  it asks `Temporal`, and the calendar arithmetic of our own is gone. The
+  text is still checked by its shape and by writing the moment back,
+  because `Temporal` reads more shapes than the one of the contract.
+- The clock of the service is `Temporal.Now`, cut to milliseconds. This
+  ends the limit of the first clock, which was late after a machine was
+  suspended. The price: the clock steps when the system sets its time.
+- The clock is read in two files, one of the service and one of the
+  client, and lint refuses `Temporal.Now` in every other file. `Date` of
+  the language stays banned everywhere.
+- Where: `backend/src/shared/kernel/time/instant.ts`,
+  `backend/src/shared/infrastructure/time/system-clock.adapter.ts`,
+  `frontend/src/api/clock.ts`, `harness/eslint/restricted-syntax.ts`,
+  `harness/configs/tsconfig.base.json`.
 
 ### Owed after the wave that starts the service
 
