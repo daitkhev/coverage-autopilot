@@ -25,6 +25,15 @@ interface DataListProps<Item> {
   readonly header?: ReactNode;
 }
 
+/** How many rows a long list has below the last one drawn, if any. */
+export function MoreBelow({ count }: { readonly count: number }): ReactNode {
+  return count > 0 ? (
+    <Box paddingLeft={GAP}>
+      <RoleText role="secondary">{`${String(count)} more below`}</RoleText>
+    </Box>
+  ) : null;
+}
+
 function Marker({
   selected,
   focused,
@@ -67,11 +76,7 @@ export function DataList<Item>(props: DataListProps<Item>): ReactNode {
           </Box>
         );
       })}
-      {below > 0 ? (
-        <Box paddingLeft={GAP}>
-          <RoleText role="secondary">{`${String(below)} more below`}</RoleText>
-        </Box>
-      ) : null}
+      <MoreBelow count={below} />
     </Box>
   );
 }

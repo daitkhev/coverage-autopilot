@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 
-import { DataList } from '#components/data-list';
+import { DataList, MoreBelow } from '#components/data-list';
 import { FactLine } from '#components/fact-line';
 import { RoleText } from '#components/role-text';
 import { Rule } from '#components/rule';
@@ -177,11 +177,7 @@ export function ImprovementList(props: ImprovementListProps): ReactNode {
           />
         </Box>
       ))}
-      {below > 0 ? (
-        <Box paddingLeft={GAP}>
-          <RoleText role="secondary">{`${String(below)} more below`}</RoleText>
-        </Box>
-      ) : null}
+      <MoreBelow count={below} />
     </Box>
   );
 }
