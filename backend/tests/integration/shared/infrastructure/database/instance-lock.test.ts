@@ -1,4 +1,3 @@
-import { once } from 'node:events';
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,7 +10,7 @@ import {
   InstanceLock,
   type InstanceLockTaking,
 } from '#infrastructure/database/instance-lock';
-import { startLockHolder } from '#tests/support/lock-holder';
+import { crash, startLockHolder } from '#tests/support/lock-holder';
 
 /**
  * Far longer than a refusal takes, and far shorter than the five seconds
@@ -86,8 +85,7 @@ describe('InstanceLock', () => {
         const holder = await startLockHolder(path);
         const whileItLives = attempt();
 
-        holder.kill('SIGKILL');
-        await once(holder, 'exit');
+        await crash(holder);
 
         expect(whileItLives).toEqual({ outcome: 'held_by_another' });
         expect(attempt().outcome).toBe('taken');
