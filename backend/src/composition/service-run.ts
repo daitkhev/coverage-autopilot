@@ -6,6 +6,7 @@ import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 
 import { AppModule, type ServiceWiring } from '#composition/app.module';
+import { prepareImages } from '#composition/image-start';
 import { sweepLeftovers } from '#composition/leftover-sweep';
 import { withShippedBuild } from '#infrastructure/config/generator-config';
 import type { ServiceConfig } from '#infrastructure/config/service-config';
@@ -59,7 +60,8 @@ const APPLICATION_OPTIONS = Object.assign(new NestApplicationContextOptions(), {
 
 /**
  * Removes what a stopped service of the instance left, then listens under
- * the held lock, keeps the socket to its owner, and works.
+ * the held lock, keeps the socket to its owner, starts to make the images
+ * ready without waiting for them, and works.
  */
 async function serving(
   wiring: ServiceWiring,
@@ -82,6 +84,7 @@ async function serving(
     await application.close();
     throw error;
   }
+  prepareImages(application, wiring);
   application.get(JobWorkerScheduler).start();
   return application;
 }
@@ -98,9 +101,10 @@ function servedConfig(config: ServiceConfig, imageFile: string): ServiceConfig {
  * for while a service on its way out still holds it, the database, the
  * removal of a socket a crashed service left, the removal of the
  * containers and the working copies it left, the application on the
- * socket, kept to its owner, and then the worker, which takes back first
- * the jobs whose lease ran out. A start that fails gives back what it
- * took and throws, so the next one begins from the same place.
+ * socket, kept to its owner, the preparation of the images in the
+ * background, and then the worker, which takes back first the jobs whose
+ * lease ran out. A start that fails gives back what it took and throws,
+ * so the next one begins from the same place.
  */
 export async function runService(
   config: ServiceConfig,
