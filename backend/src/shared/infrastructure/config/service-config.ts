@@ -10,6 +10,7 @@ import {
 } from '#infrastructure/config/generator-config';
 import {
   instanceDirectoryOf,
+  instanceIdOf,
   type InstancePaths,
   instancePaths,
 } from '#infrastructure/config/instance-paths';
@@ -178,12 +179,14 @@ function problemsOf(
 function sandboxOf(
   values: ServiceEnvironment,
   environment: Environment,
+  instance: InstancePaths,
 ): SandboxSettings {
   return {
     engine: {
       command: values.AUTOPILOT_SANDBOX_ENGINE,
       environment: setValues(environment, ENGINE_VARIABLES),
     },
+    instance: instanceIdOf(instance),
     image: values.AUTOPILOT_SANDBOX_IMAGE,
     user:
       `${String(values.AUTOPILOT_SANDBOX_UID)}:` +
@@ -252,11 +255,12 @@ function configOf(
   values: ServiceEnvironment,
   environment: Environment,
 ): ServiceConfig {
-  const sandbox = sandboxOf(values, environment);
+  const instance = instancePaths(
+    instanceDirectoryOf(values.AUTOPILOT_INSTANCE_DIR, values.HOME),
+  );
+  const sandbox = sandboxOf(values, environment, instance);
   return {
-    instance: instancePaths(
-      instanceDirectoryOf(values.AUTOPILOT_INSTANCE_DIR, values.HOME),
-    ),
+    instance,
     logLevel: values.AUTOPILOT_LOG_LEVEL,
     secrets: Object.values(setValues(environment, SECRET_VARIABLES)),
     sandbox,

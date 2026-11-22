@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -21,6 +23,11 @@ const SANDBOX_LIMITS = {
   outputBytes: 1_048_576,
 };
 
+/** The SHA-256 of the default folder of the instance of the plain machine. */
+const INSTANCE = createHash('sha256')
+  .update('/home/dev/.coverage-autopilot')
+  .digest('hex');
+
 describe('loadServiceConfig', () => {
   it('should fill every setting that is not set with its default', () => {
     const engine = { command: ['docker'], environment: PLAIN_MACHINE };
@@ -38,6 +45,7 @@ describe('loadServiceConfig', () => {
       secrets: [],
       sandbox: {
         engine,
+        instance: INSTANCE,
         image: 'node:26-slim',
         user: '501:20',
         limits: SANDBOX_LIMITS,
@@ -65,6 +73,7 @@ describe('loadServiceConfig', () => {
         limitWaitMs: 3_600_000,
         sandbox: {
           engine,
+          instance: INSTANCE,
           image: 'coverage-autopilot-generator:2.1.329',
           user: '501:20',
           limits: { ...SANDBOX_LIMITS, outputBytes: 16_777_216 },

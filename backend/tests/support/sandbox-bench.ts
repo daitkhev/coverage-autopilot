@@ -20,6 +20,9 @@ import {
 export const WORKING_COPY =
   '/instance/working-copies/00000000-0000-4000-8000-0000000000aa';
 
+/** The instance the sandboxes of the bench label their containers with. */
+export const BENCH_INSTANCE = 'instance-of-the-bench';
+
 /** The name of the first container a sandbox of the bench starts. */
 export const FIRST_CONTAINER =
   'coverage-autopilot-00000000-0000-4000-8000-000000000001';
@@ -67,6 +70,7 @@ export function useSandboxBench(): SandboxBench {
     },
     settings: (play = {}, outputBytes = OUTPUT_BYTES) => ({
       engine: standInEngine(record(), play),
+      instance: BENCH_INSTANCE,
       image: 'sandbox-image:1',
       user: '1000:1000',
       limits: {

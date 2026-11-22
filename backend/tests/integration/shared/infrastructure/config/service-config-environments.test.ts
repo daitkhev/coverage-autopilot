@@ -60,4 +60,21 @@ describe('loadServiceConfig', () => {
       });
     });
   });
+
+  describe('when it names its instance on its containers', () => {
+    it('should give a folder one name, however it is written', () => {
+      const one = loadWith({ AUTOPILOT_INSTANCE_DIR: '/srv/autopilot/./a/' });
+      const again = loadWith({ AUTOPILOT_INSTANCE_DIR: '/srv/autopilot/a' });
+
+      expect(one.sandbox.instance).toMatch(/^[0-9a-f]{64}$/u);
+      expect(again.sandbox.instance).toBe(one.sandbox.instance);
+    });
+
+    it('should give another folder another name', () => {
+      const one = loadWith({ AUTOPILOT_INSTANCE_DIR: '/srv/autopilot/a' });
+      const other = loadWith({ AUTOPILOT_INSTANCE_DIR: '/srv/autopilot/b' });
+
+      expect(other.sandbox.instance).not.toBe(one.sandbox.instance);
+    });
+  });
 });

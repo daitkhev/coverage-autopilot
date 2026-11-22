@@ -23,6 +23,11 @@ interface SandboxLimits {
 /** Everything a sandbox is started with, as one value of the settings. */
 export interface SandboxSettings {
   readonly engine: SandboxEngine;
+  /**
+   * The instance of the service, as each of its containers is labelled,
+   * so a start finds the containers of its own instance and of no other.
+   */
+  readonly instance: string;
   readonly image: string;
   /**
    * `<uid>:<gid>` the command runs as: never root, and the owner of the

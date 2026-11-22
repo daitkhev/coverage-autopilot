@@ -29,13 +29,14 @@ describe('generatorOf', () => {
     });
   });
 
-  it('should run the generator with the engine and the user of the commands', () => {
+  it('should run the generator with the engine, the instance and the user of the commands', () => {
     const config = loadWith({
       AUTOPILOT_SANDBOX_ENGINE: '["podman"]',
       AUTOPILOT_SANDBOX_UID: '1001',
     });
 
     expect(config.generator.sandbox.engine).toEqual(config.sandbox.engine);
+    expect(config.generator.sandbox.instance).toBe(config.sandbox.instance);
     expect(config.generator.sandbox.user).toBe('1001:20');
     expect(config.generator.sandbox.image).not.toBe(config.sandbox.image);
   });

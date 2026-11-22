@@ -1,6 +1,9 @@
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
 import type { SandboxCommandRequest } from '#ports/sandbox.port';
 
+/** The label that names the instance of the service on its containers. */
+const INSTANCE_LABEL = 'coverage-autopilot.instance';
+
 /** The engine reads the variables of the command from what it is given. */
 const VARIABLES_FROM_INPUT = '/dev/stdin';
 
@@ -21,8 +24,9 @@ function megabytes(value: number): string {
  * the working copy and to a scratch folder in memory. The working copy is
  * its only mount: no socket of the engine, no data of the service. It is
  * mounted at the path it has on the host, so a path a tool writes into a
- * report is the path the service reads the report by.
- * Without `--network`, the engine gives its default network.
+ * report is the path the service reads the report by. Its label names
+ * the instance that started it. Without `--network`, the engine gives its
+ * default network.
  */
 export function runArguments(
   settings: SandboxSettings,
@@ -32,8 +36,10 @@ export function runArguments(
   const { limits } = settings;
   const network = request.network === 'none' ? ['--network', 'none'] : [];
   const copy = request.workingCopyPath;
+  const label = `${INSTANCE_LABEL}=${settings.instance}`;
   return [
-    ...['run', '--name', name, '--rm', '--init', ...network],
+    ...['run', '--name', name, '--label', label, '--rm', '--init'],
+    ...network,
     ...['--cap-drop', 'ALL', '--security-opt', 'no-new-privileges'],
     ...['--user', settings.user, '--read-only'],
     ...['--tmpfs', `${SCRATCH},size=${megabytes(limits.scratchMb)}`],

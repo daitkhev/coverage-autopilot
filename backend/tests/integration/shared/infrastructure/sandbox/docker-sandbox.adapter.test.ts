@@ -5,6 +5,7 @@ import type {
   SandboxCommandResult,
 } from '#ports/sandbox.port';
 import {
+  BENCH_INSTANCE,
   commandRequest,
   FIRST_CONTAINER,
   useSandboxBench,
@@ -41,6 +42,8 @@ describe('DockerSandbox', () => {
         'run',
         '--name',
         FIRST_CONTAINER,
+        '--label',
+        `coverage-autopilot.instance=${BENCH_INSTANCE}`,
         '--rm',
         '--init',
         '--network',
@@ -81,10 +84,12 @@ describe('DockerSandbox', () => {
 
       const open = argumentsOfCalls()[0] ?? [];
       expect(open).not.toContain('--network');
-      expect(open.slice(0, 7)).toEqual([
+      expect(open.slice(0, 9)).toEqual([
         'run',
         '--name',
         FIRST_CONTAINER,
+        '--label',
+        `coverage-autopilot.instance=${BENCH_INSTANCE}`,
         '--rm',
         '--init',
         '--cap-drop',

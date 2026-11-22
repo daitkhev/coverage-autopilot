@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 
 /** Where the service keeps everything of one instance. */
@@ -51,4 +52,13 @@ export function instancePaths(directory: string): InstancePaths {
 /** The bytes of the path of the socket in an absolute folder. */
 export function socketPathBytes(directory: string): number {
   return Buffer.byteLength(instancePaths(directory).socket);
+}
+
+/**
+ * The name of an instance outside its folder, such as on its containers:
+ * the same for every start over the folder and another for any other
+ * folder, and made of hex digits alone, whatever the folder is called.
+ */
+export function instanceIdOf(paths: InstancePaths): string {
+  return createHash('sha256').update(paths.directory).digest('hex');
 }
