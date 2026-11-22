@@ -103,6 +103,18 @@ describe('baselineTestsOf', () => {
       });
     });
 
+    it('should say a single test in the singular', () => {
+      const run = runOf({
+        outcomes: { ran: 1, failing: [failingIn('tests/one.test.ts', 'one')] },
+      });
+
+      expect(baselineTestsOf(run, 'must_pass')).toMatchObject({
+        detail:
+          '1 of 1 test of the repository fails in the sandbox. The first ' +
+          'is "one" in tests/one.test.ts.',
+      });
+    });
+
     it('should cut a long name to what a person can read', () => {
       const name = 'x'.repeat(250);
 
@@ -112,7 +124,7 @@ describe('baselineTestsOf', () => {
       );
 
       expect(reading).toMatchObject({
-        detail: `1 of 53 tests of the repository fail in the sandbox. The first is "${'x'.repeat(200)}…" in tests/long.test.ts.`,
+        detail: `1 of 53 tests of the repository fails in the sandbox. The first is "${'x'.repeat(200)}…" in tests/long.test.ts.`,
       });
     });
 

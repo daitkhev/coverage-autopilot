@@ -47,10 +47,12 @@ function named(
   first: FailingTestDto,
 ): BaselineTestsReading {
   const { failing, ran } = outcomes;
+  const tests = ran === 1 ? 'test' : 'tests';
+  const fail = failing.length === 1 ? 'fails' : 'fail';
   return refused(
     run,
-    `${String(failing.length)} of ${String(ran)} tests of the repository ` +
-      `fail in the sandbox. ${firstWords(first)}`,
+    `${String(failing.length)} of ${String(ran)} ${tests} of the ` +
+      `repository ${fail} in the sandbox. ${firstWords(first)}`,
   );
 }
 
