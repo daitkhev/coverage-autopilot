@@ -9,7 +9,7 @@ import type { ImprovementStatus } from '@coverage-autopilot/api-contracts/status
 import type { ServiceAnswer, ServiceApi } from '#api/service-api';
 
 /** The improvement, and the repository that names it and holds the threshold. */
-export interface ImprovementView {
+export interface LoadedImprovement {
   readonly improvement: Improvement;
   readonly repository: Repository;
 }
@@ -21,7 +21,7 @@ export interface ImprovementView {
 export async function loadImprovement(
   api: ServiceApi,
   improvementId: string,
-): Promise<ServiceAnswer<ImprovementView>> {
+): Promise<ServiceAnswer<LoadedImprovement>> {
   const improvement = await api.getImprovement(improvementId);
   if (improvement.outcome === 'refused') {
     return improvement;
