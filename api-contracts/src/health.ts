@@ -12,7 +12,7 @@ import {
  * Raised on every change of a schema in this package. A client that sees
  * another number restarts an idle service rather than talk to it.
  */
-export const CONTRACT_VERSION = 5;
+export const CONTRACT_VERSION = 6;
 
 export const toolVersionSchema = z.strictObject({
   name: textSchema,
