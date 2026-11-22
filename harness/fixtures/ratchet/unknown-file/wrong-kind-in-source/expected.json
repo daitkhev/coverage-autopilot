@@ -6,6 +6,11 @@
   },
   {
     "rule": "unknown-file",
+    "path": "backend/src/shared/infrastructure/generator.Dockerfile",
+    "line": 1
+  },
+  {
+    "rule": "unknown-file",
     "path": "frontend/src/migrations.sql",
     "line": 1
   }

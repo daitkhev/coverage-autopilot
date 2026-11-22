@@ -52,6 +52,7 @@
     "backend": {
       "": ["package.json", "tsconfig.json"],
       "src/": [".ts"],
+      "src/shared/infrastructure/sandbox/": [".ts", ".Dockerfile"],
       "tests/": [".ts"],
       "migrations/": [".sql"]
     },

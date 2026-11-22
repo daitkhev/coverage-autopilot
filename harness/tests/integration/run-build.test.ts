@@ -62,6 +62,8 @@ import { greeting } from '#service/greeting';
 process.stdout.write(greeting(basename('/tree/acme')));
 `;
 
+const IMAGE = 'FROM scratch\n';
+
 const CLIENT_ENTRY = `
 const shown = <b>client</b>;
 
@@ -88,6 +90,7 @@ beforeEach(() => {
   write('backend/package.json', JSON.stringify(MANIFEST));
   write('frontend/package.json', JSON.stringify(CLIENT_MANIFEST));
   write(`${PACKAGE_BUILD.migrations.from}/0001-things.sql`, MIGRATION);
+  write(PACKAGE_BUILD.generatorImage.from, IMAGE);
   write(SERVICE_BUILD.settings, JSON.stringify({ compilerOptions: {} }));
   write('backend/src/greeting.ts', GREETING);
   write(SERVICE_BUILD.entry, ENTRY);
@@ -153,6 +156,7 @@ describe('runBuild', () => {
     expect(read(`${PACKAGE_BUILD.migrations.to}/0001-things.sql`)).toBe(
       MIGRATION,
     );
+    expect(read(PACKAGE_BUILD.generatorImage.to)).toBe(IMAGE);
     expect(JSON.parse(read(PACKAGE_BUILD.manifest))).toEqual({
       name: 'acme-tool',
       version: '1.2.3',
