@@ -1,4 +1,4 @@
-import type { SnapshotFilesRequest } from '#coverage/contracts/coverage-public-api';
+import type { SnapshotFilesRequest } from '#coverage/application/contracts/coverage-public-api';
 
 /**
  * The files of a snapshot, narrowed as a person asks, as the route gives

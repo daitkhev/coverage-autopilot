@@ -2,11 +2,11 @@ import type { Provider } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { COVERAGE_PUBLIC_API } from '#coverage/contracts/coverage-public-api';
+import { COVERAGE_PUBLIC_API } from '#coverage/application/contracts/coverage-public-api';
 import { CLOCK } from '#kernel/time/clock';
 import { ARTIFACT_STORE } from '#ports/artifact-store.port';
 import { SANDBOX } from '#ports/sandbox.port';
-import { REPOSITORIES_PUBLIC_API } from '#repositories/contracts/repositories-public-api';
+import { REPOSITORIES_PUBLIC_API } from '#repositories/application/contracts/repositories-public-api';
 import { inMemoryArtifacts } from '#tests/support/coverage-stand-ins';
 import { FixedClock } from '#tests/support/fixed-clock';
 import { MUTATION_TEST_SETTINGS } from '#tests/support/mutation-stand-ins';
@@ -24,14 +24,14 @@ import {
   standInCoverage,
   VERIFICATION_TEST_SETTINGS,
 } from '#tests/support/verification-stand-ins';
+import {
+  VERIFICATION_PUBLIC_API,
+  type VerificationPublicApi,
+} from '#verification/application/contracts/verification-public-api';
 import { MUTATION_RUNNER } from '#verification/application/ports/mutation-runner.port';
 import { TYPE_CHECKER } from '#verification/application/ports/type-checker.port';
 import { VerificationApi } from '#verification/application/verification-api';
 import { VERIFICATION_SETTINGS } from '#verification/application/verification-settings';
-import {
-  VERIFICATION_PUBLIC_API,
-  type VerificationPublicApi,
-} from '#verification/contracts/verification-public-api';
 import { TscTypeChecker } from '#verification/infrastructure/compiler/tsc-type-checker.adapter';
 import { InvalidVerificationSettingsError } from '#verification/infrastructure/errors/invalid-verification-settings.error';
 import { MUTATION_SETTINGS } from '#verification/infrastructure/mutation/mutation-settings';

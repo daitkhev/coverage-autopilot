@@ -4,7 +4,7 @@ import type {
   PublishPatchRequest,
   PublishPatchResult,
   RevisionAssessmentDto,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import { pullRequestOf } from '#tests/support/improvement-journeys';
 import {
   IMPROVEMENT_ID,
@@ -19,7 +19,7 @@ import type {
   VerificationPublicApi,
   VerificationReportDto,
   VerifyPatchRequest,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 const SHA1_DIGITS = 40;
 

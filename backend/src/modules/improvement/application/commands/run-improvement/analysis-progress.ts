@@ -1,6 +1,6 @@
 import type { ImprovementRun } from '#improvement/application/commands/run-improvement/improvement-run';
 import type { JobProgress } from '#ports/job-queue.port';
-import type { BaselineProgress } from '#verification/contracts/verification-public-api';
+import type { BaselineProgress } from '#verification/application/contracts/verification-public-api';
 
 /** The two steps before the gate, then the four the gate reports. */
 type AnalysisStep =

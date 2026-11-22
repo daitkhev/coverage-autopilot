@@ -14,8 +14,8 @@ import {
   type SnapshotRequest,
   type UnmeasuredFileDto,
   type WorkingCopyLoan,
-} from '#coverage/contracts/coverage-public-api';
-import { REPOSITORIES_PUBLIC_API } from '#repositories/contracts/repositories-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
+import { REPOSITORIES_PUBLIC_API } from '#repositories/application/contracts/repositories-public-api';
 
 describe('CoveragePublicApi', () => {
   it('should be injected by a token of its own', () => {

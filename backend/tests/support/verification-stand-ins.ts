@@ -7,12 +7,12 @@ import type {
   RunTestsRequest,
   RunTestsResult,
   WorkingCopyLoan,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import { FilePath } from '#kernel/primitives/file-path';
 import type {
   ApplyPatchRequest,
   ApplyPatchResult,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import {
   type StandInRepositories,
   standInRepositories,

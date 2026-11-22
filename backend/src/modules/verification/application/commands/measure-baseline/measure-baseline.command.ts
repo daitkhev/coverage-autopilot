@@ -1,4 +1,4 @@
-import type { MeasureBaselineRequest } from '#verification/contracts/verification-public-api';
+import type { MeasureBaselineRequest } from '#verification/application/contracts/verification-public-api';
 
 /**
  * Measure what a commit is like before any patch: whether it type-checks,

@@ -1,7 +1,7 @@
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
 
 import type { RepositoryViewDto } from '#coverage/application/dto/repository-view.dto';
-import { snapshotSummaryOf } from '#coverage/presentation/http/snapshot-answer';
+import { snapshotSummaryOf } from '#coverage/infrastructure/http/snapshot-answer';
 
 /** A repository in the words of the contract. */
 export function repositoryAnswerOf(repository: RepositoryViewDto): Repository {

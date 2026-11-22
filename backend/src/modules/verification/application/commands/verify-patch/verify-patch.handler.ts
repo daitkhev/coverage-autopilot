@@ -7,11 +7,11 @@ import { PatchVerification } from '#verification/application/commands/verify-pat
 import type { GateEvidence } from '#verification/application/commands/verify-patch/patched-copy';
 import { reportOf } from '#verification/application/commands/verify-patch/verification-report';
 import type { VerifyPatchCommand } from '#verification/application/commands/verify-patch/verify-patch.command';
+import type { VerificationReportDto } from '#verification/application/contracts/verification-public-api';
 import { Deadline } from '#verification/application/deadline';
 import { mutationBaselineOf } from '#verification/application/dto/verification-dto-mapping';
 import { BaselineMismatchError } from '#verification/application/errors/baseline-mismatch.error';
 import { Stopwatch } from '#verification/application/stopwatch';
-import type { VerificationReportDto } from '#verification/contracts/verification-public-api';
 import type { MutationBaseline } from '#verification/domain/value-objects/mutation-baseline.vo';
 import { QualityPolicy } from '#verification/domain/value-objects/quality-policy.vo';
 

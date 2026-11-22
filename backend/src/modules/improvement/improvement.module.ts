@@ -54,14 +54,14 @@ import {
   type GeneratorSettings,
 } from '#improvement/infrastructure/generator/generator-settings';
 import { Sha256RequestHasher } from '#improvement/infrastructure/hashing/sha256-request-hasher.adapter';
+import { AnswerStatus } from '#improvement/infrastructure/http/answer-status';
+import { BudgetSettingsController } from '#improvement/infrastructure/http/budget-settings.controller';
+import { ImprovementDecisionsController } from '#improvement/infrastructure/http/improvement-decisions.controller';
+import { ImprovementRequestsController } from '#improvement/infrastructure/http/improvement-requests.controller';
+import { ImprovementsController } from '#improvement/infrastructure/http/improvements.controller';
+import { SnapshotFilesController } from '#improvement/infrastructure/http/snapshot-files.controller';
 import { checkImprovementSettings } from '#improvement/infrastructure/improvement-settings.schema';
 import { SqliteImprovementRepository } from '#improvement/infrastructure/persistence/sqlite-improvement.repository';
-import { AnswerStatus } from '#improvement/presentation/http/answer-status';
-import { BudgetSettingsController } from '#improvement/presentation/http/budget-settings.controller';
-import { ImprovementDecisionsController } from '#improvement/presentation/http/improvement-decisions.controller';
-import { ImprovementRequestsController } from '#improvement/presentation/http/improvement-requests.controller';
-import { ImprovementsController } from '#improvement/presentation/http/improvements.controller';
-import { SnapshotFilesController } from '#improvement/presentation/http/snapshot-files.controller';
 import { DockerSandbox } from '#infrastructure/sandbox/docker-sandbox.adapter';
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
 import { ID_GENERATOR, type IdGenerator } from '#kernel/id/id-generator';

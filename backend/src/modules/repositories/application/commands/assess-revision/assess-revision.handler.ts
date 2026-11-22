@@ -2,10 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { CLOCK, type Clock } from '#kernel/time/clock';
 import type { AssessRevisionCommand } from '#repositories/application/commands/assess-revision/assess-revision.command';
+import type { RevisionAssessmentDto } from '#repositories/application/contracts/repositories-public-api';
 import { HeadRecorder } from '#repositories/application/head-recorder';
 import { loadRepository } from '#repositories/application/load-repository';
 import { GIT, type Git } from '#repositories/application/ports/git.port';
-import type { RevisionAssessmentDto } from '#repositories/contracts/repositories-public-api';
 import {
   REPOSITORY_REPOSITORY,
   type RepositoryRepository,

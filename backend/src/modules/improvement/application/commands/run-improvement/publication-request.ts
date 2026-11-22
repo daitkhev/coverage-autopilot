@@ -1,7 +1,7 @@
 import { publicationTextOf } from '#improvement/application/commands/run-improvement/publication-text';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
 import { InvalidTransitionError } from '#improvement/domain/errors/invalid-transition.error';
-import type { PublishPatchRequest } from '#repositories/contracts/repositories-public-api';
+import type { PublishPatchRequest } from '#repositories/application/contracts/repositories-public-api';
 
 /**
  * The request that publishes the patch of the accepted attempt on the

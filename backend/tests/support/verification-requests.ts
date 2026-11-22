@@ -13,7 +13,7 @@ import type {
   QualityPolicyDto,
   VerificationBaselineDto,
   VerifyPatchRequest,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 /** The moment every clock of a verification test starts at. */
 export const NOW = '2026-11-21T10:00:00.000Z';

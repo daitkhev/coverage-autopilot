@@ -17,7 +17,7 @@ import {
   VERIFICATION_PUBLIC_API,
   type VerificationPublicApi,
   type VerifyPatchRequest,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 /** The one setting the step reads. */
 type VerifyingSettings = Pick<ImprovementSettings, 'testFileSuffixes'>;

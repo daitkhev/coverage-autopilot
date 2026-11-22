@@ -15,12 +15,12 @@ import { IMPROVEMENT_REPOSITORY } from '#improvement/domain/repositories/improve
 import { InvalidImprovementSettingsError } from '#improvement/infrastructure/errors/invalid-improvement-settings.error';
 import { ClaudeCodeGenerator } from '#improvement/infrastructure/generator/claude-code-generator.adapter';
 import { Sha256RequestHasher } from '#improvement/infrastructure/hashing/sha256-request-hasher.adapter';
+import { BudgetSettingsController } from '#improvement/infrastructure/http/budget-settings.controller';
+import { ImprovementDecisionsController } from '#improvement/infrastructure/http/improvement-decisions.controller';
+import { ImprovementRequestsController } from '#improvement/infrastructure/http/improvement-requests.controller';
+import { ImprovementsController } from '#improvement/infrastructure/http/improvements.controller';
+import { SnapshotFilesController } from '#improvement/infrastructure/http/snapshot-files.controller';
 import { SqliteImprovementRepository } from '#improvement/infrastructure/persistence/sqlite-improvement.repository';
-import { BudgetSettingsController } from '#improvement/presentation/http/budget-settings.controller';
-import { ImprovementDecisionsController } from '#improvement/presentation/http/improvement-decisions.controller';
-import { ImprovementRequestsController } from '#improvement/presentation/http/improvement-requests.controller';
-import { ImprovementsController } from '#improvement/presentation/http/improvements.controller';
-import { SnapshotFilesController } from '#improvement/presentation/http/snapshot-files.controller';
 import { GENERATOR_TEST_SETTINGS } from '#tests/support/generator-request';
 import {
   CALL_REPORT,

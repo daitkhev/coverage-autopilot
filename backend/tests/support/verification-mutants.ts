@@ -4,15 +4,15 @@ import {
   TARGET_FILE,
 } from '#tests/support/verification-requests';
 import type {
+  MutantDto,
+  MutationBaselineDto,
+  UndetectedMutantDto,
+} from '#verification/application/contracts/verification-public-api';
+import type {
   CompletedMutationRun,
   MutantResult,
   TestReference,
 } from '#verification/application/ports/mutation-runner.port';
-import type {
-  MutantDto,
-  MutationBaselineDto,
-  UndetectedMutantDto,
-} from '#verification/contracts/verification-public-api';
 
 /** The tool both runs of an improvement name. */
 export const TOOL = {

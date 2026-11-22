@@ -17,7 +17,7 @@ import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
   type RevisionAssessmentDto,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 /** How publishing ends for the improvement, saved at the moment of the run. */
 type Ending = (improvement: Improvement, at: Instant) => void;

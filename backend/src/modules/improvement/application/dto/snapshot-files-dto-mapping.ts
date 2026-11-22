@@ -1,7 +1,7 @@
 import type {
   MeasuredFileDto,
   SnapshotFilesDto as CoverageFilesDto,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type {
   ImprovementRefDto,
   MeasuredFileWorkDto,

@@ -3,8 +3,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CLOCK, type Clock } from '#kernel/time/clock';
 import { BaselineMeasurement } from '#verification/application/commands/measure-baseline/baseline-measurement';
 import type { MeasureBaselineCommand } from '#verification/application/commands/measure-baseline/measure-baseline.command';
+import type { MeasureBaselineResult } from '#verification/application/contracts/verification-public-api';
 import { Deadline } from '#verification/application/deadline';
-import type { MeasureBaselineResult } from '#verification/contracts/verification-public-api';
 import { QualityPolicy } from '#verification/domain/value-objects/quality-policy.vo';
 
 function ignore(): void {

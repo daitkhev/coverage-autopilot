@@ -39,9 +39,9 @@ import { ScanRepositoryHandler } from '#coverage/application/commands/scan-repos
 import { GetRepositoryHandler } from '#coverage/application/queries/get-repository/get-repository.handler';
 import { ListRepositoriesHandler } from '#coverage/application/queries/list-repositories/list-repositories.handler';
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
-import { repositoryAnswerOf } from '#coverage/presentation/http/repository-answer';
-import { scanAnswerOf } from '#coverage/presentation/http/scan-answer';
-import { snapshotAnswerOf } from '#coverage/presentation/http/snapshot-answer';
+import { repositoryAnswerOf } from '#coverage/infrastructure/http/repository-answer';
+import { scanAnswerOf } from '#coverage/infrastructure/http/scan-answer';
+import { snapshotAnswerOf } from '#coverage/infrastructure/http/snapshot-answer';
 
 const NO_REPOSITORY: ErrorBody = {
   error: 'not_found',

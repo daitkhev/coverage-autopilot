@@ -6,7 +6,7 @@ import type {
 } from '#improvement/application/ports/test-generator.port';
 import { FilePath } from '#kernel/primitives/file-path';
 import type { Instant } from '#kernel/time/instant';
-import type { PatchDto } from '#repositories/contracts/repositories-public-api';
+import type { PatchDto } from '#repositories/application/contracts/repositories-public-api';
 import { patchOf } from '#tests/support/improvement-values';
 
 /** The test file every generated patch of a test adds. */

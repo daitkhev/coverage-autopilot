@@ -28,7 +28,7 @@ import type { JobDocument } from '#ports/job-queue.port';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 type Fault = DomainError | ApplicationError | InfrastructureError;
 

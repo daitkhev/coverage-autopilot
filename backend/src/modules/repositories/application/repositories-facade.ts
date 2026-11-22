@@ -6,11 +6,6 @@ import { CheckAccessHandler } from '#repositories/application/commands/check-acc
 import { CreateWorkingCopyHandler } from '#repositories/application/commands/create-working-copy/create-working-copy.handler';
 import { PublishPatchHandler } from '#repositories/application/commands/publish-patch/publish-patch.handler';
 import { ResolveHeadHandler } from '#repositories/application/commands/resolve-head/resolve-head.handler';
-import {
-  WORKING_COPIES,
-  type WorkingCopies,
-} from '#repositories/application/ports/working-copies.port';
-import { GetRepositoryHandler } from '#repositories/application/queries/get-repository/get-repository.handler';
 import type {
   AccessCheckDto,
   ApplyPatchRequest,
@@ -26,7 +21,12 @@ import type {
   RevisionAssessmentDto,
   WorkingCopyDto,
   WorkingCopyRequest,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
+import {
+  WORKING_COPIES,
+  type WorkingCopies,
+} from '#repositories/application/ports/working-copies.port';
+import { GetRepositoryHandler } from '#repositories/application/queries/get-repository/get-repository.handler';
 import { WorkingCopyId } from '#repositories/domain/value-objects/working-copy-id.vo';
 
 /**

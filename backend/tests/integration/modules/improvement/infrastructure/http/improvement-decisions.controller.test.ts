@@ -6,7 +6,7 @@ import {
 } from '@coverage-autopilot/api-contracts/errors';
 import { improvementSchema } from '@coverage-autopilot/api-contracts/improvements';
 
-import { ImprovementDecisionsController } from '#improvement/presentation/http/improvement-decisions.controller';
+import { ImprovementDecisionsController } from '#improvement/infrastructure/http/improvement-decisions.controller';
 import type { HttpService } from '#tests/support/http-service';
 import { improvementIn } from '#tests/support/improvement-journeys';
 import { ImprovementRequestWorld } from '#tests/support/improvement-request-world';

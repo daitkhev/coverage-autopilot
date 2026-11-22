@@ -5,7 +5,7 @@ import type {
 } from '#improvement/application/commands/start-improvement/start-improvement.command';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
 import type { CommitSha } from '#kernel/primitives/commit-sha';
-import type { RevisionAssessmentDto } from '#repositories/contracts/repositories-public-api';
+import type { RevisionAssessmentDto } from '#repositories/application/contracts/repositories-public-api';
 
 /** No improvement can run, whatever the request, until it has a credential. */
 export function generatorUnavailable(variable: string): StartRefusal {

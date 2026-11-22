@@ -1,4 +1,4 @@
-import type { MeasuredFileDto } from '#coverage/contracts/coverage-public-api';
+import type { MeasuredFileDto } from '#coverage/application/contracts/coverage-public-api';
 import { FilePath } from '#kernel/primitives/file-path';
 import { TARGET_FILE } from '#tests/support/improvement-values';
 import { measuredTarget } from '#tests/support/verification-coverage';

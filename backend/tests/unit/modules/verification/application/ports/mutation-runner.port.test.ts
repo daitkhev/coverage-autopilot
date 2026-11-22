@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import { VERIFICATION_PUBLIC_API } from '#verification/application/contracts/verification-public-api';
 import {
   type CompletedMutationRun,
   type MutantResult,
@@ -12,7 +13,6 @@ import {
   type PatchedMutationRunRequest,
   type TestReference,
 } from '#verification/application/ports/mutation-runner.port';
-import { VERIFICATION_PUBLIC_API } from '#verification/contracts/verification-public-api';
 
 describe('MutationRunner', () => {
   it('should be injected by a token of its own', () => {

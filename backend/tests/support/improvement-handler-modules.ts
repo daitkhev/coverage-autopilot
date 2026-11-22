@@ -4,14 +4,14 @@ import type {
   CoveragePublicApi,
   FileCoverageDto,
   FileCoverageRequest,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
 import type {
   AssessRevisionRequest,
   RepositoriesPublicApi,
   RevisionAssessmentDto,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import {
   BASE_COMMIT,
   BASELINE_SNAPSHOT_ID,
@@ -29,7 +29,7 @@ import type {
   MeasureBaselineResult,
   VerificationBaselineDto,
   VerificationPublicApi,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 const GATE_STEPS: readonly BaselineProgress['step'][] = [
   'prepare',

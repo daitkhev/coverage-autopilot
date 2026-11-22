@@ -1,6 +1,6 @@
 import { CHECK_NAMES } from '#improvement/domain/value-objects/quality-policy.vo';
 import type { JobProgress } from '#ports/job-queue.port';
-import type { CheckProgress } from '#verification/contracts/verification-public-api';
+import type { CheckProgress } from '#verification/application/contracts/verification-public-api';
 
 type ProgressStep = JobProgress['steps'][number];
 

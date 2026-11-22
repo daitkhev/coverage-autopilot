@@ -15,7 +15,7 @@ import {
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 /**
  * `existing`: the key was used before for the same repository, and the

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { Instant } from '#kernel/time/instant';
-import type { RepositoryDto } from '#repositories/contracts/repositories-public-api';
+import type { RepositoryDto } from '#repositories/application/contracts/repositories-public-api';
 import {
   fixtureSnapshot,
   REPOSITORY_ID,

@@ -8,7 +8,7 @@ import {
   NOW,
   policyOf,
 } from '#tests/support/verification-requests';
-import type { BaselineProgress } from '#verification/contracts/verification-public-api';
+import type { BaselineProgress } from '#verification/application/contracts/verification-public-api';
 import { InvalidQualityPolicyError } from '#verification/domain/errors/invalid-quality-policy.error';
 
 const RUNNING = new AbortController().signal;

@@ -11,7 +11,7 @@ import type {
 import { ImprovementFailure } from '#improvement/domain/value-objects/improvement-failure.vo';
 import { TestPatch } from '#improvement/domain/value-objects/test-patch.vo';
 import type { Instant } from '#kernel/time/instant';
-import type { PatchDto } from '#repositories/contracts/repositories-public-api';
+import type { PatchDto } from '#repositories/application/contracts/repositories-public-api';
 
 /**
  * What a working copy held once its call ended. `tampered`: the call

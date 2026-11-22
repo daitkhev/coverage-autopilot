@@ -6,7 +6,7 @@ import { accessCheckSchema } from '@coverage-autopilot/api-contracts/repositorie
 import { AccessProbe } from '#repositories/application/commands/check-access/access-probe';
 import { CheckAccessHandler } from '#repositories/application/commands/check-access/check-access.handler';
 import type { GitVersionResult } from '#repositories/application/ports/git.port';
-import { RepositoryAccessController } from '#repositories/presentation/http/repository-access.controller';
+import { RepositoryAccessController } from '#repositories/infrastructure/http/repository-access.controller';
 import {
   type HttpService,
   startHttpService,

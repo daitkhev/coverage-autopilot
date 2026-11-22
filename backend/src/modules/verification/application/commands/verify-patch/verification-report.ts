@@ -1,8 +1,8 @@
 import type { CheckBook } from '#verification/application/commands/verify-patch/check-book';
 import type { GateEvidence } from '#verification/application/commands/verify-patch/patched-copy';
 import type { VerifyPatchCommand } from '#verification/application/commands/verify-patch/verify-patch.command';
+import type { VerificationReportDto } from '#verification/application/contracts/verification-public-api';
 import { checkResultDtoOf } from '#verification/application/dto/verification-dto-mapping';
-import type { VerificationReportDto } from '#verification/contracts/verification-public-api';
 import { verdictOf } from '#verification/domain/services/verdict.service';
 import type { QualityPolicy } from '#verification/domain/value-objects/quality-policy.vo';
 

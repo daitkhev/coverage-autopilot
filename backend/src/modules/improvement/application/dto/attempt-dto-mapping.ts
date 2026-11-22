@@ -1,7 +1,7 @@
 import type {
   CoverageCounterDto,
   CoverageCountersDto,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type {
   AttemptDto,
   VerificationReportDto,

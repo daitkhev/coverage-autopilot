@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CheckBook } from '#verification/application/commands/verify-patch/check-book';
-import type { CheckProgress } from '#verification/contracts/verification-public-api';
+import type { CheckProgress } from '#verification/application/contracts/verification-public-api';
 import { CheckResult } from '#verification/domain/value-objects/check-result.vo';
 
 describe('CheckBook', () => {

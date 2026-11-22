@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 
+import type {
+  FileCoverageDto,
+  SnapshotFilesDto,
+} from '#coverage/application/contracts/coverage-public-api';
 import {
   COVERAGE_SETTINGS,
   type CoverageSettings,
@@ -9,10 +13,6 @@ import {
   thresholdDtoOf,
 } from '#coverage/application/dto/coverage-dto-mapping';
 import type { ListSnapshotFilesQuery } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.query';
-import type {
-  FileCoverageDto,
-  SnapshotFilesDto,
-} from '#coverage/contracts/coverage-public-api';
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
 import {
   COVERAGE_SNAPSHOT_REPOSITORY,

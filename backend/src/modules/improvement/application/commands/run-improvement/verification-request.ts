@@ -10,7 +10,7 @@ import type {
   CheckProgress,
   ProgressObserver,
   VerifyPatchRequest,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 /** What a call of the gate takes besides the improvement. */
 export interface GateCall {

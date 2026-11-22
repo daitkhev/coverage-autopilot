@@ -1,5 +1,5 @@
 import type { FilePath } from '#kernel/primitives/file-path';
-import type { MutantDto } from '#verification/contracts/verification-public-api';
+import type { MutantDto } from '#verification/application/contracts/verification-public-api';
 
 /** A test by where it is and what it is called, never by the id of a tool. */
 export interface TestReference {

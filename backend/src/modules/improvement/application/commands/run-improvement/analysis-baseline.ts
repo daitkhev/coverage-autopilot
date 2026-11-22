@@ -5,7 +5,7 @@ import {
 import type {
   MutationBaselineDto,
   VerificationBaselineDto,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 function mutationOf(dto: MutationBaselineDto): MutationBaseline {
   return {

@@ -1,7 +1,7 @@
 import type {
   CheckProgress,
   ProgressObserver,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 import type {
   CheckName,
   CheckResult,

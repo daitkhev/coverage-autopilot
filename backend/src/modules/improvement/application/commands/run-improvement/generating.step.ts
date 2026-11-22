@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   COVERAGE_PUBLIC_API,
   type CoveragePublicApi,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import {
   type CopyContent,
   type FinishedCall,
@@ -45,7 +45,7 @@ import {
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 const CONTINUE: StepResult = { next: 'continue' };
 

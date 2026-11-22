@@ -5,7 +5,7 @@ import type {
   CreateWorkingCopyRequest,
   RepositoriesPublicApi,
   RepositoryDto,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import {
   CAPTURED_AT,
   REPOSITORY_ID,

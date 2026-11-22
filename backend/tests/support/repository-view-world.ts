@@ -3,7 +3,7 @@ import type {
   ConnectRepositoryResult,
   RepositoryConnectionsApi,
   RepositoryDto,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import {
   type InMemorySnapshots,
   inMemorySnapshots,

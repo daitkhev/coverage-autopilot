@@ -2,7 +2,7 @@ import type { RepositoryId } from '#kernel/primitives/repository-id';
 import type {
   AccessCheckDto,
   RepositoryDto,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import type { Repository } from '#repositories/domain/entities/repository.entity';
 import type { AccessCheck } from '#repositories/domain/value-objects/access-check.vo';
 

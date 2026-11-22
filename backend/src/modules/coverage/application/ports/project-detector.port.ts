@@ -1,4 +1,4 @@
-import type { UnsupportedProjectReason } from '#coverage/contracts/coverage-public-api';
+import type { UnsupportedProjectReason } from '#coverage/application/contracts/coverage-public-api';
 import type { DetectedProject } from '#coverage/domain/value-objects/detected-project.vo';
 import type { ScanParameters } from '#coverage/domain/value-objects/scan-parameters.vo';
 import type { FilePath } from '#kernel/primitives/file-path';

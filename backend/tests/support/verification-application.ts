@@ -36,9 +36,9 @@ import { PatchVerification } from '#verification/application/commands/verify-pat
 import type { PatchedCopy } from '#verification/application/commands/verify-patch/patched-copy';
 import { SharedTestRun } from '#verification/application/commands/verify-patch/shared-test-run';
 import { VerifyPatchHandler } from '#verification/application/commands/verify-patch/verify-patch.handler';
+import type { CheckProgress } from '#verification/application/contracts/verification-public-api';
 import { Deadline } from '#verification/application/deadline';
 import { mutationBaselineOf } from '#verification/application/dto/verification-dto-mapping';
-import type { CheckProgress } from '#verification/contracts/verification-public-api';
 import { QualityPolicy } from '#verification/domain/value-objects/quality-policy.vo';
 
 /** Every stand-in of the gate, and the parts wired over them. */

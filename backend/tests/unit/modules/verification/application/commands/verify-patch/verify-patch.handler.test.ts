@@ -11,12 +11,12 @@ import {
   policyOf,
   verifyRequestOf,
 } from '#tests/support/verification-requests';
-import { BaselineMismatchError } from '#verification/application/errors/baseline-mismatch.error';
 import type {
   CheckProgress,
   VerificationReportDto,
   VerifyPatchRequest,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
+import { BaselineMismatchError } from '#verification/application/errors/baseline-mismatch.error';
 
 const RUNNING = new AbortController().signal;
 

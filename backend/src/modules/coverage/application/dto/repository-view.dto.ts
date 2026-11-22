@@ -1,5 +1,5 @@
-import type { CoverageSnapshotDto } from '#coverage/contracts/coverage-public-api';
-import type { RepositoryDto } from '#repositories/contracts/repositories-public-api';
+import type { CoverageSnapshotDto } from '#coverage/application/contracts/coverage-public-api';
+import type { RepositoryDto } from '#repositories/application/contracts/repositories-public-api';
 
 /**
  * A repository as a person sees it: what its own module keeps, and what

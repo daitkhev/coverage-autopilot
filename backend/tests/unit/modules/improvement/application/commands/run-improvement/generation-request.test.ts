@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { FileCoverageDto } from '#coverage/contracts/coverage-public-api';
+import type { FileCoverageDto } from '#coverage/application/contracts/coverage-public-api';
 import {
   generationRequestOf,
   type RequestParts,

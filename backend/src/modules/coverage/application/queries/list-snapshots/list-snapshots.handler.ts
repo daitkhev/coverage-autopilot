@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 
+import type { CoverageSnapshotDto } from '#coverage/application/contracts/coverage-public-api';
 import {
   COVERAGE_SETTINGS,
   type CoverageSettings,
@@ -7,7 +8,6 @@ import {
 import { snapshotDtoOf } from '#coverage/application/dto/coverage-dto-mapping';
 import { findNamedRepository } from '#coverage/application/named-repository';
 import type { ListSnapshotsQuery } from '#coverage/application/queries/list-snapshots/list-snapshots.query';
-import type { CoverageSnapshotDto } from '#coverage/contracts/coverage-public-api';
 import {
   COVERAGE_SNAPSHOT_REPOSITORY,
   type CoverageSnapshotRepository,
@@ -15,7 +15,7 @@ import {
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 /**
  * The snapshots of a repository, the newest first, each split under the

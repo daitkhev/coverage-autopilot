@@ -20,7 +20,7 @@ import {
 
 import { CancelScanHandler } from '#coverage/application/commands/cancel-scan/cancel-scan.handler';
 import { GetScanHandler } from '#coverage/application/queries/get-scan/get-scan.handler';
-import { scanAnswerOf } from '#coverage/presentation/http/scan-answer';
+import { scanAnswerOf } from '#coverage/infrastructure/http/scan-answer';
 
 const NO_SCAN: ErrorBody = {
   error: 'not_found',

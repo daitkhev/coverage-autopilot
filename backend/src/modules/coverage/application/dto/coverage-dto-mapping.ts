@@ -8,7 +8,7 @@ import type {
   FileSplitDto,
   MeasuredFileDto,
   ScanParametersDto,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
 import type { CoverageCounter } from '#coverage/domain/value-objects/coverage-counter.vo';
 import type { CoverageCounters } from '#coverage/domain/value-objects/coverage-counters.vo';

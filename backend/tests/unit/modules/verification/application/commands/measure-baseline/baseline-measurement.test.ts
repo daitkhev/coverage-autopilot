@@ -20,11 +20,11 @@ import {
   policyWithout,
 } from '#tests/support/verification-requests';
 import { VERIFICATION_TEST_SETTINGS } from '#tests/support/verification-stand-ins';
-import { Deadline } from '#verification/application/deadline';
 import type {
   BaselineProgress,
   QualityPolicyDto,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
+import { Deadline } from '#verification/application/deadline';
 import { QualityPolicy } from '#verification/domain/value-objects/quality-policy.vo';
 
 const RUNNING = new AbortController().signal;

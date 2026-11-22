@@ -1,4 +1,4 @@
-import type { FileCoverageDto } from '#coverage/contracts/coverage-public-api';
+import type { FileCoverageDto } from '#coverage/application/contracts/coverage-public-api';
 import type { ImprovementSettings } from '#improvement/application/improvement-settings';
 import type {
   GenerationLimits,

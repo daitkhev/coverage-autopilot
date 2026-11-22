@@ -3,7 +3,7 @@ import { RepositoryId } from '#kernel/primitives/repository-id';
 import type {
   RepositoriesPublicApi,
   RepositoryDto,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 /**
  * A route takes any text as an id, and the kernel refuses one that is no

@@ -1,4 +1,4 @@
-import type { CaptureSnapshotRequest } from '#coverage/contracts/coverage-public-api';
+import type { CaptureSnapshotRequest } from '#coverage/application/contracts/coverage-public-api';
 
 /**
  * Measure a repository at a commit and keep the snapshot under the origin

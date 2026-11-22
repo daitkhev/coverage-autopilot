@@ -4,7 +4,7 @@ import type {
   MutationBaselineDto,
   SurvivingMutantDto,
   UndetectedMutantDto,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 import type { SurvivingMutant } from '#verification/domain/services/mutation-gain.service';
 import type { CheckResult } from '#verification/domain/value-objects/check-result.vo';
 import { Mutant } from '#verification/domain/value-objects/mutant.vo';

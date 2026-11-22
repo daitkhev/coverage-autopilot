@@ -22,7 +22,7 @@ import {
   type RevisionAssessmentDto,
   type WorkingCopyDto,
   type WorkingCopyRequest,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 describe('RepositoriesPublicApi', () => {
   it('should be injected by a token of its own', () => {

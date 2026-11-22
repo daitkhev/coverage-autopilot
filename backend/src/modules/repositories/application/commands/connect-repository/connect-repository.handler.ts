@@ -9,9 +9,9 @@ import {
   type TransactionManager,
 } from '#ports/transaction-manager.port';
 import type { ConnectRepositoryCommand } from '#repositories/application/commands/connect-repository/connect-repository.command';
+import type { ConnectRepositoryResult } from '#repositories/application/contracts/repositories-public-api';
 import { toRepositoryDto } from '#repositories/application/dto/repository-dtos';
 import { GIT, type Git } from '#repositories/application/ports/git.port';
-import type { ConnectRepositoryResult } from '#repositories/contracts/repositories-public-api';
 import { Repository } from '#repositories/domain/entities/repository.entity';
 import {
   REPOSITORY_REPOSITORY,

@@ -4,7 +4,7 @@ import {
   COVERAGE_PUBLIC_API,
   type CoveragePublicApi,
   type CoverageSnapshotDto,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import {
   captureEnding,
   measureEnding,
@@ -22,12 +22,12 @@ import { SnapshotId } from '#improvement/domain/value-objects/snapshot-id.vo';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import {
   type MeasureBaselineRequest,
   VERIFICATION_PUBLIC_API,
   type VerificationPublicApi,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 function recordedSnapshot(snapshot: CoverageSnapshotDto): Change {
   const id = SnapshotId.create(snapshot.id);

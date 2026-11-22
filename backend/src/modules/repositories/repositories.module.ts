@@ -12,6 +12,10 @@ import { ConnectRepositoryHandler } from '#repositories/application/commands/con
 import { CreateWorkingCopyHandler } from '#repositories/application/commands/create-working-copy/create-working-copy.handler';
 import { PublishPatchHandler } from '#repositories/application/commands/publish-patch/publish-patch.handler';
 import { ResolveHeadHandler } from '#repositories/application/commands/resolve-head/resolve-head.handler';
+import {
+  REPOSITORIES_PUBLIC_API,
+  REPOSITORY_CONNECTIONS_API,
+} from '#repositories/application/contracts/repositories-public-api';
 import { HeadRecorder } from '#repositories/application/head-recorder';
 import { CODE_HOST } from '#repositories/application/ports/code-host.port';
 import { GIT } from '#repositories/application/ports/git.port';
@@ -20,21 +24,17 @@ import { GetRepositoryHandler } from '#repositories/application/queries/get-repo
 import { ListRepositoriesHandler } from '#repositories/application/queries/list-repositories/list-repositories.handler';
 import { RepositoriesFacade } from '#repositories/application/repositories-facade';
 import { RepositoryConnectionsFacade } from '#repositories/application/repository-connections-facade';
-import {
-  REPOSITORIES_PUBLIC_API,
-  REPOSITORY_CONNECTIONS_API,
-} from '#repositories/contracts/repositories-public-api';
 import { REPOSITORY_REPOSITORY } from '#repositories/domain/repositories/repository.repository';
 import { GhCodeHost } from '#repositories/infrastructure/gh/gh-code-host.adapter';
 import { GitCli } from '#repositories/infrastructure/git/git-cli.adapter';
 import { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-copies.adapter';
+import { RepositoryAccessController } from '#repositories/infrastructure/http/repository-access.controller';
 import { SqliteRepositoryRepository } from '#repositories/infrastructure/persistence/sqlite-repository.repository';
 import {
   REPOSITORIES_SETTINGS,
   type RepositoriesSettings,
 } from '#repositories/infrastructure/repositories-settings';
 import { checkSettings } from '#repositories/infrastructure/repositories-settings.schema';
-import { RepositoryAccessController } from '#repositories/presentation/http/repository-access.controller';
 
 /** The use cases behind the contracts and the route of the module. */
 const HANDLERS = [

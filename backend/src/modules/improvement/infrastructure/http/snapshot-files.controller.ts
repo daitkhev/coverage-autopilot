@@ -8,8 +8,8 @@ import {
 import { resourceParamsSchema } from '@coverage-autopilot/api-contracts/values';
 
 import { ListSnapshotFilesHandler } from '#improvement/application/queries/list-snapshot-files/list-snapshot-files.handler';
-import { snapshotNotFound } from '#improvement/presentation/http/improvement-refusals';
-import { snapshotFilesAnswerOf } from '#improvement/presentation/http/snapshot-file-answers';
+import { snapshotNotFound } from '#improvement/infrastructure/http/improvement-refusals';
+import { snapshotFilesAnswerOf } from '#improvement/infrastructure/http/snapshot-file-answers';
 
 /**
  * The files screen: the files of a snapshot with the newest improvement

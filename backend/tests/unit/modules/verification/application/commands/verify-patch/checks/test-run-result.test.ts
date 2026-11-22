@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { RunTestsResult } from '#coverage/contracts/coverage-public-api';
+import type { RunTestsResult } from '#coverage/application/contracts/coverage-public-api';
 import {
   testRunOf,
   UNSUPPORTED_RUN,

@@ -1,7 +1,7 @@
 import type {
   CaptureSnapshotResult,
   FileCoverageDto,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import { verificationBaselineOf } from '#improvement/application/commands/run-improvement/analysis-baseline';
 import {
   budgetExhausted,
@@ -15,11 +15,11 @@ import {
   type SkipReason,
 } from '#improvement/domain/value-objects/improvement-skip.vo';
 import type { FilePath } from '#kernel/primitives/file-path';
-import type { RevisionAssessmentDto } from '#repositories/contracts/repositories-public-api';
+import type { RevisionAssessmentDto } from '#repositories/application/contracts/repositories-public-api';
 import type {
   MeasureBaselineResult,
   VerificationBaselineDto,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 type CaptureRefusal = Exclude<
   CaptureSnapshotResult,

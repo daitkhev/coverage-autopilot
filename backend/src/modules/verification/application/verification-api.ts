@@ -8,7 +8,7 @@ import type {
   VerificationPublicApi,
   VerificationReportDto,
   VerifyPatchRequest,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 /** The contract of the module, answered by its two commands. */
 @Injectable()

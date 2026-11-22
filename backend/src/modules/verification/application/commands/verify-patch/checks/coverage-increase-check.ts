@@ -9,12 +9,12 @@ import {
   type MeasuredFileDto,
   type RunCoverageDto,
   type ScanParametersDto,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type { FilePath } from '#kernel/primitives/file-path';
 import type { PatchCheck } from '#verification/application/commands/verify-patch/checks/patch-check';
 import { unsupportedRunOf } from '#verification/application/commands/verify-patch/checks/test-run-result';
 import type { PatchedCopy } from '#verification/application/commands/verify-patch/patched-copy';
-import type { TargetCoverageDto } from '#verification/contracts/verification-public-api';
+import type { TargetCoverageDto } from '#verification/application/contracts/verification-public-api';
 import {
   type CoverageComparison,
   coverageGainOf,

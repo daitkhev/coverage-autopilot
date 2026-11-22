@@ -2,10 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { AccessProbe } from '#repositories/application/commands/check-access/access-probe';
 import type { CheckAccessCommand } from '#repositories/application/commands/check-access/check-access.command';
+import type { AccessCheckDto } from '#repositories/application/contracts/repositories-public-api';
 import { toAccessCheckDto } from '#repositories/application/dto/repository-dtos';
 import { HeadRecorder } from '#repositories/application/head-recorder';
 import { findRepository } from '#repositories/application/load-repository';
-import type { AccessCheckDto } from '#repositories/contracts/repositories-public-api';
 import {
   REPOSITORY_REPOSITORY,
   type RepositoryRepository,

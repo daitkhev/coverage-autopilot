@@ -6,12 +6,19 @@ import {
   type DetectedProjectDto,
   type PrepareProjectResult,
   type WorkingCopyLoan,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import type { MeasureBaselineCommand } from '#verification/application/commands/measure-baseline/measure-baseline.command';
+import type {
+  BaselineProgress,
+  MeasureBaselineResult,
+  MutationBaselineDto,
+  ProgressObserver,
+  VerificationBaselineDto,
+} from '#verification/application/contracts/verification-public-api';
 import type { Deadline } from '#verification/application/deadline';
 import {
   mutantOf,
@@ -30,13 +37,6 @@ import {
   VERIFICATION_SETTINGS,
   type VerificationSettings,
 } from '#verification/application/verification-settings';
-import type {
-  BaselineProgress,
-  MeasureBaselineResult,
-  MutationBaselineDto,
-  ProgressObserver,
-  VerificationBaselineDto,
-} from '#verification/contracts/verification-public-api';
 import { MutationBaseline } from '#verification/domain/value-objects/mutation-baseline.vo';
 import type { QualityPolicy } from '#verification/domain/value-objects/quality-policy.vo';
 

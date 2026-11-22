@@ -3,7 +3,7 @@ import type {
   CoverageThresholdDto,
   FileCoverageDto,
   MeasuredFileDto,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type { ImprovementStatus } from '#improvement/domain/value-objects/improvement-status.vo';
 
 /** The newest improvement of a file: which one, and how far it came. */

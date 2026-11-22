@@ -3,13 +3,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CaptureSnapshotHandler } from '#coverage/application/commands/capture-snapshot/capture-snapshot.handler';
 import { PrepareProjectHandler } from '#coverage/application/commands/prepare-project/prepare-project.handler';
 import { RunTestsHandler } from '#coverage/application/commands/run-tests/run-tests.handler';
-import {
-  parametersDtoOf,
-  projectDtoOf,
-} from '#coverage/application/dto/coverage-dto-mapping';
-import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
-import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
-import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import type {
   CaptureSnapshotRequest,
   CaptureSnapshotResult,
@@ -24,7 +17,14 @@ import type {
   SnapshotFilesRequest,
   SnapshotRequest,
   WorkingCopyLoan,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
+import {
+  parametersDtoOf,
+  projectDtoOf,
+} from '#coverage/application/dto/coverage-dto-mapping';
+import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
+import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
+import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 
 /** The contract of the module, answered by its commands and queries. */
 @Injectable()

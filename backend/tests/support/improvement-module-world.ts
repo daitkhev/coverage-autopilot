@@ -6,7 +6,7 @@ import { Test } from '@nestjs/testing';
 import {
   COVERAGE_PUBLIC_API,
   type CoveragePublicApi,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import { RunImprovementHandler } from '#improvement/application/commands/run-improvement/run-improvement.handler';
 import {
   IMPROVEMENT_SETTINGS,
@@ -37,7 +37,7 @@ import { LOGGER } from '#ports/logger.port';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import { inMemoryArtifacts } from '#tests/support/coverage-stand-ins';
 import type { FixedClock } from '#tests/support/fixed-clock';
 import { GENERATOR_TEST_SETTINGS } from '#tests/support/generator-request';
@@ -77,7 +77,7 @@ import { SharedTestModule } from '#tests/support/shared-test-module';
 import {
   VERIFICATION_PUBLIC_API,
   type VerificationPublicApi,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 /** The modules below the improvement, as a test scripts them. */
 interface ModulesBelow {

@@ -7,7 +7,7 @@ import type {
   RunTestsResult,
   ScanParametersDto,
   TestRunDto,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
 import { RepositoryId } from '#kernel/primitives/repository-id';

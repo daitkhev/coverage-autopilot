@@ -19,10 +19,10 @@ import {
 } from '#tests/support/verification-requests';
 import { CheckBook } from '#verification/application/commands/verify-patch/check-book';
 import type { GateEvidence } from '#verification/application/commands/verify-patch/patched-copy';
+import type { QualityPolicyDto } from '#verification/application/contracts/verification-public-api';
 import { Deadline } from '#verification/application/deadline';
 import { mutationBaselineOf } from '#verification/application/dto/verification-dto-mapping';
 import { Stopwatch } from '#verification/application/stopwatch';
-import type { QualityPolicyDto } from '#verification/contracts/verification-public-api';
 import { QualityPolicy } from '#verification/domain/value-objects/quality-policy.vo';
 
 const RUNNING = new AbortController().signal;

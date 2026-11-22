@@ -13,10 +13,10 @@ import {
   type RepositoriesPublicApi,
   REPOSITORY_CONNECTIONS_API,
   type RepositoryConnectionsApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import { InvalidRepositoriesSettingsError } from '#repositories/infrastructure/errors/invalid-repositories-settings.error';
+import { RepositoryAccessController } from '#repositories/infrastructure/http/repository-access.controller';
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
-import { RepositoryAccessController } from '#repositories/presentation/http/repository-access.controller';
 import { RepositoriesModule } from '#repositories/repositories.module';
 import { SharedTestModule } from '#tests/support/shared-test-module';
 import {

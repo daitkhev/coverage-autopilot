@@ -1,4 +1,4 @@
-import type { RunTestsResult } from '#coverage/contracts/coverage-public-api';
+import type { RunTestsResult } from '#coverage/application/contracts/coverage-public-api';
 import {
   type CheckName,
   CheckResult,

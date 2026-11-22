@@ -21,12 +21,12 @@ import {
 
 import { ApproveImprovementHandler } from '#improvement/application/commands/approve-improvement/approve-improvement.handler';
 import { CancelImprovementHandler } from '#improvement/application/commands/cancel-improvement/cancel-improvement.handler';
-import { AnswerStatus } from '#improvement/presentation/http/answer-status';
-import { improvementAnswerOf } from '#improvement/presentation/http/improvement-answers';
+import { AnswerStatus } from '#improvement/infrastructure/http/answer-status';
+import { improvementAnswerOf } from '#improvement/infrastructure/http/improvement-answers';
 import {
   approvalRefusalOf,
   improvementNotFound,
-} from '#improvement/presentation/http/improvement-refusals';
+} from '#improvement/infrastructure/http/improvement-refusals';
 
 /**
  * What a person decides about an improvement: to publish the patch they

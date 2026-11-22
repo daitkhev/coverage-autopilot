@@ -15,6 +15,7 @@ import { RunScanHandler } from '#coverage/application/commands/run-scan/run-scan
 import { RunTestsHandler } from '#coverage/application/commands/run-tests/run-tests.handler';
 import { TestExecution } from '#coverage/application/commands/run-tests/test-execution';
 import { ScanRepositoryHandler } from '#coverage/application/commands/scan-repository/scan-repository.handler';
+import { COVERAGE_PUBLIC_API } from '#coverage/application/contracts/coverage-public-api';
 import { CoverageApi } from '#coverage/application/coverage-api';
 import {
   COVERAGE_SETTINGS,
@@ -37,20 +38,19 @@ import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/g
 import { ListRepositoriesHandler } from '#coverage/application/queries/list-repositories/list-repositories.handler';
 import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
-import { COVERAGE_PUBLIC_API } from '#coverage/contracts/coverage-public-api';
 import { COVERAGE_SNAPSHOT_REPOSITORY } from '#coverage/domain/repositories/coverage-snapshot.repository';
 import type { CoverageMetric } from '#coverage/domain/value-objects/coverage-counters.vo';
 import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-threshold.vo';
 import { TEST_RUNNER_NAMES } from '#coverage/domain/value-objects/detected-project.vo';
 import { TypescriptSourceClassifier } from '#coverage/infrastructure/classification/typescript-source-classifier.adapter';
 import { NodeProjectDetector } from '#coverage/infrastructure/detection/node-project-detector.adapter';
+import { RepositoriesController } from '#coverage/infrastructure/http/repositories.controller';
+import { ScansController } from '#coverage/infrastructure/http/scans.controller';
 import { SqliteCoverageSnapshotRepository } from '#coverage/infrastructure/persistence/sqlite-coverage-snapshot.repository';
 import { IstanbulReportReader } from '#coverage/infrastructure/reports/istanbul-report-reader.adapter';
 import { JEST_COMMAND } from '#coverage/infrastructure/runners/jest-command';
 import { SandboxedTestRunner } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
 import { VITEST_COMMAND } from '#coverage/infrastructure/runners/vitest-command';
-import { RepositoriesController } from '#coverage/presentation/http/repositories.controller';
-import { ScansController } from '#coverage/presentation/http/scans.controller';
 import type { JobHandler } from '#ports/job-handler.port';
 import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
 

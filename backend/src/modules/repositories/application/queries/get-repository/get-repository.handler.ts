@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 
+import type { RepositoryDto } from '#repositories/application/contracts/repositories-public-api';
 import { toRepositoryDto } from '#repositories/application/dto/repository-dtos';
 import type { GetRepositoryQuery } from '#repositories/application/queries/get-repository/get-repository.query';
-import type { RepositoryDto } from '#repositories/contracts/repositories-public-api';
 import {
   REPOSITORY_REPOSITORY,
   type RepositoryRepository,

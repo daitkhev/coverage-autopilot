@@ -1,4 +1,4 @@
-import type { UnsupportedProjectReason } from '#coverage/contracts/coverage-public-api';
+import type { UnsupportedProjectReason } from '#coverage/application/contracts/coverage-public-api';
 
 /** The version of the outcome of a scan job this service writes and reads. */
 export const SCAN_OUTCOME_VERSION = 1;

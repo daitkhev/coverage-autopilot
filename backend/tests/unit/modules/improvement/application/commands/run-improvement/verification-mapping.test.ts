@@ -10,7 +10,7 @@ import {
   checkOf,
   reportPropsOf,
 } from '#tests/support/improvement-values';
-import type { VerificationReportDto } from '#verification/contracts/verification-public-api';
+import type { VerificationReportDto } from '#verification/application/contracts/verification-public-api';
 
 describe('verificationBaselineDtoOf', () => {
   it('should keep every part of the baseline', () => {

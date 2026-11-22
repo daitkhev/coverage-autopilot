@@ -1,18 +1,18 @@
 import type {
   DetectedProjectDto,
   WorkingCopyLoan,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type { FilePath } from '#kernel/primitives/file-path';
 import type { CheckBook } from '#verification/application/commands/verify-patch/check-book';
 import type { SharedTestRun } from '#verification/application/commands/verify-patch/shared-test-run';
 import type { VerifyPatchCommand } from '#verification/application/commands/verify-patch/verify-patch.command';
-import type { Deadline } from '#verification/application/deadline';
-import type { MutationToolResult } from '#verification/application/ports/mutation-runner.port';
 import type {
   MutantCountsDto,
   SurvivingMutantDto,
   TargetCoverageDto,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
+import type { Deadline } from '#verification/application/deadline';
+import type { MutationToolResult } from '#verification/application/ports/mutation-runner.port';
 import type { MutationBaseline } from '#verification/domain/value-objects/mutation-baseline.vo';
 import type { QualityPolicy } from '#verification/domain/value-objects/quality-policy.vo';
 

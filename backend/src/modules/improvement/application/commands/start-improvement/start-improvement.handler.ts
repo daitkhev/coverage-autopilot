@@ -4,7 +4,7 @@ import {
   COVERAGE_PUBLIC_API,
   type CoveragePublicApi,
   type CoverageSnapshotDto,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import { ImprovementRegistration } from '#improvement/application/commands/start-improvement/improvement-registration';
 import {
   type AskedImprovement,
@@ -37,7 +37,7 @@ import { requestValueOf } from '#improvement/application/request-values';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 /** A snapshot the work can start from. */
 interface UsableSource {

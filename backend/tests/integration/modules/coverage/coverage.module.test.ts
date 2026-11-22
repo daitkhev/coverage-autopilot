@@ -7,6 +7,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { CancelScanHandler } from '#coverage/application/commands/cancel-scan/cancel-scan.handler';
 import { RunScanHandler } from '#coverage/application/commands/run-scan/run-scan.handler';
+import {
+  COVERAGE_PUBLIC_API,
+  type CoveragePublicApi,
+} from '#coverage/application/contracts/coverage-public-api';
 import { CoverageApi } from '#coverage/application/coverage-api';
 import { COVERAGE_SETTINGS } from '#coverage/application/coverage-settings';
 import { TestRunnerUnavailableError } from '#coverage/application/errors/test-runner-unavailable.error';
@@ -17,14 +21,10 @@ import {
 import { GetScanHandler } from '#coverage/application/queries/get-scan/get-scan.handler';
 import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
-import {
-  COVERAGE_PUBLIC_API,
-  type CoveragePublicApi,
-} from '#coverage/contracts/coverage-public-api';
 import { CoverageModule } from '#coverage/coverage.module';
+import { RepositoriesController } from '#coverage/infrastructure/http/repositories.controller';
+import { ScansController } from '#coverage/infrastructure/http/scans.controller';
 import { REPORT_FOLDER } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
-import { RepositoriesController } from '#coverage/presentation/http/repositories.controller';
-import { ScansController } from '#coverage/presentation/http/scans.controller';
 import { SQLITE_CONNECTION } from '#infrastructure/database/sqlite-connection';
 import { SqliteTransactionRunner } from '#infrastructure/database/sqlite-transaction-runner.adapter';
 import { ID_GENERATOR } from '#kernel/id/id-generator';
@@ -38,7 +38,7 @@ import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
 import {
   REPOSITORIES_PUBLIC_API,
   REPOSITORY_CONNECTIONS_API,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import { FIRST_ID } from '#tests/support/coverage-application';
 import {
   CAPTURED_AT,

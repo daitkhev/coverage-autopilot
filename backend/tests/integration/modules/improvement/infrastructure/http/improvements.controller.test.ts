@@ -8,7 +8,7 @@ import {
 } from '@coverage-autopilot/api-contracts/improvements';
 import { improvementStatusSchema } from '@coverage-autopilot/api-contracts/statuses';
 
-import { ImprovementsController } from '#improvement/presentation/http/improvements.controller';
+import { ImprovementsController } from '#improvement/infrastructure/http/improvements.controller';
 import { IN_MEMORY_ARTIFACTS_FOLDER } from '#tests/support/coverage-stand-ins';
 import type { HttpService } from '#tests/support/http-service';
 import {

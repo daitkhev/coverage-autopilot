@@ -14,7 +14,7 @@ import {
   TestExecution,
   type TestRunRecord,
 } from '#coverage/application/commands/run-tests/test-execution';
-import type { CaptureSnapshotResult } from '#coverage/contracts/coverage-public-api';
+import type { CaptureSnapshotResult } from '#coverage/application/contracts/coverage-public-api';
 import { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
 import { SnapshotId } from '#coverage/domain/value-objects/snapshot-id.vo';
 import { ID_GENERATOR, type IdGenerator } from '#kernel/id/id-generator';
@@ -22,7 +22,7 @@ import { CLOCK, type Clock } from '#kernel/time/clock';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 /** A snapshot built and not saved yet, or why there is none. */
 export type Capture =

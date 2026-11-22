@@ -6,6 +6,11 @@ import {
   TestExecution,
   type TestRunRecord,
 } from '#coverage/application/commands/run-tests/test-execution';
+import type {
+  RunCoverageDto,
+  RunTestsResult,
+  TestRunDto,
+} from '#coverage/application/contracts/coverage-public-api';
 import {
   COVERAGE_SETTINGS,
   type CoverageSettings,
@@ -18,11 +23,6 @@ import {
   PROJECT_DETECTOR,
   type ProjectDetector,
 } from '#coverage/application/ports/project-detector.port';
-import type {
-  RunCoverageDto,
-  RunTestsResult,
-  TestRunDto,
-} from '#coverage/contracts/coverage-public-api';
 
 function testRunDtoOf(record: TestRunRecord): TestRunDto {
   const { result } = record.output;

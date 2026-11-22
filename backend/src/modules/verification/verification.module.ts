@@ -17,6 +17,7 @@ import { RepeatedRunsCheck } from '#verification/application/commands/verify-pat
 import { TestFilesOnlyCheck } from '#verification/application/commands/verify-patch/checks/test-files-only-check';
 import { PatchVerification } from '#verification/application/commands/verify-patch/patch-verification';
 import { VerifyPatchHandler } from '#verification/application/commands/verify-patch/verify-patch.handler';
+import { VERIFICATION_PUBLIC_API } from '#verification/application/contracts/verification-public-api';
 import { MUTATION_RUNNER } from '#verification/application/ports/mutation-runner.port';
 import { TYPE_CHECKER } from '#verification/application/ports/type-checker.port';
 import { VerificationApi } from '#verification/application/verification-api';
@@ -24,7 +25,6 @@ import {
   VERIFICATION_SETTINGS,
   type VerificationSettings,
 } from '#verification/application/verification-settings';
-import { VERIFICATION_PUBLIC_API } from '#verification/contracts/verification-public-api';
 import { TscTypeChecker } from '#verification/infrastructure/compiler/tsc-type-checker.adapter';
 import {
   MUTATION_SETTINGS,

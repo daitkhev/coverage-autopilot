@@ -7,7 +7,7 @@ import type { GetRepositoryQuery } from '#coverage/application/queries/get-repos
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 /**
  * One repository with what the coverage module knows of it. `null` when

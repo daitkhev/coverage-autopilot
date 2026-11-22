@@ -5,7 +5,7 @@ import { RepositoryViews } from '#coverage/application/dto/repository-views';
 import {
   REPOSITORY_CONNECTIONS_API,
   type RepositoryConnectionsApi,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 
 /**
  * Every connected repository, the oldest connection first, each with

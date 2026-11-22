@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { COVERAGE_PUBLIC_API } from '#coverage/contracts/coverage-public-api';
+import { COVERAGE_PUBLIC_API } from '#coverage/application/contracts/coverage-public-api';
 import type {
   BaselineProgress,
   CheckName,
@@ -21,8 +21,8 @@ import type {
   VerificationPublicApi,
   VerificationReportDto,
   VerifyPatchRequest,
-} from '#verification/contracts/verification-public-api';
-import { VERIFICATION_PUBLIC_API } from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
+import { VERIFICATION_PUBLIC_API } from '#verification/application/contracts/verification-public-api';
 
 describe('VerificationPublicApi', () => {
   it('should be injected by a token of its own', () => {

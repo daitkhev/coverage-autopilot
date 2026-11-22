@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 
+import type { FileCoverageDto } from '#coverage/application/contracts/coverage-public-api';
 import {
   COVERAGE_SETTINGS,
   type CoverageSettings,
 } from '#coverage/application/coverage-settings';
 import { fileDtoOf } from '#coverage/application/dto/coverage-dto-mapping';
 import type { GetFileCoverageQuery } from '#coverage/application/queries/get-file-coverage/get-file-coverage.query';
-import type { FileCoverageDto } from '#coverage/contracts/coverage-public-api';
 import {
   COVERAGE_SNAPSHOT_REPOSITORY,
   type CoverageSnapshotRepository,

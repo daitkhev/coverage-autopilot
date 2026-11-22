@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { errorSchema } from '@coverage-autopilot/api-contracts/errors';
 import { snapshotFilesSchema } from '@coverage-autopilot/api-contracts/snapshots';
 
-import { SnapshotFilesController } from '#improvement/presentation/http/snapshot-files.controller';
+import { SnapshotFilesController } from '#improvement/infrastructure/http/snapshot-files.controller';
 import type { HttpService } from '#tests/support/http-service';
 import { improvementIn } from '#tests/support/improvement-journeys';
 import {

@@ -2,12 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import type { CaptureSnapshotCommand } from '#coverage/application/commands/capture-snapshot/capture-snapshot.command';
 import { SnapshotCapture } from '#coverage/application/commands/capture-snapshot/snapshot-capture';
+import type { CaptureSnapshotResult } from '#coverage/application/contracts/coverage-public-api';
 import {
   COVERAGE_SETTINGS,
   type CoverageSettings,
 } from '#coverage/application/coverage-settings';
 import { snapshotDtoOf } from '#coverage/application/dto/coverage-dto-mapping';
-import type { CaptureSnapshotResult } from '#coverage/contracts/coverage-public-api';
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
 import {
   COVERAGE_SNAPSHOT_REPOSITORY,

@@ -3,7 +3,7 @@ import { VerificationReport } from '#improvement/domain/value-objects/verificati
 import type {
   VerificationBaselineDto,
   VerificationReportDto,
-} from '#verification/contracts/verification-public-api';
+} from '#verification/application/contracts/verification-public-api';
 
 /**
  * The baseline of the gate as the gate gave it in `analyzing`. The gate

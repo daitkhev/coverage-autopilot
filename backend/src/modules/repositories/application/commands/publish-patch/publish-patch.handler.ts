@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { PublishPatchCommand } from '#repositories/application/commands/publish-patch/publish-patch.command';
+import type { PublishPatchResult } from '#repositories/application/contracts/repositories-public-api';
 import { loadRepository } from '#repositories/application/load-repository';
 import {
   CODE_HOST,
@@ -13,7 +14,6 @@ import {
   WORKING_COPIES,
   type WorkingCopies,
 } from '#repositories/application/ports/working-copies.port';
-import type { PublishPatchResult } from '#repositories/contracts/repositories-public-api';
 import type { Repository } from '#repositories/domain/entities/repository.entity';
 import {
   REPOSITORY_REPOSITORY,

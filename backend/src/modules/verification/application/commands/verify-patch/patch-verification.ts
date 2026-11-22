@@ -6,13 +6,13 @@ import {
   type DetectedProjectDto,
   type PrepareProjectResult,
   type WorkingCopyLoan,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type { FilePath } from '#kernel/primitives/file-path';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
   type WorkingCopyDto,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import type { CheckBook } from '#verification/application/commands/verify-patch/check-book';
 import { CheckSequence } from '#verification/application/commands/verify-patch/check-sequence';
 import { TestFilesOnlyCheck } from '#verification/application/commands/verify-patch/checks/test-files-only-check';

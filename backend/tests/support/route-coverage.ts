@@ -19,7 +19,7 @@ import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
 import {
   REPOSITORIES_PUBLIC_API,
   REPOSITORY_CONNECTIONS_API,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import { REPOSITORY_ID } from '#tests/support/coverage-snapshots';
 import { inMemoryArtifacts } from '#tests/support/coverage-stand-ins';
 import { FixedClock } from '#tests/support/fixed-clock';

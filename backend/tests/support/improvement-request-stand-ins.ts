@@ -6,7 +6,7 @@ import type {
   SnapshotFilesDto,
   SnapshotFilesRequest,
   SnapshotRequest,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type { StartImprovementCommand } from '#improvement/application/commands/start-improvement/start-improvement.command';
 import type { RequestHasher } from '#improvement/application/ports/request-hasher.port';
 import { RequestFingerprint } from '#improvement/domain/value-objects/request-fingerprint.vo';
@@ -17,7 +17,7 @@ import type {
   AssessRevisionRequest,
   RepositoriesPublicApi,
   RevisionAssessmentDto,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
 import {
   BASE_COMMIT,
   hashOf,

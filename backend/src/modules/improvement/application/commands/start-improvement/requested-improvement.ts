@@ -1,4 +1,4 @@
-import type { CoverageSnapshotDto } from '#coverage/contracts/coverage-public-api';
+import type { CoverageSnapshotDto } from '#coverage/application/contracts/coverage-public-api';
 import type { StartImprovementCommand } from '#improvement/application/commands/start-improvement/start-improvement.command';
 import type { ImprovementSettings } from '#improvement/application/improvement-settings';
 import type { Budget } from '#improvement/domain/value-objects/budget.vo';

@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   COVERAGE_PUBLIC_API,
   type CoveragePublicApi,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type { PatchCheck } from '#verification/application/commands/verify-patch/checks/patch-check';
 import { testRunResultOf } from '#verification/application/commands/verify-patch/checks/test-run-result';
 import type { PatchedCopy } from '#verification/application/commands/verify-patch/patched-copy';

@@ -1,4 +1,4 @@
-import type { CoverageCountersDto } from '#coverage/contracts/coverage-public-api';
+import type { CoverageCountersDto } from '#coverage/application/contracts/coverage-public-api';
 import type { GenerationOutcome } from '#improvement/domain/value-objects/generation.vo';
 import type { CheckName } from '#improvement/domain/value-objects/quality-policy.vo';
 import type {

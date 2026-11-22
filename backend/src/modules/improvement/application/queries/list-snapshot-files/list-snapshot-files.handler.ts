@@ -4,7 +4,7 @@ import {
   COVERAGE_PUBLIC_API,
   type CoveragePublicApi,
   type SnapshotFilesRequest,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type { SnapshotFilesDto } from '#improvement/application/dto/snapshot-files.dto';
 import { snapshotFilesDtoOf } from '#improvement/application/dto/snapshot-files-dto-mapping';
 import type { ListSnapshotFilesQuery } from '#improvement/application/queries/list-snapshot-files/list-snapshot-files.query';

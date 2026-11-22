@@ -4,13 +4,13 @@ import type {
   FileCoverageDto,
   FileCoverageRequest,
   SnapshotRequest,
-} from '#coverage/contracts/coverage-public-api';
+} from '#coverage/application/contracts/coverage-public-api';
 import type {
   GenerationRequest,
   GenerationResult,
   TestGenerator,
 } from '#improvement/application/ports/test-generator.port';
-import type { ExtractPatchResult } from '#repositories/contracts/repositories-public-api';
+import type { ExtractPatchResult } from '#repositories/application/contracts/repositories-public-api';
 import { measuredPrice } from '#tests/support/improvement-generation-inputs';
 import {
   patchDtoOf,

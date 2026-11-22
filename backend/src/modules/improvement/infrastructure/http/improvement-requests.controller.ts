@@ -21,9 +21,9 @@ import {
 
 import type { StartImprovementCommand } from '#improvement/application/commands/start-improvement/start-improvement.command';
 import { StartImprovementHandler } from '#improvement/application/commands/start-improvement/start-improvement.handler';
-import { AnswerStatus } from '#improvement/presentation/http/answer-status';
-import { improvementAnswerOf } from '#improvement/presentation/http/improvement-answers';
-import { startRefusalOf } from '#improvement/presentation/http/improvement-refusals';
+import { AnswerStatus } from '#improvement/infrastructure/http/answer-status';
+import { improvementAnswerOf } from '#improvement/infrastructure/http/improvement-answers';
+import { startRefusalOf } from '#improvement/infrastructure/http/improvement-refusals';
 
 /**
  * What the route reads of a request besides its body. The key is read

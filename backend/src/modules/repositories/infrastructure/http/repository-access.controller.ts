@@ -13,7 +13,7 @@ import type { AccessCheck } from '@coverage-autopilot/api-contracts/repositories
 import { resourceParamsSchema } from '@coverage-autopilot/api-contracts/values';
 
 import { CheckAccessHandler } from '#repositories/application/commands/check-access/check-access.handler';
-import { accessCheckAnswerOf } from '#repositories/presentation/http/access-check-answer';
+import { accessCheckAnswerOf } from '#repositories/infrastructure/http/access-check-answer';
 
 const NO_REPOSITORY: ErrorBody = {
   error: 'not_found',

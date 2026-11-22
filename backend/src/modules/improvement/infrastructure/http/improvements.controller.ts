@@ -15,11 +15,11 @@ import { ListImprovementsHandler } from '#improvement/application/queries/list-i
 import {
   improvementAnswerOf,
   improvementListAnswerOf,
-} from '#improvement/presentation/http/improvement-answers';
+} from '#improvement/infrastructure/http/improvement-answers';
 import {
   improvementNotFound,
   noAcceptedPatch,
-} from '#improvement/presentation/http/improvement-refusals';
+} from '#improvement/infrastructure/http/improvement-refusals';
 
 /**
  * What a person reads of improvements: the list, filtered by repository,

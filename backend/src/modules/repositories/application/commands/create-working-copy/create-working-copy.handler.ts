@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { CreateWorkingCopyCommand } from '#repositories/application/commands/create-working-copy/create-working-copy.command';
+import type { WorkingCopyDto } from '#repositories/application/contracts/repositories-public-api';
 import { loadRepository } from '#repositories/application/load-repository';
 import {
   WORKING_COPIES,
   type WorkingCopies,
 } from '#repositories/application/ports/working-copies.port';
-import type { WorkingCopyDto } from '#repositories/contracts/repositories-public-api';
 import {
   REPOSITORY_REPOSITORY,
   type RepositoryRepository,

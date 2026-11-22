@@ -12,7 +12,7 @@ import {
 } from '#coverage/domain/repositories/coverage-snapshot.repository';
 import type { CommitSha } from '#kernel/primitives/commit-sha';
 import { JOB_QUEUE, type JobQueue } from '#ports/job-queue.port';
-import type { RepositoryDto } from '#repositories/contracts/repositories-public-api';
+import type { RepositoryDto } from '#repositories/application/contracts/repositories-public-api';
 
 /**
  * Outdated means the head moved past the newest snapshot. Without a head

@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ConnectRepositoryHandler } from '#repositories/application/commands/connect-repository/connect-repository.handler';
-import { ListRepositoriesHandler } from '#repositories/application/queries/list-repositories/list-repositories.handler';
 import type {
   ConnectRepositoryRequest,
   ConnectRepositoryResult,
   RepositoryConnectionsApi,
   RepositoryDto,
-} from '#repositories/contracts/repositories-public-api';
+} from '#repositories/application/contracts/repositories-public-api';
+import { ListRepositoriesHandler } from '#repositories/application/queries/list-repositories/list-repositories.handler';
 
 /** The connected repositories, as another module calls them. */
 @Injectable()
