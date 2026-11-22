@@ -14,7 +14,7 @@ import {
 } from '#tests/support/built-client';
 import type { BuiltService } from '#tests/support/built-service';
 import { servicesOf, signalEach } from '#tests/support/instance-services';
-import { clientLogLines } from '#tests/support/instance-state';
+import { clientLogLines, instanceStateOf } from '#tests/support/instance-state';
 import { drawnSeed, seededRandom } from '#tests/support/seeded-random';
 import {
   PROCESS_WAIT,
@@ -248,8 +248,9 @@ function answerOrSilence(end: ClientEnd, round: Round): Health[] {
  * Kills the one service of the instance while clients start, once the
  * round's number of them has ended, and holds that each client ended with
  * its answer or the named failure, that a service one of them started
- * serves alone, that every answer came from the killed one or from that
- * one, and that the next client is answered.
+ * serves alone, or the lock is free when none started one, that every
+ * answer came from the killed one or from that one, and that the next
+ * client is answered.
  */
 async function killWhileClientsStart(
   round: Round & { readonly afterEnds: number },
@@ -270,6 +271,9 @@ async function killWhileClientsStart(
     expect(serving, name).not.toContain(old[0]);
     expect(serving, name).toHaveLength(Math.min(launched, 1));
   }, PROCESS_WAIT);
+  if (launched === 0) {
+    expect(instanceStateOf(paths), name).toMatchObject({ lockHeld: false });
+  }
   expect(logCounts(paths), name).toEqual({
     left: before.log.left + Math.max(launched - 1, 0),
     failed: before.log.failed,
@@ -302,6 +306,7 @@ describe(`the start of the built service, seed ${String(random.seed)}`, () => {
         seen.push(next.health.startedAt);
         winner = next.winner;
       }
+      await stopTheOneServing(roundOf(paths, 'the last stop'), 'SIGTERM');
     });
 
     it('should serve with one after starts that were killed at a step', async () => {
@@ -320,6 +325,7 @@ describe(`the start of the built service, seed ${String(random.seed)}`, () => {
         await Promise.all(started.map(async (service) => service.exitCode));
         expect(servicesOf(round.paths.directory), round.name).toEqual([]);
         await raceOfServices(round);
+        await stopTheOneServing(round, 'SIGTERM');
       }
     });
   });
@@ -333,6 +339,7 @@ describe(`the start of the built service, seed ${String(random.seed)}`, () => {
         await stopTheOneServing(round, signal);
         await raceOfClients(round);
       }
+      await stopTheOneServing(roundOf(paths, 'the last stop'), 'SIGTERM');
     });
   });
 
@@ -348,6 +355,7 @@ describe(`the start of the built service, seed ${String(random.seed)}`, () => {
         const round = { ...roundOf(paths, what), afterEnds };
         await killWhileClientsStart(round, signal);
       }
+      await stopTheOneServing(roundOf(paths, 'the last stop'), 'SIGTERM');
     });
   });
 });
