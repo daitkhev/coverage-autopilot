@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { ImprovementListDto } from '#improvement/application/dto/improvement.dto';
-import { InvalidFilePathError } from '#kernel/errors/invalid-file-path.error';
-import { InvalidRepositoryIdError } from '#kernel/errors/invalid-repository-id.error';
 import { improvementIn } from '#tests/support/improvement-journeys';
 import { ImprovementRequestWorld } from '#tests/support/improvement-request-world';
 import {
@@ -77,14 +75,14 @@ describe('ListImprovementsHandler', () => {
 
     describe('when a value of the filter breaks a rule', () => {
       it.each([
-        ['a repository id', { repositoryId: 'acme' }, InvalidRepositoryIdError],
-        ['a path', { filePath: 'src//tax.ts' }, InvalidFilePathError],
+        ['a repository id', { repositoryId: 'acme' }],
+        ['a path', { filePath: 'src//tax.ts' }],
       ] as const)(
-        'should throw the error of %s',
-        async (_value, query, error) => {
-          await expect(world.listImprovements.execute(query)).rejects.toThrow(
-            error,
-          );
+        'should find nothing for %s no improvement can have',
+        async (_value, query) => {
+          expect(await world.listImprovements.execute(query)).toEqual({
+            items: [],
+          });
         },
       );
     });

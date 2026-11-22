@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { requestValueOf } from '#improvement/application/request-values';
+import {
+  requestValueOf,
+  requestValueOrNull,
+} from '#improvement/application/request-values';
 import { ImprovementId } from '#improvement/domain/value-objects/improvement-id.vo';
 import { FilePath } from '#kernel/primitives/file-path';
 import { IMPROVEMENT_ID } from '#tests/support/improvement-values';
@@ -32,6 +35,20 @@ describe('requestValueOf', () => {
           throw fault;
         }),
       ).toThrow(fault);
+    });
+  });
+});
+
+describe('requestValueOrNull', () => {
+  it('should give the value that was made', () => {
+    expect(
+      requestValueOrNull(() => ImprovementId.create(IMPROVEMENT_ID)),
+    ).toEqual(ImprovementId.create(IMPROVEMENT_ID));
+  });
+
+  describe('when the value breaks a rule of the domain', () => {
+    it('should give null', () => {
+      expect(requestValueOrNull(() => ImprovementId.create('42'))).toBeNull();
     });
   });
 });

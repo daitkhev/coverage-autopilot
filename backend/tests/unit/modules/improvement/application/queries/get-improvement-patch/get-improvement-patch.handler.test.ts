@@ -51,5 +51,13 @@ describe('GetImprovementPatchHandler', () => {
         ).toBeNull();
       });
     });
+
+    describe('when the id is not one of an improvement', () => {
+      it('should answer null, as no improvement has it', async () => {
+        expect(
+          await world.getPatch.execute({ improvementId: 'latest' }),
+        ).toBeNull();
+      });
+    });
   });
 });

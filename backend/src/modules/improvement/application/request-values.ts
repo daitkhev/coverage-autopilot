@@ -21,3 +21,13 @@ export function requestValueOf<Value>(make: () => Value): RequestValue<Value> {
     throw error;
   }
 }
+
+/**
+ * The value, or `null` when what the client sent breaks a rule of it. A
+ * query asks for what has such a value, and nothing has one that breaks
+ * a rule, so it finds nothing rather than refuse.
+ */
+export function requestValueOrNull<Value>(make: () => Value): Value | null {
+  const made = requestValueOf(make);
+  return made.outcome === 'valid' ? made.value : null;
+}

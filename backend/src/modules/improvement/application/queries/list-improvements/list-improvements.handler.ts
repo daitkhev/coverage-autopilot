@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { ImprovementListDto } from '#improvement/application/dto/improvement.dto';
 import { ImprovementViews } from '#improvement/application/dto/improvement-views';
 import type { ListImprovementsQuery } from '#improvement/application/queries/list-improvements/list-improvements.query';
+import { requestValueOrNull } from '#improvement/application/request-values';
 import {
   IMPROVEMENT_REPOSITORY,
   type ImprovementFilter,
@@ -25,7 +26,11 @@ function filterOf(query: ListImprovementsQuery): ImprovementFilter {
   };
 }
 
-/** The improvements the query allows, the newest first, as the store keeps them. */
+/**
+ * The improvements the query allows, the newest first, as the store keeps
+ * them. A filter by a value no improvement can have, such as a repository
+ * id that is no UUID, allows none.
+ */
 @Injectable()
 export class ListImprovementsHandler {
   private readonly improvements: ImprovementRepository;
@@ -42,7 +47,9 @@ export class ListImprovementsHandler {
   public async execute(
     query: ListImprovementsQuery,
   ): Promise<ImprovementListDto> {
-    const improvements = await this.improvements.list(filterOf(query));
+    const filter = requestValueOrNull(() => filterOf(query));
+    const improvements =
+      filter === null ? [] : await this.improvements.list(filter);
     return {
       items: await Promise.all(
         improvements.map(async (improvement) => this.views.of(improvement)),

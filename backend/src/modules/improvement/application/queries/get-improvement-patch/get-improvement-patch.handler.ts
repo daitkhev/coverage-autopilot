@@ -4,6 +4,7 @@ import type {
   GetImprovementPatchQuery,
   ImprovementPatchResult,
 } from '#improvement/application/queries/get-improvement-patch/get-improvement-patch.query';
+import { requestValueOrNull } from '#improvement/application/request-values';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
 import {
   IMPROVEMENT_REPOSITORY,
@@ -30,7 +31,8 @@ function patchOf(improvement: Improvement): ImprovementPatchResult {
 
 /**
  * The patch of the accepted attempt in full, so a person sees exactly
- * what would be published, or `null` when no improvement has the id.
+ * what would be published, or `null` when no improvement has the id, also
+ * when the id is no id of an improvement at all.
  */
 @Injectable()
 export class GetImprovementPatchHandler {
@@ -45,9 +47,11 @@ export class GetImprovementPatchHandler {
   public async execute(
     query: GetImprovementPatchQuery,
   ): Promise<ImprovementPatchResult | null> {
-    const improvement = await this.improvements.findById(
+    const id = requestValueOrNull(() =>
       ImprovementId.create(query.improvementId),
     );
+    const improvement =
+      id === null ? null : await this.improvements.findById(id);
     return improvement === null ? null : patchOf(improvement);
   }
 }

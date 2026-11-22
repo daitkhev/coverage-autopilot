@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { InvalidImprovementValueError } from '#improvement/domain/errors/invalid-improvement-value.error';
 import { improvementIn } from '#tests/support/improvement-journeys';
 import { ImprovementRequestWorld } from '#tests/support/improvement-request-world';
 import { IMPROVEMENT_ID } from '#tests/support/improvement-values';
@@ -44,10 +43,12 @@ describe('GetImprovementHandler', () => {
     });
 
     describe('when the id is not one of an improvement', () => {
-      it('should throw InvalidImprovementValueError', async () => {
-        await expect(
-          world.getImprovement.execute({ improvementId: 'latest' }),
-        ).rejects.toThrow(InvalidImprovementValueError);
+      it('should answer null, as no improvement has it', async () => {
+        await world.stored(improvementIn('verifying'));
+
+        expect(
+          await world.getImprovement.execute({ improvementId: 'latest' }),
+        ).toBeNull();
       });
     });
   });
