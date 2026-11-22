@@ -1453,3 +1453,77 @@ fails the improvement as an exposed credential and keeps its tokens.
   `backend/src/modules/coverage/application/repository-thresholds.ts`,
   `frontend/src/commands/repo-threshold.ts`,
   `frontend/src/screens/repositories/threshold-dialog.tsx`.
+
+### A result goes to a fork when the account may not push
+
+- The access check no longer fails when the account may not push. It
+  passes and names the account a fork is in, which `gh api user` reads.
+  The check carries where a result goes: `repository`, or `fork` with the
+  account. It is known with the last step, as the head is, and is `null`
+  until then. A strict object of the contract gained a field, so a client
+  of the version before refuses the answer. `CONTRACT_VERSION` was not
+  raised here: owed.
+- Publishing asks the host again, since the right to push can change
+  between the check and the end of the work. Allowed, it publishes as
+  before. Denied, it takes the fork route, and never opens a pull request
+  in the repository:
+  1. `gh api --method=POST repos/<owner>/<name>/forks` answers the fork
+     the account has, or makes one. Its address is the `clone_url` of the
+     answer, read through `RepositoryUrl`, never a name made from the
+     login, since the host names a fork `<name>-1` when the account has a
+     repository of that name.
+  2. The host makes a new fork in the background. The service looks with
+     `git ls-remote --symref` every 2 seconds, for up to 60, until the
+     fork names its default branch. The waits go through the alarm and the
+     clock.
+  3. The fork may be far behind, and the base commit of the work on no
+     branch of it. So one atomic push from the clean copy made for
+     publishing sends the base commit to the branch
+     `coverage-autopilot/base-<full hash>` and the test commit to the
+     branch of the improvement. A full hash, so two bases never share a
+     name.
+  4. `gh pr create` in the fork, from the branch of the improvement into
+     that base, so the pull request holds the one commit.
+- Each step looks first for what an earlier run made: the fork request
+  answers the fork that exists, the push is skipped when the branch is
+  there, and the pull request is looked for in the fork before one is
+  opened. An end-to-end test kills the service as it opens the pull
+  request, and the next start ends with one fork, one pull request and
+  one commit.
+- A refusal of the host is the outcome `refused` with its words, and the
+  improvement fails with them, as before. Two faults may be tried again:
+  a fork that git does not reach within 60 seconds (`fork_not_ready`),
+  and a host that did not say whether the account may push
+  (`permission_not_read`).
+- Nothing new is stored, so no migration: the route is decided again at
+  each publication.
+- The client says where a result goes before a run: `repo check` ends with
+  a `publishes` line, `improve` checks the access and says it on the
+  standard error before it starts, and starts nothing when the check did
+  not pass, and the start dialog says it under the choice of publishing.
+- Known, and not handled:
+  - The host refuses a push that adds or changes a file under
+    `.github/workflows/` when the login of `gh` lacks the `workflow`
+    scope. A test file is no workflow, so this shows only for a
+    repository that keeps its tests there, as a refused push.
+  - An owner can forbid forks. The check does not ask, and the refusal
+    shows when publishing, with the words of the host.
+  - When the right to push changes between a run cut short and the next,
+    the next run publishes to the other place, and a branch or a pull
+    request may then be in both.
+  - The fork the host answers is trusted to be one of the repository: its
+    parent is not compared.
+  - The base branches stay in the fork once a pull request is closed.
+  - A `gh` with no login at publishing is now a fault tried again
+    (`permission_not_read`), where it failed at once before
+    (`gh_not_authenticated`): the question of the right to push comes
+    first now, and its refusal does not tell the two apart.
+- Not seen on the real host, only on the stand-in: the shape of the fork
+  answer beyond `fork` and `clone_url`, the time a new fork takes, an
+  atomic push to a fork, and the words of its refusals.
+- Where:
+  `backend/src/modules/repositories/application/commands/publish-patch/publication-targets.ts`,
+  `backend/src/modules/repositories/application/commands/check-access/access-probe.ts`,
+  `backend/src/modules/repositories/infrastructure/gh/gh-code-host.adapter.ts`,
+  `backend/src/modules/repositories/infrastructure/git/git-working-copies.adapter.ts`,
+  `api-contracts/src/repositories.ts`, `frontend/src/commands/start-access.ts`.
