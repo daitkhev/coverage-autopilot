@@ -1042,10 +1042,9 @@ A real run can fail, or lose work that was paid for:
 
 A person meets it in the first minutes of the client:
 
-- Going back draws the screen anew: the selected row, the chosen list
-  and the text of the filter are lost, and the data is asked for again.
-- The list of commands holds the five commands of the app and no action
-  of a screen, and a screen has no way to add one.
+- The screens that are kept were looked at in a terminal with empty
+  lists only. That a row, a list and a filter come back is proven by
+  tests of the whole app, not by a look with data.
 - A panel that is cut in a low window does not say that more is below.
 - The list of the keys is sixteen lines, the whole of the smallest
   window: one more line needs a list that scrolls.
@@ -1181,3 +1180,31 @@ fails the improvement as an exposed credential and keeps its tokens.
   `backend/src/shared/infrastructure/sandbox/container-removal.ts`,
   `backend/src/shared/infrastructure/sandbox/leftover-containers.ts`,
   `backend/src/composition/leftover-sweep.ts`.
+
+### An action is described once, and a screen is kept as it was left
+
+- An action of a screen is one value: its key, its words in the footer
+  and its line in the list of commands. One hook takes the list of a
+  screen, runs the actions on their keys and offers them to a store the
+  app reads, so the list of commands runs the handler the key runs. The
+  lists of keys and of hints that each screen kept apart are gone.
+- An action that cannot run is not in the list: the screen leaves it
+  out, and a screen whose dialog or text field has the keys offers
+  nothing. The actions of the screen come first, the commands of the
+  app after them, and the typed text filters both.
+- Every screen of every trail stays mounted, and the ones that do not
+  show are hidden by the activity of the library. A hidden screen is
+  not drawn and its effects rest, so it takes no key, asks the service
+  nothing and offers no action, and it asks at once when it shows again.
+  The other way, a memory of each place in the trail, needed a part of
+  its own in every screen. This is one mechanism, and the last answer
+  stays, so a return shows no empty screen.
+- Each section keeps its trail. The key of a section shows it where it
+  was left, and the key of the section that shows goes to its first
+  screen.
+- A list follows its chosen row by what the row is, not by its number.
+  A row that moved is still chosen, and for a row that is gone the one
+  at its place is.
+- Where: `frontend/src/hooks/use-screen-actions.ts`,
+  `frontend/src/app/shown-screen.tsx`, `frontend/src/app/navigation.tsx`,
+  `frontend/src/hooks/use-selection.ts`.
