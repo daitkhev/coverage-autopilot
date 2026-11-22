@@ -17,10 +17,12 @@
       "#ports/*": "./src/shared/application/ports/*.ts",
       "#infrastructure/*": "./src/shared/infrastructure/*.ts",
       "#service/*": "./src/*.ts",
+      "#composition/*": "./src/composition/*.ts",
       "#tests/*": "./tests/*.ts"
     },
     "frontend": {
       "#client/*": "./src/*.tsx",
+      "#composition/*": "./src/composition/*.ts",
       "#app/*": "./src/app/*.tsx",
       "#screens/*": "./src/screens/*.tsx",
       "#components/*": "./src/components/*.tsx",
@@ -99,8 +101,9 @@
   },
   "frontend": {
     "source": "frontend/src/",
-    "root": ["app", "commands"],
+    "root": ["app", "commands", "composition"],
     "folders": {
+      "composition": ["app", "commands"],
       "app": ["screens", "components", "hooks", "theme", "api"],
       "screens": ["components", "hooks", "theme", "api"],
       "commands": ["api", "theme"],
@@ -118,6 +121,7 @@
   "backend": {
     "source": "backend/src/",
     "migrations": "backend/migrations/",
+    "composition": "composition/",
     "modules": {
       "repositories": [],
       "coverage": ["repositories"],

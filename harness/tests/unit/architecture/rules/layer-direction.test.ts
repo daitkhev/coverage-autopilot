@@ -115,6 +115,29 @@ describe('layerDirection', () => {
     });
   });
 
+  describe('into the composition', () => {
+    const COMPOSITION = 'backend/src/composition/app.module.ts';
+
+    it.each([
+      `${MODULES}/store/application/find.ts`,
+      `${MODULES}/store/infrastructure/reader.ts`,
+      `${MODULES}/store/store.module.ts`,
+      `${SHARED}/infrastructure/queue/worker.ts`,
+    ])('should report %s importing it', (from) => {
+      expect(detailsFor(from, COMPOSITION)).toEqual([
+        'Only the entry of the service imports the composition.',
+      ]);
+    });
+
+    it.each([
+      'backend/src/main.ts',
+      'backend/src/composition/service-run.ts',
+      'backend/tests/integration/composition/app-module.test.ts',
+    ])('should pass %s importing it', (from) => {
+      expect(detailsFor(from, COMPOSITION)).toEqual([]);
+    });
+  });
+
   describe('inside the shared code', () => {
     it('should report shared code that imports a module', () => {
       expect(

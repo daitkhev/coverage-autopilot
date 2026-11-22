@@ -4,8 +4,9 @@ import type { Project, Rule } from '#harness/architecture/project';
 import type { Backend } from '#harness/shared/structure';
 
 const NO_PLACE =
-  'The service has modules/<module>/<layer>/, shared/<folder>/ and files ' +
-  'at the root of its source, and no other place.';
+  'The service has modules/<module>/<layer>/, shared/<folder>/, the folder ' +
+  'of its composition and files at the root of its source, and no other ' +
+  'place.';
 
 function problemOf(place: Place, backend: Backend): string {
   if (place.kind === 'unknown') {

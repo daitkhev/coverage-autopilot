@@ -102,6 +102,24 @@ describe('moduleBoundary', () => {
       ).toEqual([BY_MODULE_FILE]);
     });
 
+    it('should pass the composition importing a module file', () => {
+      expect(
+        detailsFor(
+          'backend/src/composition/app.module.ts',
+          `${MODULES}/store/store.module.ts`,
+        ),
+      ).toEqual([]);
+    });
+
+    it('should report the composition importing inside a module', () => {
+      expect(
+        detailsFor(
+          'backend/src/composition/app.module.ts',
+          `${MODULES}/store/infrastructure/reader.ts`,
+        ),
+      ).toEqual([BY_MODULE_FILE]);
+    });
+
     it('should pass a root file importing a module file', () => {
       expect(
         detailsFor('backend/src/main.ts', `${MODULES}/store/store.module.ts`),

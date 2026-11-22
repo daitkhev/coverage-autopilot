@@ -60,6 +60,13 @@ describe('placeOf', () => {
     });
   });
 
+  it.each([
+    'backend/src/composition/app.module.ts',
+    'backend/src/composition/settings/module-settings.ts',
+  ])('should read %s as a file of the composition', (path) => {
+    expect(placeOf(path, backend)).toEqual({ kind: 'composition' });
+  });
+
   it('should read a file at the root of the source', () => {
     expect(placeOf('backend/src/main.ts', backend)).toEqual({
       kind: 'service-root',

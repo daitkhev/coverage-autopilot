@@ -49,10 +49,23 @@ describe('readStructure', () => {
     }
   });
 
+  it('should let no folder of the client import its composition', () => {
+    const importers = [...readStructure().frontend.folders.entries()]
+      .filter(([, uses]) => uses.includes('composition'))
+      .map(([name]) => name);
+
+    expect(importers).toEqual([]);
+  });
+
+  it('should put the composition of the service in a folder of its own', () => {
+    expect(readStructure().backend.composition).toBe('composition/');
+  });
+
   it('should give the client the folders of the design, each importing one way', () => {
     const { folders, root, apart, noChain } = readStructure().frontend;
 
     expect(Object.fromEntries(folders)).toEqual({
+      composition: ['app', 'commands'],
       app: ['screens', 'components', 'hooks', 'theme', 'api'],
       screens: ['components', 'hooks', 'theme', 'api'],
       commands: ['api', 'theme'],
@@ -61,7 +74,7 @@ describe('readStructure', () => {
       api: [],
       theme: [],
     });
-    expect(root).toEqual(['app', 'commands']);
+    expect(root).toEqual(['app', 'commands', 'composition']);
     expect(apart).toEqual(['screens']);
     expect(Object.fromEntries(noChain)).toEqual({
       components: ['api'],

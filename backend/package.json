@@ -12,6 +12,7 @@
     "#ports/*": "./src/shared/application/ports/*.ts",
     "#infrastructure/*": "./src/shared/infrastructure/*.ts",
     "#service/*": "./src/*.ts",
+    "#composition/*": "./src/composition/*.ts",
     "#tests/*": "./tests/*.ts"
   },
   "dependencies": {

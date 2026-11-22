@@ -5,6 +5,7 @@
   "type": "module",
   "imports": {
     "#client/*": "./src/*.tsx",
+    "#composition/*": "./src/composition/*.ts",
     "#app/*": "./src/app/*.tsx",
     "#screens/*": "./src/screens/*.tsx",
     "#components/*": "./src/components/*.tsx",

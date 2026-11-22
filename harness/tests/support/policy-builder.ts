@@ -18,6 +18,7 @@ export function backendOf(): Backend {
   return {
     source: 'backend/src/',
     migrations: 'backend/migrations/',
+    composition: 'composition/',
     modules: new Map([
       ['store', []],
       ['reports', ['store']],

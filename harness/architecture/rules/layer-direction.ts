@@ -38,7 +38,15 @@ function fromShared(from: SharedPlace, to: Place, backend: Backend): string {
     : '';
 }
 
+/** The places that may import the composition: its user, and itself. */
+const ABOVE_MODULES: readonly Place['kind'][] = ['service-root', 'composition'];
+
 function problemOf(edge: Edge, backend: Backend): string {
+  if (edge.to.kind === 'composition') {
+    return ABOVE_MODULES.includes(edge.from.kind) || edge.from.kind === 'other'
+      ? ''
+      : 'Only the entry of the service imports the composition.';
+  }
   if (edge.from.kind === 'layer') {
     return fromLayer(edge.from, edge.to, backend);
   }
@@ -47,7 +55,10 @@ function problemOf(edge: Edge, backend: Backend): string {
     : '';
 }
 
-/** Inside a module and in the shared code, imports point one way. */
+/**
+ * Inside a module and in the shared code, imports point one way, and
+ * none of them points at the composition, which is above every module.
+ */
 export function layerDirection(backend: Backend): Rule {
   return edgeRule('layer-direction', backend, problemOf);
 }

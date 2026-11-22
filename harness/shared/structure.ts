@@ -23,6 +23,11 @@ export interface Backend {
   readonly source: string;
   /** Where the migrations are, with a slash at the end. */
   readonly migrations: string;
+  /**
+   * The folder under the source where the service is put together from
+   * its modules, with a slash at the end.
+   */
+  readonly composition: string;
   /** Each module, with the modules it may use. */
   readonly modules: ReadonlyMap<string, readonly string[]>;
   readonly layers: ReadonlyMap<string, LayerRule>;
@@ -121,6 +126,7 @@ function backendOf(file: JsonRecord): Backend {
   return {
     source: stringAt(backend, 'source'),
     migrations: stringAt(backend, 'migrations'),
+    composition: stringAt(backend, 'composition'),
     modules: stringListsAt(backend, 'modules'),
     layers: layersOf(backend),
     contracts: stringListAt(backend, 'contracts'),
