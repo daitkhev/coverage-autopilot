@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 
-import { besideWords, groupOf } from '#screens/improvements/improvement-words';
+import {
+  besideWords,
+  canBeCancelled,
+  groupOf,
+} from '#screens/improvements/improvement-words';
 import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
 
 const {
@@ -82,5 +86,18 @@ describe('besideWords', () => {
     ])('should say %s alone', (_case, improvement, words) => {
       expect(said(improvement)).toBe(words);
     });
+  });
+});
+
+describe('canBeCancelled', () => {
+  it('should allow a cancel until the work ends, whatever it waits for', () => {
+    expect(
+      [awaiting_approval, created, verifying, waiting_for_limit].map(
+        canBeCancelled,
+      ),
+    ).toEqual([true, true, true, true]);
+    expect([completed, failed, cancelled, skipped].map(canBeCancelled)).toEqual(
+      [false, false, false, false],
+    );
   });
 });

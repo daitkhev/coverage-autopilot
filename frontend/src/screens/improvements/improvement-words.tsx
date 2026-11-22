@@ -74,6 +74,11 @@ const GROUP_OF_WAIT: Readonly<Record<WaitingFor, GroupName>> = {
   limit: 'waiting',
 };
 
+/** Whether the work can still be cancelled: by its status, it has not ended. */
+export function canBeCancelled({ status }: Improvement): boolean {
+  return GROUP_OF_STATUS[status] !== 'finished';
+}
+
 export function groupOf(improvement: Improvement): GroupName {
   return improvement.waitingFor === null
     ? GROUP_OF_STATUS[improvement.status]

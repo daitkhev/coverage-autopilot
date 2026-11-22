@@ -1,8 +1,12 @@
 import { cleanup } from 'ink-testing-library';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { ImprovementList } from '@coverage-autopilot/api-contracts/improvements';
+import type {
+  Improvement,
+  ImprovementList,
+} from '@coverage-autopilot/api-contracts/improvements';
 
+import type { ServiceAnswer } from '#api/service-api';
 import { ServiceUnreachableError } from '#api/service-unreachable-error';
 import { ImprovementsScreen } from '#screens/improvements/improvements-screen';
 import {
@@ -16,10 +20,15 @@ import {
   NARROW,
   sampleFrame,
   SECTION,
+  SIZES,
   WIDE,
 } from '#tests/support/sample-frame';
-import { IMPROVEMENT_LIST } from '#tests/support/sample-improvements';
+import {
+  IMPROVEMENT_BY_STATUS,
+  IMPROVEMENT_LIST,
+} from '#tests/support/sample-improvements';
 import { REPOSITORY_LIST } from '#tests/support/sample-repositories';
+import { widestLine } from '#tests/support/terminal-text';
 import { renderAt } from '#tests/support/wide-terminal';
 import type { TerminalSize } from '#theme/widths';
 
@@ -29,6 +38,20 @@ function sessionOf(list: ImprovementList = IMPROVEMENT_LIST): FakeSession {
   return fakeSession({
     listImprovements: () => Promise.resolve(answered(list)),
     listRepositories: () => Promise.resolve(answered(REPOSITORY_LIST)),
+  });
+}
+
+/** A list whose work the service cancels with the answer given. */
+function cancelling(
+  answer: ServiceAnswer<Improvement> = answered(
+    IMPROVEMENT_BY_STATUS.cancelled,
+    202,
+  ),
+): FakeSession {
+  return fakeSession({
+    listImprovements: () => Promise.resolve(answered(IMPROVEMENT_LIST)),
+    listRepositories: () => Promise.resolve(answered(REPOSITORY_LIST)),
+    cancelImprovement: () => Promise.resolve(answer),
   });
 }
 
@@ -199,5 +222,76 @@ describe('ImprovementsScreen', () => {
         .poll(() => screenOf(terminal), PATIENT)
         .toContain('THE CLIENT SAID');
     });
+  });
+
+  describe('when the chosen work is cancelled', () => {
+    it('should ask first, and cancel the work on the second answer', async () => {
+      const session = cancelling();
+      const { terminal } = await shown(session);
+
+      await press(terminal, 'c');
+      expect(screenOf(terminal)).toContain('Cancel this improvement?');
+      expect(screenOf(terminal)).toContain('esc keep');
+      await press(terminal, KEYS.down, KEYS.enter);
+
+      await expect
+        .poll(() => screenOf(terminal), PATIENT)
+        .not.toContain('Cancel this improvement?');
+      const cancel = session.api.calls.find(
+        ({ method }) => method === 'cancelImprovement',
+      );
+      expect(cancel?.arguments).toEqual(['improvement-sum']);
+    });
+
+    it('should keep the work on esc, and give the list no key meanwhile', async () => {
+      const session = cancelling();
+      const { terminal } = await shown(session);
+
+      await press(terminal, 'c', 'f', KEYS.escape);
+
+      expect(screenOf(terminal)).not.toContain('Cancel this improvement?');
+      expect(screenOf(terminal)).not.toContain('only created');
+      expect(session.api.calls.map(({ method }) => method)).not.toContain(
+        'cancelImprovement',
+      );
+    });
+
+    it('should keep the question open with what the service refused', async () => {
+      const session = cancelling(
+        refused(409, { error: 'status_conflict', message: 'It has ended.' }),
+      );
+      const { terminal } = await shown(session);
+
+      await press(terminal, 'c', KEYS.down, KEYS.enter);
+
+      await expect
+        .poll(() => screenOf(terminal), PATIENT)
+        .toContain('It has ended.');
+      expect(screenOf(terminal)).toContain('Cancel this improvement?');
+    });
+
+    it('should offer no cancel for work that has ended', async () => {
+      const session = cancelling();
+      const { terminal } = await shown(session);
+
+      await press(terminal, 'G', 'c');
+
+      expect(screenOf(terminal)).not.toContain('c cancel');
+      expect(screenOf(terminal)).not.toContain('Cancel this improvement?');
+    });
+
+    it.each(SIZES)(
+      'should fit the question in $columns by $rows',
+      async (size) => {
+        const { terminal } = await shown(cancelling(), size);
+
+        await press(terminal, 'c');
+
+        const drawn = screenOf(terminal);
+        expect(drawn).toContain('Cancel this improvement?');
+        expect(widestLine(drawn)).toBeLessThanOrEqual(size.columns);
+        expect(drawn.split('\n').length).toBeLessThanOrEqual(size.rows);
+      },
+    );
   });
 });

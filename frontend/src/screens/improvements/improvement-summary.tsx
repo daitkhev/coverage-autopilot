@@ -14,6 +14,7 @@ import { StatusIndicator } from '#components/status-indicator';
 import {
   ageMomentOf,
   besideWords,
+  canBeCancelled,
   GROUP_LOOKS,
   groupOf,
 } from '#screens/improvements/improvement-words';
@@ -117,6 +118,9 @@ export function ImprovementSummary({
       {judged === undefined ? null : <Judged {...judged} />}
       <Section title="NEXT">
         <KeyHints hints={[{ key: 'enter', label: GROUP_LOOKS[group].next }]} />
+        {canBeCancelled(improvement) ? (
+          <KeyHints hints={[{ key: 'c', label: 'cancel the work' }]} />
+        ) : null}
       </Section>
     </>
   );

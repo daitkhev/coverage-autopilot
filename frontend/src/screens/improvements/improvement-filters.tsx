@@ -94,9 +94,9 @@ export function narrowingFacts(
   ];
 }
 
-/** The keys of the filters, which at 80 columns are left to the help. */
+/** The keys of the filters, which below the wide layout are left to the help. */
 export function filterHints(layout: Layout): KeyHint[] {
-  return layout === 'narrow'
+  return layout !== 'wide'
     ? []
     : [
         { key: 'f', label: 'status' },

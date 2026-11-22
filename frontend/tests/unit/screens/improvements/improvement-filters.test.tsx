@@ -121,13 +121,9 @@ describe('narrowingFacts', () => {
 });
 
 describe('filterHints', () => {
-  it('should leave the keys of the filters to the help at 80 columns', () => {
+  it('should leave the keys of the filters to the help below the wide layout', () => {
     expect(filterHints('narrow')).toEqual([]);
-    expect(filterHints('compact').map(({ key }) => key)).toEqual([
-      'f',
-      'r',
-      '/',
-    ]);
+    expect(filterHints('wide').map(({ key }) => key)).toEqual(['f', 'r', '/']);
   });
 });
 

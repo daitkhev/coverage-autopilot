@@ -1,13 +1,16 @@
-import { type ReactNode, useCallback } from 'react';
+import { type ReactNode, useCallback, useState } from 'react';
+
+import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 
 import type { ClientSession } from '#api/client-session';
 import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
+import { CancelQuestion } from '#components/cancel-question';
 import { problemOf } from '#components/problem-details';
 import { browseKeysOf } from '#hooks/list-keys';
 import { type DatedRequest, useDatedRequest } from '#hooks/use-dated-request';
 import { useFocusRing } from '#hooks/use-focus-ring';
-import { useKeys } from '#hooks/use-keys';
+import { type KeyHandlers, useKeys } from '#hooks/use-keys';
 import { useSelection } from '#hooks/use-selection';
 import {
   type Filters,
@@ -20,6 +23,7 @@ import {
   type Listing,
   listingOf,
 } from '#screens/improvements/improvement-listing';
+import { canBeCancelled } from '#screens/improvements/improvement-words';
 import {
   IMPROVEMENTS_PANELS,
   ImprovementsView,
@@ -53,10 +57,54 @@ function repositoryIdsOf(listing: Listing | undefined): string[] {
   return listing?.outcome === 'answered' ? [...listing.names.keys()] : [];
 }
 
+/** What the keys do to the chosen improvement. */
+interface ChosenActions {
+  readonly open: (improvementId: string) => void;
+  /** Opens the question before a cancel of the work. */
+  readonly ask: (improvement: Improvement) => void;
+}
+
+/** `enter` opens the chosen work, and `c` asks before it cancels it. */
+function chosenKeys(
+  chosen: Improvement | undefined,
+  { open, ask }: ChosenActions,
+): KeyHandlers {
+  if (chosen === undefined) {
+    return {};
+  }
+  return {
+    enter: () => {
+      open(chosen.id);
+    },
+    ...(canBeCancelled(chosen)
+      ? {
+          c: () => {
+            ask(chosen);
+          },
+        }
+      : {}),
+  };
+}
+
+/** The question before a cancel, for the work it was opened on. */
+function questionOf(
+  session: ClientSession,
+  asked: Improvement | undefined,
+  onClose: () => void,
+): ReactNode {
+  return asked === undefined ? undefined : (
+    <CancelQuestion
+      improvement={asked}
+      cancel={async () => session.api.cancelImprovement(asked.id)}
+      onClose={onClose}
+    />
+  );
+}
+
 /**
  * All improvements of all repositories, grouped by what they need. The
- * list is asked for again every second, the filters narrow it, and
- * `enter` opens one.
+ * list is asked for again every second, the filters narrow it, `enter`
+ * opens one, and `c` cancels one after a question.
  */
 export function ImprovementsScreen({
   session,
@@ -74,21 +122,19 @@ export function ImprovementsScreen({
   const visible = visibleRowsOf(frame.size, filters.path.line === null ? 0 : 1);
   const selection = useSelection({ count: improvements.length, visible });
   const focus = useFocusRing(IMPROVEMENTS_PANELS);
-  const chosen = improvements[selection.index];
+  const [asked, ask] = useState<Improvement>();
   useKeys(
     {
       ...browseKeysOf(selection, focus),
       ...filters.keysOf(repositoryIdsOf(listing.answer), selection.first),
-      ...(chosen === undefined
-        ? {}
-        : {
-            enter: () => {
-              onOpenImprovement(chosen.id);
-            },
-          }),
+      ...chosenKeys(improvements[selection.index], {
+        open: onOpenImprovement,
+        ask,
+      }),
     },
-    // While the filter types, the letters are its own.
-    { active: !filters.path.typing },
+    // While the filter types the letters are its own, and the question
+    // takes every key.
+    { active: !filters.path.typing && asked === undefined },
   );
   return (
     <ImprovementsView
@@ -100,6 +146,9 @@ export function ImprovementsScreen({
       position={selection}
       visible={visible}
       focused={focus.focused}
+      question={questionOf(session, asked, () => {
+        ask(undefined);
+      })}
     />
   );
 }

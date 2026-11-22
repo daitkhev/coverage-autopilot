@@ -21,7 +21,10 @@ import {
 import { ImprovementList } from '#screens/improvements/improvement-list';
 import type { Listing } from '#screens/improvements/improvement-listing';
 import { ImprovementSummary } from '#screens/improvements/improvement-summary';
-import { groupOf } from '#screens/improvements/improvement-words';
+import {
+  canBeCancelled,
+  groupOf,
+} from '#screens/improvements/improvement-words';
 import { countWords } from '#theme/counts';
 import { type Layout, layoutOf } from '#theme/widths';
 
@@ -41,6 +44,8 @@ interface ImprovementsViewProps {
   readonly position: ListPosition;
   readonly visible: number;
   readonly focused: ImprovementsPanel;
+  /** The question before a cancel, over the list while it is open. */
+  readonly question?: ReactNode;
 }
 
 const NO_NAMES: ReadonlyMap<string, string> = new Map();
@@ -135,24 +140,40 @@ function statusFacts(props: ImprovementsViewProps): string[] {
   ];
 }
 
-function listHints(count: number, layout: Layout): KeyHint[] {
+/** The question lists its own keys. The one that always works is here. */
+const QUESTION_HINTS: readonly KeyHint[] = [{ key: 'esc', label: 'keep' }];
+
+/** `enter` opens the chosen work, and `c` cancels it while it runs. */
+function chosenHints(chosen: Improvement | undefined): KeyHint[] {
+  if (chosen === undefined) {
+    return [];
+  }
   return [
-    ...(count === 0
-      ? []
-      : [
-          { key: 'up-down', label: 'move' },
-          { key: 'enter', label: 'open' },
-        ]),
+    { key: 'up-down', label: 'move' },
+    { key: 'enter', label: 'open' },
+    ...(canBeCancelled(chosen) ? [{ key: 'c', label: 'cancel' }] : []),
+  ];
+}
+
+function listHints(chosen: Improvement | undefined, layout: Layout): KeyHint[] {
+  return [
+    ...chosenHints(chosen),
     ...filterHints(layout),
     { key: 'tab', label: 'details' },
   ];
 }
 
-/** The keys that work now: the filter's while it types, else the list's. */
-function keyHintsOf(props: ImprovementsViewProps, count: number): KeyHint[] {
+/** The keys that work now: the question's, the filter's, or the list's. */
+function keyHintsOf(
+  props: ImprovementsViewProps,
+  improvements: readonly Improvement[],
+): KeyHint[] {
+  if (props.question !== undefined) {
+    return [...QUESTION_HINTS];
+  }
   return props.narrowing.path.typing
     ? [...TYPING_HINTS]
-    : listHints(count, layoutOf(props.frame.size));
+    : listHints(improvements[props.position.index], layoutOf(props.frame.size));
 }
 
 /**
@@ -186,7 +207,8 @@ export function ImprovementsView(props: ImprovementsViewProps): ReactNode {
         : {
             position: `row ${String(position.index + 1)} of ${String(improvements.length)}`,
           })}
-      keys={<KeyHints hints={keyHintsOf(props, improvements.length)} />}
+      keys={<KeyHints hints={keyHintsOf(props, improvements)} />}
+      dialog={props.question}
     />
   );
 }
