@@ -2,7 +2,7 @@ import type { JobProgress } from '#ports/job-queue.port';
 import type { Logger } from '#ports/logger.port';
 
 /** Hears the full list of steps each time one of them changes. */
-export type ProgressObserver = (progress: JobProgress) => void;
+type ProgressObserver = (progress: JobProgress) => void;
 
 /** Who follows a capture: a person through the progress, and the log. */
 export interface CaptureWatch {
