@@ -10,7 +10,7 @@ import {
 } from '@coverage-autopilot/api-contracts/health';
 import { repositorySchema } from '@coverage-autopilot/api-contracts/repositories';
 
-import type { RunningService } from '#service/running-service';
+import type { RunningService } from '#infrastructure/service/running-service';
 import {
   type HostedService,
   hostedService,

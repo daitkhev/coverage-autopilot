@@ -29,6 +29,7 @@ import {
 import { RandomUuidGenerator } from '#infrastructure/id/random-uuid-generator.adapter';
 import { JsonLogger } from '#infrastructure/logging/json-logger.adapter';
 import { LOG_SETTINGS } from '#infrastructure/logging/log-settings';
+import { jobHandlersOf } from '#infrastructure/queue/job-handlers';
 import { JobWorker } from '#infrastructure/queue/job-worker';
 import { JobWorkerScheduler } from '#infrastructure/queue/job-worker-scheduler';
 import { JOB_WORKER_SETTINGS } from '#infrastructure/queue/job-worker-settings';
@@ -48,7 +49,6 @@ import { LOGGER, type Logger } from '#ports/logger.port';
 import { SANDBOX } from '#ports/sandbox.port';
 import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
 import { RepositoriesModule } from '#repositories/repositories.module';
-import { jobHandlersOf } from '#service/job-handlers';
 import { moduleSettingsOf } from '#service/module-settings';
 import { serviceSettingsOf } from '#service/service-settings';
 import { VerificationModule } from '#verification/verification.module';

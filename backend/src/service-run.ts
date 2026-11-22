@@ -7,15 +7,15 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 
 import type { ServiceConfig } from '#infrastructure/config/service-config';
 import { JobWorkerScheduler } from '#infrastructure/queue/job-worker-scheduler';
-import { restrictSocket } from '#infrastructure/service/service-socket';
-import { startService } from '#infrastructure/service/service-start';
-import { SystemClock } from '#infrastructure/time/system-clock.adapter';
-import { AppModule, type ServiceWiring } from '#service/app.module';
 import {
   giveBack,
   type HeldParts,
   RunningService,
-} from '#service/running-service';
+} from '#infrastructure/service/running-service';
+import { restrictSocket } from '#infrastructure/service/service-socket';
+import { startService } from '#infrastructure/service/service-start';
+import { SystemClock } from '#infrastructure/time/system-clock.adapter';
+import { AppModule, type ServiceWiring } from '#service/app.module';
 
 /** What the entry file gives a run besides the configuration. */
 export interface ServiceStartup {

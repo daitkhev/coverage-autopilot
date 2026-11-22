@@ -6,8 +6,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { errorSchema } from '@coverage-autopilot/api-contracts/errors';
 
 import { InvalidMigrationFileError } from '#infrastructure/database/errors/invalid-migration-file.error';
+import type { RunningService } from '#infrastructure/service/running-service';
 import { SystemClock } from '#infrastructure/time/system-clock.adapter';
-import type { RunningService } from '#service/running-service';
 import type { ServiceRun } from '#service/service-run';
 import {
   askOver,

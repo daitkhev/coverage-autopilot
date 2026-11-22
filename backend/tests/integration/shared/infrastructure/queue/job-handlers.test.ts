@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { jobHandlersOf } from '#infrastructure/queue/job-handlers';
 import type { JobHandler } from '#ports/job-handler.port';
 import type { JobKind } from '#ports/job-queue.port';
-import { jobHandlersOf } from '#service/job-handlers';
 
 function handlerOf(kind: JobKind): JobHandler {
   return {

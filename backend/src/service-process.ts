@@ -5,7 +5,7 @@ import {
   loadServiceConfig,
   type ProcessUser,
 } from '#infrastructure/config/service-config';
-import type { RunningService } from '#service/running-service';
+import type { RunningService } from '#infrastructure/service/running-service';
 import { runService } from '#service/service-run';
 
 /** What the entry file reads of its process and gives on as values. */
