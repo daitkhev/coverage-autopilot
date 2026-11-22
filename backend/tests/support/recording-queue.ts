@@ -1,3 +1,4 @@
+import { Instant } from '#kernel/time/instant';
 import type { Transaction } from '#kernel/transaction/transaction';
 import type {
   EnqueueJobRequest,
@@ -19,10 +20,22 @@ interface CancelledSubject {
   readonly transaction: Transaction;
 }
 
+interface CancelledJob {
+  readonly jobId: JobId;
+  readonly transaction: Transaction;
+}
+
+/** When the stand-in ends a job it cancels. */
+export const CANCELLED_AT = Instant.parse('2026-03-04T05:10:00.000Z');
+
 export interface RecordingQueue extends JobQueue {
   readonly enqueued: Enqueued[];
   readonly cancelledSubjects: CancelledSubject[];
-  /** The jobs `getJob` finds, by their id: none at first. */
+  readonly cancelledJobs: CancelledJob[];
+  /**
+   * The jobs `getJob` finds, by their id: none at first. A cancel ends one
+   * that has not ended, at `CANCELLED_AT`, as the queue of the service does.
+   */
   readonly jobs: Map<JobId, JobDto>;
   /** What the next `enqueue` answers: `enqueued` as `job-1` at first. */
   answer: EnqueueJobResult;
@@ -30,10 +43,6 @@ export interface RecordingQueue extends JobQueue {
   progress: JobProgressDto | null;
   /** What `getWait` answers for every subject: a free worker at first. */
   wait: JobWait | null;
-}
-
-async function refuse(): Promise<never> {
-  return Promise.reject(new Error('A test of this queue cancels no job.'));
 }
 
 /**
@@ -45,6 +54,7 @@ export function recordingQueue(): RecordingQueue {
   const queue: RecordingQueue = {
     enqueued: [],
     cancelledSubjects: [],
+    cancelledJobs: [],
     jobs: new Map(),
     answer: { outcome: 'enqueued', jobId: 'job-1' },
     progress: null,
@@ -60,7 +70,18 @@ export function recordingQueue(): RecordingQueue {
     getJob: async (jobId) => Promise.resolve(queue.jobs.get(jobId) ?? null),
     getProgress: async () => Promise.resolve(queue.progress),
     getWait: async () => Promise.resolve(queue.wait),
-    cancel: refuse,
+    cancel: async (jobId, transaction) => {
+      queue.cancelledJobs.push({ jobId, transaction });
+      const job = queue.jobs.get(jobId);
+      if (job?.endedAt === null) {
+        queue.jobs.set(jobId, {
+          ...job,
+          status: 'cancelled',
+          endedAt: CANCELLED_AT,
+        });
+      }
+      return Promise.resolve();
+    },
   };
   return queue;
 }

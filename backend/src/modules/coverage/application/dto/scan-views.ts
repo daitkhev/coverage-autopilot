@@ -32,7 +32,7 @@ export class ScanViews {
   }
 
   /** `null` when no job has the id, or the job is not a scan. */
-  private async findJob(scanId: string): Promise<JobDto | null> {
+  public async findJob(scanId: string): Promise<JobDto | null> {
     const job = await this.queue.getJob(scanId);
     return job?.kind === 'scan' ? job : null;
   }

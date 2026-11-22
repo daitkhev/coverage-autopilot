@@ -1,5 +1,6 @@
 import { Inject, Module, type OnModuleInit } from '@nestjs/common';
 
+import { CancelScanHandler } from '#coverage/application/commands/cancel-scan/cancel-scan.handler';
 import { CaptureSnapshotHandler } from '#coverage/application/commands/capture-snapshot/capture-snapshot.handler';
 import { SnapshotCapture } from '#coverage/application/commands/capture-snapshot/snapshot-capture';
 import { PrepareProjectHandler } from '#coverage/application/commands/prepare-project/prepare-project.handler';
@@ -78,9 +79,15 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
     ListFilesBelowThresholdHandler,
     ScanViews,
     GetScanHandler,
+    CancelScanHandler,
     { provide: COVERAGE_PUBLIC_API, useClass: CoverageApi },
   ],
-  exports: [COVERAGE_PUBLIC_API, RunScanHandler, GetScanHandler],
+  exports: [
+    COVERAGE_PUBLIC_API,
+    RunScanHandler,
+    GetScanHandler,
+    CancelScanHandler,
+  ],
 })
 export class CoverageModule implements OnModuleInit {
   private readonly runners: readonly TestRunner[];

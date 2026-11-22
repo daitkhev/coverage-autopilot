@@ -5,6 +5,7 @@ import type { Provider } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { CancelScanHandler } from '#coverage/application/commands/cancel-scan/cancel-scan.handler';
 import { RunScanHandler } from '#coverage/application/commands/run-scan/run-scan.handler';
 import { CoverageApi } from '#coverage/application/coverage-api';
 import { COVERAGE_SETTINGS } from '#coverage/application/coverage-settings';
@@ -170,6 +171,9 @@ describe('CoverageModule', () => {
 
     await expect(
       module.get(GetScanHandler).execute({ scanId: 'job-1' }),
+    ).resolves.toBeNull();
+    await expect(
+      module.get(CancelScanHandler).execute({ scanId: 'job-1' }),
     ).resolves.toBeNull();
   });
 
