@@ -179,10 +179,9 @@ describe('PatchView', () => {
 
   describe('when nothing answers the decision', () => {
     it('should say so', async () => {
+      const failure = new Error('socket closed');
       const { terminal } = reviewing({
-        scripted: {
-          approveImprovement: () => Promise.reject(new Error('socket closed')),
-        },
+        scripted: { approveImprovement: () => Promise.reject(failure) },
       });
 
       await press(terminal, KEYS.down, KEYS.enter);
@@ -247,6 +246,16 @@ describe('PatchView', () => {
       await press(terminal, KEYS.down, KEYS.down, KEYS.up);
 
       expect(frameOf(terminal)).toContain('line 2 of 40');
+    });
+  });
+
+  describe('when the patch adds no file', () => {
+    it('should say so and give no position', () => {
+      const empty = { ...PATCH_AWAITING_APPROVAL, patch: 'no diff' };
+      const { terminal } = reviewing({ patch: empty });
+
+      expect(frameOf(terminal)).toContain('The patch adds no file.');
+      expect(frameOf(terminal)).not.toContain('line 1 of');
     });
   });
 

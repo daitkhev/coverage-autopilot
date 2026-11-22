@@ -110,8 +110,9 @@ describe('CancelQuestion', () => {
 
   describe('when nothing answers the cancel', () => {
     it('should say so', async () => {
+      const failure = new Error('socket closed');
       const { terminal } = asked({
-        cancelImprovement: () => Promise.reject(new Error('socket closed')),
+        cancelImprovement: () => Promise.reject(failure),
       });
 
       await press(terminal, KEYS.down, KEYS.enter);

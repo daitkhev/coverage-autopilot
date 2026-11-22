@@ -53,6 +53,15 @@ describe('patchFilesOf', () => {
       expect(patchFilesOf('+a line before any file')).toEqual([]);
     });
   });
+
+  describe('when a file names no new side', () => {
+    it('should keep the names as they are written', () => {
+      const [file] = patchFilesOf('diff --git one two\n+added');
+
+      expect(file?.path).toBe('one two');
+      expect(file?.added).toEqual(['added']);
+    });
+  });
 });
 
 describe('loadPatch', () => {
@@ -73,14 +82,25 @@ describe('loadPatch', () => {
     );
   });
 
-  describe('when the service refuses the patch', () => {
+  describe('when the service refuses any of the three', () => {
     it('should answer the refusal', async () => {
-      const api = fakeServiceApi({
-        getImprovement: () => Promise.resolve(answered(WAITING)),
-        getImprovementPatch: () => Promise.resolve(NOT_ACCEPTED),
-      });
+      const improvement = () => Promise.resolve(answered(WAITING));
+      const patch = () => Promise.resolve(answered(PATCH_AWAITING_APPROVAL));
+      const refusing = () => Promise.resolve(NOT_ACCEPTED);
+      const scripts = [
+        { getImprovement: refusing },
+        { getImprovement: improvement, getImprovementPatch: refusing },
+        {
+          getImprovement: improvement,
+          getImprovementPatch: patch,
+          getRepository: refusing,
+        },
+      ];
 
-      expect(await loadPatch(api, WAITING.id)).toEqual(NOT_ACCEPTED);
+      for (const scripted of scripts) {
+        const api = fakeServiceApi(scripted);
+        expect(await loadPatch(api, WAITING.id)).toEqual(NOT_ACCEPTED);
+      }
     });
   });
 });
