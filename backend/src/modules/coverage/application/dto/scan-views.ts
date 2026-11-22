@@ -5,6 +5,7 @@ import type {
   ScanProgressDto,
 } from '#coverage/application/dto/scan.dto';
 import { scanDtoOf } from '#coverage/application/dto/scan-dto-mapping';
+import { MissingScanError } from '#coverage/application/errors/missing-scan.error';
 import { JOB_QUEUE, type JobDto, type JobQueue } from '#ports/job-queue.port';
 
 /**
@@ -29,6 +30,15 @@ export class ScanViews {
     const progress =
       job.status === 'leased' ? await this.progressOf(job) : null;
     return scanDtoOf(job, progress);
+  }
+
+  /** The scan of a job the caller knows to be a scan, such as one it queued. */
+  public async get(scanId: string): Promise<ScanDto> {
+    const scan = await this.find(scanId);
+    if (scan === null) {
+      throw new MissingScanError(`No scan job has the id ${scanId}.`);
+    }
+    return scan;
   }
 
   /** `null` when no job has the id, or the job is not a scan. */
