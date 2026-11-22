@@ -1022,9 +1022,13 @@ This list replaces them: what is not named here was found done.
 
 A real run can fail, or lose work that was paid for:
 
-- The image of the generator was never built by a real engine. Not
-  tried: the build itself, the label read from an image that has none,
-  `--pull=never` on an old engine, and a build that is cut short.
+- The image of the generator was built by a real engine once, on one
+  machine. Not tried: `--pull=never` on an old engine, a build that is
+  cut short, and any engine but Docker.
+- A build or a pull that waits says nothing in the log until it ends,
+  which may be ten minutes later. The engine is given the home of the
+  user, so it asks the helper that keeps the passwords of that user even
+  for a public image, and a helper that hangs holds every pull.
 - A build that fails ends the improvement as a generator that is not
   there, with the words of the engine. No call was paid for, but the
   attempt was opened before the image was asked for, so it is counted.
@@ -1321,3 +1325,27 @@ fails the improvement as an exposed credential and keeps its tokens.
   `backend/src/shared/infrastructure/sandbox/image-preparation.ts`,
   `backend/src/shared/infrastructure/sandbox/sandbox-images.ts`,
   `backend/src/composition/image-start.ts`.
+
+### What the first real engine showed
+
+- The service built the image of the generator on a real engine: a pull
+  of the base in 4 seconds, a build in 16, an image of 932 MB. The label
+  is read back, an image with no label at all answers with an empty
+  line and no error, a run of a name the engine does not have fails at
+  once, and the CLI answers as a user that is not root, on a root that
+  is read-only, with no network. A second start built nothing.
+- A scan of a real project ran in real containers: 97 packages from the
+  lockfile in a second, Vitest with the v8 provider in half a second.
+  The numbers were right, and a source file no test imports was listed
+  with nothing covered. The code host of that run was the stand-in.
+- The first build did not end. The helper of the engine that reads the
+  passwords of a registry hung. The time limit killed the program of the
+  engine alone, the helper kept its streams, and the call ended twelve
+  minutes after its start, when the helper was killed by hand, not ten.
+  The program of the engine leads a group of its own now, as a tool of
+  the host does, and a stop kills the group. A test plays a helper that
+  outlives its program.
+- Why a test did not find it: the stand-in of the engine started no
+  program of its own.
+- Where: `backend/src/shared/infrastructure/processes/kill-group.ts`,
+  `backend/src/shared/infrastructure/sandbox/engine-process.ts`.
