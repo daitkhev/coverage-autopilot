@@ -1,4 +1,5 @@
 import { type IncomingMessage, request } from 'node:http';
+import { dirname } from 'node:path';
 import { Writable } from 'node:stream';
 import { json } from 'node:stream/consumers';
 
@@ -9,6 +10,7 @@ import {
   createInstanceFolder,
   type InstanceFolder,
 } from '#tests/support/instance-folder';
+import { playingEngine } from '#tests/support/playing-engine';
 import { loadWith, PLAIN_MACHINE } from '#tests/support/service-variables';
 import { MIGRATIONS_FOLDER } from '#tests/support/temporary-database';
 
@@ -88,18 +90,32 @@ function collected(): { stream: Writable; text: () => string } {
 }
 
 /**
- * A bench whose configuration has these variables besides the folder, and
- * whatever `change` makes of it, such as an engine that is no container.
+ * The folder of the instance and the stand-in of the engine that plays
+ * the tools, so no start of a service reaches a container engine of the
+ * machine, and the variables a test sets.
+ */
+function variablesOf(
+  instance: InstanceFolder,
+  variables: Record<string, string>,
+): Record<string, string> {
+  const beside = dirname(instance.paths.directory);
+  return {
+    AUTOPILOT_INSTANCE_DIR: instance.paths.directory,
+    AUTOPILOT_SANDBOX_ENGINE: JSON.stringify(playingEngine(beside)),
+    ...variables,
+  };
+}
+
+/**
+ * A bench whose configuration has these variables besides the folder and
+ * the engine, and whatever `change` makes of it.
  */
 export function serviceBench(
   variables: Record<string, string> = {},
   change: (config: ServiceConfig) => ServiceConfig = (config) => config,
 ): ServiceBench {
   const instance: InstanceFolder = createInstanceFolder();
-  const own = {
-    AUTOPILOT_INSTANCE_DIR: instance.paths.directory,
-    ...variables,
-  };
+  const own = variablesOf(instance, variables);
   const config = change(loadWith(own));
   const log = collected();
   const runs: ServiceRun[] = [];

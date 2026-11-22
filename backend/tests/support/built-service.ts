@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { InstancePaths } from '#infrastructure/config/instance-paths';
 import { createInstanceFolder } from '#tests/support/instance-folder';
+import { playingEngine } from '#tests/support/playing-engine';
 import { askOver } from '#tests/support/service-bench';
 
 /** The service of the package the gate builds, at the root of the tree. */
@@ -67,8 +68,10 @@ function writtenTo(stream: Readable): Written {
 /**
  * Starts the built file under plain Node. The process gets exactly these
  * variables and nothing of the test process: a path to find git, a home
- * of its own, its instance folder, and what a test adds. A test that
- * names the instance of another service shares that instance.
+ * of its own, its instance folder, the stand-in of the engine that plays
+ * the tools, so it reaches no container engine of the machine, and what
+ * a test adds. A test that names the instance of another service shares
+ * that instance.
  */
 export function startBuiltService(
   variables: Readonly<Record<string, string>> = {},
@@ -78,6 +81,9 @@ export function startBuiltService(
     PATH: SEARCH_PATH,
     HOME: dirname(folder.paths.directory),
     AUTOPILOT_INSTANCE_DIR: folder.paths.directory,
+    AUTOPILOT_SANDBOX_ENGINE: JSON.stringify(
+      playingEngine(dirname(folder.paths.directory)),
+    ),
     ...variables,
   };
   const child = spawn(execPath, [BUILT_FILE], {
