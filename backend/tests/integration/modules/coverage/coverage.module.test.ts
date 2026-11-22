@@ -34,7 +34,10 @@ import { ARTIFACT_STORE } from '#ports/artifact-store.port';
 import { JOB_QUEUE } from '#ports/job-queue.port';
 import { SANDBOX } from '#ports/sandbox.port';
 import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
-import { REPOSITORIES_PUBLIC_API } from '#repositories/contracts/repositories-public-api';
+import {
+  REPOSITORIES_PUBLIC_API,
+  REPOSITORY_CONNECTIONS_API,
+} from '#repositories/contracts/repositories-public-api';
 import { FIRST_ID } from '#tests/support/coverage-application';
 import {
   CAPTURED_AT,
@@ -53,6 +56,7 @@ import {
   COVERAGE_TEST_SETTINGS,
   RecordingSandbox,
 } from '#tests/support/recording-sandbox';
+import { standInConnections } from '#tests/support/repository-view-world';
 import { SchemaRows } from '#tests/support/schema-rows';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
 import { standInRepositories } from '#tests/support/stand-in-repositories';
@@ -94,6 +98,7 @@ function jestSandbox(folder: ProjectFolder): RecordingSandbox {
 
 /** What the service gives the module. */
 function servicesOf(database: TemporaryDatabase, folder: ProjectFolder) {
+  const repositories = standInRepositories(folder.root);
   return [
     { provide: SQLITE_CONNECTION, useValue: database.connection },
     { provide: TRANSACTION_MANAGER, useClass: SqliteTransactionRunner },
@@ -102,9 +107,10 @@ function servicesOf(database: TemporaryDatabase, folder: ProjectFolder) {
     { provide: JOB_QUEUE, useValue: recordingQueue() },
     { provide: CLOCK, useValue: new FixedClock(CAPTURED_AT) },
     { provide: ID_GENERATOR, useValue: new SequentialIdGenerator() },
+    { provide: REPOSITORIES_PUBLIC_API, useValue: repositories },
     {
-      provide: REPOSITORIES_PUBLIC_API,
-      useValue: standInRepositories(folder.root),
+      provide: REPOSITORY_CONNECTIONS_API,
+      useValue: standInConnections(repositories),
     },
     { provide: COVERAGE_SETTINGS, useValue: COVERAGE_TEST_SETTINGS },
   ] satisfies Provider[];

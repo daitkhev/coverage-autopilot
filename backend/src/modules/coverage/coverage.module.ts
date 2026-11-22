@@ -3,6 +3,7 @@ import { Inject, Module, type OnModuleInit } from '@nestjs/common';
 import { CancelScanHandler } from '#coverage/application/commands/cancel-scan/cancel-scan.handler';
 import { CaptureSnapshotHandler } from '#coverage/application/commands/capture-snapshot/capture-snapshot.handler';
 import { SnapshotCapture } from '#coverage/application/commands/capture-snapshot/snapshot-capture';
+import { ConnectRepositoryHandler } from '#coverage/application/commands/connect-repository/connect-repository.handler';
 import { PrepareProjectHandler } from '#coverage/application/commands/prepare-project/prepare-project.handler';
 import { RunScanHandler } from '#coverage/application/commands/run-scan/run-scan.handler';
 import { RunTestsHandler } from '#coverage/application/commands/run-tests/run-tests.handler';
@@ -13,6 +14,7 @@ import {
   COVERAGE_SETTINGS,
   type CoverageSettings,
 } from '#coverage/application/coverage-settings';
+import { RepositoryViews } from '#coverage/application/dto/repository-views';
 import { ScanViews } from '#coverage/application/dto/scan-views';
 import { TestRunnerUnavailableError } from '#coverage/application/errors/test-runner-unavailable.error';
 import { COVERAGE_REPORT_READER } from '#coverage/application/ports/coverage-report-reader.port';
@@ -23,8 +25,10 @@ import {
   type TestRunner,
 } from '#coverage/application/ports/test-runner.port';
 import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
+import { GetRepositoryHandler } from '#coverage/application/queries/get-repository/get-repository.handler';
 import { GetScanHandler } from '#coverage/application/queries/get-scan/get-scan.handler';
 import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
+import { ListRepositoriesHandler } from '#coverage/application/queries/list-repositories/list-repositories.handler';
 import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
 import { COVERAGE_PUBLIC_API } from '#coverage/contracts/coverage-public-api';
@@ -82,6 +86,10 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
     GetScanHandler,
     CancelScanHandler,
     ListSnapshotsHandler,
+    RepositoryViews,
+    ConnectRepositoryHandler,
+    GetRepositoryHandler,
+    ListRepositoriesHandler,
     { provide: COVERAGE_PUBLIC_API, useClass: CoverageApi },
   ],
   exports: [
