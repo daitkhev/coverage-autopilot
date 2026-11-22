@@ -57,6 +57,38 @@ describe('AccessProbe', () => {
       });
     });
 
+    describe('when git is older than 2.36', () => {
+      it('should fail the first step with the version it found', async () => {
+        world.git.versionAnswer = {
+          outcome: 'found',
+          version: 'git version 2.35.8',
+        };
+
+        expect(await failedStep()).toEqual({
+          name: 'git_present',
+          status: 'failed',
+          message:
+            'Found git version 2.35.8, and the service needs git 2.36 or newer. Install it and check again.',
+          toolOutput: null,
+        });
+        expect(world.host.calls).toEqual([]);
+      });
+    });
+
+    describe('when git names no version', () => {
+      it('should fail the first step with the answer of git', async () => {
+        world.git.versionAnswer = { outcome: 'found', version: 'git 2' };
+
+        expect(await failedStep()).toEqual({
+          name: 'git_present',
+          status: 'failed',
+          message:
+            'git answered with no version the service can read, and it needs git 2.36 or newer.',
+          toolOutput: 'git 2',
+        });
+      });
+    });
+
     describe('when gh is missing', () => {
       it('should fail the second step and say what to do', async () => {
         world.host.loginAnswer = { outcome: 'missing' };

@@ -2,6 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { CLOCK, type Clock } from '#kernel/time/clock';
 import {
+  gitVersionOf,
+  isOlder,
+  OLDEST_GIT,
+  versionText,
+} from '#repositories/application/commands/check-access/git-version';
+import {
   CODE_HOST,
   type CodeHost,
 } from '#repositories/application/ports/code-host.port';
@@ -25,6 +31,24 @@ function notInstalled(tool: string): AccessStepOutcome {
   return failed(
     `${tool} is not installed, or not on the PATH of the service. Install it and check again.`,
   );
+}
+
+const NEEDED_GIT = `git ${versionText(OLDEST_GIT)} or newer`;
+
+/** A git that is too old is a failed step, not a fault: the user can act. */
+function gitVersionStep(answer: string): AccessStepOutcome {
+  const version = gitVersionOf(answer);
+  if (version === null) {
+    return failed(
+      `git answered with no version the service can read, and it needs ${NEEDED_GIT}.`,
+      answer,
+    );
+  }
+  return isOlder(version, OLDEST_GIT)
+    ? failed(
+        `Found ${answer}, and the service needs ${NEEDED_GIT}. Install it and check again.`,
+      )
+    : { status: 'passed', message: `Found ${answer}.` };
 }
 
 /**
@@ -77,7 +101,7 @@ export class AccessProbe {
   private async gitPresent(signal: AbortSignal): Promise<AccessStepOutcome> {
     const found = await this.git.version(signal);
     return found.outcome === 'found'
-      ? { status: 'passed', message: `Found ${found.version}.` }
+      ? gitVersionStep(found.version)
       : notInstalled('git');
   }
 
