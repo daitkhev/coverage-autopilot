@@ -1,0 +1,17 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ImprovementSummary > should say what a finished improvement did, and how long ago 1`] = `
+"✓ DONE  attempt 2 · patch 9c1e7ab
+
+HOW IT ENDED ───────────────────────────
+pull request #131
+ended 45m ago
+
+ATTEMPT 2 ──────────────────────────────
+✓ accepted
+Lines        41.2% → 88.2%
+Mutants      11 of 14 detected
+
+NEXT ───────────────────────────────────
+enter see how it ended"
+`;
