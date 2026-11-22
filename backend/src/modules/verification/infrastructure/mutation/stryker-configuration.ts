@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 import type { FilePath } from '#kernel/primitives/file-path';
 import type {
   MutationRunRequest,
@@ -19,8 +21,26 @@ export const REPORT_FILE = `${MUTATION_FOLDER}/report.json`;
 /** Where the incremental mode of StrykerJS reads and writes its cache. */
 export const CACHE_FILE = `${MUTATION_FOLDER}/incremental.json`;
 
+/**
+ * The tool has a folder of its own beside the packages of the project. An
+ * install among them would reshape a tree that pnpm or yarn laid out, and
+ * npm would fetch the packages of the project again without the lockfile.
+ * Under `node_modules` no patch can take it, and the tool copies nothing
+ * from there into its sandbox.
+ */
+const TOOL_FOLDER = 'node_modules/.cache/coverage-autopilot/mutation';
+
 /** Started by its path, so no script of the repository can swap it. */
-const STRYKER = 'node_modules/@stryker-mutator/core/bin/stryker.js';
+const STRYKER = `${TOOL_FOLDER}/node_modules/@stryker-mutator/core/bin/stryker.js`;
+
+/**
+ * pnpm links into `node_modules` only the packages the manifest names, and
+ * every other package into this folder. The runner of Jest looks for the
+ * environment of the tests from the sandbox of the tool, which links the
+ * `node_modules` of the copy, so it finds it only through `NODE_PATH`. A
+ * copy that no pnpm installed has no such folder, and Node skips it.
+ */
+const PNPM_HOISTED = 'node_modules/.pnpm/node_modules';
 
 /** Characters minimatch reads as a pattern, each made a class of itself. */
 const PATTERN_CHARACTERS = /[*?[\]()]/gu;
@@ -45,10 +65,10 @@ export function mutatePatternOf(path: FilePath): string {
 }
 
 /**
- * The tool and its runner plugin at the version of the settings, next to
- * the packages of the project. It runs while the network is open, so no
- * script of a package runs, and the manifest and the lockfile of the
- * project are left as they are.
+ * The tool and its runner plugin at the version of the settings, in the
+ * folder of the tool, with the cache of npm there as well. It runs while
+ * the network is open, so no script of a package runs. No peer is
+ * installed: the runner plugin then loads the test runner of the project.
  */
 export function installCommandOf(
   request: MutationToolRequest,
@@ -58,11 +78,14 @@ export function installCommandOf(
   return [
     'npm',
     'install',
+    ...['--prefix', TOOL_FOLDER],
     '--no-save',
     '--no-package-lock',
     '--ignore-scripts',
+    '--legacy-peer-deps',
     '--no-audit',
     '--no-fund',
+    ...['--cache', `${TOOL_FOLDER}/cache`],
     `@stryker-mutator/core@${version}`,
     `@stryker-mutator/${request.testRunner}-runner@${version}`,
   ];
@@ -75,6 +98,13 @@ export const RUN_COMMAND: readonly string[] = [
   'run',
   CONFIG_FILE,
 ];
+
+/** The variables of a run besides those of the settings. */
+export function runVariablesOf(
+  workingCopyPath: string,
+): Readonly<Record<string, string>> {
+  return { NODE_PATH: join(workingCopyPath, PNPM_HOISTED) };
+}
 
 /**
  * Left alone, each runner starts only the tests it finds related to the

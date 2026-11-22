@@ -37,6 +37,8 @@ import { StrykerMutationRunner } from '#verification/infrastructure/mutation/str
 
 const ENVIRONMENT = MUTATION_TEST_SETTINGS.commandEnvironment;
 
+const TOOL = 'node_modules/.cache/coverage-autopilot/mutation';
+
 let bench: MutationBench;
 
 function placeOf(mutant: MutantResult): string {
@@ -69,7 +71,7 @@ afterEach(() => {
 describe('StrykerMutationRunner', () => {
   describe('measureBaseline', () => {
     it.each(['jest', 'vitest'] as const)(
-      'should install the tool and its %s runner, with the network open',
+      'should install the tool and its %s runner in a folder of its own, with the network open',
       async (testRunner) => {
         await bench.measureBaseline(bench.request(testRunner));
 
@@ -78,11 +80,14 @@ describe('StrykerMutationRunner', () => {
           command: [
             'npm',
             'install',
+            ...['--prefix', TOOL],
             '--no-save',
             '--no-package-lock',
             '--ignore-scripts',
+            '--legacy-peer-deps',
             '--no-audit',
             '--no-fund',
+            ...['--cache', `${TOOL}/cache`],
             '@stryker-mutator/core@10.1.1',
             `@stryker-mutator/${testRunner}-runner@10.1.1`,
           ],
@@ -101,11 +106,14 @@ describe('StrykerMutationRunner', () => {
         workingCopyPath: bench.root,
         command: [
           'node',
-          'node_modules/@stryker-mutator/core/bin/stryker.js',
+          `${TOOL}/node_modules/@stryker-mutator/core/bin/stryker.js`,
           'run',
           CONFIG,
         ],
-        environment: ENVIRONMENT,
+        environment: {
+          ...ENVIRONMENT,
+          NODE_PATH: `${bench.root}/node_modules/.pnpm/node_modules`,
+        },
         network: 'none',
         timeoutMs: RUN_TIMEOUT_MS,
       });

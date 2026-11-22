@@ -27,6 +27,7 @@ import {
   installCommandOf,
   REPORT_FILE,
   RUN_COMMAND,
+  runVariablesOf,
   strykerConfigurationOf,
 } from '#verification/infrastructure/mutation/stryker-configuration';
 import { mutantsOf } from '#verification/infrastructure/mutation/stryker-mutants';
@@ -229,7 +230,10 @@ export class StrykerMutationRunner implements MutationRunner {
       {
         workingCopyPath: request.workingCopyPath,
         command: RUN_COMMAND,
-        environment: this.settings.commandEnvironment,
+        environment: {
+          ...this.settings.commandEnvironment,
+          ...runVariablesOf(request.workingCopyPath),
+        },
         network: 'none',
         timeoutMs: request.timeoutMs,
       },

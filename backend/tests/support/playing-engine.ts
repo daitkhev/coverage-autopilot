@@ -83,7 +83,8 @@ const LOOKS_OF_AN_ORPHAN = 30_000;
 /** The programs the adapters start by their paths in the copy. */
 const COMPILER = 'node_modules/typescript/bin/tsc';
 const JEST = 'node_modules/jest/bin/jest.js';
-const STRYKER = 'node_modules/@stryker-mutator/core/bin/stryker.js';
+const STRYKER =
+  'node_modules/.cache/coverage-autopilot/mutation/node_modules/@stryker-mutator/core/bin/stryker.js';
 
 /** Jest writes its report as this file in the folder it is given. */
 const COVERAGE_FILE = 'coverage-final.json';

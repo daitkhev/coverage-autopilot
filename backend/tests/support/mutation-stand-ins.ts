@@ -25,7 +25,8 @@ export const CONFIG = `${FOLDER}/stryker.config.json`;
 export const REPORT = `${FOLDER}/report.json`;
 export const CACHE = `${FOLDER}/incremental.json`;
 
-const STRYKER = 'node_modules/@stryker-mutator/core/bin/stryker.js';
+const STRYKER =
+  'node_modules/.cache/coverage-autopilot/mutation/node_modules/@stryker-mutator/core/bin/stryker.js';
 
 /** Files by their paths in the working copy, with their text. */
 export type Files = Readonly<Record<string, string>>;
