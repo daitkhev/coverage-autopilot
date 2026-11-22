@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 
 import type { Finding } from '#harness/architecture/finding';
-import type { Lists } from '#harness/architecture/lists';
+import type { Lists, TreeLists } from '#harness/architecture/lists';
 import { HarnessError } from '#harness/shared/harness.error';
 import { isRecord, isStringList, type JsonRecord } from '#harness/shared/json';
 
@@ -41,13 +41,18 @@ function contractsIn(lists: JsonRecord): Record<string, string[]> {
   );
 }
 
+/**
+ * A baseline written before a migration was recorded by its name holds
+ * its whole path, and is read as the name at its end. So a tree is
+ * compared with an older commit across a move of the folder.
+ */
 function migrationsIn(lists: JsonRecord): Record<string, string> {
   return Object.fromEntries(
     entriesAt(lists, 'migrations').map(([path, hash]) => {
       if (typeof hash !== 'string') {
         throw new HarnessError(`${BASELINE}: "${path}" must have a hash.`);
       }
-      return [path, hash];
+      return [posix.basename(path), hash];
     }),
   );
 }
@@ -84,9 +89,12 @@ function at(rule: string, path: string, detail: string): Finding {
  * Recorded migrations that are gone or are no longer what was recorded.
  * No command of the ratchet accepts one: a migration is never edited.
  */
-export function migrationFindings(recorded: Lists, current: Lists): Finding[] {
-  return Object.entries(recorded.migrations).flatMap(([path, hash]) => {
-    const now = current.migrations[path];
+export function migrationFindings(
+  recorded: Lists,
+  current: TreeLists,
+): Finding[] {
+  return Object.entries(recorded.migrations).flatMap(([name, hash]) => {
+    const now = current.migrations[name];
     if (now === hash) {
       return [];
     }
@@ -94,6 +102,7 @@ export function migrationFindings(recorded: Lists, current: Lists): Finding[] {
       now === undefined
         ? 'A recorded migration was removed.'
         : 'A recorded migration was changed. Write a new migration instead.';
+    const path = `${current.migrationsFolder}${name}`;
     return [at('recorded-migration', path, detail)];
   });
 }
@@ -122,11 +131,15 @@ function contractFindings(recorded: Lists, current: Lists): Finding[] {
   });
 }
 
-function newMigrations(recorded: Lists, current: Lists): Finding[] {
+function newMigrations(recorded: Lists, current: TreeLists): Finding[] {
   return Object.keys(current.migrations)
-    .filter((path) => recorded.migrations[path] === undefined)
-    .map((path) =>
-      at('baseline', path, `This migration is not recorded. ${WRITE_IT}`),
+    .filter((name) => recorded.migrations[name] === undefined)
+    .map((name) =>
+      at(
+        'baseline',
+        `${current.migrationsFolder}${name}`,
+        `This migration is not recorded. ${WRITE_IT}`,
+      ),
     );
 }
 
@@ -136,7 +149,7 @@ function newMigrations(recorded: Lists, current: Lists): Finding[] {
  */
 export function listFindings(
   recorded: Lists | HarnessError | undefined,
-  current: Lists,
+  current: TreeLists,
 ): Finding[] {
   if (recorded === undefined) {
     return [at('baseline', BASELINE, `There is no baseline. ${WRITE_IT}`)];

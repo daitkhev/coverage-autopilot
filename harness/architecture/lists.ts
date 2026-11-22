@@ -10,8 +10,17 @@ import type { Structure } from '#harness/shared/structure';
 export interface Lists {
   /** The names each module exports from its contracts, sorted. */
   readonly contracts: Readonly<Record<string, readonly string[]>>;
-  /** The SHA-256 of each migration, by its path. */
+  /**
+   * The SHA-256 of each migration, by the name of its file. A migration
+   * is the same one wherever the policy puts the folder of the migrations.
+   */
   readonly migrations: Readonly<Record<string, string>>;
+}
+
+/** The lists of a tree, with the folder its migrations are in. */
+export interface TreeLists extends Lists {
+  /** As the policy names it, with a slash at the end. */
+  readonly migrationsFolder: string;
 }
 
 const MIGRATION = '.sql';
@@ -37,23 +46,26 @@ function contractsOf(tree: Tree, structure: Structure): [string, string[]][] {
   });
 }
 
+/** The files of the folder itself: the service applies no file below it. */
 function migrationsOf(tree: Tree, folder: string): [string, string][] {
   return tree.files
     .filter((path) => path.startsWith(folder) && path.endsWith(MIGRATION))
-    .map((path) => {
-      const bytes = readFileSync(join(tree.root, path));
-      return [path, createHash('sha256').update(bytes).digest('hex')];
+    .map((path) => path.slice(folder.length))
+    .filter((name) => !name.includes('/'))
+    .map((name) => {
+      const bytes = readFileSync(join(tree.root, folder, name));
+      return [name, createHash('sha256').update(bytes).digest('hex')];
     });
 }
 
 /** The lists of the tree under `root`, as it is now. */
-export function listsOf(root: string, structure: Structure): Lists {
+export function listsOf(root: string, structure: Structure): TreeLists {
   const files = listFiles(root).filter((path) => existsSync(join(root, path)));
   const tree = { root, files };
+  const migrationsFolder = structure.backend.migrations;
   return {
     contracts: Object.fromEntries(contractsOf(tree, structure)),
-    migrations: Object.fromEntries(
-      migrationsOf(tree, structure.backend.migrations),
-    ),
+    migrations: Object.fromEntries(migrationsOf(tree, migrationsFolder)),
+    migrationsFolder,
   };
 }

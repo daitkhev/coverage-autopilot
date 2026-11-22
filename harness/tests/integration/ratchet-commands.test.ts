@@ -17,7 +17,9 @@ import {
   temporaryRepository,
 } from '#harness/tests/support/temporary-repository';
 
-const MIGRATION = 'backend/migrations/0001-first.sql';
+const MIGRATIONS = 'backend/migrations';
+const NAME = '0001-first.sql';
+const MIGRATION = `${MIGRATIONS}/${NAME}`;
 const CONTRACT =
   'backend/src/modules/coverage/application/contracts/report.dto.ts';
 const NO_COMMIT = '0000000000000000000000000000000000000000';
@@ -38,6 +40,18 @@ function rulesFound(): string[] {
 
 function recorded(): Lists {
   return parseLists(readFileSync(join(repository.root, BASELINE), 'utf8'));
+}
+
+/**
+ * Records one migration the way a baseline did before a migration was
+ * recorded by its name. Returns the text that records it by its name.
+ */
+function recordByPath(): string {
+  repository.write(MIGRATION, 'create table a (id integer);\n');
+  writeBaseline(repository.root);
+  const byName = readFileSync(join(repository.root, BASELINE), 'utf8');
+  repository.write(BASELINE, byName.replace(NAME, `old/place/${NAME}`));
+  return byName;
 }
 
 function limits(lines: number, coverage: number): string {
@@ -118,8 +132,8 @@ describe('writeBaseline', () => {
       repositories: [],
       verification: [],
     });
-    expect(Object.keys(recorded().migrations)).toEqual([MIGRATION]);
-    expect(recorded().migrations[MIGRATION]).toMatch(/^[0-9a-f]{64}$/);
+    expect(Object.keys(recorded().migrations)).toEqual([NAME]);
+    expect(recorded().migrations[NAME]).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('should write over a baseline that cannot be read', () => {
@@ -137,6 +151,16 @@ describe('writeBaseline', () => {
     expect(writeBaseline(repository.root).notes).toEqual([
       `${BASELINE} is up to date.`,
     ]);
+  });
+
+  it('should write anew a baseline that names a migration by its path', () => {
+    const byName = recordByPath();
+
+    expect(checkTree(repository.root).findings).toEqual([]);
+    expect(writeBaseline(repository.root).notes).toEqual([
+      `${BASELINE} was written.`,
+    ]);
+    expect(readFileSync(join(repository.root, BASELINE), 'utf8')).toBe(byName);
   });
 
   it('should refuse while a rule has a finding', () => {
@@ -215,6 +239,30 @@ describe('compareWithBase', () => {
     ).toEqual(['recorded-migration']);
   });
 
+  it('should take a migration for the same one when its folder moved', () => {
+    recordByPath();
+    const base = repository.commit();
+    writeBaseline(repository.root);
+
+    expect(compareWithBase(repository.root, base).findings).toEqual([]);
+  });
+
+  it('should catch a migration that changed when its folder moved', () => {
+    recordByPath();
+    const base = repository.commit();
+    repository.write(MIGRATION, 'create table a (id text);\n');
+
+    expect(compareWithBase(repository.root, base).findings).toEqual([
+      {
+        rule: 'recorded-migration',
+        path: MIGRATION,
+        line: 1,
+        detail:
+          'A recorded migration was changed. Write a new migration instead.',
+      },
+    ]);
+  });
+
   it('should catch a limit that got looser than the base has it', () => {
     repository.write(LIMITS, limits(300, 95));
     const base = repository.commit();
@@ -254,7 +302,7 @@ describe('compareWithBase', () => {
     writeBaseline(repository.root);
     const base = repository.commit();
     repository.write(LIMITS, limits(250, 97));
-    repository.write('backend/migrations/0002-second.sql', 'select 1;\n');
+    repository.write(`${MIGRATIONS}/0002-second.sql`, 'select 1;\n');
 
     expect(compareWithBase(repository.root, base).findings).toEqual([]);
   });

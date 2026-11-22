@@ -63,10 +63,13 @@ export function writeBaseline(root: string): Outcome {
     return { findings, notes: ['Nothing was written.'] };
   }
   const text = formatLists(current);
-  const same = recorded !== undefined && formatLists(recorded) === text;
+  const path = join(root, BASELINE);
+  // The file is compared and not what was read from it: a baseline of an
+  // older shape reads the same and is still written anew.
+  const same = existsSync(path) && readFileSync(path, 'utf8') === text;
   if (!same) {
-    mkdirSync(dirname(join(root, BASELINE)), { recursive: true });
-    writeFileSync(join(root, BASELINE), text);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, text);
   }
   const note = same ? 'is up to date.' : 'was written.';
   return { findings: [], notes: [`${BASELINE} ${note}`] };

@@ -7,17 +7,23 @@ import {
   migrationFindings,
   parseLists,
 } from '#harness/architecture/baseline';
-import type { Lists } from '#harness/architecture/lists';
+import type { Lists, TreeLists } from '#harness/architecture/lists';
 import { HarnessError } from '#harness/shared/harness.error';
 
-const FIRST = 'backend/migrations/0001-first.sql';
-const SECOND = 'backend/migrations/0002-second.sql';
+const FOLDER = 'backend/store/migrations/';
+const FIRST = '0001-first.sql';
+const SECOND = '0002-second.sql';
+const PLACED = `${FOLDER}${FIRST}`;
 
 function listsOf(shape: Partial<Lists>): Lists {
   return {
     contracts: shape.contracts ?? {},
     migrations: shape.migrations ?? {},
   };
+}
+
+function treeOf(shape: Partial<Lists>): TreeLists {
+  return { ...listsOf(shape), migrationsFolder: FOLDER };
 }
 
 describe('formatLists', () => {
@@ -60,17 +66,26 @@ describe('parseLists', () => {
   ])('should refuse a baseline with %s', (_, text) => {
     expect(() => parseLists(text)).toThrow(HarnessError);
   });
+
+  it('should read a migration recorded by its whole path as its name', () => {
+    const text = JSON.stringify({
+      schema: 1,
+      lists: { contracts: {}, migrations: { [`old/place/${FIRST}`]: 'aa' } },
+    });
+
+    expect(parseLists(text).migrations).toEqual({ [FIRST]: 'aa' });
+  });
 });
 
 describe('migrationFindings', () => {
   it('should report a recorded migration that changed', () => {
     const recorded = listsOf({ migrations: { [FIRST]: 'aa' } });
-    const current = listsOf({ migrations: { [FIRST]: 'bb' } });
+    const current = treeOf({ migrations: { [FIRST]: 'bb' } });
 
     expect(migrationFindings(recorded, current)).toEqual([
       {
         rule: 'recorded-migration',
-        path: FIRST,
+        path: PLACED,
         line: 1,
         detail:
           'A recorded migration was changed. Write a new migration instead.',
@@ -81,10 +96,10 @@ describe('migrationFindings', () => {
   it('should report a recorded migration that is gone', () => {
     const recorded = listsOf({ migrations: { [FIRST]: 'aa' } });
 
-    expect(migrationFindings(recorded, listsOf({}))).toEqual([
+    expect(migrationFindings(recorded, treeOf({}))).toEqual([
       {
         rule: 'recorded-migration',
-        path: FIRST,
+        path: PLACED,
         line: 1,
         detail: 'A recorded migration was removed.',
       },
@@ -93,7 +108,7 @@ describe('migrationFindings', () => {
 
   it('should pass a new migration and an untouched one', () => {
     const recorded = listsOf({ migrations: { [FIRST]: 'aa' } });
-    const current = listsOf({ migrations: { [FIRST]: 'aa', [SECOND]: 'bb' } });
+    const current = treeOf({ migrations: { [FIRST]: 'aa', [SECOND]: 'bb' } });
 
     expect(migrationFindings(recorded, current)).toEqual([]);
   });
@@ -101,7 +116,7 @@ describe('migrationFindings', () => {
 
 describe('listFindings', () => {
   it('should report a tree with no baseline', () => {
-    expect(listFindings(undefined, listsOf({}))).toEqual([
+    expect(listFindings(undefined, treeOf({}))).toEqual([
       {
         rule: 'baseline',
         path: BASELINE,
@@ -114,7 +129,7 @@ describe('listFindings', () => {
   it('should report a baseline that cannot be read, with the reason', () => {
     const unreadable = new HarnessError(`${BASELINE} is not JSON.`);
 
-    expect(listFindings(unreadable, listsOf({}))).toEqual([
+    expect(listFindings(unreadable, treeOf({}))).toEqual([
       {
         rule: 'baseline',
         path: BASELINE,
@@ -127,7 +142,7 @@ describe('listFindings', () => {
   });
 
   it('should pass a tree that is what the baseline records', () => {
-    const lists = listsOf({
+    const lists = treeOf({
       contracts: { store: ['Item'] },
       migrations: { [FIRST]: 'aa' },
     });
@@ -137,7 +152,7 @@ describe('listFindings', () => {
 
   it('should report contracts that grew and contracts that shrank', () => {
     const recorded = listsOf({ contracts: { store: ['Item', 'find'] } });
-    const current = listsOf({ contracts: { store: ['Item', 'save'] } });
+    const current = treeOf({ contracts: { store: ['Item', 'save'] } });
 
     expect(listFindings(recorded, current).map((f) => f.detail)).toEqual([
       'The contracts of store changed: added [save], removed [find]. ' +
@@ -147,18 +162,18 @@ describe('listFindings', () => {
 
   it('should report a module the baseline does not know', () => {
     const recorded = listsOf({ contracts: { store: [] } });
-    const current = listsOf({ contracts: { store: [], runs: ['Run'] } });
+    const current = treeOf({ contracts: { store: [], runs: ['Run'] } });
 
     expect(listFindings(recorded, current)).toHaveLength(1);
   });
 
   it('should report a migration that is not recorded yet', () => {
-    const current = listsOf({ migrations: { [FIRST]: 'aa' } });
+    const current = treeOf({ migrations: { [FIRST]: 'aa' } });
 
     expect(listFindings(listsOf({}), current)).toEqual([
       {
         rule: 'baseline',
-        path: FIRST,
+        path: PLACED,
         line: 1,
         detail:
           'This migration is not recorded. ' +
@@ -169,7 +184,7 @@ describe('listFindings', () => {
 
   it('should report a recorded migration that changed', () => {
     const recorded = listsOf({ migrations: { [FIRST]: 'aa' } });
-    const current = listsOf({ migrations: { [FIRST]: 'bb' } });
+    const current = treeOf({ migrations: { [FIRST]: 'bb' } });
 
     expect(listFindings(recorded, current).map((f) => f.rule)).toEqual([
       'recorded-migration',

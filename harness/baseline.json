@@ -78,14 +78,14 @@
       ]
     },
     "migrations": {
-      "backend/migrations/0001-create-the-schema.sql": "7657cd6564bf8063459cba98cca9d0627118ef24f7b6efc6157be22c865569c3",
-      "backend/migrations/0002-let-an-improvement-wait-for-a-limit.sql": "92a47bf91a78b8bec08697879f787544c054997cacaeac3014a1222fd844ac42",
-      "backend/migrations/0003-record-the-head-of-a-repository.sql": "c977ac514b8096e0c911c1f512408c19a35fb1db3f44c06530a0adacd7865056",
-      "backend/migrations/0004-count-the-statements-and-functions-of-a-file.sql": "f5df9809088c0fccc4b131757580476d86150e6830695cf3849116b36a4f01f7",
-      "backend/migrations/0005-keep-what-an-improvement-and-its-attempts-show.sql": "99a3067f08802abb3a71e08d0dc1f0b5b6bbdf6258681af0289abaf859e1d007",
-      "backend/migrations/0006-let-a-job-wait-for-its-moment.sql": "59a823bed9afe6ffffa10e71790dc74ce1dd9e4a8f2bb089c943f3bc798d0362",
-      "backend/migrations/0007-keep-the-moment-a-job-started.sql": "0d8c7b07cf56c1aeccdd1ccd8db96efa2b1878a317b40ea1926db6defed82586",
-      "backend/migrations/0008-find-the-open-jobs-of-a-subject.sql": "8d3587f44ec9b06556431701d741e643973d2a23f5ce49e0592e56c815db6b5d"
+      "0001-create-the-schema.sql": "7657cd6564bf8063459cba98cca9d0627118ef24f7b6efc6157be22c865569c3",
+      "0002-let-an-improvement-wait-for-a-limit.sql": "92a47bf91a78b8bec08697879f787544c054997cacaeac3014a1222fd844ac42",
+      "0003-record-the-head-of-a-repository.sql": "c977ac514b8096e0c911c1f512408c19a35fb1db3f44c06530a0adacd7865056",
+      "0004-count-the-statements-and-functions-of-a-file.sql": "f5df9809088c0fccc4b131757580476d86150e6830695cf3849116b36a4f01f7",
+      "0005-keep-what-an-improvement-and-its-attempts-show.sql": "99a3067f08802abb3a71e08d0dc1f0b5b6bbdf6258681af0289abaf859e1d007",
+      "0006-let-a-job-wait-for-its-moment.sql": "59a823bed9afe6ffffa10e71790dc74ce1dd9e4a8f2bb089c943f3bc798d0362",
+      "0007-keep-the-moment-a-job-started.sql": "0d8c7b07cf56c1aeccdd1ccd8db96efa2b1878a317b40ea1926db6defed82586",
+      "0008-find-the-open-jobs-of-a-subject.sql": "8d3587f44ec9b06556431701d741e643973d2a23f5ce49e0592e56c815db6b5d"
     }
   }
 }
