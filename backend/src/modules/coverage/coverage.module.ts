@@ -41,18 +41,20 @@ import { IstanbulReportReader } from '#coverage/infrastructure/reports/istanbul-
 import { JEST_COMMAND } from '#coverage/infrastructure/runners/jest-command';
 import { SandboxedTestRunner } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
 import { VITEST_COMMAND } from '#coverage/infrastructure/runners/vitest-command';
+import { ScansController } from '#coverage/presentation/http/scans.controller';
 import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
 
 /**
  * Project detection, test runs with coverage, the reading of reports,
- * snapshots and thresholds.
+ * snapshots and thresholds, and the routes of scans.
  *
- * It takes from the modules around it: the contract of `repositories`,
+ * It takes from the modules around it: both contracts of `repositories`,
  * the sandbox, the store of tool output, the queue, the transaction
  * manager, the SQLite connection, the clock, the id generator and the
  * settings of this module.
  */
 @Module({
+  controllers: [ScansController],
   providers: [
     {
       provide: COVERAGE_SNAPSHOT_REPOSITORY,
