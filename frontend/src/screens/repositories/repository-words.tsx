@@ -10,6 +10,7 @@ import {
   isOlderThan,
   STALE_AFTER_MS,
 } from '#theme/moments';
+import { shortHash } from '#theme/names';
 import type { Role } from '#theme/roles';
 import type { GlyphName } from '#theme/symbols';
 
@@ -25,9 +26,6 @@ export const ROW_LOOKS: Readonly<
   scanned: { glyph: 'on', role: 'success' },
   unscanned: { glyph: 'notStarted', role: 'secondary' },
 };
-
-/** A commit is named by its first cells, as git names it. */
-const SHORT_COMMIT = 7;
 
 /** The steps of a scan in plain words. A step the client does not know is said by its code. */
 const STEP_WORDS: ReadonlyMap<string, string> = new Map([
@@ -113,7 +111,7 @@ function snapshotFacts(repository: Repository, now: string): Fact[] {
   if (latestSnapshot === null) {
     return [{ text: defaultBranch }, { text: 'press s to scan' }];
   }
-  const commit = latestSnapshot.commitSha.slice(0, SHORT_COMMIT);
+  const commit = shortHash(latestSnapshot.commitSha);
   return [
     { text: defaultBranch },
     { text: commit },

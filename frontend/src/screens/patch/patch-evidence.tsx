@@ -19,8 +19,8 @@ import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
 import { StatusIndicator } from '#components/status-indicator';
-import { SHORT_HASH } from '#screens/patch/patch-lines';
 import { durationWords } from '#theme/moments';
+import { shortHash } from '#theme/names';
 import { ATTEMPT_VERDICT } from '#theme/status';
 import { GAP, PERCENT_CELLS } from '#theme/widths';
 
@@ -108,7 +108,7 @@ function Verdict({
       <StatusIndicator look={{ ...look, word: look.word.toUpperCase() }} />
       <Text wrap="truncate-end">
         <RoleText role="secondary">
-          {`attempt ${String(patch.attemptNumber)} · patch ${patch.patchHash.slice(0, SHORT_HASH)}`}
+          {`attempt ${String(patch.attemptNumber)} · patch ${shortHash(patch.patchHash)}`}
         </RoleText>
       </Text>
     </Box>

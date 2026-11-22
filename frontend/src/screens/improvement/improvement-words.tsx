@@ -75,6 +75,3 @@ export const SKIP_WORDS: Readonly<Record<SkipReason, string>> = {
   threshold_met: 'The file is already above the threshold',
   no_undetected_mutants: 'The tests already detect every mutant',
 };
-
-/** The cells of a short commit or hash, as git prints it. */
-export const SHORT_HASH = 7;

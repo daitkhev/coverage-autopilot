@@ -5,10 +5,8 @@ import { DiffViewer } from '#components/diff-viewer';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import type { PatchFile } from '#screens/patch/patch-answer';
+import { shortHash } from '#theme/names';
 import { GAP } from '#theme/widths';
-
-/** The cells of a short hash, as git prints it. */
-export const SHORT_HASH = 7;
 
 /** The rows of the panel above the lines: the file and its counts. */
 export const FILE_ROWS = 1;
@@ -60,7 +58,7 @@ export function PatchLines(props: PatchLinesProps): ReactNode {
       : {};
   return (
     <Panel
-      title={`Patch ${props.hash.slice(0, SHORT_HASH)}`}
+      title={`Patch ${shortHash(props.hash)}`}
       {...note}
       focused={props.focused}
     >

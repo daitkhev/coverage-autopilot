@@ -15,8 +15,8 @@ import {
   acceptedOf,
   baselineOf,
 } from '#screens/improvement/improvement-answer';
-import { SHORT_HASH } from '#screens/improvement/improvement-words';
 import { countWords } from '#theme/counts';
+import { shortHash } from '#theme/names';
 import { GENERATOR_WORDS } from '#theme/status';
 
 /** The cells of the name of a fact, as "Generator". */
@@ -149,8 +149,8 @@ interface FactsProps {
 
 /** Where the work starts, or for finished work where it was published. */
 function Target({ improvement, repository, threshold }: FactsProps): ReactNode {
-  const commit = improvement.baseCommit.slice(0, SHORT_HASH);
-  const accepted = acceptedOf(improvement);
+  const commit = shortHash(improvement.baseCommit);
+  const patch = acceptedOf(improvement)?.patchHash ?? null;
   if (improvement.status === 'completed') {
     return (
       <Section title="PUBLISHED">
@@ -161,9 +161,7 @@ function Target({ improvement, repository, threshold }: FactsProps): ReactNode {
           <RoleText>{`${repository.defaultBranch} at ${commit}`}</RoleText>
         </Fact>
         <Fact label="Patch">
-          <RoleText>
-            {accepted?.patchHash?.slice(0, SHORT_HASH) ?? 'none'}
-          </RoleText>
+          <RoleText>{patch === null ? 'none' : shortHash(patch)}</RoleText>
         </Fact>
       </Section>
     );

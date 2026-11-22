@@ -19,11 +19,9 @@ import {
 } from '#screens/improvements/improvement-words';
 import { percentWords } from '#theme/counts';
 import { ageWords } from '#theme/moments';
+import { shortHash } from '#theme/names';
 import { ATTEMPT_VERDICT, IMPROVEMENT_STATUS } from '#theme/status';
 import { GAP } from '#theme/widths';
-
-/** A patch is named by the first cells of its hash, as git names a commit. */
-const SHORT_HASH = 7;
 
 /** The heading of what the improvement does now, by what it needs. */
 const NOW_TITLES = {
@@ -46,7 +44,7 @@ function headFacts({ attempts }: Improvement): Fact[] {
   const attempt = { text: `attempt ${String(last.number)}` };
   return last.patchHash === null
     ? [attempt]
-    : [attempt, { text: `patch ${last.patchHash.slice(0, SHORT_HASH)}` }];
+    : [attempt, { text: `patch ${shortHash(last.patchHash)}` }];
 }
 
 /** The number of an attempt the gate judged, and its report. */

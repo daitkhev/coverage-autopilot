@@ -14,9 +14,6 @@ import {
 /** The name a person types, which the help and every hint repeat. */
 export const PROGRAM = 'coverage-autopilot';
 
-/** The digits of a commit as the screens show it, as `4f2a9c1`. */
-const SHORT_COMMIT = 7;
-
 /** Why a job failed or was skipped: a stable code and a sentence. */
 interface Reason {
   readonly reason: string;
@@ -59,9 +56,4 @@ export function percentText(counter: CoverageCounter): string {
 /** A sentence first, and its stable code beside it for searching. */
 export function reasonText(reason: Reason): string {
   return `${reason.message} (${reason.reason})`;
-}
-
-/** A commit as short as the screens show it. */
-export function shortCommit(sha: string): string {
-  return sha.slice(0, SHORT_COMMIT);
 }

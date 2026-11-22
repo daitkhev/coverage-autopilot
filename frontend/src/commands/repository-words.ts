@@ -2,8 +2,9 @@ import type { Repository } from '@coverage-autopilot/api-contracts/repositories'
 
 import type { Cells } from '#commands/columns';
 import type { CommandIo } from '#commands/command-io';
-import { percentText, shortCommit } from '#commands/words';
+import { percentText } from '#commands/words';
 import { ageWords } from '#theme/moments';
+import { shortHash } from '#theme/names';
 
 /** The name a person types for a repository: `owner/name`. */
 export function repositoryName(repository: Repository): string {
@@ -45,7 +46,7 @@ export function repositoryCells(repository: Repository, io: CommandIo): Cells {
     percentText(snapshot.totals[snapshot.threshold.metric]),
     `${String(snapshot.files.below)} below`,
     repository.defaultBranch,
-    shortCommit(snapshot.commitSha),
+    shortHash(snapshot.commitSha),
     `scanned ${ageWords(snapshot.capturedAt, io.session.now())} ago`,
     notesOf(repository),
   ];
