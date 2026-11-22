@@ -301,7 +301,7 @@ describe('ImprovementModule', () => {
         .execute({ improvementId: id });
       await work();
 
-      expect(cancelled).toMatchObject({
+      expect(cancelled?.improvement).toMatchObject({
         status: 'cancelled',
         waitingFor: null,
       });

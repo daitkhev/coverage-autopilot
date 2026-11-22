@@ -1,8 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { CancelImprovementCommand } from '#improvement/application/commands/cancel-improvement/cancel-improvement.command';
-import type { ImprovementDto } from '#improvement/application/dto/improvement.dto';
+import type {
+  CancelImprovementCommand,
+  CancelImprovementResult,
+} from '#improvement/application/commands/cancel-improvement/cancel-improvement.command';
 import { ImprovementViews } from '#improvement/application/dto/improvement-views';
+import { requestValueOrNull } from '#improvement/application/request-values';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
 import {
   IMPROVEMENT_REPOSITORY,
@@ -17,6 +20,12 @@ import {
   TRANSACTION_MANAGER,
   type TransactionManager,
 } from '#ports/transaction-manager.port';
+
+/** What one cancel did, before a person sees it. */
+interface Cancel {
+  readonly outcome: CancelImprovementResult['outcome'];
+  readonly improvement: Improvement;
+}
 
 /**
  * Cancels an improvement and every job of it that has not ended, the one
@@ -48,26 +57,39 @@ export class CancelImprovementHandler {
 
   public async execute(
     command: CancelImprovementCommand,
-  ): Promise<ImprovementDto | null> {
-    const id = ImprovementId.create(command.improvementId);
-    const cancelled = await this.transactions.run(async (transaction) =>
+  ): Promise<CancelImprovementResult | null> {
+    const id = requestValueOrNull(() =>
+      ImprovementId.create(command.improvementId),
+    );
+    if (id === null) {
+      return null;
+    }
+    const cancel = await this.transactions.run(async (transaction) =>
       this.cancelOnce(id, transaction),
     );
-    return cancelled === null ? null : this.views.of(cancelled);
+    return cancel === null
+      ? null
+      : {
+          outcome: cancel.outcome,
+          improvement: await this.views.of(cancel.improvement),
+        };
   }
 
   /** Reads inside the transaction, so the worker cannot save in between. */
   private async cancelOnce(
     id: ImprovementId,
     transaction: Transaction,
-  ): Promise<Improvement | null> {
+  ): Promise<Cancel | null> {
     const improvement = await this.improvements.findById(id, transaction);
-    if (improvement === null || isFinal(improvement.status)) {
-      return improvement;
+    if (improvement === null) {
+      return null;
+    }
+    if (isFinal(improvement.status)) {
+      return { outcome: 'ended', improvement };
     }
     improvement.cancel(this.clock.now());
     const saved = await this.improvements.save(improvement, transaction);
     await this.queue.cancelSubject(id.value, transaction);
-    return saved;
+    return { outcome: 'cancelled', improvement: saved };
   }
 }

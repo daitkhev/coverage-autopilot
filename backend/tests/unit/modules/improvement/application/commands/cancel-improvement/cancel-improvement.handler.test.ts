@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { InvalidImprovementValueError } from '#improvement/domain/errors/invalid-improvement-value.error';
 import { improvementIn } from '#tests/support/improvement-journeys';
 import { ImprovementRequestWorld } from '#tests/support/improvement-request-world';
 import { IMPROVEMENT_ID } from '#tests/support/improvement-values';
@@ -34,14 +33,15 @@ describe('CancelImprovementHandler', () => {
           improvementId: IMPROVEMENT_ID,
         });
 
-        expect(shown).toEqual(
-          expect.objectContaining({
+        expect(shown).toEqual({
+          outcome: 'cancelled',
+          improvement: expect.objectContaining({
             status: 'cancelled',
             cancelledAt: world.clock.now(),
             progress: null,
             waitingFor: null,
-          }),
-        );
+          }) as unknown,
+        });
       },
     );
 
@@ -70,7 +70,8 @@ describe('CancelImprovementHandler', () => {
             improvementId: IMPROVEMENT_ID,
           });
 
-          expect(shown?.status).toBe(status);
+          expect(shown?.outcome).toBe('ended');
+          expect(shown?.improvement.status).toBe(status);
           expect(world.improvements.writes).toEqual([]);
           expect(world.queue.cancelledSubjects).toEqual([]);
         },
@@ -87,10 +88,11 @@ describe('CancelImprovementHandler', () => {
     });
 
     describe('when the id is not one of an improvement', () => {
-      it('should throw InvalidImprovementValueError', async () => {
-        await expect(
-          world.cancel.execute({ improvementId: 'improvement-1' }),
-        ).rejects.toThrow(InvalidImprovementValueError);
+      it('should answer null, as no improvement has it', async () => {
+        expect(
+          await world.cancel.execute({ improvementId: 'improvement-1' }),
+        ).toBeNull();
+        expect(world.transactions.runs).toBe(0);
       });
     });
   });
