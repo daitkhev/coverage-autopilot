@@ -8,7 +8,6 @@ import { improve } from '#commands/improve';
 import { answered, refused } from '#tests/support/fake-service-api';
 import { ACCEPTED_HASH, OPEN_ATTEMPT } from '#tests/support/sample-attempts';
 import {
-  expectRefusal,
   inTurn,
   type IoSettings,
   NOT_FOUND,
@@ -19,7 +18,11 @@ import {
   IMPROVEMENT_BY_STATUS as BY_STATUS,
   PATCH_AWAITING_APPROVAL,
 } from '#tests/support/sample-improvements';
-import { REPOSITORY_LIST } from '#tests/support/sample-repositories';
+import {
+  ACCESS_PASSED,
+  ACCESS_REFUSED,
+  REPOSITORY_LIST,
+} from '#tests/support/sample-repositories';
 
 const IMPROVE: Command<'improve'> = {
   name: 'improve',
@@ -53,6 +56,7 @@ const PUBLISHING: Improvement = {
   attempts: BY_STATUS.completed.attempts,
 };
 
+const DESTINATION_LINE = 'publishes    to the repository itself';
 const WAITING_LINE = 'waiting      for its repository';
 const REJECTED_LINE =
   'attempt 1    rejected: The new tests detect 0 of 14 mutants.';
@@ -65,6 +69,7 @@ function improveIo(
   return recordingIo(
     {
       listRepositories: () => Promise.resolve(answered(REPOSITORY_LIST)),
+      checkAccess: () => Promise.resolve(answered(ACCESS_PASSED)),
       startImprovement: () => Promise.resolve(answered(CREATED, ACCEPTED)),
       getImprovement: inTurn(first, ...rest),
       getImprovementPatch: () =>
@@ -97,6 +102,33 @@ describe('improve', () => {
     ]);
   });
 
+  it('should check the access and say where a result goes before it starts', async () => {
+    const io = improveIo([]);
+
+    await improve(IMPROVE, io);
+
+    expect(io.session.api.calls.map((call) => call.method)).toEqual([
+      'listRepositories',
+      'checkAccess',
+      'startImprovement',
+    ]);
+    expect(io.said).toEqual([DESTINATION_LINE]);
+  });
+
+  describe('when the access check did not pass', () => {
+    it('should start nothing and end with 1, waiting or not', async () => {
+      const io = recordingIo({
+        listRepositories: () => Promise.resolve(answered(REPOSITORY_LIST)),
+        checkAccess: () => Promise.resolve(answered(ACCESS_REFUSED)),
+      });
+
+      await expect(improve(WAIT, io)).resolves.toBe(1);
+
+      expect(io.printed).toEqual([]);
+      expect(io.session.api.calls.at(-1)?.method).toBe('checkAccess');
+    });
+  });
+
   describe('when the result is asked for as JSON', () => {
     it('should print the improvement of the contract as one document', async () => {
       const io = improveIo([], { json: true });
@@ -117,12 +149,17 @@ describe('improve', () => {
         } as const;
         const io = recordingIo({
           listRepositories: () => Promise.resolve(answered(REPOSITORY_LIST)),
+          checkAccess: () => Promise.resolve(answered(ACCESS_PASSED)),
           startImprovement: () => Promise.resolve(refused(409, unavailable)),
         });
 
         await expect(improve(command, io)).resolves.toBe(1);
 
-        expectRefusal(io, unavailable);
+        expect(io.printed).toEqual([]);
+        expect(io.said).toEqual([
+          DESTINATION_LINE,
+          JSON.stringify(unavailable),
+        ]);
       },
     );
   });
@@ -156,6 +193,7 @@ describe('improve', () => {
       await expect(improve(WAIT, io)).resolves.toBe(0);
 
       expect(io.said).toEqual([
+        DESTINATION_LINE,
         WAITING_LINE,
         'analyzing',
         'attempt 1    writing a test',
@@ -205,6 +243,7 @@ describe('improve', () => {
       await expect(improve(WAIT, io)).resolves.toBe(1);
 
       expect(io.said).toEqual([
+        DESTINATION_LINE,
         WAITING_LINE,
         REJECTED_LINE,
         'attempt 2    rejected: The new tests detect 0 of 14 mutants.',
@@ -222,6 +261,7 @@ describe('improve', () => {
       await expect(improve(WAIT, io)).resolves.toBe(0);
 
       expect(io.said).toEqual([
+        DESTINATION_LINE,
         WAITING_LINE,
         'attempt 1    accepted: lines 88.2%, 11 of 14 mutants detected',
       ]);
@@ -233,6 +273,7 @@ describe('improve', () => {
     it('should end with 1 when the patch is refused', async () => {
       const io = recordingIo({
         listRepositories: () => Promise.resolve(answered(REPOSITORY_LIST)),
+        checkAccess: () => Promise.resolve(answered(ACCESS_PASSED)),
         startImprovement: () =>
           Promise.resolve(answered(BY_STATUS.awaiting_approval)),
         getImprovementPatch: () => Promise.resolve(refused(404, NOT_FOUND)),
@@ -251,6 +292,7 @@ describe('improve', () => {
       await expect(improve(WAIT, io)).resolves.toBe(0);
 
       expect(io.said).toEqual([
+        DESTINATION_LINE,
         WAITING_LINE,
         'skipped      The fresh measurement is already above the threshold. (threshold_met)',
       ]);
@@ -265,6 +307,7 @@ describe('improve', () => {
       await expect(improve(WAIT, io)).resolves.toBe(1);
 
       expect(io.said).toEqual([
+        DESTINATION_LINE,
         WAITING_LINE,
         'attempt 1    no verdict: stopped before a test was written',
         'cancelled',
@@ -281,7 +324,7 @@ describe('improve', () => {
 
       await improve(WAIT, io);
 
-      expect(io.said.slice(1, 3)).toEqual([
+      expect(io.said.slice(2, 4)).toEqual([
         REJECTED_LINE,
         'waiting      for the limit until 16:00',
       ]);

@@ -14,6 +14,7 @@ import {
 } from '#tests/support/sample-command-io';
 import {
   ACCESS_PASSED,
+  ACCESS_PASSED_TO_FORK,
   ACCESS_REFUSED,
   REPOSITORY_LIST,
 } from '#tests/support/sample-repositories';
@@ -48,8 +49,21 @@ describe('repoCheck', () => {
         "✓ passed  git_present",
         "✓ passed  gh_authenticated",
         "✓ passed  push_allowed",
+        "publishes    to the repository itself",
       ]
     `);
+  });
+
+  describe('when the account may not push to the repository', () => {
+    it('should end with the account whose fork a result goes to', async () => {
+      const io = checkIo(ACCESS_PASSED_TO_FORK);
+
+      await expect(repoCheck(CHECK, io)).resolves.toBe(0);
+
+      expect(io.printed.at(-1)).toBe(
+        'publishes    to a fork in the account payments-bot',
+      );
+    });
   });
 
   describe('when a step failed', () => {

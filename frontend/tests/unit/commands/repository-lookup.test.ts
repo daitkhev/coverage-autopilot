@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   findLatestSnapshot,
   findRepository,
+  findScanned,
 } from '#commands/repository-lookup';
 import { answered, refused } from '#tests/support/fake-service-api';
 import {
@@ -55,6 +56,23 @@ describe('findRepository', () => {
         findRepository('example/payments', io),
       ).resolves.toBeUndefined();
       expect(io.said).toEqual([JSON.stringify(NOT_FOUND)]);
+    });
+  });
+});
+
+describe('findScanned', () => {
+  it('should find the repository with its latest snapshot', async () => {
+    await expect(findScanned('example/payments', listedIo())).resolves.toEqual({
+      repository: SCANNED_REPOSITORY,
+      snapshot: PAYMENTS_SNAPSHOT,
+    });
+  });
+
+  describe('when the repository was never scanned', () => {
+    it('should find nothing', async () => {
+      await expect(
+        findScanned('example/notifier', listedIo()),
+      ).resolves.toBeUndefined();
     });
   });
 });

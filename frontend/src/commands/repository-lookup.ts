@@ -30,19 +30,36 @@ export async function findRepository(
   return found;
 }
 
+/** A repository with its latest snapshot. */
+interface Scanned {
+  readonly repository: Repository;
+  readonly snapshot: SnapshotSummary;
+}
+
 /**
- * The latest snapshot of the repository a person named, which files are
- * listed from and improved from, or nothing once it was said why.
+ * The repository a person named with its latest snapshot, which files
+ * are listed from and improved from, or nothing once it was said why.
  */
-export async function findLatestSnapshot(
+export async function findScanned(
   name: string,
   io: CommandIo,
-): Promise<SnapshotSummary | undefined> {
+): Promise<Scanned | undefined> {
   const repository = await findRepository(name, io);
   if (repository?.latestSnapshot === null) {
     io.err(
       `${name} has no snapshot yet; scan it first with ${PROGRAM} scan ${name}.`,
     );
   }
-  return repository?.latestSnapshot ?? undefined;
+  const snapshot = repository?.latestSnapshot ?? null;
+  return repository === undefined || snapshot === null
+    ? undefined
+    : { repository, snapshot };
+}
+
+/** The latest snapshot of the repository a person named, as `findScanned`. */
+export async function findLatestSnapshot(
+  name: string,
+  io: CommandIo,
+): Promise<SnapshotSummary | undefined> {
+  return (await findScanned(name, io))?.snapshot;
 }

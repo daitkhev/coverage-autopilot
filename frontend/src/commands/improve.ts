@@ -13,7 +13,8 @@ import {
   waitingWords,
 } from '#commands/improvement-words';
 import { answeredValue, printFailure, printResult } from '#commands/output';
-import { findLatestSnapshot } from '#commands/repository-lookup';
+import { findScanned } from '#commands/repository-lookup';
+import { accessPassed } from '#commands/start-access';
 import { endCancelled, type Ending, reportStart } from '#commands/started-work';
 import { PROGRAM } from '#commands/words';
 
@@ -98,20 +99,24 @@ function endingOf(improvement: Improvement): Ending<Improvement> | undefined {
 }
 
 /**
- * `improve <repo> <file>`: requests an improvement of a file of the latest
- * snapshot and prints it. With `--wait` it follows the improvement to its
- * end and prints the address of the pull request.
+ * `improve <repo> <file>`: checks the access, says where a result goes,
+ * requests an improvement of a file of the latest snapshot and prints it.
+ * With `--wait` it follows the improvement to its end and prints the
+ * address of the pull request.
  */
 export async function improve(
   command: Command<'improve'>,
   io: CommandIo,
 ): Promise<number> {
-  const snapshot = await findLatestSnapshot(command.repository, io);
-  if (snapshot === undefined) {
+  const scanned = await findScanned(command.repository, io);
+  if (
+    scanned === undefined ||
+    !(await accessPassed(scanned.repository.id, io))
+  ) {
     return EXIT_CODE.failed;
   }
   const answer = await io.session.api.startImprovement(
-    { ...command.request, snapshotId: snapshot.id },
+    { ...command.request, snapshotId: scanned.snapshot.id },
     newRequestKey(),
   );
   return reportStart(

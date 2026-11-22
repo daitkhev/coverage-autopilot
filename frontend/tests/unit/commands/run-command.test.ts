@@ -54,7 +54,8 @@ describe('runCommand', () => {
         wait: false,
         request: { filePath: 'src/a.ts', mode: 'automatic', budget: {} },
       },
-      'startImprovement',
+      // The access check comes first, and says where a result goes.
+      'checkAccess',
     ],
     [{ name: 'list' }, 'listImprovements'],
     [{ name: 'status', id: 'improvement-1' }, 'getImprovement'],

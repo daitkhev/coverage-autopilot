@@ -8,6 +8,7 @@ import { Glyph } from '#components/glyph';
 import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
 import type { LimitField, Limits, StartFacts } from '#components/start-limits';
+import { destinationWords } from '#theme/names';
 import { GAP } from '#theme/widths';
 
 /** The cells of the name of a field, and of its value. */
@@ -118,8 +119,8 @@ function ModeOption({
 
 /**
  * The form of a start: the preflight that passed, the limits with their
- * maximums, and how the work is published. A limit is a chosen value and
- * not a bar, because nothing is used yet.
+ * maximums, and how and where the work is published. A limit is a chosen
+ * value and not a bar, because nothing is used yet.
  */
 export function StartForm({
   facts,
@@ -130,6 +131,7 @@ export function StartForm({
   readonly limits: Limits;
   readonly field: LimitField;
 }): ReactNode {
+  const { destination } = facts.access;
   return (
     <Box flexDirection="column">
       <Section title="READY">
@@ -155,6 +157,13 @@ export function StartForm({
             />
           </Box>
         </Box>
+        {destination === null ? null : (
+          <Box paddingLeft={GAP}>
+            <RoleText role="secondary">
+              {`It goes to ${destinationWords(destination)}.`}
+            </RoleText>
+          </Box>
+        )}
       </Section>
       <Box marginTop={1}>
         <RoleText>Nothing is spent until you start.</RoleText>

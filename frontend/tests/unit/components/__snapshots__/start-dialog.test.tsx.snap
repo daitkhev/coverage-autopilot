@@ -14,6 +14,7 @@ exports[`StartDialog > should show the limits with their maximums, waiting for a
 │ PUBLISHING ───────────────────────────────────────────────────────── │
 │   ● Wait for my approval                                             │
 │   ○ Open the pull request without asking                             │
+│   It goes to the repository itself.                                  │
 │                                                                      │
 │ Nothing is spent until you start.                                    │
 │                                                                      │

@@ -16,6 +16,7 @@ import { NARROW } from '#tests/support/sample-frame';
 import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
 import {
   ACCESS_PASSED,
+  ACCESS_PASSED_TO_FORK,
   ACCESS_REFUSED,
   BUDGET_SETTINGS,
   PAYMENTS_SNAPSHOT,
@@ -91,6 +92,20 @@ describe('StartDialog', () => {
       'getBudgetSettings',
       'checkAccess',
     ]);
+  });
+
+  describe('when the account may not push to the repository', () => {
+    it('should say before the start that the work goes to a fork in the account', async () => {
+      const { terminal } = await openedReady(
+        ready({
+          checkAccess: () => Promise.resolve(answered(ACCESS_PASSED_TO_FORK)),
+        }),
+      );
+
+      expect(frameOf(terminal)).toContain(
+        'It goes to a fork in the account payments-bot.',
+      );
+    });
   });
 
   it('should show the limits with their maximums, waiting for approval first', async () => {

@@ -59,12 +59,12 @@ exports[`FilesBrowser > when i is pressed > should open the dialog over the scre
  │                  │ PUBLISHING ───────────────────────────────────────────────────────── │                  │
  │                  │   ● Wait for my approval                                             │───────────────── │
  │                  │   ○ Open the pull request without asking                             │                  │
- │                  │                                                                      │                  │
- │                  │ Nothing is spent until you start.                                    │───────────────── │
+ │                  │   It goes to the repository itself.                                  │                  │
+ │                  │                                                                      │───────────────── │
+ │                  │ Nothing is spent until you start.                                    │                  │
  │                  │                                                                      │                  │
  │                  │ enter start · tab next field · - + change · esc close                │                  │
  │                  ╰──────────────────────────────────────────────────────────────────────╯                  │
- │                                                                │ │                                         │
  │                                                                │ │                                         │
  │                                                                │ │                                         │
  │                                                                │ │                                         │
