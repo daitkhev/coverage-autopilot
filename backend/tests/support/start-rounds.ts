@@ -103,6 +103,7 @@ export async function expectOneServes(round: Round): Promise<Health> {
   });
   expect(databaseStateOf(paths), name).toEqual({
     integrity: ['ok'],
+    brokenReferences: [],
     version: LAST_VERSION,
   });
   expect(health, name).toMatchObject({

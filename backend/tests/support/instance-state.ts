@@ -35,6 +35,8 @@ export interface InstanceState {
 export interface DatabaseState {
   /** What `PRAGMA integrity_check` answers: `ok` alone for a sound file. */
   readonly integrity: readonly string[];
+  /** The rows `PRAGMA foreign_key_check` finds: none in a sound file. */
+  readonly brokenReferences: readonly unknown[];
   /** The last migration it was brought to. */
   readonly version: number;
 }
@@ -81,8 +83,15 @@ export function databaseStateOf(paths: InstancePaths): DatabaseState {
       .prepare('PRAGMA integrity_check')
       .all()
       .map((row) => String(row['integrity_check']));
+    const brokenReferences = connection
+      .prepare('PRAGMA foreign_key_check')
+      .all();
     const version = connection.prepare('PRAGMA user_version').get();
-    return { integrity, version: Number(version?.['user_version']) };
+    return {
+      integrity,
+      brokenReferences,
+      version: Number(version?.['user_version']),
+    };
   } finally {
     connection.close();
   }
