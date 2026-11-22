@@ -63,5 +63,6 @@ describe('StatusLine', () => {
 
     expect(widestLine(drawn)).toBeLessThanOrEqual(columns);
     expect(drawn.split('\n')).toHaveLength(1);
+    expect(drawn).toContain('! not fresh, asking again');
   });
 });
