@@ -1,17 +1,27 @@
 import {
   appendFileSync,
+  closeSync,
   existsSync,
+  linkSync,
+  mkdirSync,
+  openSync,
+  readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { argv, stderr, stdout } from 'node:process';
+import { argv, pid, stderr, stdout } from 'node:process';
 import { fileURLToPath } from 'node:url';
+
+import { paceOf, playAtPace } from '#tests/support/stand-in-pace';
 
 /**
  * A stand-in for `gh`, started as a program with `process.execPath`. It
  * records every call and answers from a scenario that a test writes, and
  * it keeps the pull requests it opened, so a second call finds them.
+ * Services may run it for several repositories at once, so a pull request
+ * is opened in one step that two calls cannot both take, as on a host.
  */
 
 /** How the stand-in answers. A test changes it between calls. */
@@ -55,7 +65,14 @@ interface Request {
 
 const SCENARIO = 'scenario.json';
 const CALLS = 'calls.jsonl';
-const PULLS = 'pulls.json';
+
+/** A file for each pull request, named by its branch. */
+const PULLS = 'pulls';
+
+/** An empty file for each number a pull request took. */
+const NUMBERS = 'numbers';
+
+const TAKEN = 'EEXIST';
 
 /** After Node and the path of this file: the folder, then gh's own. */
 const FOLDER_ARGUMENT = 2;
@@ -102,39 +119,104 @@ function loggedOut(command: string, statusText: string): Answer {
       };
 }
 
+function isTaken(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === TAKEN;
+}
+
+/** The file of the pull request of a branch, there or not. */
+function pullFileOf(folder: string, head: string): string {
+  return join(folder, PULLS, `${encodeURIComponent(head)}.json`);
+}
+
+function pullsIn(folder: string): StoredPullRequest[] {
+  const pulls = join(folder, PULLS);
+  return existsSync(pulls)
+    ? readdirSync(pulls)
+        .map((name) =>
+          readJson<StoredPullRequest | null>(join(pulls, name), null),
+        )
+        .filter((pull) => pull !== null)
+        .sort((first, second) => first.number - second.number)
+    : [];
+}
+
+/** The next number no other call took. A number taken in vain stays a gap. */
+function takeNumber(folder: string): number {
+  const numbers = join(folder, NUMBERS);
+  mkdirSync(numbers, { recursive: true });
+  for (let number = readdirSync(numbers).length + 1; ; number += 1) {
+    try {
+      closeSync(openSync(join(numbers, String(number)), 'wx'));
+      return number;
+    } catch (error) {
+      if (!isTaken(error)) {
+        throw error;
+      }
+    }
+  }
+}
+
 function listed(folder: string, flags: Map<string, string>): Answer {
-  const pulls = readJson<StoredPullRequest[]>(join(folder, PULLS), [])
-    .filter((pull) => pull.head === flags.get('head'))
-    .reverse()
-    .slice(0, Number(flags.get('limit')))
-    .map(({ number, url }) => ({ number, url }));
+  const pull = readJson<StoredPullRequest | null>(
+    pullFileOf(folder, flags.get('head') ?? ''),
+    null,
+  );
+  const pulls = pull === null ? [] : [{ number: pull.number, url: pull.url }];
   return { exitCode: 0, stdout: `${JSON.stringify(pulls)}\n` };
 }
 
+function alreadyOpened(head: string): Answer {
+  return {
+    exitCode: FAILED,
+    stderr: `a pull request for branch "${head}" already exists\n`,
+  };
+}
+
+/** The pull request a call asks for, under the next free number. */
+function pullOf(request: Request): StoredPullRequest {
+  const { flags, folder } = request;
+  const number = takeNumber(folder);
+  return {
+    number,
+    url: `https://github.com/${flags.get('repo') ?? ''}/pull/${String(number)}`,
+    head: flags.get('head') ?? '',
+    base: flags.get('base') ?? '',
+    title: flags.get('title') ?? '',
+    body: request.input,
+  };
+}
+
+/**
+ * The whole pull request is written aside and then linked to the name of
+ * its branch, which fails when the branch has one: so a call that ends
+ * halfway leaves none, and two calls never open two.
+ */
+function opened(folder: string, pull: StoredPullRequest): Answer {
+  const draft = join(folder, `draft-${String(pid)}.json`);
+  writeFileSync(draft, JSON.stringify(pull));
+  mkdirSync(join(folder, PULLS), { recursive: true });
+  try {
+    linkSync(draft, pullFileOf(folder, pull.head));
+  } catch (error) {
+    if (!isTaken(error)) {
+      throw error;
+    }
+    return alreadyOpened(pull.head);
+  } finally {
+    rmSync(draft);
+  }
+  return { exitCode: 0, stdout: `${pull.url}\n` };
+}
+
 function created(request: Request): Answer {
-  const { flags, scenario } = request;
+  const { flags, scenario, folder } = request;
   if (scenario.createRefusal !== null) {
     return { exitCode: FAILED, stderr: scenario.createRefusal };
   }
-  const path = join(request.folder, PULLS);
-  const pulls = readJson<StoredPullRequest[]>(path, []);
   const head = flags.get('head') ?? '';
-  if (pulls.some((pull) => pull.head === head)) {
-    return {
-      exitCode: FAILED,
-      stderr: `a pull request for branch "${head}" already exists\n`,
-    };
-  }
-  const number = pulls.length + 1;
-  const url = `https://github.com/${flags.get('repo') ?? ''}/pull/${String(number)}`;
-  const base = flags.get('base') ?? '';
-  const title = flags.get('title') ?? '';
-  const body = request.input;
-  writeFileSync(
-    path,
-    JSON.stringify([...pulls, { number, url, head, base, title, body }]),
-  );
-  return { exitCode: 0, stdout: `${url}\n` };
+  return existsSync(pullFileOf(folder, head))
+    ? alreadyOpened(head)
+    : opened(folder, pullOf(request));
 }
 
 /** What each command of `gh` answers when the user is logged in. */
@@ -163,6 +245,10 @@ function answerOf(folder: string, scenario: GhScenario, call: GhCall): Answer {
     : answer({ folder, scenario, flags: flagsOf(rest), input: call.input });
 }
 
+/**
+ * Answers once the pace of the stand-in passed. A call whose service died
+ * meanwhile still reaches the host, as a request that was sent does.
+ */
 function play(folder: string, args: readonly string[]): void {
   const scenario = readJson(join(folder, SCENARIO), DEFAULT_SCENARIO);
   const call: GhCall = { arguments: args, input: readFileSync(0, 'utf8') };
@@ -171,10 +257,12 @@ function play(folder: string, args: readonly string[]): void {
     setInterval(() => undefined, HANG_TICK_MS);
     return;
   }
-  const answer = answerOf(folder, scenario, call);
-  stdout.write(answer.stdout ?? '');
-  stderr.write(answer.stderr ?? '');
-  process.exitCode = answer.exitCode;
+  setTimeout(() => {
+    const answer = answerOf(folder, scenario, call);
+    stdout.write(answer.stdout ?? '');
+    stderr.write(answer.stderr ?? '');
+    process.exitCode = answer.exitCode;
+  }, paceOf(folder));
 }
 
 /** The side of a test: the command to start, the scenario, the record. */
@@ -188,6 +276,11 @@ export class GhStandIn {
   /** The program and the arguments that come before those of `gh`. */
   public get command(): string[] {
     return [process.execPath, fileURLToPath(import.meta.url), this.folder];
+  }
+
+  /** Makes every call take this long, as a call over a network does. */
+  public answerAtPace(ms: number): void {
+    playAtPace(this.folder, ms);
   }
 
   public answer(scenario: Partial<GhScenario>): void {
@@ -207,8 +300,9 @@ export class GhStandIn {
       : [];
   }
 
+  /** Every pull request it opened, by their numbers. */
   public pullRequests(): StoredPullRequest[] {
-    return readJson<StoredPullRequest[]>(join(this.folder, PULLS), []);
+    return pullsIn(this.folder);
   }
 }
 
