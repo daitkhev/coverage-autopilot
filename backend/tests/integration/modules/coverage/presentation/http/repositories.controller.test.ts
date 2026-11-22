@@ -140,23 +140,18 @@ describe('RepositoriesController', () => {
       });
     });
 
-    /*
-     * The service in a test hangs up only on a request with no body, which
-     * this route refuses before it connects, so the test of the hang-up
-     * itself is the one of the access check.
-     */
-    it('should hand the connection the signal of the request', async () => {
-      const seen: AbortSignal[] = [];
-      const connections = routes.connections;
-      const answerOf = connections.connectRepository.bind(connections);
-      connections.connectRepository = async (request, signal) => {
-        seen.push(signal);
-        return answerOf(request, signal);
-      };
+    describe('when the client goes away before the answer', () => {
+      it('should stop the connection with the signal of the request', async () => {
+        routes.connections.holds = true;
 
-      await connect(URL);
+        await routes.service.abandon('POST', '/repositories', {
+          body: { url: URL },
+        });
 
-      expect(seen).toEqual([expect.any(AbortSignal)]);
+        await expect
+          .poll(() => routes.connections.signals.map((s) => s.aborted))
+          .toEqual([true]);
+      });
     });
   });
 

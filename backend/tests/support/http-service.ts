@@ -37,7 +37,7 @@ export interface HttpService {
   readonly logger: RecordingLogger;
   send(method: Method, path: string, sent?: Sent): Promise<HttpAnswer>;
   /** Sends a request and hangs up without waiting for its answer. */
-  abandon(method: Method, path: string): Promise<void>;
+  abandon(method: Method, path: string, sent?: Sent): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -48,16 +48,23 @@ function payloadOf(sent: Sent): string | undefined {
   );
 }
 
+function headersOf(
+  sent: Sent,
+  payload: string | undefined,
+): Record<string, string> {
+  return {
+    ...(payload === undefined ? {} : { 'content-type': 'application/json' }),
+    ...sent.headers,
+  };
+}
+
 function ask(
   socketPath: string,
   line: { readonly method: Method; readonly path: string },
   sent: Sent,
 ): Promise<HttpAnswer> {
   const payload = payloadOf(sent);
-  const headers = {
-    ...(payload === undefined ? {} : { 'content-type': 'application/json' }),
-    ...sent.headers,
-  };
+  const headers = headersOf(sent, payload);
   return new Promise((resolve, reject) => {
     const outgoing = request({ socketPath, ...line, headers }, (incoming) => {
       const chunks: Buffer[] = [];
@@ -75,20 +82,26 @@ function ask(
   });
 }
 
-/** Resolves once the request has reached the service and the line is cut. */
+/**
+ * Resolves once the request, with its body, has reached the service and
+ * the line is cut.
+ */
 function hangUp(
   socketPath: string,
   line: { readonly method: Method; readonly path: string },
+  sent: Sent,
 ): Promise<void> {
+  const payload = payloadOf(sent);
+  const headers = headersOf(sent, payload);
   return new Promise((resolve) => {
-    const outgoing = request({ socketPath, ...line });
+    const outgoing = request({ socketPath, ...line, headers });
     outgoing.on('error', () => {
       resolve();
     });
     outgoing.on('finish', () => {
       outgoing.destroy();
     });
-    outgoing.end();
+    outgoing.end(payload);
   });
 }
 
@@ -117,7 +130,8 @@ export async function startHttpService(
   return {
     logger,
     send: (method, path, sent = {}) => ask(socketPath, { method, path }, sent),
-    abandon: (method, path) => hangUp(socketPath, { method, path }),
+    abandon: (method, path, sent = {}) =>
+      hangUp(socketPath, { method, path }, sent),
     close: async () => {
       await application.close();
       rmSync(folder, { recursive: true, force: true });

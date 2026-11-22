@@ -23,6 +23,10 @@ export interface StandInConnections extends RepositoryConnectionsApi {
   answer: ConnectRepositoryResult;
   /** Every address it was asked to connect. */
   readonly urls: string[];
+  /** The signal of each of those calls. */
+  readonly signals: AbortSignal[];
+  /** Answers only once the signal aborts, and then throws its reason. */
+  holds: boolean;
 }
 
 /** The repository the stand-in of the repositories module holds now. */
@@ -44,9 +48,18 @@ export function standInConnections(
   const connections: StandInConnections = {
     answer: { outcome: 'connected', repository: heldBy(repositories) },
     urls: [],
-    connectRepository: async ({ url }) => {
+    signals: [],
+    holds: false,
+    connectRepository: async ({ url }, signal) => {
       connections.urls.push(url);
-      return Promise.resolve(connections.answer);
+      connections.signals.push(signal);
+      if (connections.holds) {
+        await new Promise((resolve) => {
+          signal.addEventListener('abort', resolve, { once: true });
+        });
+        signal.throwIfAborted();
+      }
+      return connections.answer;
     },
     listRepositories: async () =>
       Promise.resolve(
