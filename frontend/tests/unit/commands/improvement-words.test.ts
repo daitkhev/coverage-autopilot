@@ -78,7 +78,7 @@ describe('attemptLine', () => {
     [OPEN_ATTEMPT, 'attempt 2    running'],
     [
       { ...OPEN_ATTEMPT, status: 'closed', generationOutcome: 'no_changes' },
-      'attempt 2    ended with no verdict (no_changes)',
+      'attempt 2    no verdict: the generator changed nothing (no_changes)',
     ],
   ])('should say %o by its verdict', (attempt, line) => {
     expect(attemptLine(attempt)).toBe(line);

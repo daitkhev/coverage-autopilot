@@ -10,7 +10,13 @@ import type { CommandIo } from '#commands/command-io';
 import { reasonText, statusText } from '#commands/words';
 import { percentWords } from '#theme/counts';
 import { ageWords } from '#theme/moments';
-import { ATTEMPT_VERDICT, IMPROVEMENT_STATUS, waitWords } from '#theme/status';
+import {
+  ATTEMPT_VERDICT,
+  attemptLook,
+  IMPROVEMENT_STATUS,
+  unjudgedWords,
+  waitWords,
+} from '#theme/status';
 
 type Words = (improvement: Improvement, io: CommandIo) => string;
 
@@ -101,16 +107,20 @@ function verdictWords(report: VerificationReport): string {
   return details === '' ? word : `${word}: ${details}`;
 }
 
+/** Why an attempt has no verdict, and the code of its outcome if any. */
+function unjudgedText({ generationOutcome }: Attempt): string {
+  const words = unjudgedWords(generationOutcome);
+  return generationOutcome === null
+    ? words
+    : reasonText({ reason: generationOutcome, message: words });
+}
+
 function attemptWords(attempt: Attempt): string {
   if (attempt.report !== null) {
     return verdictWords(attempt.report);
   }
-  if (attempt.status === 'open') {
-    return 'running';
-  }
-  return attempt.generationOutcome === null
-    ? 'ended with no verdict'
-    : `ended with no verdict (${attempt.generationOutcome})`;
+  const { word } = attemptLook(attempt);
+  return attempt.status === 'open' ? word : `${word}: ${unjudgedText(attempt)}`;
 }
 
 /** One attempt as the lines of `--wait` say it: `attempt 1    rejected: ...`. */

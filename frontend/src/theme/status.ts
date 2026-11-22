@@ -1,8 +1,10 @@
+import type { Attempt } from '@coverage-autopilot/api-contracts/attempts';
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 import type {
   AccessCheckName,
   AccessCheckStatus,
   FileState,
+  GenerationOutcome,
   ImprovementStatus,
   ScanStatus,
   StepStatus,
@@ -110,6 +112,42 @@ export const CHECK_STATUS: Readonly<Record<StepStatus, StatusLook>> = {
   skipped: { glyph: 'skipped', word: 'off', role: 'secondary' },
   not_applicable: { glyph: 'skipped', word: 'n/a', role: 'secondary' },
 };
+
+/** An attempt that ended with no verdict: it was stopped, not judged. */
+export const NO_VERDICT: StatusLook = {
+  glyph: 'skipped',
+  word: 'no verdict',
+  role: 'secondary',
+};
+
+/** How an attempt looks: running, judged, or stopped with no verdict. */
+export function attemptLook(
+  attempt: Pick<Attempt, 'status' | 'report'>,
+): StatusLook {
+  if (attempt.status === 'open') {
+    return CHECK_STATUS.running;
+  }
+  return attempt.report === null
+    ? NO_VERDICT
+    : ATTEMPT_VERDICT[attempt.report.verdict];
+}
+
+/** Why an attempt ended without a verdict of the gate. */
+export const GENERATION_OUTCOME: Readonly<Record<GenerationOutcome, string>> = {
+  generated: 'stopped before the checks ended',
+  no_changes: 'the generator changed nothing',
+  limit_reached: 'a limit ran out while it wrote',
+  window_exhausted: 'the window of the subscription ran out',
+  quota_exhausted: 'the quota of the generator ran out',
+  credential_exposed: 'its output showed a credential and was thrown away',
+};
+
+/** Why an attempt has no verdict; with no outcome, no test was written. */
+export function unjudgedWords(outcome: GenerationOutcome | null): string {
+  return outcome === null
+    ? 'stopped before a test was written'
+    : GENERATION_OUTCOME[outcome];
+}
 
 /** A file without numbers has a figure in place of a percentage. */
 export interface FileLook extends StatusLook {

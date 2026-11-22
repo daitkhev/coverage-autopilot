@@ -4,6 +4,7 @@ import {
   accessCheckNameSchema,
   accessCheckStatusSchema,
   fileStateSchema,
+  generationOutcomeSchema,
   improvementStatusSchema,
   scanStatusSchema,
   stepStatusSchema,
@@ -16,12 +17,16 @@ import {
   ACCESS_CHECK_STATUS,
   ACCESS_STEP_WORDS,
   ATTEMPT_VERDICT,
+  attemptLook,
   CHECK_STATUS,
   FILE_STATE,
+  GENERATION_OUTCOME,
   IMPROVEMENT_STATUS,
+  NO_VERDICT,
   SCAN_STATUS,
   SERVICE_STATE,
   type StatusLook,
+  unjudgedWords,
   UNMEASURED_REASON,
   WAITING_FOR,
   waitWords,
@@ -74,6 +79,11 @@ const CONTRACT = [
     schema: unmeasuredReasonSchema,
   },
   { table: 'WAITING_FOR', rows: WAITING_FOR, schema: waitingForSchema },
+  {
+    table: 'GENERATION_OUTCOME',
+    rows: GENERATION_OUTCOME,
+    schema: generationOutcomeSchema,
+  },
   {
     table: 'ACCESS_STEP_WORDS',
     rows: ACCESS_STEP_WORDS,
@@ -176,5 +186,21 @@ describe('waitWords', () => {
     ],
   ])('should say what %o waits for', (improvement, words) => {
     expect(waitWords(improvement, 'UTC')).toBe(words);
+  });
+});
+
+describe('attemptLook', () => {
+  it('should tell a running, a judged and an unjudged attempt apart', () => {
+    expect(attemptLook({ status: 'open', report: null })).toBe(
+      CHECK_STATUS.running,
+    );
+    expect(attemptLook({ status: 'closed', report: null })).toBe(NO_VERDICT);
+  });
+});
+
+describe('unjudgedWords', () => {
+  it('should say why an attempt has no verdict, in plain words', () => {
+    expect(unjudgedWords('no_changes')).toBe('the generator changed nothing');
+    expect(unjudgedWords(null)).toBe('stopped before a test was written');
   });
 });

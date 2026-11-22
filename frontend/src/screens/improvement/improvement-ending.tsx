@@ -16,7 +16,6 @@ import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
 import {
-  attemptLook,
   type AttemptResult,
   resultsOf,
 } from '#screens/improvement/attempt-words';
@@ -30,7 +29,11 @@ import {
   SKIP_WORDS,
 } from '#screens/improvement/improvement-words';
 import { ageWords } from '#theme/moments';
-import { IMPROVEMENT_STATUS, type StatusLook } from '#theme/status';
+import {
+  attemptLook,
+  IMPROVEMENT_STATUS,
+  type StatusLook,
+} from '#theme/status';
 import { BAR_CELLS, GAP } from '#theme/widths';
 
 /** A next step of a failed improvement, which `enter` takes. */

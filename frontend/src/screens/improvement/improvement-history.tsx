@@ -14,7 +14,6 @@ import { ProgressMeter } from '#components/progress-meter';
 import { RoleText } from '#components/role-text';
 import { Timeline, type TimelineStep } from '#components/timeline';
 import {
-  attemptLook,
   type AttemptResult,
   resultsOf,
 } from '#screens/improvement/attempt-words';
@@ -23,7 +22,7 @@ import { LastLine } from '#screens/improvement/last-line';
 import { analysisLook } from '#screens/improvement/step-line';
 import { countWords, percentWords } from '#theme/counts';
 import { durationWords, elapsedMs } from '#theme/moments';
-import { CHECK_STATUS, IMPROVEMENT_STATUS } from '#theme/status';
+import { attemptLook, CHECK_STATUS, IMPROVEMENT_STATUS } from '#theme/status';
 import { BAR_CELLS, GAP } from '#theme/widths';
 
 /** Beside a running attempt: what it does in the status of the work. */

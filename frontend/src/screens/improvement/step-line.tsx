@@ -6,7 +6,6 @@ import type { Improvement } from '@coverage-autopilot/api-contracts/improvements
 import { RoleText } from '#components/role-text';
 import { StatusIndicator } from '#components/status-indicator';
 import { Timeline, type TimelineStep } from '#components/timeline';
-import { attemptLook } from '#screens/improvement/attempt-words';
 import {
   endOf,
   hasEnded,
@@ -14,6 +13,7 @@ import {
 } from '#screens/improvement/improvement-answer';
 import { durationWords, elapsedMs } from '#theme/moments';
 import {
+  attemptLook,
   CHECK_STATUS,
   IMPROVEMENT_STATUS,
   type StatusLook,

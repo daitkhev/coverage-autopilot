@@ -1,12 +1,9 @@
 import type {
-  GenerationOutcome,
   GeneratorCli,
   ImprovementFailureReason,
   ImprovementStatus,
   SkipReason,
 } from '@coverage-autopilot/api-contracts/statuses';
-
-import type { StatusLook } from '#theme/status';
 
 /**
  * What the service does in each status, said on the last line of the
@@ -80,29 +77,9 @@ export const SKIP_WORDS: Readonly<Record<SkipReason, string>> = {
   no_undetected_mutants: 'The tests already detect every mutant',
 };
 
-/** Why an attempt ended without a verdict of the gate. */
-export const OUTCOME_WORDS: Readonly<Record<GenerationOutcome, string>> = {
-  generated: 'stopped before the checks ended',
-  no_changes: 'the generator changed nothing',
-  limit_reached: 'a limit ran out while it wrote',
-  window_exhausted: 'the window of the subscription ran out',
-  quota_exhausted: 'the quota of the generator ran out',
-  credential_exposed: 'its output showed a credential and was thrown away',
-};
-
-/** An attempt that stopped before a test was written. */
-export const NOT_WRITTEN = 'stopped before a test was written';
-
 /** The name of the generator as people know it. */
 export const GENERATOR_WORDS: Readonly<Record<GeneratorCli, string>> = {
   claude_code: 'Claude Code',
-};
-
-/** An attempt that ended with no verdict: it was stopped, not judged. */
-export const NO_VERDICT: StatusLook = {
-  glyph: 'skipped',
-  word: 'no verdict',
-  role: 'secondary',
 };
 
 /** The cells of a short commit or hash, as git prints it. */

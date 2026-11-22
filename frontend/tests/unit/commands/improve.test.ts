@@ -266,7 +266,7 @@ describe('improve', () => {
 
       expect(io.said).toEqual([
         WAITING_LINE,
-        'attempt 1    ended with no verdict',
+        'attempt 1    no verdict: stopped before a test was written',
         'cancelled',
       ]);
     });
