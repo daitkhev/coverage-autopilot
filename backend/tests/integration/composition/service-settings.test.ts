@@ -7,6 +7,7 @@ import { serviceSettingsOf } from '#composition/service-settings';
 import { RepositoriesModule } from '#repositories/repositories.module';
 import { loadWith, PLAIN_MACHINE } from '#tests/support/service-variables';
 import { SharedTestModule } from '#tests/support/shared-test-module';
+import { withStandInCoverage } from '#tests/support/stand-in-repository-coverage';
 
 describe('serviceSettingsOf', () => {
   it('should give each part of the service its part of the configuration', () => {
@@ -53,7 +54,7 @@ describe('serviceSettingsOf', () => {
     const module = await Test.createTestingModule({
       imports: [
         SharedTestModule.create(),
-        RepositoriesModule.register(settings.repositories),
+        withStandInCoverage(RepositoriesModule.register(settings.repositories)),
       ],
     }).compile();
 

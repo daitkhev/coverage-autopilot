@@ -7,18 +7,20 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
 import type { RepositoryId } from '#kernel/primitives/repository-id';
+import { ConnectRepositoryHandler } from '#repositories/application/commands/connect-repository/connect-repository.handler';
 import {
   type PublishPatchRequest,
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-  REPOSITORY_CONNECTIONS_API,
-  type RepositoryConnectionsApi,
 } from '#repositories/application/contracts/repositories-public-api';
+import { ListRepositoriesHandler } from '#repositories/application/queries/list-repositories/list-repositories.handler';
 import { InvalidRepositoriesSettingsError } from '#repositories/infrastructure/errors/invalid-repositories-settings.error';
+import { RepositoriesController } from '#repositories/infrastructure/http/repositories.controller';
 import { RepositoryAccessController } from '#repositories/infrastructure/http/repository-access.controller';
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
 import { RepositoriesModule } from '#repositories/repositories.module';
 import { SharedTestModule } from '#tests/support/shared-test-module';
+import { withStandInCoverage } from '#tests/support/stand-in-repository-coverage';
 import {
   SECRET_TOKEN,
   TemporaryCodeHost,
@@ -37,20 +39,18 @@ async function compiled(
   settings: RepositoriesSettings,
 ): Promise<TestingModule> {
   return Test.createTestingModule({
-    imports: [SharedTestModule.create(), RepositoriesModule.register(settings)],
+    imports: [
+      SharedTestModule.create(),
+      withStandInCoverage(RepositoriesModule.register(settings)),
+    ],
   }).compile();
 }
 
-function connections(): RepositoryConnectionsApi {
-  return module.get<RepositoryConnectionsApi>(REPOSITORY_CONNECTIONS_API);
-}
-
-/** Connects `acme/widgets` and gives its id. */
+/** Connects `acme/widgets` as its route does, and gives its id. */
 async function connected(): Promise<RepositoryId> {
-  const result = await connections().connectRepository(
-    { url: TemporaryCodeHost.urlOf(WIDGETS) },
-    NEVER,
-  );
+  const result = await module
+    .get(ConnectRepositoryHandler)
+    .execute({ url: TemporaryCodeHost.urlOf(WIDGETS) }, NEVER);
   if (!('repository' in result)) {
     throw new Error(result.reason);
   }
@@ -145,12 +145,19 @@ describe('RepositoriesModule', () => {
       ).toMatchObject({ outcome: 'current' });
     });
 
-    it('should list what it connected and bind the route of the access check', async () => {
+    it('should list what it connected and bind the routes of repositories', async () => {
       const repositoryId = await connected();
 
-      const listed = await connections().listRepositories();
+      const listed = await module.get(ListRepositoriesHandler).execute();
 
       expect(listed.map((repository) => repository.id)).toEqual([repositoryId]);
+      expect(listed[0]).toMatchObject({
+        latestSnapshot: null,
+        outdated: false,
+      });
+      expect(module.get(RepositoriesController)).toBeInstanceOf(
+        RepositoriesController,
+      );
       expect(module.get(RepositoryAccessController)).toBeInstanceOf(
         RepositoryAccessController,
       );

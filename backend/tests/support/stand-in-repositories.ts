@@ -36,6 +36,14 @@ export interface StandInRepositories extends RepositoriesPublicApi {
   readonly disposed: string[];
 }
 
+/** The repository the stand-in of the repositories module holds now. */
+export function heldBy(repositories: StandInRepositories): RepositoryDto {
+  if (repositories.repository === null) {
+    throw new Error('The stand-in of the repositories holds no repository.');
+  }
+  return repositories.repository;
+}
+
 async function refuse(): Promise<never> {
   return Promise.reject(new Error('The coverage module never calls this.'));
 }

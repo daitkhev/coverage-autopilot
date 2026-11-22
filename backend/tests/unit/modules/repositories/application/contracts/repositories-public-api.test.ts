@@ -6,8 +6,6 @@ import {
   type ApplyPatchRequest,
   type ApplyPatchResult,
   type AssessRevisionRequest,
-  type ConnectRepositoryRequest,
-  type ConnectRepositoryResult,
   type CreateWorkingCopyRequest,
   type ExtractPatchResult,
   type PatchDto,
@@ -15,8 +13,6 @@ import {
   type PublishPatchResult,
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
-  REPOSITORY_CONNECTIONS_API,
-  type RepositoryConnectionsApi,
   type RepositoryDto,
   type RepositoryRequest,
   type RevisionAssessmentDto,
@@ -105,32 +101,5 @@ describe('RepositoriesPublicApi', () => {
     expectTypeOf<PublishPatchResult['outcome']>().toEqualTypeOf<
       'published' | 'refused'
     >();
-  });
-});
-
-describe('RepositoryConnectionsApi', () => {
-  it('should be injected by a token of its own', () => {
-    expect(REPOSITORY_CONNECTIONS_API.description).toBe(
-      'RepositoryConnectionsApi',
-    );
-    expect(REPOSITORY_CONNECTIONS_API).not.toBe(REPOSITORIES_PUBLIC_API);
-  });
-
-  it('should connect by a request that can be stopped', () => {
-    expectTypeOf<
-      RepositoryConnectionsApi['connectRepository']
-    >().parameters.toEqualTypeOf<[ConnectRepositoryRequest, AbortSignal]>();
-  });
-
-  it('should answer an address it cannot connect with a value', () => {
-    expectTypeOf<ConnectRepositoryResult['outcome']>().toEqualTypeOf<
-      'connected' | 'already_connected' | 'invalid_url' | 'unreachable'
-    >();
-  });
-
-  it('should list repositories as values', () => {
-    expectTypeOf<
-      RepositoryConnectionsApi['listRepositories']
-    >().returns.resolves.toEqualTypeOf<RepositoryDto[]>();
   });
 });

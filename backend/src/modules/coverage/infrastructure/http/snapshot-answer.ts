@@ -1,24 +1,11 @@
-import type {
-  Snapshot,
-  SnapshotSummary,
-} from '@coverage-autopilot/api-contracts/snapshots';
+import type { Snapshot } from '@coverage-autopilot/api-contracts/snapshots';
 
-import type { RepositoryViewDto } from '#coverage/application/dto/repository-view.dto';
+import type { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
 
 /** A snapshot as the coverage module gives it. */
-type SnapshotView = NonNullable<RepositoryViewDto['latestSnapshot']>;
-
-/** What the list of repositories shows of a snapshot. */
-export function snapshotSummaryOf(snapshot: SnapshotView): SnapshotSummary {
-  return {
-    id: snapshot.id,
-    commitSha: snapshot.commit.value,
-    capturedAt: snapshot.capturedAt.toString(),
-    totals: snapshot.totals,
-    threshold: snapshot.threshold,
-    files: snapshot.files,
-  };
-}
+type SnapshotView = NonNullable<
+  Awaited<ReturnType<ListSnapshotsHandler['execute']>>
+>[number];
 
 /**
  * A snapshot with the parameters it was measured with. The contract keeps
@@ -28,7 +15,12 @@ export function snapshotSummaryOf(snapshot: SnapshotView): SnapshotSummary {
 export function snapshotAnswerOf(snapshot: SnapshotView): Snapshot {
   const { project, parameters } = snapshot;
   return {
-    ...snapshotSummaryOf(snapshot),
+    id: snapshot.id,
+    commitSha: snapshot.commit.value,
+    capturedAt: snapshot.capturedAt.toString(),
+    totals: snapshot.totals,
+    threshold: snapshot.threshold,
+    files: snapshot.files,
     repositoryId: snapshot.repositoryId.value,
     parameters: {
       testRunner: parameters.testRunner,

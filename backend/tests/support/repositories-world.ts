@@ -6,8 +6,10 @@ import { ConnectRepositoryHandler } from '#repositories/application/commands/con
 import { CreateWorkingCopyHandler } from '#repositories/application/commands/create-working-copy/create-working-copy.handler';
 import { PublishPatchHandler } from '#repositories/application/commands/publish-patch/publish-patch.handler';
 import { ResolveHeadHandler } from '#repositories/application/commands/resolve-head/resolve-head.handler';
+import { RepositoryViews } from '#repositories/application/dto/repository-views';
 import { HeadRecorder } from '#repositories/application/head-recorder';
 import { GetRepositoryHandler } from '#repositories/application/queries/get-repository/get-repository.handler';
+import { GetRepositoryViewHandler } from '#repositories/application/queries/get-repository-view/get-repository-view.handler';
 import { ListRepositoriesHandler } from '#repositories/application/queries/list-repositories/list-repositories.handler';
 import { RepositoriesFacade } from '#repositories/application/repositories-facade';
 import { Repository } from '#repositories/domain/entities/repository.entity';
@@ -21,6 +23,7 @@ import { ScriptedCodeHost } from '#tests/support/scripted-code-host';
 import { ScriptedGit } from '#tests/support/scripted-git';
 import { ScriptedWorkingCopies } from '#tests/support/scripted-working-copies';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
+import { standInRepositoryCoverage } from '#tests/support/stand-in-repository-coverage';
 
 /** The id `connected` gives `acme/widgets`, apart from the generated ones. */
 export const WIDGETS_ID = RepositoryId.create(
@@ -29,8 +32,9 @@ export const WIDGETS_ID = RepositoryId.create(
 
 /**
  * The application of the repositories module over stand-ins in memory:
- * a store, transactions, `git`, the host of the code and the copies. A
- * test sets their answers and reads what each was asked.
+ * a store, transactions, `git`, the host of the code, the copies and the
+ * coverage module. A test sets their answers and reads what each was
+ * asked.
  */
 export class RepositoriesWorld {
   public readonly repositories = new InMemoryRepositoryRepository();
@@ -40,6 +44,8 @@ export class RepositoriesWorld {
   public readonly copies = new ScriptedWorkingCopies();
   public readonly clock = new FixedClock(STORED_TIME);
   public readonly ids = new SequentialIdGenerator();
+  public readonly coverage = standInRepositoryCoverage();
+  public readonly views = new RepositoryViews(this.coverage);
   public readonly heads = new HeadRecorder(
     this.repositories,
     this.transactions,
@@ -52,10 +58,16 @@ export class RepositoriesWorld {
     this.transactions,
     this.clock,
     this.ids,
+    this.views,
   );
   public readonly getRepository = new GetRepositoryHandler(this.repositories);
+  public readonly getRepositoryView = new GetRepositoryViewHandler(
+    this.repositories,
+    this.views,
+  );
   public readonly listRepositories = new ListRepositoriesHandler(
     this.repositories,
+    this.views,
   );
   public readonly checkAccess = new CheckAccessHandler(
     this.repositories,

@@ -6,7 +6,9 @@ import {
   RepositoriesWorld,
   WIDGETS_ID,
 } from '#tests/support/repositories-world';
+import { SCAN_ID } from '#tests/support/scan-jobs';
 import { STORED_TIME } from '#tests/support/schema-rows';
+import { latestSnapshot } from '#tests/support/stand-in-repository-coverage';
 
 const NEVER = new AbortController().signal;
 const FIRST_ID = '00000000-0000-4000-8000-000000000001';
@@ -19,7 +21,7 @@ beforeEach(() => {
 
 describe('ConnectRepositoryHandler', () => {
   describe('execute', () => {
-    it('should connect the repository with the default branch of the host', async () => {
+    it('should connect the repository with the default branch of the host, as a person sees it', async () => {
       world.git.defaultBranchAnswer = {
         outcome: 'read',
         branch: BranchName.create('trunk'),
@@ -39,6 +41,9 @@ describe('ConnectRepositoryHandler', () => {
           defaultBranch: 'trunk',
           headCommit: null,
           headCheckedAt: null,
+          latestSnapshot: null,
+          activeScanId: null,
+          outdated: false,
         }) as unknown,
       });
       const saved = world.repositories.saves[0];
@@ -48,8 +53,12 @@ describe('ConnectRepositoryHandler', () => {
     });
 
     describe('when the same owner and name are connected already', () => {
-      it('should give that repository and ask the host nothing', async () => {
+      it('should give that repository with its snapshot and its scan and ask the host nothing', async () => {
         await world.connected();
+        world.coverage.answer = {
+          latestSnapshot: latestSnapshot(),
+          activeScanId: SCAN_ID,
+        };
 
         const result = await world.connect.execute(
           { url: 'https://github.com/ACME/Widgets/' },
@@ -58,8 +67,13 @@ describe('ConnectRepositoryHandler', () => {
 
         expect(result).toMatchObject({
           outcome: 'already_connected',
-          repository: { id: WIDGETS_ID },
+          repository: {
+            id: WIDGETS_ID,
+            latestSnapshot: latestSnapshot(),
+            activeScanId: SCAN_ID,
+          },
         });
+        expect(world.coverage.asked).toEqual([WIDGETS_ID]);
         expect(world.git.calls).toEqual([]);
         expect(world.repositories.saves).toEqual([]);
       });
@@ -101,6 +115,7 @@ describe('ConnectRepositoryHandler', () => {
             'git could not read acme/widgets. It said: Repository not found.',
         });
         expect(world.repositories.saves).toEqual([]);
+        expect(world.coverage.asked).toEqual([]);
       });
     });
 

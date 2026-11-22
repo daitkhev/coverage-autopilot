@@ -16,10 +16,7 @@ import { ARTIFACT_STORE } from '#ports/artifact-store.port';
 import { JOB_QUEUE } from '#ports/job-queue.port';
 import { SANDBOX } from '#ports/sandbox.port';
 import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
-import {
-  REPOSITORIES_PUBLIC_API,
-  REPOSITORY_CONNECTIONS_API,
-} from '#repositories/application/contracts/repositories-public-api';
+import { REPOSITORIES_PUBLIC_API } from '#repositories/application/contracts/repositories-public-api';
 import { REPOSITORY_ID } from '#tests/support/coverage-snapshots';
 import { inMemoryArtifacts } from '#tests/support/coverage-stand-ins';
 import { FixedClock } from '#tests/support/fixed-clock';
@@ -31,10 +28,6 @@ import {
   COVERAGE_TEST_SETTINGS,
   RecordingSandbox,
 } from '#tests/support/recording-sandbox';
-import {
-  type StandInConnections,
-  standInConnections,
-} from '#tests/support/repository-view-world';
 import { QUEUED_AT } from '#tests/support/scan-jobs';
 import { type Row, SchemaRows } from '#tests/support/schema-rows';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
@@ -49,12 +42,12 @@ export interface CoverageRoutes {
   readonly service: HttpService;
   /** `acme/widgets`, with no head read. */
   readonly repositories: StandInRepositories;
-  /** `acme/widgets` again, connected as it is asked to. */
-  readonly connections: StandInConnections;
   /** At `QUEUED_AT` until a test moves it. */
   readonly clock: FixedClock;
   /** Stores a snapshot as a scan would. */
   store(snapshot: CoverageSnapshot): Promise<void>;
+  /** The scan of `acme/widgets` that has not ended, as the queue holds it. */
+  openScanId(): Promise<string | null>;
   /**
    * Writes a scan job of `acme/widgets` and gives its id, taken from the
    * ids the queue takes its own from.
@@ -69,7 +62,6 @@ interface Below {
   readonly clock: FixedClock;
   readonly ids: SequentialIdGenerator;
   readonly repositories: StandInRepositories;
-  readonly connections: StandInConnections;
 }
 
 /** What the service gives the module. */
@@ -84,7 +76,6 @@ function providersOf(below: Below): Provider[] {
     { provide: SANDBOX, useValue: new RecordingSandbox() },
     { provide: ARTIFACT_STORE, useValue: inMemoryArtifacts() },
     { provide: REPOSITORIES_PUBLIC_API, useValue: below.repositories },
-    { provide: REPOSITORY_CONNECTIONS_API, useValue: below.connections },
     { provide: COVERAGE_SETTINGS, useValue: COVERAGE_TEST_SETTINGS },
   ];
 }
@@ -98,28 +89,34 @@ export async function startCoverageRoutes(): Promise<CoverageRoutes> {
   const database = createMigratedDatabase();
   const rows = new SchemaRows(database.connection);
   rows.repository({ id: REPOSITORY_ID });
-  const repositories = standInRepositories();
   const below: Below = {
     connection: database.connection,
     clock: new FixedClock(QUEUED_AT),
     ids: new SequentialIdGenerator(),
-    repositories,
-    connections: standInConnections(repositories),
+    repositories: standInRepositories(),
   };
   const service = await startHttpService({
     imports: [{ module: CoverageModule, providers: providersOf(below) }],
   });
   const snapshots = new SqliteCoverageSnapshotRepository(database.connection);
   const transactions = new SqliteTransactionRunner(database.connection);
+  const queue = new SqliteJobQueue(
+    new SqliteJobTable(database.connection),
+    below.clock,
+    below.ids,
+  );
   return {
     service,
-    repositories,
-    connections: below.connections,
+    repositories: below.repositories,
     clock: below.clock,
     store: async (snapshot) => {
       await transactions.run(async (transaction) =>
         snapshots.save(snapshot, transaction),
       );
+    },
+    openScanId: async () => {
+      const scan = await queue.getOpenJob(REPOSITORY_ID, 'scan');
+      return scan?.id ?? null;
     },
     scanJob: (row = {}) => {
       const id = below.ids.generate();

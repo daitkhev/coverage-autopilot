@@ -21,8 +21,9 @@ import {
 import { GetScanHandler } from '#coverage/application/queries/get-scan/get-scan.handler';
 import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
+import { RepositoryCoverageApi } from '#coverage/application/repository-coverage-api';
 import { CoverageModule } from '#coverage/coverage.module';
-import { RepositoriesController } from '#coverage/infrastructure/http/repositories.controller';
+import { RepositoryCoverageController } from '#coverage/infrastructure/http/repository-coverage.controller';
 import { ScansController } from '#coverage/infrastructure/http/scans.controller';
 import { REPORT_FOLDER } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
 import { SQLITE_CONNECTION } from '#infrastructure/database/sqlite-connection';
@@ -35,10 +36,11 @@ import { ARTIFACT_STORE } from '#ports/artifact-store.port';
 import { JOB_QUEUE } from '#ports/job-queue.port';
 import { SANDBOX } from '#ports/sandbox.port';
 import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
+import { REPOSITORIES_PUBLIC_API } from '#repositories/application/contracts/repositories-public-api';
 import {
-  REPOSITORIES_PUBLIC_API,
-  REPOSITORY_CONNECTIONS_API,
-} from '#repositories/application/contracts/repositories-public-api';
+  REPOSITORY_COVERAGE,
+  type RepositoryCoverage,
+} from '#repositories/application/contracts/repository-coverage';
 import { FIRST_ID } from '#tests/support/coverage-application';
 import {
   CAPTURED_AT,
@@ -57,7 +59,6 @@ import {
   COVERAGE_TEST_SETTINGS,
   RecordingSandbox,
 } from '#tests/support/recording-sandbox';
-import { standInConnections } from '#tests/support/repository-view-world';
 import { SchemaRows } from '#tests/support/schema-rows';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
 import { standInRepositories } from '#tests/support/stand-in-repositories';
@@ -99,7 +100,6 @@ function jestSandbox(folder: ProjectFolder): RecordingSandbox {
 
 /** What the service gives the module. */
 function servicesOf(database: TemporaryDatabase, folder: ProjectFolder) {
-  const repositories = standInRepositories(folder.root);
   return [
     { provide: SQLITE_CONNECTION, useValue: database.connection },
     { provide: TRANSACTION_MANAGER, useClass: SqliteTransactionRunner },
@@ -108,10 +108,9 @@ function servicesOf(database: TemporaryDatabase, folder: ProjectFolder) {
     { provide: JOB_QUEUE, useValue: recordingQueue() },
     { provide: CLOCK, useValue: new FixedClock(CAPTURED_AT) },
     { provide: ID_GENERATOR, useValue: new SequentialIdGenerator() },
-    { provide: REPOSITORIES_PUBLIC_API, useValue: repositories },
     {
-      provide: REPOSITORY_CONNECTIONS_API,
-      useValue: standInConnections(repositories),
+      provide: REPOSITORIES_PUBLIC_API,
+      useValue: standInRepositories(folder.root),
     },
     { provide: COVERAGE_SETTINGS, useValue: COVERAGE_TEST_SETTINGS },
   ] satisfies Provider[];
@@ -176,11 +175,21 @@ describe('CoverageModule', () => {
     expect(module.get(RunScanHandler).kind).toBe('scan');
   });
 
-  it('should bind the routes of repositories and scans to wired handlers', async () => {
+  it('should answer the port of the repositories module', async () => {
+    const module = await compile(services);
+    const port = module.get<RepositoryCoverage>(REPOSITORY_COVERAGE);
+
+    const coverage = await port.coverageOf(RepositoryId.create(REPOSITORY_ID));
+
+    expect(port).toBeInstanceOf(RepositoryCoverageApi);
+    expect(coverage).toEqual({ latestSnapshot: null, activeScanId: null });
+  });
+
+  it('should bind the routes of scans and snapshots to wired handlers', async () => {
     const module = await compile(services);
 
-    expect(module.get(RepositoriesController)).toBeInstanceOf(
-      RepositoriesController,
+    expect(module.get(RepositoryCoverageController)).toBeInstanceOf(
+      RepositoryCoverageController,
     );
     expect(module.get(ScansController)).toBeInstanceOf(ScansController);
     await expect(

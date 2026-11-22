@@ -1,4 +1,4 @@
 /** One repository, by its id as the route gives it. */
-export interface GetRepositoryQuery {
+export interface GetRepositoryViewQuery {
   readonly repositoryId: string;
 }

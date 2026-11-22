@@ -9,7 +9,6 @@ import {
 import { CancelScanHandler } from '#coverage/application/commands/cancel-scan/cancel-scan.handler';
 import { CaptureSnapshotHandler } from '#coverage/application/commands/capture-snapshot/capture-snapshot.handler';
 import { SnapshotCapture } from '#coverage/application/commands/capture-snapshot/snapshot-capture';
-import { ConnectRepositoryHandler } from '#coverage/application/commands/connect-repository/connect-repository.handler';
 import { PrepareProjectHandler } from '#coverage/application/commands/prepare-project/prepare-project.handler';
 import { RunScanHandler } from '#coverage/application/commands/run-scan/run-scan.handler';
 import { RunTestsHandler } from '#coverage/application/commands/run-tests/run-tests.handler';
@@ -21,7 +20,6 @@ import {
   COVERAGE_SETTINGS,
   type CoverageSettings,
 } from '#coverage/application/coverage-settings';
-import { RepositoryViews } from '#coverage/application/dto/repository-views';
 import { ScanViews } from '#coverage/application/dto/scan-views';
 import { TestRunnerUnavailableError } from '#coverage/application/errors/test-runner-unavailable.error';
 import { COVERAGE_REPORT_READER } from '#coverage/application/ports/coverage-report-reader.port';
@@ -32,19 +30,18 @@ import {
   type TestRunner,
 } from '#coverage/application/ports/test-runner.port';
 import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
-import { GetRepositoryHandler } from '#coverage/application/queries/get-repository/get-repository.handler';
 import { GetScanHandler } from '#coverage/application/queries/get-scan/get-scan.handler';
 import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
-import { ListRepositoriesHandler } from '#coverage/application/queries/list-repositories/list-repositories.handler';
 import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
+import { RepositoryCoverageApi } from '#coverage/application/repository-coverage-api';
 import { COVERAGE_SNAPSHOT_REPOSITORY } from '#coverage/domain/repositories/coverage-snapshot.repository';
 import type { CoverageMetric } from '#coverage/domain/value-objects/coverage-counters.vo';
 import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-threshold.vo';
 import { TEST_RUNNER_NAMES } from '#coverage/domain/value-objects/detected-project.vo';
 import { TypescriptSourceClassifier } from '#coverage/infrastructure/classification/typescript-source-classifier.adapter';
 import { NodeProjectDetector } from '#coverage/infrastructure/detection/node-project-detector.adapter';
-import { RepositoriesController } from '#coverage/infrastructure/http/repositories.controller';
+import { RepositoryCoverageController } from '#coverage/infrastructure/http/repository-coverage.controller';
 import { ScansController } from '#coverage/infrastructure/http/scans.controller';
 import { SqliteCoverageSnapshotRepository } from '#coverage/infrastructure/persistence/sqlite-coverage-snapshot.repository';
 import { IstanbulReportReader } from '#coverage/infrastructure/reports/istanbul-report-reader.adapter';
@@ -64,17 +61,19 @@ interface CoverageValues extends Omit<CoverageSettings, 'threshold'> {
 
 /**
  * Project detection, test runs with coverage, the reading of reports,
- * snapshots and thresholds, and the routes of repositories and scans: an
- * answer about a repository holds what only this module knows of it.
+ * snapshots and thresholds, and the routes of scans and of the snapshots
+ * of a repository.
  *
- * It takes from the modules around it: both contracts of `repositories`,
+ * It takes from the modules around it: the contract of `repositories`,
  * the sandbox, the store of tool output, the queue, the transaction
  * manager, the SQLite connection, the clock, the id generator and the
  * settings of this module, which `register` binds. It gives the queue its
- * handler of scans.
+ * handler of scans, and answers the port `REPOSITORY_COVERAGE` of the
+ * module below it, so the routes of a repository show what this module
+ * knows of it.
  */
 @Module({
-  controllers: [RepositoriesController, ScansController],
+  controllers: [RepositoryCoverageController, ScansController],
   providers: [
     {
       provide: COVERAGE_SNAPSHOT_REPOSITORY,
@@ -108,13 +107,10 @@ interface CoverageValues extends Omit<CoverageSettings, 'threshold'> {
     GetScanHandler,
     CancelScanHandler,
     ListSnapshotsHandler,
-    RepositoryViews,
-    ConnectRepositoryHandler,
-    GetRepositoryHandler,
-    ListRepositoriesHandler,
     { provide: COVERAGE_PUBLIC_API, useClass: CoverageApi },
+    { provide: RepositoryCoverageApi.token, useClass: RepositoryCoverageApi },
   ],
-  exports: [COVERAGE_PUBLIC_API, RunScanHandler],
+  exports: [COVERAGE_PUBLIC_API, RepositoryCoverageApi.token, RunScanHandler],
 })
 export class CoverageModule implements OnModuleInit {
   /**
@@ -131,7 +127,8 @@ export class CoverageModule implements OnModuleInit {
 
   /**
    * The module with its settings. It is global, so the modules above it
-   * find its contract, and the root its handler of scans.
+   * find its contract, the module of repositories the answer to its port,
+   * and the root its handler of scans.
    */
   public static register(values: CoverageValues): DynamicModule {
     const settings: CoverageSettings = {

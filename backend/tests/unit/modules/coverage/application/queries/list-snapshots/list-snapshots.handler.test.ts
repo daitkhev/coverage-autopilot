@@ -14,8 +14,8 @@ import {
 } from '#tests/support/coverage-snapshots';
 import { inMemorySnapshots } from '#tests/support/coverage-stand-ins';
 import { COVERAGE_TEST_SETTINGS } from '#tests/support/recording-sandbox';
-import { heldBy } from '#tests/support/repository-view-world';
 import {
+  heldBy,
   type StandInRepositories,
   standInRepositories,
 } from '#tests/support/stand-in-repositories';

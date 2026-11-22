@@ -8,9 +8,11 @@ import {
   TRANSACTION_MANAGER,
   type TransactionManager,
 } from '#ports/transaction-manager.port';
-import type { ConnectRepositoryCommand } from '#repositories/application/commands/connect-repository/connect-repository.command';
-import type { ConnectRepositoryResult } from '#repositories/application/contracts/repositories-public-api';
-import { toRepositoryDto } from '#repositories/application/dto/repository-dtos';
+import type {
+  ConnectRepositoryCommand,
+  ConnectRepositoryResult,
+} from '#repositories/application/commands/connect-repository/connect-repository.command';
+import { RepositoryViews } from '#repositories/application/dto/repository-views';
 import { GIT, type Git } from '#repositories/application/ports/git.port';
 import { Repository } from '#repositories/domain/entities/repository.entity';
 import {
@@ -23,19 +25,28 @@ import {
   RepositoryUrl,
 } from '#repositories/domain/value-objects/repository-url.vo';
 
-function alreadyConnected(repository: Repository): ConnectRepositoryResult {
-  return {
-    outcome: 'already_connected',
-    repository: toRepositoryDto(repository),
-  };
+/** A repository connected or found, before a person sees it. */
+type Connection =
+  | {
+      readonly outcome: 'connected' | 'already_connected';
+      readonly repository: Repository;
+    }
+  | {
+      readonly outcome: 'invalid_url' | 'unreachable';
+      readonly reason: string;
+    };
+
+function alreadyConnected(repository: Repository): Connection {
+  return { outcome: 'already_connected', repository };
 }
 
 /**
- * Connects a repository by its address. The same owner and name typed a
- * second time, in any case of letters, give the repository connected the
- * first time and no second row. Its default branch is read from the host,
- * outside the transaction, which holds the look and the write alone. A
- * text that is not an address is refused before anything is asked.
+ * Connects a repository by its address and answers it as a person sees
+ * it. The same owner and name typed a second time, in any case of
+ * letters, give the repository connected the first time and no second
+ * row. Its default branch is read from the host, outside the transaction,
+ * which holds the look and the write alone. A text that is not an address
+ * is refused before anything is asked.
  */
 @Injectable()
 export class ConnectRepositoryHandler {
@@ -44,6 +55,7 @@ export class ConnectRepositoryHandler {
   private readonly transactions: TransactionManager;
   private readonly clock: Clock;
   private readonly ids: IdGenerator;
+  private readonly views: RepositoryViews;
 
   public constructor(
     @Inject(REPOSITORY_REPOSITORY) repositories: RepositoryRepository,
@@ -51,19 +63,35 @@ export class ConnectRepositoryHandler {
     @Inject(TRANSACTION_MANAGER) transactions: TransactionManager,
     @Inject(CLOCK) clock: Clock,
     @Inject(ID_GENERATOR) ids: IdGenerator,
+    @Inject(RepositoryViews) views: RepositoryViews,
   ) {
     this.repositories = repositories;
     this.git = git;
     this.transactions = transactions;
     this.clock = clock;
     this.ids = ids;
+    this.views = views;
   }
 
   public async execute(
     command: ConnectRepositoryCommand,
     signal: AbortSignal,
   ): Promise<ConnectRepositoryResult> {
-    const url = RepositoryUrl.read(command.url);
+    const connection = await this.connect(command.url, signal);
+    if ('reason' in connection) {
+      return connection;
+    }
+    return {
+      outcome: connection.outcome,
+      repository: await this.views.viewOf(connection.repository),
+    };
+  }
+
+  private async connect(
+    text: string,
+    signal: AbortSignal,
+  ): Promise<Connection> {
+    const url = RepositoryUrl.read(text);
     if (url === null) {
       return { outcome: 'invalid_url', reason: NOT_A_REPOSITORY_URL };
     }
@@ -88,7 +116,7 @@ export class ConnectRepositoryHandler {
     url: RepositoryUrl,
     defaultBranch: BranchName,
     transaction: Transaction,
-  ): Promise<ConnectRepositoryResult> {
+  ): Promise<Connection> {
     const known = await this.repositories.findByUrl(url, transaction);
     if (known !== null) {
       return alreadyConnected(known);
@@ -98,6 +126,6 @@ export class ConnectRepositoryHandler {
       { url, defaultBranch, connectedAt: this.clock.now() },
     );
     await this.repositories.save(repository, transaction);
-    return { outcome: 'connected', repository: toRepositoryDto(repository) };
+    return { outcome: 'connected', repository };
   }
 }
