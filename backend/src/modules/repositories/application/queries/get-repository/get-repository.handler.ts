@@ -2,6 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import type { RepositoryDto } from '#repositories/application/contracts/repositories-public-api';
 import {
+  DEFAULT_INSTALL,
+  type DefaultInstall,
+} from '#repositories/application/default-install';
+import {
   DEFAULT_THRESHOLD,
   type DefaultThreshold,
 } from '#repositories/application/default-threshold';
@@ -20,13 +24,16 @@ import {
 export class GetRepositoryHandler {
   private readonly repositories: RepositoryRepository;
   private readonly threshold: DefaultThreshold;
+  private readonly install: DefaultInstall;
 
   public constructor(
     @Inject(REPOSITORY_REPOSITORY) repositories: RepositoryRepository,
     @Inject(DEFAULT_THRESHOLD) threshold: DefaultThreshold,
+    @Inject(DEFAULT_INSTALL) install: DefaultInstall,
   ) {
     this.repositories = repositories;
     this.threshold = threshold;
+    this.install = install;
   }
 
   public async execute(
@@ -35,6 +42,6 @@ export class GetRepositoryHandler {
     const repository = await this.repositories.findById(query.repositoryId);
     return repository === null
       ? null
-      : toRepositoryDto(repository, this.threshold);
+      : toRepositoryDto(repository, this.threshold, this.install);
   }
 }

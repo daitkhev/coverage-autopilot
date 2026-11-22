@@ -194,6 +194,16 @@ describe('RepositoriesModule', () => {
         },
       );
 
+      it('should refuse a default install it does not know', async () => {
+        const refused = await compiled({
+          ...host.settings,
+          install: { mode: 'open' as 'trusted' },
+        });
+
+        await expect(refused.init()).rejects.toThrow('install.mode');
+        await refused.close();
+      });
+
       it('should refuse a git that is not told who commits', async () => {
         const settings = host.settings;
         const environment = Object.fromEntries(

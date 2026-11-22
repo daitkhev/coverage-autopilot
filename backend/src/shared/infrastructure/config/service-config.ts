@@ -87,6 +87,8 @@ export interface ServiceConfig {
    * out of the gate, which then judges only what passed.
    */
   readonly baselineTests: 'may_fail' | 'must_pass';
+  /** How a repository is installed when it has made no choice of its own. */
+  readonly installMode: 'sandboxed' | 'trusted';
   readonly commands: CommandLimits;
   readonly generator: GeneratorChoice;
   readonly budget: {
@@ -284,6 +286,7 @@ function configOf(
     },
     coverageThreshold: values.AUTOPILOT_COVERAGE_THRESHOLD,
     baselineTests: values.AUTOPILOT_BASELINE_TESTS,
+    installMode: values.AUTOPILOT_INSTALL,
     commands: commandsOf(values),
     generator: generatorOf(values, environment, sandbox),
     budget: budgetOf(values),

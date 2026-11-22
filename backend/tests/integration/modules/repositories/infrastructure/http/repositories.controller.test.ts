@@ -101,6 +101,7 @@ describe('RepositoriesController', () => {
         headCommit: null,
         outdated: false,
         threshold: { metric: 'lines', percentage: 80, isDefault: true },
+        install: { mode: 'sandboxed', isDefault: true },
       });
     });
 

@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { RepositoryId } from '#kernel/primitives/repository-id';
+import { GetRepositoryHandler } from '#repositories/application/queries/get-repository/get-repository.handler';
 import { ThresholdPercentage } from '#repositories/domain/value-objects/threshold-percentage.vo';
+import { DEFAULT_TEST_THRESHOLD } from '#tests/support/coverage-snapshots';
 import {
   RepositoriesWorld,
   WIDGETS_ID,
@@ -35,6 +37,7 @@ describe('GetRepositoryHandler', () => {
         headCommit: SCRIPTED_HEAD,
         headCheckedAt: world.clock.now(),
         threshold: { metric: 'lines', percentage: 80, isDefault: true },
+        install: { mode: 'sandboxed', isDefault: true },
       });
     });
 
@@ -52,6 +55,34 @@ describe('GetRepositoryHandler', () => {
           percentage: 95,
           isDefault: false,
         });
+      });
+    });
+
+    describe('when the repository chose how it is installed', () => {
+      it('should give its own mode, even one equal to the default', async () => {
+        const repository = await world.connected();
+        repository.changeInstallMode('sandboxed');
+
+        const found = await world.getRepository.execute({
+          repositoryId: WIDGETS_ID,
+        });
+
+        expect(found?.install).toEqual({ mode: 'sandboxed', isDefault: false });
+      });
+    });
+
+    describe('when the service trusts a repository that chose nothing', () => {
+      it('should give the default of the service', async () => {
+        await world.connected();
+        const handler = new GetRepositoryHandler(
+          world.repositories,
+          DEFAULT_TEST_THRESHOLD,
+          { mode: 'trusted' },
+        );
+
+        const found = await handler.execute({ repositoryId: WIDGETS_ID });
+
+        expect(found?.install).toEqual({ mode: 'trusted', isDefault: true });
       });
     });
 

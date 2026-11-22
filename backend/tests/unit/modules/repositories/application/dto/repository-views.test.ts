@@ -51,6 +51,7 @@ describe('RepositoryViews', () => {
         activeScanId: SCAN_ID,
         outdated: false,
         threshold: { metric: 'lines', percentage: 80, isDefault: true },
+        install: { mode: 'sandboxed', isDefault: true },
       });
       expect(world.coverage.asked).toEqual([WIDGETS_ID]);
     });

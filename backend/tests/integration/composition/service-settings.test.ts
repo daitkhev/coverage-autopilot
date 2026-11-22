@@ -18,6 +18,7 @@ describe('serviceSettingsOf', () => {
       AUTOPILOT_GIT_TIMEOUT_MS: '90000',
       AUTOPILOT_GH_TIMEOUT_MS: '15000',
       AUTOPILOT_COVERAGE_THRESHOLD: '95',
+      AUTOPILOT_INSTALL: 'trusted',
       GH_TOKEN: 'zz-private',
     });
     const stream = new PassThrough();
@@ -35,6 +36,7 @@ describe('serviceSettingsOf', () => {
       artifacts: '/srv/autopilot/artifacts',
       repositories: {
         threshold: { metric: 'lines', percentage: 95 },
+        install: { mode: 'trusted' },
         workingCopiesRoot: '/srv/autopilot/working-copies',
         git: {
           command: ['git'],

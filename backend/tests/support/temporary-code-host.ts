@@ -10,7 +10,10 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
-import { DEFAULT_TEST_THRESHOLD } from '#tests/support/coverage-snapshots';
+import {
+  DEFAULT_TEST_INSTALL,
+  DEFAULT_TEST_THRESHOLD,
+} from '#tests/support/coverage-snapshots';
 import { GhStandIn } from '#tests/support/gh-stand-in';
 
 /** Where git is found on a desk and in CI. Nothing else is on the path. */
@@ -59,6 +62,7 @@ export class TemporaryCodeHost {
     this.gh = new GhStandIn(ghFolder, this.remotes);
     this.settings = {
       threshold: DEFAULT_TEST_THRESHOLD,
+      install: DEFAULT_TEST_INSTALL,
       workingCopiesRoot: join(this.folder, 'service'),
       git: {
         command: ['git'],

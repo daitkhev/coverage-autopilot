@@ -90,6 +90,8 @@ describe('loadServiceConfig', () => {
       ['AUTOPILOT_COVERAGE_THRESHOLD', '80%', 'a whole number from 1 to 100'],
       ['AUTOPILOT_BASELINE_TESTS', 'ignore', 'may_fail or must_pass'],
       ['AUTOPILOT_BASELINE_TESTS', 'MAY_FAIL', 'may_fail or must_pass'],
+      ['AUTOPILOT_INSTALL', 'open', 'sandboxed or trusted'],
+      ['AUTOPILOT_INSTALL', 'Trusted', 'sandboxed or trusted'],
       ['AUTOPILOT_INSTALL_TIMEOUT_MS', '10m', 'a whole number above 0'],
       ['AUTOPILOT_TEST_RUN_TIMEOUT_MS', '0', 'a whole number above 0'],
       ['AUTOPILOT_TYPE_CHECK_TIMEOUT_MS', '-5', 'a whole number above 0'],

@@ -6,6 +6,10 @@ import {
   type RepositoryCoverage,
 } from '#repositories/application/contracts/repository-coverage';
 import {
+  DEFAULT_INSTALL,
+  type DefaultInstall,
+} from '#repositories/application/default-install';
+import {
   DEFAULT_THRESHOLD,
   type DefaultThreshold,
 } from '#repositories/application/default-threshold';
@@ -35,17 +39,20 @@ function isOutdated(
 export class RepositoryViews {
   private readonly coverage: RepositoryCoverage;
   private readonly threshold: DefaultThreshold;
+  private readonly install: DefaultInstall;
 
   public constructor(
     @Inject(REPOSITORY_COVERAGE) coverage: RepositoryCoverage,
     @Inject(DEFAULT_THRESHOLD) threshold: DefaultThreshold,
+    @Inject(DEFAULT_INSTALL) install: DefaultInstall,
   ) {
     this.coverage = coverage;
     this.threshold = threshold;
+    this.install = install;
   }
 
   public async viewOf(repository: Repository): Promise<RepositoryViewDto> {
-    const values = toRepositoryDto(repository, this.threshold);
+    const values = toRepositoryDto(repository, this.threshold, this.install);
     const coverage = await this.coverage.coverageOf(values);
     return {
       ...values,

@@ -14,6 +14,20 @@ export interface RepositoryThresholdDto {
   readonly isDefault: boolean;
 }
 
+/**
+ * Whose code the install of the packages of a repository may run.
+ * `sandboxed`: none while the network is open. `trusted`: the code of the
+ * repository and of its packages, as its own developers install it.
+ */
+export type InstallMode = 'sandboxed' | 'trusted';
+
+/** How the packages of a repository are installed at the moment it is read. */
+export interface RepositoryInstallDto {
+  readonly mode: InstallMode;
+  /** The repository made no choice of its own, so the service's default holds. */
+  readonly isDefault: boolean;
+}
+
 export interface RepositoryDto {
   readonly id: RepositoryId;
   readonly owner: string;
@@ -25,6 +39,7 @@ export interface RepositoryDto {
   readonly headCommit: CommitSha | null;
   readonly headCheckedAt: Instant | null;
   readonly threshold: RepositoryThresholdDto;
+  readonly install: RepositoryInstallDto;
 }
 
 export interface RepositoryRequest {

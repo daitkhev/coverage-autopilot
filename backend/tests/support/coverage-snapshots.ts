@@ -36,6 +36,9 @@ export const DEFAULT_TEST_THRESHOLD = {
   percentage: 80,
 } as const;
 
+/** The default install of a test: sandboxed, as a plain service has. */
+export const DEFAULT_TEST_INSTALL = { mode: 'sandboxed' } as const;
+
 /** What a test judges files by when it names no other threshold. */
 export const TEST_THRESHOLD = CoverageThreshold.create(DEFAULT_TEST_THRESHOLD);
 

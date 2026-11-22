@@ -10,6 +10,7 @@ import { DockerSandbox } from '#infrastructure/sandbox/docker-sandbox.adapter';
 import { Instant } from '#kernel/time/instant';
 import { JOB_HANDLERS, type JobHandler } from '#ports/job-handler.port';
 import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
+import { DEFAULT_INSTALL } from '#repositories/application/default-install';
 import { DEFAULT_THRESHOLD } from '#repositories/application/default-threshold';
 import { loadWith } from '#tests/support/service-variables';
 import {
@@ -87,6 +88,20 @@ describe('AppModule', () => {
       metric: 'lines',
       percentage: 95,
     });
+  });
+
+  it('should install a repository that chose nothing sandboxed by default', async () => {
+    const service = await serviceWith({});
+
+    expect(service.get(DEFAULT_INSTALL, ANYWHERE)).toEqual({
+      mode: 'sandboxed',
+    });
+  });
+
+  it('should install it as its variable says', async () => {
+    const service = await serviceWith({ AUTOPILOT_INSTALL: 'trusted' });
+
+    expect(service.get(DEFAULT_INSTALL, ANYWHERE)).toEqual({ mode: 'trusted' });
   });
 
   describe('when the generator has no credential', () => {

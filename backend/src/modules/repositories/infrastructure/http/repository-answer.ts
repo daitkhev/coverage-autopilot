@@ -33,5 +33,6 @@ export function repositoryAnswerOf(repository: RepositoryViewDto): Repository {
     headCommit: repository.headCommit?.value ?? null,
     outdated: repository.outdated,
     threshold: repository.threshold,
+    install: repository.install,
   };
 }

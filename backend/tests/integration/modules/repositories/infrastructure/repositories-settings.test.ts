@@ -11,6 +11,7 @@ function settingsWith(
 ): RepositoriesSettings {
   return {
     threshold: { metric: 'lines', percentage: 80 },
+    install: { mode: 'sandboxed' },
     workingCopiesRoot: '/srv/copies',
     git: { command: ['git'], environment: git, timeoutMs: 1 },
     gh: { command: ['gh'], environment: gh, timeoutMs: 1 },

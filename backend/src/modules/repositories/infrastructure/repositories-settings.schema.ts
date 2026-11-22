@@ -2,6 +2,7 @@ import { isAbsolute } from 'node:path';
 
 import { z } from 'zod';
 
+import { INSTALL_MODES } from '#repositories/domain/value-objects/install-mode.vo';
 import { InvalidRepositoriesSettingsError } from '#repositories/infrastructure/errors/invalid-repositories-settings.error';
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
 
@@ -41,6 +42,7 @@ const thresholdSchema = z.object({
 /** What the settings must be for the module to work at all. */
 const repositoriesSettingsSchema = z.object({
   threshold: thresholdSchema,
+  install: z.object({ mode: z.enum(INSTALL_MODES) }),
   workingCopiesRoot: z
     .string()
     .refine(isAbsolute, 'The root of the working copies is not absolute.'),

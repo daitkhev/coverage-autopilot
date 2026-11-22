@@ -56,6 +56,7 @@ export function serviceSettingsOf(
         metric: THRESHOLD_METRIC,
         percentage: config.coverageThreshold,
       },
+      install: { mode: config.installMode },
       workingCopiesRoot: config.instance.workingCopies,
       git: { command: GIT_COMMAND, ...config.git },
       gh: { command: GH_COMMAND, ...config.gh },

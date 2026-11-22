@@ -8,6 +8,7 @@ import type {
 } from '#repositories/application/contracts/repositories-public-api';
 import {
   CAPTURED_AT,
+  DEFAULT_TEST_INSTALL,
   DEFAULT_TEST_THRESHOLD,
   REPOSITORY_ID,
   SNAPSHOT_COMMIT,
@@ -28,6 +29,7 @@ function acmeWidgets(): RepositoryDto {
     headCommit: null,
     headCheckedAt: null,
     threshold: { ...DEFAULT_TEST_THRESHOLD, isDefault: true },
+    install: { ...DEFAULT_TEST_INSTALL, isDefault: true },
   };
 }
 

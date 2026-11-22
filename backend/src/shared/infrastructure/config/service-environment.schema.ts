@@ -76,6 +76,12 @@ export const VARIABLES = {
     expected: 'may_fail or must_pass',
     fallback: 'may_fail',
   },
+  // How a repository that says nothing of its own is installed. Sandboxed,
+  // no code of the repository runs while the network is open.
+  AUTOPILOT_INSTALL: {
+    expected: 'sandboxed or trusted',
+    fallback: 'sandboxed',
+  },
   // The install is the one command with the network, and a large lockfile
   // of a slow registry takes minutes.
   AUTOPILOT_INSTALL_TIMEOUT_MS: { expected: WHOLE, fallback: '600000' },
@@ -225,6 +231,7 @@ const fields = z.object({
   AUTOPILOT_QUEUE_CONCURRENCY: wholeNumber(),
   AUTOPILOT_COVERAGE_THRESHOLD: wholePercent(),
   AUTOPILOT_BASELINE_TESTS: z.enum(['may_fail', 'must_pass']),
+  AUTOPILOT_INSTALL: z.enum(['sandboxed', 'trusted']),
   AUTOPILOT_INSTALL_TIMEOUT_MS: wholeNumber(),
   AUTOPILOT_TEST_RUN_TIMEOUT_MS: wholeNumber(),
   AUTOPILOT_TYPE_CHECK_TIMEOUT_MS: wholeNumber(),

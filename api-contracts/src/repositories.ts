@@ -51,6 +51,27 @@ export type ChangeThresholdRequest = z.infer<
   typeof changeThresholdRequestSchema
 >;
 
+/**
+ * Whose code the install of the packages of a repository may run.
+ * `sandboxed`: none while the network is open. `trusted`: the code of the
+ * repository and of its packages, as its own developers install it.
+ * Nothing after the install has the network in either.
+ */
+export const installModeSchema = z.enum(['sandboxed', 'trusted']);
+
+export type InstallMode = z.infer<typeof installModeSchema>;
+
+/**
+ * How the packages of a repository are installed now. A repository that
+ * made no choice of its own has the default of the service.
+ */
+export const repositoryInstallSchema = z.strictObject({
+  mode: installModeSchema,
+  isDefault: z.boolean(),
+});
+
+export type RepositoryInstall = z.infer<typeof repositoryInstallSchema>;
+
 export const repositorySchema = z.strictObject({
   id: idSchema,
   owner: textSchema,
@@ -65,6 +86,7 @@ export const repositorySchema = z.strictObject({
   /** The head moved past the commit of the latest snapshot. */
   outdated: z.boolean(),
   threshold: repositoryThresholdSchema,
+  install: repositoryInstallSchema,
 });
 
 export type Repository = z.infer<typeof repositorySchema>;

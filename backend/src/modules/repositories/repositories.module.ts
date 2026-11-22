@@ -15,6 +15,7 @@ import { PublicationTargets } from '#repositories/application/commands/publish-p
 import { PublishPatchHandler } from '#repositories/application/commands/publish-patch/publish-patch.handler';
 import { ResolveHeadHandler } from '#repositories/application/commands/resolve-head/resolve-head.handler';
 import { REPOSITORIES_PUBLIC_API } from '#repositories/application/contracts/repositories-public-api';
+import { DEFAULT_INSTALL } from '#repositories/application/default-install';
 import { DEFAULT_THRESHOLD } from '#repositories/application/default-threshold';
 import { RepositoryViews } from '#repositories/application/dto/repository-views';
 import { HeadRecorder } from '#repositories/application/head-recorder';
@@ -95,6 +96,7 @@ export class RepositoriesModule implements OnModuleInit {
       providers: [
         { provide: REPOSITORIES_SETTINGS, useValue: settings },
         { provide: DEFAULT_THRESHOLD, useValue: settings.threshold },
+        { provide: DEFAULT_INSTALL, useValue: settings.install },
         {
           provide: REPOSITORY_REPOSITORY,
           useClass: SqliteRepositoryRepository,

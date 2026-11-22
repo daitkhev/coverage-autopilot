@@ -4,6 +4,7 @@ import {
   accessCheckSchema,
   changeThresholdRequestSchema,
   connectRepositoryRequestSchema,
+  repositoryInstallSchema,
   repositoryListSchema,
   repositoryThresholdSchema,
 } from '#api-contracts/repositories';
@@ -20,6 +21,7 @@ const repository = {
   headCommit: null,
   outdated: false,
   threshold: { metric: 'lines', percentage: 80, isDefault: true },
+  install: { mode: 'sandboxed', isDefault: true },
 };
 
 describe('connectRepositoryRequestSchema', () => {
@@ -64,6 +66,7 @@ describe('repositoryListSchema', () => {
     ],
     ['a time with no zone', { ...repository, connectedAt: '2026-11-20 08:00' }],
     ['no threshold', { ...repository, threshold: undefined }],
+    ['no install', { ...repository, install: undefined }],
     ['an unknown key', { ...repository, stars: 3 }],
   ])('should refuse %s', (_name, value) => {
     expect(repositoryListSchema.safeParse({ items: [value] }).success).toBe(
@@ -98,6 +101,25 @@ describe('repositoryThresholdSchema', () => {
     ],
   ])('should refuse %s', (_name, value) => {
     expect(repositoryThresholdSchema.safeParse(value).success).toBe(false);
+  });
+});
+
+describe('repositoryInstallSchema', () => {
+  it.each(['sandboxed', 'trusted'])(
+    'should accept a %s install of its own',
+    (mode) => {
+      const value = { mode, isDefault: false };
+
+      expect(repositoryInstallSchema.safeParse(value).success).toBe(true);
+    },
+  );
+
+  it.each([
+    ['no word on whether it is the default', { mode: 'trusted' }],
+    ['a mode that is not one', { mode: 'open', isDefault: false }],
+    ['an unknown key', { mode: 'trusted', isDefault: false, network: 'open' }],
+  ])('should refuse %s', (_name, value) => {
+    expect(repositoryInstallSchema.safeParse(value).success).toBe(false);
   });
 });
 

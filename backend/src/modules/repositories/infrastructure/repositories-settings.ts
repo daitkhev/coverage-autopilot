@@ -1,3 +1,4 @@
+import type { DefaultInstall } from '#repositories/application/default-install';
 import type { DefaultThreshold } from '#repositories/application/default-threshold';
 
 /** How the service starts one program. */
@@ -24,6 +25,8 @@ export interface ToolSettings {
 export interface RepositoriesSettings {
   /** What a repository with no threshold of its own is judged by. */
   readonly threshold: DefaultThreshold;
+  /** How a repository that made no choice of its own is installed. */
+  readonly install: DefaultInstall;
   /**
    * An absolute folder of the service alone. Mirrors and working copies
    * are made under it, and nothing else is.
