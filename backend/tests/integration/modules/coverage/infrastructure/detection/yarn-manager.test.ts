@@ -59,7 +59,11 @@ describe('yarnChoice', () => {
               '--cache-folder',
               'node_modules/.cache/coverage-autopilot/install',
             ],
-            environment: { COREPACK_ENV_FILE: '0', YARN_IGNORE_PATH: '1' },
+            environment: {
+              COREPACK_ENV_FILE: '0',
+              COREPACK_NPM_REGISTRY: 'https://registry.npmjs.org',
+              YARN_IGNORE_PATH: '1',
+            },
           },
           lockedVersion: expect.any(Function) as unknown,
         },
@@ -118,10 +122,10 @@ describe('yarnChoice', () => {
       });
     });
 
-    it('should say that only yarn 1 is supported', () => {
+    it('should leave it to yarn 2 or later, which reads the settings', () => {
       expect(choiceIn(berryLock)).toMatchObject({
         outcome: 'unsupported',
-        reason: 'unsupported_package_manager',
+        reason: 'plug_and_play',
       });
     });
   });

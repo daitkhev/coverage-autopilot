@@ -95,7 +95,10 @@ describe('pnpmChoice', () => {
               '--config.manage-package-manager-versions=false',
               '--reporter=append-only',
             ],
-            environment: { COREPACK_ENV_FILE: '0' },
+            environment: {
+              COREPACK_ENV_FILE: '0',
+              COREPACK_NPM_REGISTRY: 'https://registry.npmjs.org',
+            },
           },
           lockedVersion: expect.any(Function) as unknown,
         },

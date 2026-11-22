@@ -5,6 +5,7 @@ import {
   type Found,
   unsupported,
 } from '#coverage/infrastructure/detection/runner-choice';
+import { berryChoice } from '#coverage/infrastructure/detection/yarn-berry';
 import {
   classicChoice,
   YARN_LOCKFILE,
@@ -57,9 +58,5 @@ export function yarnChoice(
   }
   return format === CLASSIC
     ? classicChoice(lockfile, descriptor)
-    : unsupported(
-        'unsupported_package_manager',
-        `${YARN_LOCKFILE} has the format of ${BERRY}, and only ${CLASSIC} ` +
-          'is supported.',
-      );
+    : berryChoice(root, lockfile, descriptor);
 }

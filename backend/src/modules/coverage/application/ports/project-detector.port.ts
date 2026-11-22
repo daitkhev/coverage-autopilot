@@ -37,7 +37,9 @@ export type ProjectDetection = SupportedProject | UnsupportedProject;
 /**
  * Reads the files of a working copy, such as the package manifest, the
  * lockfile and the configuration of the runner. It runs nothing, so it is
- * safe on the code of any repository.
+ * safe on the code of any repository. For yarn 2 and later it writes one
+ * file into the copy: the settings of the repository without those that
+ * load its code, which the install reads instead.
  */
 export interface ProjectDetector {
   detect(workingCopyPath: string): Promise<ProjectDetection>;

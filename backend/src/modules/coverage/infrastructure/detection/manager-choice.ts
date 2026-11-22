@@ -37,9 +37,12 @@ export const INSTALL_CACHE = 'node_modules/.cache/coverage-autopilot/install';
 export const COREPACK = 'corepack';
 
 /**
- * A `.corepack.env` of the repository could send Corepack to another
- * registry for the program, so it is never read.
+ * Every manager comes from the registry of npm, yarn 2 and later as the
+ * package `@yarnpkg/cli-dist`, which has the program the hash of a
+ * `packageManager` field names. A `.corepack.env` of the repository could
+ * send Corepack elsewhere, so it is never read.
  */
 export const COREPACK_ENVIRONMENT: Readonly<Record<string, string>> = {
   COREPACK_ENV_FILE: '0',
+  COREPACK_NPM_REGISTRY: 'https://registry.npmjs.org',
 };

@@ -12,6 +12,7 @@ type TestRunnerName = 'jest' | 'vitest';
  * such a project and never changes it into one it can measure.
  * `install_runs_code`: the install would run code of the repository or of
  * a package that no switch of its manager turns off, as the detail names.
+ * `plug_and_play`: yarn would keep the packages out of `node_modules`.
  */
 export type UnsupportedProjectReason =
   | 'no_package_manifest'
@@ -20,6 +21,7 @@ export type UnsupportedProjectReason =
   | 'unsupported_package_manager'
   | 'no_lockfile'
   | 'install_runs_code'
+  | 'plug_and_play'
   | 'no_test_runner'
   | 'other_test_runner'
   | 'ambiguous_test_runner'

@@ -7,7 +7,10 @@ import {
   createProjectFolder,
   type ProjectFolder,
 } from '#tests/support/project-folder';
-import { classicLockfileOf } from '#tests/support/yarn-lockfiles';
+import {
+  berryLockfileOf,
+  classicLockfileOf,
+} from '#tests/support/yarn-lockfiles';
 
 /** A project tested with Jest at a range of its manifest. */
 function manifestOf(fields: Readonly<Record<string, unknown>> = {}): string {
@@ -26,6 +29,12 @@ const PNPM_FILES = {
 const YARN_FILES = {
   'package.json': manifestOf(),
   'yarn.lock': classicLockfileOf({ jest: '30.5.2' }),
+};
+
+const BERRY_FILES = {
+  'package.json': manifestOf({ packageManager: 'yarn@4.13.0' }),
+  'yarn.lock': berryLockfileOf({ jest: '30.5.2' }),
+  '.yarnrc.yml': 'nodeLinker: node-modules\n',
 };
 
 const folders: ProjectFolder[] = [];
@@ -49,6 +58,7 @@ describe('NodeProjectDetector', () => {
     it.each([
       ['pnpm', PNPM_FILES, 'pnpm@10.34.9'],
       ['yarn', YARN_FILES, 'yarn@1.22.22'],
+      ['yarn', BERRY_FILES, 'yarn@4.13.0'],
     ])(
       'should give %s, the version its lockfile holds and its install',
       async (name, files, program) => {
