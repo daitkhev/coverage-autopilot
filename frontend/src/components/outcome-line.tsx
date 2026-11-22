@@ -25,7 +25,12 @@ function LookLine({
         <Glyph name={look.glyph} role={look.role} />{' '}
         <RoleText role={look.role}>{sentence}</RoleText>
       </Text>
-      {code === undefined ? null : <RoleText role="secondary">{code}</RoleText>}
+      {code === undefined ? null : (
+        // The code is searched for as it is written, so it is never cut.
+        <Box flexShrink={0}>
+          <RoleText role="secondary">{code}</RoleText>
+        </Box>
+      )}
     </Box>
   );
 }
