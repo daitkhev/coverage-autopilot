@@ -39,7 +39,9 @@ export function noAcceptedPatch(improvementId: string): ConflictException {
  * A request for an improvement the service would not take: 400 for a
  * value that breaks a rule, 404 for a snapshot or a measured file that is
  * not there, and 409 for a conflict, which names the earlier improvement
- * when there is one, so the client can open it.
+ * when there is one, so the client can open it. A generator with no
+ * credential is a conflict with the state of the service, not a fault of
+ * it, so it is 409 too.
  */
 export function startRefusalOf(refusal: StartRefusal): HttpException {
   const { message } = refusal;
@@ -56,8 +58,9 @@ export function startRefusalOf(refusal: StartRefusal): HttpException {
         message,
       } satisfies ErrorBody);
     case 'stale_snapshot':
+    case 'generator_unavailable':
       return new ConflictException({
-        error: 'stale_snapshot',
+        error: refusal.reason,
         message,
       } satisfies ErrorBody);
     default:

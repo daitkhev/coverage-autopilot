@@ -1,5 +1,8 @@
 import type { GenerationRequest } from '#improvement/application/ports/test-generator.port';
-import type { GeneratorSettings } from '#improvement/infrastructure/generator/generator-settings';
+import type {
+  GeneratorSettings,
+  ReadyGeneratorSettings,
+} from '#improvement/infrastructure/generator/generator-settings';
 
 /**
  * The sandbox has a read-only root and a writable `/tmp`, and the CLI
@@ -57,7 +60,7 @@ export function claudeCodeArguments(
  * come last, so the settings cannot replace one.
  */
 export function claudeCodeEnvironment(
-  settings: GeneratorSettings,
+  settings: ReadyGeneratorSettings,
 ): Record<string, string> {
   return {
     ...settings.environment,

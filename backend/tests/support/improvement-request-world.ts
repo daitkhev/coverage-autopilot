@@ -3,6 +3,7 @@ import { CancelImprovementHandler } from '#improvement/application/commands/canc
 import { ImprovementRegistration } from '#improvement/application/commands/start-improvement/improvement-registration';
 import { StartImprovementHandler } from '#improvement/application/commands/start-improvement/start-improvement.handler';
 import { ImprovementViews } from '#improvement/application/dto/improvement-views';
+import type { ImprovementSettings } from '#improvement/application/improvement-settings';
 import { GetBudgetSettingsHandler } from '#improvement/application/queries/get-budget-settings/get-budget-settings.handler';
 import { GetImprovementHandler } from '#improvement/application/queries/get-improvement/get-improvement.handler';
 import { GetImprovementPatchHandler } from '#improvement/application/queries/get-improvement-patch/get-improvement-patch.handler';
@@ -55,14 +56,7 @@ export class ImprovementRequestWorld {
     this.clock,
   );
 
-  public readonly start = new StartImprovementHandler(
-    this.coverage,
-    this.repositories,
-    this.hasher,
-    this.registration,
-    this.views,
-    TEST_SETTINGS,
-  );
+  public readonly start: StartImprovementHandler;
   public readonly approve = new ApproveImprovementHandler(
     this.improvements,
     this.transactions,
@@ -93,6 +87,18 @@ export class ImprovementRequestWorld {
     this.coverage,
     this.improvements,
   );
+
+  /** The settings fill a request, and say whether a request is taken. */
+  public constructor(settings: ImprovementSettings = TEST_SETTINGS) {
+    this.start = new StartImprovementHandler(
+      this.coverage,
+      this.repositories,
+      this.hasher,
+      this.registration,
+      this.views,
+      settings,
+    );
+  }
 
   /** Stores improvements made before the test, and forgets the writes. */
   public async stored(...improvements: Improvement[]): Promise<void> {

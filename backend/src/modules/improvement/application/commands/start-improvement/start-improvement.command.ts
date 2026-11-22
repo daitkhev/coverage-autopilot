@@ -22,12 +22,13 @@ export interface StartImprovementCommand {
 }
 
 /**
- * Refused before any improvement is made: a value of the request breaks
- * a rule, such as a budget above the maximum, or the snapshot it names is
- * not there, did not measure the file, or the file changed on the default
- * branch since.
+ * Refused before any improvement is made: the generator has no
+ * credential, a value of the request breaks a rule, such as a budget
+ * above the maximum, or the snapshot it names is not there, did not
+ * measure the file, or the file changed on the default branch since.
  */
 type RequestRefusalReason =
+  | 'generator_unavailable'
   | 'invalid_request'
   | 'snapshot_not_found'
   | 'target_not_measured'

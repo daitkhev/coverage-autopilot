@@ -18,6 +18,7 @@ import type {
   StartRefusal,
 } from '#improvement/application/commands/start-improvement/start-improvement.command';
 import {
+  generatorUnavailable,
   invalidRequest,
   snapshotNotFound,
   staleSnapshot,
@@ -45,8 +46,9 @@ interface UsableSource {
 }
 
 /**
- * Requests an improvement of one file from a snapshot. Every value of the
- * request is made first, so a value that breaks a rule is refused before
+ * Requests an improvement of one file from a snapshot. A generator with no
+ * credential refuses every request at once. Every value of the request is
+ * made first, so a value that breaks a rule is refused before
  * any call. The request is then checked against the snapshot and the head
  * of the default branch, outside any transaction, because the head is
  * read from the host of the code. Only a request that is still good is
@@ -81,6 +83,9 @@ export class StartImprovementHandler {
     command: StartImprovementCommand,
     signal: AbortSignal,
   ): Promise<StartImprovementResult> {
+    if (this.settings.missingCredential !== null) {
+      return generatorUnavailable(this.settings.missingCredential);
+    }
     const asked = requestValueOf(() =>
       askedImprovementOf(command, this.settings),
     );

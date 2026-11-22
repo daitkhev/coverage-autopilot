@@ -36,6 +36,12 @@ export interface ImprovementSettings {
    * the generator did not say when it opens.
    */
   readonly limitWaitMs: number;
+  /**
+   * The variable the credential of the generator is missing from, or
+   * `null` when it is set. Without it the service still scans, and refuses
+   * a request for an improvement before it stores anything.
+   */
+  readonly missingCredential: string | null;
 }
 
 /** The injection token of the settings of the improvement module. */

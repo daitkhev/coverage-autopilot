@@ -1,5 +1,5 @@
 import type { GenerationRequest } from '#improvement/application/ports/test-generator.port';
-import type { GeneratorSettings } from '#improvement/infrastructure/generator/generator-settings';
+import type { ReadyGeneratorSettings } from '#improvement/infrastructure/generator/generator-settings';
 import { FilePath } from '#kernel/primitives/file-path';
 import { ALLOWED_TOOLS } from '#tests/support/generator-stream';
 
@@ -10,7 +10,7 @@ const BRANCH_LINE = 12;
 export const CREDENTIAL_VALUE = 'not-a-real-credential-4711';
 
 /** The settings of the generator in a test: a subscription login. */
-export const GENERATOR_TEST_SETTINGS: GeneratorSettings = {
+export const GENERATOR_TEST_SETTINGS: ReadyGeneratorSettings = {
   command: ['claude'],
   allowedTools: ALLOWED_TOOLS,
   credential: {

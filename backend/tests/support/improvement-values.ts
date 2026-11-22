@@ -107,6 +107,7 @@ export const TEST_SETTINGS: ImprovementSettings = {
   generation: { maxTurns: 12, maxCostUsd: null, timeoutMs: 600_000 },
   testFileSuffixes: ['.test.ts', '.test.tsx'],
   limitWaitMs: 3_600_000,
+  missingCredential: null,
 };
 
 /** What a request may change in a test. The rest is a fixed request. */

@@ -21,6 +21,7 @@ import {
   REPOSITORY_ID,
   SOURCE_SNAPSHOT_ID,
   TARGET_FILE,
+  TEST_SETTINGS,
 } from '#tests/support/improvement-values';
 
 const FIRST_ID = '00000000-0000-4000-8000-000000000001';
@@ -137,6 +138,31 @@ describe('ImprovementRequestsController', () => {
 
         expect(refusal).toEqual([400, { error: 'invalid_request', message }]);
         expect(world.coverage.asked).toEqual([]);
+      });
+    });
+
+    describe('when the generator has no credential', () => {
+      it('should answer 409 generator_unavailable and store nothing', async () => {
+        await service.close();
+        const missingCredential = 'ANTHROPIC_API_KEY';
+        world = new ImprovementRequestWorld({
+          ...TEST_SETTINGS,
+          missingCredential,
+        });
+        service = await improvementRoutes(world, ImprovementRequestsController);
+
+        const refusal = await refusalOf(requested());
+
+        expect(refusal).toEqual([
+          409,
+          {
+            error: 'generator_unavailable',
+            message:
+              'The generator has no credential, so no improvement can run. ' +
+              'Set ANTHROPIC_API_KEY and start the service again.',
+          },
+        ]);
+        expect(world.improvements.writes).toEqual([]);
       });
     });
 

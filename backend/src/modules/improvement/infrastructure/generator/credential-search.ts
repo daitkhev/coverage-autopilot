@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 
 import { holdsCredential } from '#improvement/infrastructure/generator/credential-text';
-import type { GeneratorSettings } from '#improvement/infrastructure/generator/generator-settings';
+import type { ReadyGeneratorSettings } from '#improvement/infrastructure/generator/generator-settings';
 import { readCopyFile, REFUSAL_WORDS } from '#infrastructure/files/copy-file';
 
 /** What the search of the written files found. */
@@ -22,7 +22,7 @@ const CLEAN: Finding = { exposed: false, notes: [] };
 function findingOf(
   root: string,
   path: string,
-  settings: GeneratorSettings,
+  settings: ReadyGeneratorSettings,
 ): Finding {
   const credential = settings.credential.value;
   if (holdsCredential(path, credential)) {
@@ -54,7 +54,7 @@ function skippedNotes(skipped: number): string[] {
 export function searchCredential(
   root: string,
   written: readonly string[],
-  settings: GeneratorSettings,
+  settings: ReadyGeneratorSettings,
 ): CredentialSearch {
   const searched = written.slice(0, settings.scan.maxFiles);
   const findings = searched.map((path) => findingOf(root, path, settings));

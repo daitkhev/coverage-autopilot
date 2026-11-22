@@ -23,7 +23,10 @@ const settingsSchema = z.object({
   generator: z.object({
     command: z.array(word).min(1),
     allowedTools: z.array(word).min(1),
-    credential: z.object({ variable: z.string().regex(VARIABLE), value: word }),
+    credential: z.object({
+      variable: z.string().regex(VARIABLE),
+      value: word.nullable(),
+    }),
   }),
 });
 
@@ -54,8 +57,10 @@ function policyProblemsOf(settings: ImprovementSettings): string[] {
 
 /**
  * Refuses settings no improvement can run with, as the service starts
- * rather than at the first request. The message names what is wrong and
- * never a value, because one of the values is the credential.
+ * rather than at the first request. A credential that is not set is no
+ * fault: the service then scans, and refuses a request for an improvement.
+ * An empty one is. The message names what is wrong and never a value,
+ * because one of the values is the credential.
  */
 export function checkImprovementSettings(
   settings: ImprovementSettings,

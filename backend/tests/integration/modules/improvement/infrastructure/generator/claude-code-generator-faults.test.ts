@@ -11,6 +11,7 @@ import {
   type GeneratorBench,
   generatorBench,
 } from '#tests/support/generator-bench';
+import { GENERATOR_TEST_SETTINGS } from '#tests/support/generator-request';
 import {
   ALLOWED_TOOLS,
   answerEvent,
@@ -176,6 +177,22 @@ describe('ClaudeCodeGenerator', () => {
         retryable: false,
       });
       expect(String(fault['message'])).toContain('CLAUDE_CODE_OAUTH_TOKEN');
+    });
+
+    it('should start nothing when no credential is set', async () => {
+      bench.folder.remove();
+      bench = generatorBench({
+        ...GENERATOR_TEST_SETTINGS,
+        credential: { variable: 'CLAUDE_CODE_OAUTH_TOKEN', value: null },
+      });
+
+      await expect(bench.generate()).rejects.toThrow(
+        new GeneratorLoginFailedError(
+          'No credential is set in CLAUDE_CODE_OAUTH_TOKEN, so the CLI ' +
+            'cannot log in. Set it and start the service again.',
+        ),
+      );
+      expect(bench.sandbox.requests).toEqual([]);
     });
   });
 

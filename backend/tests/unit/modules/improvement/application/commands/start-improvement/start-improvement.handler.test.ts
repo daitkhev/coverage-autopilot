@@ -13,6 +13,7 @@ import {
   REPOSITORY_ID,
   SOURCE_SNAPSHOT_ID,
   TARGET_FILE,
+  TEST_SETTINGS,
 } from '#tests/support/improvement-values';
 
 const NEVER = new AbortController().signal;
@@ -289,6 +290,22 @@ describe('StartImprovementHandler', () => {
           expectNothingRegistered();
         },
       );
+    });
+
+    describe('when the generator has no credential', () => {
+      it('should refuse before it asks or stores anything', async () => {
+        const missingCredential = 'CLAUDE_CODE_OAUTH_TOKEN';
+        world = new ImprovementRequestWorld({
+          ...TEST_SETTINGS,
+          missingCredential,
+        });
+
+        const result = await world.start.execute(startCommandOf(), NEVER);
+
+        expect(result).toMatchObject({ reason: 'generator_unavailable' });
+        expect(world.coverage.asked).toEqual([]);
+        expectNothingRegistered();
+      });
     });
 
     describe('when the same key asked for the same work before', () => {

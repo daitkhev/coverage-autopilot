@@ -25,7 +25,13 @@ export interface GeneratorSettings {
    * must list exactly these.
    */
   readonly allowedTools: readonly string[];
-  readonly credential: GeneratorCredential;
+  /**
+   * Its value is `null` when the variable is not set. The service then
+   * starts and scans, and the adapter refuses every run.
+   */
+  readonly credential: Omit<GeneratorCredential, 'value'> & {
+    readonly value: string | null;
+  };
   /**
    * Variables the CLI gets besides those the adapter sets, such as the
    * `PATH` of the image. They cannot replace one the adapter sets.
@@ -33,6 +39,11 @@ export interface GeneratorSettings {
   readonly environment: Readonly<Record<string, string>>;
   readonly scan: CredentialScan;
 }
+
+/** The settings of a generator whose credential is set, as a run takes them. */
+export type ReadyGeneratorSettings = GeneratorSettings & {
+  readonly credential: GeneratorCredential;
+};
 
 /** The injection token of the settings of the generator. */
 export const GENERATOR_SETTINGS = Symbol('GeneratorSettings');

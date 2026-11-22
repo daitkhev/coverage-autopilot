@@ -5,6 +5,7 @@ import type {
   GenerationResult,
   TestGenerator,
 } from '#improvement/application/ports/test-generator.port';
+import { GeneratorLoginFailedError } from '#improvement/infrastructure/errors/generator-login-failed.error';
 import {
   claudeCodeArguments,
   claudeCodeEnvironment,
@@ -26,6 +27,7 @@ import { GENERATOR_SANDBOX } from '#improvement/infrastructure/generator/generat
 import {
   GENERATOR_SETTINGS,
   type GeneratorSettings,
+  type ReadyGeneratorSettings,
 } from '#improvement/infrastructure/generator/generator-settings';
 import { CLOCK, type Clock } from '#kernel/time/clock';
 import { ARTIFACT_STORE, type ArtifactStore } from '#ports/artifact-store.port';
@@ -79,12 +81,13 @@ export class ClaudeCodeGenerator implements TestGenerator {
     signal: AbortSignal,
   ): Promise<GenerationResult> {
     signal.throwIfAborted();
+    const settings = this.ready();
     const prompt = promptFor(request);
     const root = request.workingCopyPath;
     const before = await listCopy(root);
     const ended = await this.run(request, prompt, signal);
     const changes = changesBetween(before, await listCopy(root));
-    const search = searchCredential(root, changes.written, this.settings);
+    const search = searchCredential(root, changes.written, settings);
     const outputReference = await this.save(request, ended, search.notes);
     const run = {
       ended,
@@ -101,7 +104,7 @@ export class ClaudeCodeGenerator implements TestGenerator {
     ended: SandboxCommandResult,
     notes: readonly string[],
   ): Promise<string> {
-    const credential = this.settings.credential.value;
+    const credential = this.ready().credential.value;
     return this.artifacts.save({
       owner: request.owner,
       label: LABEL,
@@ -112,9 +115,24 @@ export class ClaudeCodeGenerator implements TestGenerator {
   private rules(): RunRules {
     return {
       allowedTools: this.settings.allowedTools,
-      credential: this.settings.credential,
+      credential: this.ready().credential,
       now: this.clock.now(),
     };
+  }
+
+  /**
+   * The settings with their credential. Without one no run starts: the
+   * CLI could not log in, and only the owner can give it one.
+   */
+  private ready(): ReadyGeneratorSettings {
+    const { variable, value } = this.settings.credential;
+    if (value === null) {
+      throw new GeneratorLoginFailedError(
+        `No credential is set in ${variable}, so the CLI cannot log in. ` +
+          'Set it and start the service again.',
+      );
+    }
+    return { ...this.settings, credential: { variable, value } };
   }
 
   private async run(
@@ -126,7 +144,7 @@ export class ClaudeCodeGenerator implements TestGenerator {
       {
         workingCopyPath: request.workingCopyPath,
         command: claudeCodeArguments(this.settings, request, prompt),
-        environment: claudeCodeEnvironment(this.settings),
+        environment: claudeCodeEnvironment(this.ready()),
         network: 'open',
         timeoutMs: request.limits.timeoutMs,
       },
