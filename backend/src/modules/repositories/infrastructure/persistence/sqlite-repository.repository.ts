@@ -23,21 +23,25 @@ import {
 
 const COLUMNS =
   'id, owner, name, url, default_branch, connected_at, head_commit, ' +
-  'head_checked_at, threshold_percentage';
+  'head_checked_at, threshold_percentage, install_mode';
 
 /** The host does not tell letters of a different case apart in a name. */
 const FIND_BY_OWNER_AND_NAME =
   `SELECT ${COLUMNS} FROM repositories ` +
   'WHERE owner = ? COLLATE NOCASE AND name = ? COLLATE NOCASE';
 
-/** Only the head and the threshold change after a repository is connected. */
+/**
+ * Only the head, the threshold and the install mode change after a
+ * repository is connected.
+ */
 const SAVE =
   `INSERT INTO repositories (${COLUMNS}) ` +
   'VALUES (:id, :owner, :name, :url, :default_branch, :connected_at, ' +
-  ':head_commit, :head_checked_at, :threshold_percentage) ' +
+  ':head_commit, :head_checked_at, :threshold_percentage, :install_mode) ' +
   'ON CONFLICT (id) DO UPDATE SET head_commit = excluded.head_commit, ' +
   'head_checked_at = excluded.head_checked_at, ' +
-  'threshold_percentage = excluded.threshold_percentage';
+  'threshold_percentage = excluded.threshold_percentage, ' +
+  'install_mode = excluded.install_mode';
 
 function headOf(row: RepositoryRow): RepositoryHead | null {
   return row.head_commit === null
@@ -59,6 +63,7 @@ function repositoryOf(value: unknown): Repository {
       row.threshold_percentage === null
         ? null
         : ThresholdPercentage.create(row.threshold_percentage),
+    installMode: row.install_mode,
   });
 }
 
@@ -74,6 +79,7 @@ function rowOf(repository: Repository): Record<string, string | number | null> {
     head_commit: head?.commit.value ?? null,
     head_checked_at: head?.readAt.toString() ?? null,
     threshold_percentage: repository.threshold?.value ?? null,
+    install_mode: repository.installMode,
   };
 }
 

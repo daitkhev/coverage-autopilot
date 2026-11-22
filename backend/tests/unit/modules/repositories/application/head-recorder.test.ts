@@ -38,8 +38,8 @@ describe('HeadRecorder', () => {
       expect(world.transactions.runs).toBe(1);
     });
 
-    describe('when a threshold was set while the host was asked', () => {
-      it('should keep that threshold beside the head', async () => {
+    describe('when a threshold and a mode of install were set while the host was asked', () => {
+      it('should keep them beside the head', async () => {
         const read = await world.connected();
         const changed = Repository.restore(WIDGETS_ID, {
           url: read.url,
@@ -47,6 +47,7 @@ describe('HeadRecorder', () => {
           connectedAt: read.connectedAt,
           head: null,
           threshold: ThresholdPercentage.create(95),
+          installMode: 'trusted',
         });
         await world.repositories.save(changed, world.transactions.transaction);
 
@@ -54,6 +55,7 @@ describe('HeadRecorder', () => {
 
         const kept = await world.repositories.findById(WIDGETS_ID);
         expect(kept?.threshold?.value).toBe(95);
+        expect(kept?.installMode).toBe('trusted');
         expect(kept?.head).toBe(HEAD);
       });
     });

@@ -62,6 +62,33 @@ describe('SqliteRepositoryRepository', () => {
       expect(found?.connectedAt.toString()).toBe(STORED_TIME);
       expect(found?.head).toBeNull();
       expect(found?.threshold).toBeNull();
+      expect(found?.installMode).toBeNull();
+    });
+
+    it.each(['trusted', 'sandboxed'] as const)(
+      'should keep the %s install a person chose for a repository',
+      async (mode) => {
+        const value = repository(FIRST_ID);
+        await save(value);
+        value.changeInstallMode(mode);
+
+        await save(value);
+
+        const found = await store.findById(value.id);
+        expect(found?.installMode).toBe(mode);
+      },
+    );
+
+    it('should forget the install mode once it is cleared', async () => {
+      const value = repository(FIRST_ID);
+      value.changeInstallMode('trusted');
+      await save(value);
+      value.changeInstallMode(null);
+
+      await save(value);
+
+      const found = await store.findById(value.id);
+      expect(found?.installMode).toBeNull();
     });
 
     it('should keep the threshold a person gave a repository', async () => {

@@ -223,4 +223,16 @@ describe('a database of the first version', () => {
         .get(repositoryId),
     ).toEqual({ threshold_percentage: null });
   });
+
+  it('should leave a repository to the default install', () => {
+    const repositoryId = writeFirstVersion();
+
+    migrateDatabase(database.connection, MIGRATIONS);
+
+    expect(
+      database.connection
+        .prepare('SELECT install_mode FROM repositories WHERE id = ?')
+        .get(repositoryId),
+    ).toEqual({ install_mode: null });
+  });
 });

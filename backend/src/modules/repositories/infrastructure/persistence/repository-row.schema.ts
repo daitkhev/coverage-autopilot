@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { INSTALL_MODES } from '#repositories/domain/value-objects/install-mode.vo';
+
 const columns = z.object({
   id: z.string(),
   owner: z.string(),
@@ -8,6 +10,7 @@ const columns = z.object({
   default_branch: z.string(),
   connected_at: z.string(),
   threshold_percentage: z.int().nullable(),
+  install_mode: z.enum(INSTALL_MODES).nullable(),
 });
 
 /**

@@ -3,6 +3,7 @@ import { Entity } from '#kernel/primitives/entity';
 import type { RepositoryId } from '#kernel/primitives/repository-id';
 import type { Instant } from '#kernel/time/instant';
 import type { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
+import type { InstallMode } from '#repositories/domain/value-objects/install-mode.vo';
 import type { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
 import type { ThresholdPercentage } from '#repositories/domain/value-objects/threshold-percentage.vo';
 
@@ -19,13 +20,15 @@ export interface RepositoryState {
   readonly head: RepositoryHead | null;
   /** `null` while the default of the service judges its files. */
   readonly threshold: ThresholdPercentage | null;
+  /** `null` while the default of the service decides how it is installed. */
+  readonly installMode: InstallMode | null;
 }
 
 /**
  * A repository on the host of the code that the user connected. Its owner
  * and name come from its address, and one owner and name is connected
  * once. The head of its default branch is what the last look found. A
- * person may give it a threshold of its own.
+ * person may give it a threshold of its own, and say how it is installed.
  */
 export class Repository extends Entity<RepositoryId> {
   private state: RepositoryState;
@@ -36,14 +39,19 @@ export class Repository extends Entity<RepositoryId> {
   }
 
   /**
-   * A repository connected now, whose head nobody has read yet, judged by
-   * the default of the service.
+   * A repository connected now, whose head nobody has read yet, judged and
+   * installed as the defaults of the service say.
    */
   public static connect(
     id: RepositoryId,
-    state: Omit<RepositoryState, 'head' | 'threshold'>,
+    state: Omit<RepositoryState, 'head' | 'threshold' | 'installMode'>,
   ): Repository {
-    return new Repository(id, { ...state, head: null, threshold: null });
+    return new Repository(id, {
+      ...state,
+      head: null,
+      threshold: null,
+      installMode: null,
+    });
   }
 
   /** A repository as it was saved. */
@@ -74,6 +82,15 @@ export class Repository extends Entity<RepositoryId> {
   /** `null` gives its files back to the default of the service. */
   public changeThreshold(threshold: ThresholdPercentage | null): void {
     this.state = { ...this.state, threshold };
+  }
+
+  public get installMode(): InstallMode | null {
+    return this.state.installMode;
+  }
+
+  /** `null` gives its install back to the default of the service. */
+  public changeInstallMode(installMode: InstallMode | null): void {
+    this.state = { ...this.state, installMode };
   }
 
   /**

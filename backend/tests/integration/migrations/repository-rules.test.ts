@@ -64,4 +64,18 @@ describe('repositories', () => {
       expect(() => rows.repository(row)).toThrow(CHECK);
     });
   });
+
+  describe('the install mode of its own', () => {
+    it.each([
+      ['no mode', {}],
+      ['a sandboxed install', { install_mode: 'sandboxed' }],
+      ['a trusted install', { install_mode: 'trusted' }],
+    ])('should accept %s', (_name, row) => {
+      expect(() => rows.repository(row)).not.toThrow();
+    });
+
+    it('should refuse a mode the service does not know', () => {
+      expect(() => rows.repository({ install_mode: 'open' })).toThrow(CHECK);
+    });
+  });
 });

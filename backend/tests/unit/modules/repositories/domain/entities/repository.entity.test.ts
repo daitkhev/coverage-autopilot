@@ -42,10 +42,14 @@ describe('Repository', () => {
     it('should leave its files to the default threshold', () => {
       expect(connected().threshold).toBeNull();
     });
+
+    it('should leave its install to the default of the service', () => {
+      expect(connected().installMode).toBeNull();
+    });
   });
 
   describe('restore', () => {
-    it('should keep the head and the threshold it was saved with', () => {
+    it('should keep the head, the threshold and the install mode it was saved with', () => {
       const head = { commit: FIRST, readAt: CONNECTED_AT };
 
       const repository = Repository.restore(ID, {
@@ -54,7 +58,43 @@ describe('Repository', () => {
         connectedAt: CONNECTED_AT,
         head,
         threshold: NINETY_FIVE,
+        installMode: 'trusted',
       });
+
+      expect(repository.head).toBe(head);
+      expect(repository.threshold).toBe(NINETY_FIVE);
+      expect(repository.installMode).toBe('trusted');
+    });
+  });
+
+  describe('changeInstallMode', () => {
+    it.each(['trusted', 'sandboxed'] as const)(
+      'should keep %s as its own choice',
+      (mode) => {
+        const repository = connected();
+
+        repository.changeInstallMode(mode);
+
+        expect(repository.installMode).toBe(mode);
+      },
+    );
+
+    it('should give its install back to the default when it is cleared', () => {
+      const repository = connected();
+      repository.changeInstallMode('trusted');
+
+      repository.changeInstallMode(null);
+
+      expect(repository.installMode).toBeNull();
+    });
+
+    it('should keep the head and the threshold it has', () => {
+      const repository = connected();
+      const head = { commit: FIRST, readAt: CONNECTED_AT };
+      repository.recordHead(head);
+      repository.changeThreshold(NINETY_FIVE);
+
+      repository.changeInstallMode('trusted');
 
       expect(repository.head).toBe(head);
       expect(repository.threshold).toBe(NINETY_FIVE);
@@ -79,14 +119,16 @@ describe('Repository', () => {
       expect(repository.threshold).toBeNull();
     });
 
-    it('should keep the head it read', () => {
+    it('should keep the head and the install mode it has', () => {
       const repository = connected();
       const head = { commit: FIRST, readAt: CONNECTED_AT };
       repository.recordHead(head);
+      repository.changeInstallMode('trusted');
 
       repository.changeThreshold(NINETY_FIVE);
 
       expect(repository.head).toBe(head);
+      expect(repository.installMode).toBe('trusted');
     });
   });
 
@@ -100,13 +142,15 @@ describe('Repository', () => {
       expect(repository.head).toBe(head);
     });
 
-    it('should keep the threshold it has', () => {
+    it('should keep the threshold and the install mode it has', () => {
       const repository = connected();
       repository.changeThreshold(NINETY_FIVE);
+      repository.changeInstallMode('trusted');
 
       repository.recordHead({ commit: FIRST, readAt: CONNECTED_AT });
 
       expect(repository.threshold).toBe(NINETY_FIVE);
+      expect(repository.installMode).toBe('trusted');
     });
 
     it('should keep a newer reading in place of an older one', () => {

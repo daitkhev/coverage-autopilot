@@ -94,7 +94,8 @@
       "0006-let-a-job-wait-for-its-moment.sql": "59a823bed9afe6ffffa10e71790dc74ce1dd9e4a8f2bb089c943f3bc798d0362",
       "0007-keep-the-moment-a-job-started.sql": "0d8c7b07cf56c1aeccdd1ccd8db96efa2b1878a317b40ea1926db6defed82586",
       "0008-find-the-open-jobs-of-a-subject.sql": "8d3587f44ec9b06556431701d741e643973d2a23f5ce49e0592e56c815db6b5d",
-      "0009-let-a-repository-keep-a-threshold-of-its-own.sql": "4510f45f91cf20a66915d9b442a6a38e15eaf84e1379fc18ea7beffbb1daaa02"
+      "0009-let-a-repository-keep-a-threshold-of-its-own.sql": "4510f45f91cf20a66915d9b442a6a38e15eaf84e1379fc18ea7beffbb1daaa02",
+      "0010-let-a-repository-say-how-it-is-installed.sql": "3ca8dc1162b9373d95a30b3128312cd253ec898b499d5311c14147792403b9d9"
     }
   }
 }
