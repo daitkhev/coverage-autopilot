@@ -11,14 +11,7 @@ import type { ClientSession } from '#api/client-session';
 import { AppPalette } from '#app/app-palette';
 import { farewellOf } from '#app/farewell';
 import { KeysHelp } from '#app/keys-help';
-import {
-  FIRST_TRAIL,
-  type Move,
-  moved,
-  sectionOf,
-  SECTIONS,
-  shownOf,
-} from '#app/navigation';
+import { FIRST_JOURNEY, type Move, moved, SECTIONS } from '#app/navigation';
 import { type ServiceWatch, useServiceWatch } from '#app/service-watch';
 import { ShownScreen } from '#app/shown-screen';
 import { Overlay, type ShellFrame } from '#components/app-shell';
@@ -197,7 +190,7 @@ export function App({
   onQuit,
 }: AppProps): ReactNode {
   const size = useTerminalSize();
-  const [trail, move] = useReducer(moved, FIRST_TRAIL);
+  const [journey, move] = useReducer(moved, FIRST_JOURNEY);
   const [dialog, setDialog] = useState<AppDialog>('none');
   const [offers] = useState(offeredActions);
   const watch = useServiceWatch(session);
@@ -208,7 +201,7 @@ export function App({
   const actions = appActionsOf({ move, show: setDialog, quit });
   const header = (
     <Header
-      section={sectionOf(trail)}
+      section={journey.section}
       watch={watch}
       reviving={reviving}
       size={size}
@@ -221,7 +214,7 @@ export function App({
       <BackdropContext value={dialog !== 'none'}>
         <OfferedContext value={offers}>
           <ShownScreen
-            place={shownOf(trail)}
+            journey={journey}
             session={session}
             frame={frameOf({ size, header, actions, dialog })}
             move={move}

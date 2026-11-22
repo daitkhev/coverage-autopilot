@@ -8,7 +8,19 @@ export type Place =
     };
 
 /** The way from a section to the screen that shows. The section is first. */
-export type Trail = readonly [Place, ...Place[]];
+type Trail = readonly [Place, ...Place[]];
+
+/**
+ * Where the person is: the section that shows and its trail, and the
+ * trail of every section left, which shows again where it was left.
+ */
+export interface Journey {
+  /** The section that shows, by its place in the header. */
+  readonly section: number;
+  readonly trail: Trail;
+  /** The trails of the sections left, by the place of each section. */
+  readonly left: ReadonlyMap<number, Trail>;
+}
 
 /** What takes the user from one screen to another. */
 export type Move =
@@ -29,33 +41,73 @@ export const SECTIONS: readonly Section[] = [
 ];
 
 /** Where the client opens. */
-export const FIRST_TRAIL: Trail = [{ screen: 'repositories' }];
+export const FIRST_JOURNEY: Journey = {
+  section: 0,
+  trail: [{ screen: 'repositories' }],
+  left: new Map(),
+};
+
+/** A screen that is kept: the one that shows, or one hidden as it was left. */
+export interface KeptPlace {
+  /** Names the screen while it is kept, and another screen never. */
+  readonly key: string;
+  readonly place: Place;
+  readonly shown: boolean;
+}
 
 /**
- * The trail after a move. A section starts its trail over, and the way
- * back ends at the section, which has nowhere to go back to.
+ * The key of a section shows the section where it was left, or at its
+ * first screen. The key of the section that shows goes back to its first
+ * screen.
  */
-export function moved(trail: Trail, move: Move): Trail {
-  const [section, ...opened] = trail;
-  switch (move.kind) {
-    case 'section': {
-      const chosen = SECTIONS[move.index];
-      return chosen === undefined ? trail : [chosen.place];
-    }
-    case 'open':
-      return [...trail, move.place];
-    case 'back':
-      return [section, ...opened.slice(0, -1)];
+function entered(journey: Journey, index: number): Journey {
+  const chosen = SECTIONS[index];
+  if (chosen === undefined) {
+    return journey;
   }
+  const start: Trail = [chosen.place];
+  if (index === journey.section) {
+    return { ...journey, trail: start };
+  }
+  const left = new Map(journey.left).set(journey.section, journey.trail);
+  const trail = left.get(index) ?? start;
+  left.delete(index);
+  return { section: index, trail, left };
 }
 
-/** The screen that shows: the end of the trail. */
-export function shownOf(trail: Trail): Place {
+/**
+ * The journey after a move. Opening and going back change the trail of
+ * the section that shows, and the way back ends at the section, which has
+ * nowhere to go back to.
+ */
+export function moved(journey: Journey, move: Move): Journey {
+  if (move.kind === 'section') {
+    return entered(journey, move.index);
+  }
+  const { trail } = journey;
   const [section, ...opened] = trail;
-  return opened.at(-1) ?? section;
+  return {
+    ...journey,
+    trail:
+      move.kind === 'open'
+        ? [...trail, move.place]
+        : [section, ...opened.slice(0, -1)],
+  };
 }
 
-/** The section the trail started in, as its place in the header. */
-export function sectionOf(trail: Trail): number {
-  return SECTIONS.findIndex(({ place }) => place.screen === trail[0].screen);
+/**
+ * Every screen of every trail, so a screen a person comes back to is the
+ * one they left. The end of the trail of the section that shows is the
+ * screen that shows. A key names the section, the depth and the place, so
+ * a screen opened anew in the place of one that was left starts anew.
+ */
+export function keptOf(journey: Journey): KeptPlace[] {
+  const trails = new Map(journey.left).set(journey.section, journey.trail);
+  return [...trails].flatMap(([section, trail]) =>
+    trail.map((place, depth) => ({
+      key: `${String(section)} ${String(depth)} ${JSON.stringify(place)}`,
+      place,
+      shown: section === journey.section && depth === trail.length - 1,
+    })),
+  );
 }

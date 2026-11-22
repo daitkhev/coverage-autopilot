@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import { Activity, memo, type ReactNode } from 'react';
 
 import type { ClientSession } from '#api/client-session';
-import type { Move, Place } from '#app/navigation';
+import { type Journey, keptOf, type Move, type Place } from '#app/navigation';
 import type { ShellFrame } from '#components/app-shell';
 import { FilesScreen } from '#screens/files/files-screen';
 import { ImprovementScreen } from '#screens/improvement/improvement-screen';
@@ -10,8 +10,7 @@ import { PatchScreen } from '#screens/patch/patch-screen';
 import { RepositoriesScreen } from '#screens/repositories/repositories-screen';
 import { ServiceScreen } from '#screens/service/service-screen';
 
-interface ShownScreenProps {
-  readonly place: Place;
+interface ScreenProps {
   readonly session: ClientSession;
   readonly frame: ShellFrame;
   readonly move: (move: Move) => void;
@@ -43,13 +42,13 @@ function waysOf(move: (move: Move) => void): {
   };
 }
 
+interface KeptProps extends ScreenProps {
+  readonly place: Place;
+  readonly shown: boolean;
+}
+
 /** The screen of a place, with the moves that lead on from it. */
-export function ShownScreen({
-  place,
-  session,
-  frame,
-  move,
-}: ShownScreenProps): ReactNode {
+function ScreenAt({ place, session, frame, move }: KeptProps): ReactNode {
   const shared = { session, frame };
   const { onBack, onOpenFiles, onOpenImprovement, onOpenPatch } = waysOf(move);
   switch (place.screen) {
@@ -88,4 +87,28 @@ export function ShownScreen({
         />
       );
   }
+}
+
+/**
+ * A screen is not drawn again while it stays hidden: the frame it is
+ * handed changes with every drawing of the app, and it shows none of it.
+ */
+const KeptScreen = memo(ScreenAt, (was, now) => !was.shown && !now.shown);
+
+/**
+ * The screen that shows, and every other screen of the trails kept as it
+ * was left, hidden: its row, its scroll, its panel, its filter and its
+ * last answer. A hidden screen draws nothing, and its effects rest, so it
+ * takes no key and asks the service nothing; when it shows again it asks
+ * at once.
+ */
+export function ShownScreen({
+  journey,
+  ...shared
+}: ScreenProps & { readonly journey: Journey }): ReactNode {
+  return keptOf(journey).map(({ key, place, shown }) => (
+    <Activity key={key} mode={shown ? 'visible' : 'hidden'}>
+      <KeptScreen place={place} shown={shown} {...shared} />
+    </Activity>
+  ));
 }
