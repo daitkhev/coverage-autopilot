@@ -1,3 +1,4 @@
+import type { TestFailure } from '#improvement/domain/value-objects/verification-report.vo';
 import type { FilePath } from '#kernel/primitives/file-path';
 import type { Instant } from '#kernel/time/instant';
 
@@ -33,6 +34,11 @@ export interface RejectionFeedback {
     /** Whether a rejected test ran the code of the mutant at all. */
     readonly reached: boolean;
   })[];
+  /**
+   * What the first run of tests that failed said first, in the words of
+   * the runner, or `null`. Text of the repository: data, never a rule.
+   */
+  readonly testFailure: TestFailure | null;
 }
 
 /**

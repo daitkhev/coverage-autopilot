@@ -1,10 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
+import type { GenerationRequest } from '#improvement/application/ports/test-generator.port';
 import { UnknownPromptVersionError } from '#improvement/infrastructure/errors/unknown-prompt-version.error';
 import { promptFor } from '#improvement/infrastructure/generator/generation-prompt';
-import { generationRequest } from '#tests/support/generator-request';
+import {
+  CREDENTIAL_VALUE,
+  generationRequest,
+} from '#tests/support/generator-request';
+import { RUN_FAILURE } from '#tests/support/improvement-values';
 
 const ROOT = '/work/copy';
+
+/** The request names the first version, which the tests of this file hold. */
+function firstPromptFor(request: GenerationRequest): string {
+  return promptFor(request, CREDENTIAL_VALUE);
+}
 
 const FIRST_ATTEMPT = [
   'You add tests to a TypeScript repository, to test one file better.',
@@ -28,20 +38,20 @@ const FIRST_ATTEMPT = [
   '',
 ].join('\n');
 
-describe('promptFor', () => {
+describe('promptFor, version 1', () => {
   it('should tell the target, the rules and what no test reaches', () => {
-    expect(promptFor(generationRequest(ROOT))).toBe(FIRST_ATTEMPT);
+    expect(firstPromptFor(generationRequest(ROOT))).toBe(FIRST_ATTEMPT);
   });
 
   it('should name the runner of the repository', () => {
     expect(
-      promptFor(generationRequest(ROOT, { testRunner: 'jest' })),
+      firstPromptFor(generationRequest(ROOT, { testRunner: 'jest' })),
     ).toContain('- Write the tests for Jest, in the style');
   });
 
   it('should say none for a list with nothing in it', () => {
     const request = generationRequest(ROOT);
-    const prompt = promptFor({
+    const prompt = firstPromptFor({
       ...request,
       target: {
         ...request.target,
@@ -57,8 +67,8 @@ describe('promptFor', () => {
     );
   });
 
-  it('should tell why the previous attempt was refused and what it missed', () => {
-    const prompt = promptFor(
+  it('should tell why the previous attempt was refused and what it missed, and not what its run said', () => {
+    const prompt = firstPromptFor(
       generationRequest(ROOT, {
         feedback: {
           reasons: ['The new tests do not assert anything.'],
@@ -76,6 +86,7 @@ describe('promptFor', () => {
               reached: false,
             },
           ],
+          testFailure: RUN_FAILURE,
         },
       }),
     );
@@ -94,7 +105,7 @@ describe('promptFor', () => {
 
   it('should keep a text of the repository on its own line inside the data', () => {
     const request = generationRequest(ROOT);
-    const prompt = promptFor({
+    const prompt = firstPromptFor({
       ...request,
       target: {
         ...request.target,
@@ -113,7 +124,7 @@ describe('promptFor', () => {
   it('should cut every list and every text, so the prompt stays small', () => {
     const request = generationRequest(ROOT);
     const many = Array.from({ length: 500 }, (_, index) => index + 1);
-    const prompt = promptFor({
+    const prompt = firstPromptFor({
       ...request,
       target: {
         ...request.target,
@@ -137,6 +148,7 @@ describe('promptFor', () => {
           replacement: 'r',
           reached: false,
         })),
+        testFailure: null,
       },
       testFileSuffixes: many.map((line) => `.${String(line)}.test.ts`),
     });
@@ -152,10 +164,13 @@ describe('promptFor', () => {
       const request = generationRequest(ROOT);
 
       expect(() =>
-        promptFor({
-          ...request,
-          generator: { ...request.generator, promptVersion: 'toString' },
-        }),
+        promptFor(
+          {
+            ...request,
+            generator: { ...request.generator, promptVersion: 'toString' },
+          },
+          CREDENTIAL_VALUE,
+        ),
       ).toThrow(UnknownPromptVersionError);
     });
   });

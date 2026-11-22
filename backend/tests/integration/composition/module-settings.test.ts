@@ -60,7 +60,7 @@ describe('moduleSettingsOf', () => {
       generator: {
         cli: 'claude_code',
         model: 'opus',
-        promptVersion: '1',
+        promptVersion: '2',
         billing: 'api_key',
       },
       generation: config.generator.call,

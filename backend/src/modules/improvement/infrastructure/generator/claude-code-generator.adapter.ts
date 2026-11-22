@@ -82,7 +82,7 @@ export class ClaudeCodeGenerator implements TestGenerator {
   ): Promise<GenerationResult> {
     signal.throwIfAborted();
     const settings = this.ready();
-    const prompt = promptFor(request);
+    const prompt = promptFor(request, settings.credential.value);
     const root = request.workingCopyPath;
     const before = await listCopy(root);
     const ended = await this.run(request, prompt, signal);

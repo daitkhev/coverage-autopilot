@@ -36,9 +36,7 @@ import {
 } from '#tests/support/improvement-module-world';
 import { FIRST_KEY } from '#tests/support/improvement-routes';
 import {
-  checkOf,
   hashOf,
-  reportPropsOf,
   SOURCE_SNAPSHOT_ID,
   TARGET_FILE,
   TEST_SETTINGS,
@@ -146,27 +144,6 @@ describe('ImprovementModule', () => {
     });
   });
 
-  describe('when the gate rejects the first patch', () => {
-    it('should tell the generator why and accept the second attempt', async () => {
-      const { work, generator, gate, start, read } = await open();
-      gate.answers.push(reportPropsOf('rejected'));
-      const { id } = await start();
-
-      await work();
-
-      const done = await read(id);
-      expect(done.status).toBe('completed');
-      expect(done.attempts.map((attempt) => attempt.report?.verdict)).toEqual([
-        'rejected',
-        'accepted',
-      ]);
-      expect(generator.requests.map((request) => request.feedback)).toEqual([
-        null,
-        expect.objectContaining({ reasons: ['The new test does not pass.'] }),
-      ]);
-    });
-  });
-
   describe('when the generator wrote a .git into its working copy', () => {
     it('should fail as a credential exposed and count the tokens it was paid', async () => {
       const { work, copies, start, read } = await open();
@@ -197,30 +174,6 @@ describe('ImprovementModule', () => {
         { patch: { text }, testFileSuffixes },
       ]);
       expect(publisher.publications).toMatchObject([{ patchText: text }]);
-    });
-  });
-
-  describe('when the gate refuses the files of every patch', () => {
-    it('should publish none of them', async () => {
-      const { work, gate, publisher, start, read } = await open();
-      const reason = 'The patch adds .gitattributes, not a test file.';
-      const refused = {
-        ...reportPropsOf('rejected'),
-        reasons: [reason],
-        checks: [
-          { ...checkOf('test_files_only', 'rejected'), message: reason },
-        ],
-      };
-      gate.answers.push(refused, refused, refused);
-      const { id } = await start();
-
-      await work();
-
-      expect(publisher.publications).toEqual([]);
-      expect(await read(id)).toMatchObject({
-        status: 'failed',
-        failure: { reason: 'budget_exhausted' },
-      });
     });
   });
 

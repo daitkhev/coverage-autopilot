@@ -6,14 +6,18 @@ import {
   type RequestParts,
 } from '#improvement/application/commands/run-improvement/generation-request';
 import { Improvement } from '#improvement/domain/entities/improvement.entity';
+import { VerificationReport } from '#improvement/domain/value-objects/verification-report.vo';
 import { FilePath } from '#kernel/primitives/file-path';
 import { measuredPrice } from '#tests/support/improvement-generation-inputs';
 import { improvementIn } from '#tests/support/improvement-journeys';
 import {
   baselineOf,
+  checkOf,
+  failedRunReportProps,
   IMPROVEMENT_ID,
   minutesIn,
   reportOf,
+  RUN_FAILURE,
   TARGET_FILE,
   TEST_SETTINGS,
 } from '#tests/support/improvement-values';
@@ -135,7 +139,34 @@ describe('generationRequestOf', () => {
       expect(request.feedback).toEqual({
         reasons: ['The new test does not pass.'],
         survivingMutants: [{ ...MUTANT_HINT, reached: true }],
+        testFailure: null,
       });
+    });
+
+    it('should give what the first run of tests that failed said first', () => {
+      const improvement = improvementIn('verifying');
+      const later = { ...RUN_FAILURE, test: 'utils makes an id', lines: ['?'] };
+      improvement.recordVerdict(
+        VerificationReport.create({
+          ...failedRunReportProps(),
+          checks: [
+            checkOf('type_check', 'rejected'),
+            {
+              ...checkOf('new_tests_pass', 'rejected'),
+              testFailure: RUN_FAILURE,
+            },
+            {
+              ...checkOf('existing_tests_pass', 'rejected'),
+              testFailure: later,
+            },
+          ],
+        }),
+        minutesIn(6),
+      );
+
+      const request = generationRequestOf(partsOf(improvement));
+
+      expect(request.feedback?.testFailure).toEqual(RUN_FAILURE);
     });
   });
 

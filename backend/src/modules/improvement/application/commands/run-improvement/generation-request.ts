@@ -9,6 +9,10 @@ import type {
 } from '#improvement/application/ports/test-generator.port';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
 import type { Mutant } from '#improvement/domain/value-objects/mutant.vo';
+import type {
+  TestFailure,
+  VerificationReport,
+} from '#improvement/domain/value-objects/verification-report.vo';
 import type { Instant } from '#kernel/time/instant';
 
 /** A call is never given less: a limit of zero would stop it at once. */
@@ -73,6 +77,18 @@ function targetOf(
   };
 }
 
+/**
+ * What the first failed run of tests said first. Only a failed check
+ * names one, and the checks are in the order they ran, so a failure of
+ * the new tests alone comes before a failure of every test together.
+ */
+function testFailureOf(report: VerificationReport): TestFailure | null {
+  return (
+    report.checks.find((check) => check.testFailure !== null)?.testFailure ??
+    null
+  );
+}
+
 /** Why the gate rejected the last patch, or `null` before any rejection. */
 function feedbackOf(improvement: Improvement): RejectionFeedback | null {
   const report = improvement.lastRejectedAttempt?.report ?? null;
@@ -85,6 +101,7 @@ function feedbackOf(improvement: Improvement): RejectionFeedback | null {
       ...hintOf(mutant),
       reached: mutant.reached,
     })),
+    testFailure: testFailureOf(report),
   };
 }
 

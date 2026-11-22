@@ -40,8 +40,11 @@ const REPEATED_RUNS = 3;
  */
 const MUTATION_THRESHOLD = 50;
 
-/** The one prompt of the generator so far. */
-const PROMPT_VERSION = '1';
+/**
+ * The prompt a new improvement starts with and keeps. The second tells
+ * the generator what a failed run of its tests said.
+ */
+const PROMPT_VERSION = '2';
 
 /** The tools of the protected start of the CLI, as `--tools` names them. */
 const GENERATOR_TOOLS = ['Read', 'Write', 'Edit', 'Glob', 'Grep'];
