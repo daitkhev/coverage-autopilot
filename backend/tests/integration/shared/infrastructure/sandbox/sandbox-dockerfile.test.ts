@@ -41,7 +41,15 @@ describe('sandbox.Dockerfile', () => {
   });
 
   it('should install procps, whose ps the mutation tool ends its test runners with', () => {
-    expect(packagesOf(SHIPPED_IMAGE_FILES.sandbox)).toEqual(['procps']);
+    expect(packagesOf(SHIPPED_IMAGE_FILES.sandbox)).toContain('procps');
+  });
+
+  it('should install git with the certificates of https and no ssh client, for a trusted package from a git repository', () => {
+    expect(packagesOf(SHIPPED_IMAGE_FILES.sandbox)).toEqual([
+      'procps',
+      'git',
+      'ca-certificates',
+    ]);
   });
 
   it('should install Corepack alone, at an exact version, to fetch pnpm and yarn', () => {
