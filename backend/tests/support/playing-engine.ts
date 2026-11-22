@@ -9,7 +9,22 @@ import { dirname, join } from 'node:path';
 import { argv, execPath, stderr, stdout } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-import { coverageReportOf } from '#tests/support/widgets-project';
+import {
+  answerEvent,
+  initEvent,
+  resultEvent,
+  streamOf,
+} from '#tests/support/generator-stream';
+import {
+  baselineReport,
+  NEW_TESTS,
+  patchedReport,
+} from '#tests/support/mutation-reports';
+import {
+  coverageReportOf,
+  holdsNewTests,
+  NEW_TEST_FILE,
+} from '#tests/support/widgets-project';
 
 /**
  * A stand-in for the program of the container engine that plays the
@@ -52,10 +67,17 @@ const NOT_FOUND = 127;
 /** The programs the adapters start by their paths in the copy. */
 const COMPILER = 'node_modules/typescript/bin/tsc';
 const JEST = 'node_modules/jest/bin/jest.js';
+const STRYKER = 'node_modules/@stryker-mutator/core/bin/stryker.js';
 
 /** Jest writes its report as this file in the folder it is given. */
 const COVERAGE_FILE = 'coverage-final.json';
 const COVERAGE_FOLDER = /^--coverageDirectory=(?<folder>.+)$/u;
+
+/** The variable the CLI logs in with under a subscription. */
+const CREDENTIAL_VARIABLE = 'CLAUDE_CODE_OAUTH_TOKEN';
+
+/** How the generator starts the line that names its credential. */
+export const LOGIN_LINE = 'debug: logged in with ';
 
 /**
  * The program and the arguments of the engine, for the variable of the
@@ -107,10 +129,46 @@ const playJest: Tool = ({ copy, command }) => {
   return { exitCode: 0, stderr: 'Tests: all passed\n' };
 };
 
+/** The report goes where the configuration the service wrote names it. */
+const playStryker: Tool = ({ copy, command }) => {
+  const configuration = JSON.parse(
+    readFileSync(join(copy, command.at(-1) ?? ''), 'utf8'),
+  ) as { readonly jsonReporter: { readonly fileName: string } };
+  const report = holdsNewTests(copy)
+    ? patchedReport(copy)
+    : baselineReport(copy);
+  write(copy, configuration.jsonReporter.fileName, report);
+  return { exitCode: 0, stdout: 'INFO Done in 1 second.\n' };
+};
+
+/**
+ * The CLI writes one test file and reports its run. It also prints the
+ * credential it was given, as a careless program might in a line of
+ * debug, so a test sees whether the service keeps it out of what it
+ * stores and logs.
+ */
+const playGenerator: Tool = ({ copy, variables }) => {
+  write(copy, NEW_TESTS, NEW_TEST_FILE);
+  const credential = variables[CREDENTIAL_VARIABLE] ?? '';
+  return {
+    exitCode: 0,
+    stdout: streamOf(
+      initEvent(),
+      answerEvent(`I will add ${NEW_TESTS}.`),
+      resultEvent({ result: `Added ${NEW_TESTS}.` }),
+    ),
+    stderr: `${LOGIN_LINE}${credential}\n`,
+  };
+};
+
 /** Each tool by its program, or by the program and its first argument. */
 const TOOLS: Readonly<Record<string, Tool>> = {
   'npm ci': installing([COMPILER, JEST]),
+  'npm install': installing([STRYKER]),
+  [`node ${COMPILER}`]: () => ({ exitCode: 0 }),
   [`node ${JEST}`]: playJest,
+  [`node ${STRYKER}`]: playStryker,
+  claude: playGenerator,
 };
 
 function toolOf(command: readonly string[]): Tool {

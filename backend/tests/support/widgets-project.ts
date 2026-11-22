@@ -3,9 +3,11 @@ import { join } from 'node:path';
 
 import {
   APPLY,
+  MESSAGE,
   NEW_TESTS,
   NO_RATE,
   OLD_TESTS,
+  REFUSE,
   TARGET,
 } from '#tests/support/mutation-reports';
 import { lockfileOf } from '#tests/support/project-folder';
@@ -54,6 +56,20 @@ const OLD_TEST_FILE = [
   '',
 ].join('\n');
 
+/** The test file the generator adds, which reaches the throw of the target. */
+export const NEW_TEST_FILE = [
+  "import { discount } from '../src/price';",
+  '',
+  `test('${REFUSE}', () => {`,
+  '  expect(() => discount(100, 2)).toThrow(RangeError);',
+  '});',
+  '',
+  `test('${MESSAGE}', () => {`,
+  "  expect(() => discount(100, 2)).toThrow('rate above one');",
+  '});',
+  '',
+].join('\n');
+
 /**
  * One npm package tested with Jest, as the detector of the service finds
  * it: a manifest, a lockfile that locks the runner, a configuration of
@@ -75,7 +91,7 @@ export const WIDGETS_FILES: CommitFiles = {
 };
 
 /** Whether the test file of the generator is in the copy at `root`. */
-function holdsNewTests(root: string): boolean {
+export function holdsNewTests(root: string): boolean {
   return existsSync(join(root, NEW_TESTS));
 }
 
