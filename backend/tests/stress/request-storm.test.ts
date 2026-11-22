@@ -86,6 +86,16 @@ async function stopped(hosted: Storm['hosted']): Promise<void> {
   await hosted.close();
 }
 
+async function besideFindings(round: number): Promise<string[]> {
+  const scans = await scannedAtOnce(running(), `beside-r${String(round)}`);
+  return scans.findings;
+}
+
+/** A burst that failed is a finding, once the other burst has ended too. */
+function findingsOf(result: PromiseSettledResult<string[]>): string[] {
+  return result.status === 'fulfilled' ? result.value : [String(result.reason)];
+}
+
 /** A change on the default branch that touches no file of the project. */
 function movedHeads(round: number): void {
   for (const fullName of running().repositories) {
@@ -144,12 +154,12 @@ describe(`many requests at once while jobs run, seed ${String(SEED)}`, () => {
           if (round > 1) {
             movedHeads(round);
           }
-          const [improved, beside] = await Promise.all([
+          const bursts = await Promise.allSettled([
             improvedAtOnce(running(), { number: round, snapshots }),
-            scannedAtOnce(running(), `beside-r${String(round)}`),
+            besideFindings(round),
           ]);
 
-          expect([...improved, ...beside.findings]).toEqual([]);
+          expect(bursts.flatMap(findingsOf)).toEqual([]);
         },
         ROUND_TIMEOUT_MS,
       );
