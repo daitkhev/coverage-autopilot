@@ -58,8 +58,14 @@ export async function startLockHolder(
   return holder;
 }
 
-/** Kills the holder as a crash would, and waits until it is gone. */
+/**
+ * Kills the holder as a crash would, and waits until it is gone. A holder
+ * that is gone already stays so.
+ */
 export async function crash(holder: ChildProcess): Promise<void> {
+  if (holder.exitCode !== null || holder.signalCode !== null) {
+    return;
+  }
   const exited = once(holder, 'exit');
   holder.kill('SIGKILL');
   await exited;
