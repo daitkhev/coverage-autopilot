@@ -26,6 +26,7 @@ describe('planFor', () => {
       'compare',
       'unused',
       'duplication',
+      'build',
       'unit',
       'integration',
       'coverage',

@@ -9,6 +9,7 @@
         "@vitest/eslint-plugin",
         "eslint-plugin-simple-import-sort",
         "prettier",
+        "rolldown",
         "typescript",
         "typescript-eslint",
         "vitest"

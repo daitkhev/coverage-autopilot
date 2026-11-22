@@ -142,6 +142,7 @@ export const eslintConfig: Linter.Config[] = defineConfig(
       'reports/',
       '.stryker-tmp/',
       'dist/',
+      '*/dist/',
       'docs/',
       'harness/fixtures/',
       '.claude/worktrees/',

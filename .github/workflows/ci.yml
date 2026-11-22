@@ -28,6 +28,7 @@ jobs:
           - architecture
           - unused
           - duplication
+          - build
           - unit
           - integration
           - coverage
