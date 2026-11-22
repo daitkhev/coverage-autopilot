@@ -31,11 +31,14 @@ const RESERVED_ROWS = GROUP_ORDER.length + 1;
 
 const ROW_LINES = 2;
 
-/** How many improvements fit in the list, each on two lines. */
-export function visibleRowsOf(size: TerminalSize): number {
+/**
+ * How many improvements fit in the list, each on two lines, below the
+ * rows the list gives to something else, such as its filter.
+ */
+export function visibleRowsOf(size: TerminalSize, taken = 0): number {
   return Math.max(
     1,
-    Math.floor((size.rows - CHROME_ROWS - RESERVED_ROWS) / ROW_LINES),
+    Math.floor((size.rows - CHROME_ROWS - RESERVED_ROWS - taken) / ROW_LINES),
   );
 }
 

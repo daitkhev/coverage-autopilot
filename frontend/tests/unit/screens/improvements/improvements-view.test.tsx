@@ -23,7 +23,10 @@ import {
   SIZES,
   WIDE,
 } from '#tests/support/sample-frame';
-import { IMPROVEMENT_LIST } from '#tests/support/sample-improvements';
+import {
+  IMPROVEMENT_LIST,
+  UNNARROWED,
+} from '#tests/support/sample-improvements';
 import { REPOSITORY_LIST } from '#tests/support/sample-repositories';
 import {
   drawnAt,
@@ -93,6 +96,7 @@ function view({
     <ImprovementsView
       frame={sampleFrame(size, SECTION.improvements)}
       listing={listing}
+      narrowing={UNNARROWED}
       problem={problem}
       moment={{ now: SAMPLE_NOW, timeZone: 'UTC' }}
       position={{ index, offset: 0 }}

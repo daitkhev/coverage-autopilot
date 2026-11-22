@@ -5,18 +5,25 @@ import type { Improvement } from '@coverage-autopilot/api-contracts/improvements
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { EmptyState } from '#components/empty-state';
 import { type KeyHint, KeyHints } from '#components/key-hints';
+import { TYPING_HINTS } from '#components/list-filter';
 import { Panel } from '#components/panel';
 import { type Problem, ProblemDetails } from '#components/problem-details';
 import { SplitView } from '#components/split-view';
 import { StatusLine } from '#components/status-line';
 import type { DatedRequest } from '#hooks/use-dated-request';
 import type { ListPosition } from '#hooks/use-selection';
+import {
+  filterHints,
+  isNarrowed,
+  type Narrowing,
+  narrowingFacts,
+} from '#screens/improvements/improvement-filters';
 import { ImprovementList } from '#screens/improvements/improvement-list';
 import type { Listing } from '#screens/improvements/improvement-listing';
 import { ImprovementSummary } from '#screens/improvements/improvement-summary';
 import { groupOf } from '#screens/improvements/improvement-words';
 import { countWords } from '#theme/counts';
-import { layoutOf } from '#theme/widths';
+import { type Layout, layoutOf } from '#theme/widths';
 
 /** The list and the panel of the selected improvement. */
 export const IMPROVEMENTS_PANELS = ['list', 'details'] as const;
@@ -26,6 +33,8 @@ type ImprovementsPanel = (typeof IMPROVEMENTS_PANELS)[number];
 interface ImprovementsViewProps {
   readonly frame: ShellFrame;
   readonly listing: DatedRequest<Listing>;
+  /** What the list is narrowed to, and the field of its filter. */
+  readonly narrowing: Narrowing;
   /** What went wrong with the last request, beside the list it keeps. */
   readonly problem: Problem | undefined;
   readonly moment: { readonly now: string; readonly timeZone: string };
@@ -47,6 +56,23 @@ function answeredOf(listing: Listing | undefined): {
     : { improvements: [], names: NO_NAMES };
 }
 
+/** No improvement at all, or none the filters leave. */
+function Empty({ narrowed }: { readonly narrowed: boolean }): ReactNode {
+  return narrowed ? (
+    <EmptyState
+      sentence="No improvement matches the filters."
+      keyName="f, r or /"
+      action="to change them"
+    />
+  ) : (
+    <EmptyState
+      sentence="No improvements yet."
+      keyName="1"
+      action="to choose a repository"
+    />
+  );
+}
+
 function ListPanel(props: ImprovementsViewProps): ReactNode {
   const { improvements, names } = answeredOf(props.listing.answer);
   const empty =
@@ -57,12 +83,9 @@ function ListPanel(props: ImprovementsViewProps): ReactNode {
       note={String(improvements.length)}
       focused={props.focused === 'list'}
     >
+      {props.narrowing.path.line}
       {empty ? (
-        <EmptyState
-          sentence="No improvements yet."
-          keyName="1"
-          action="to choose a repository"
-        />
+        <Empty narrowed={isNarrowed(props.narrowing)} />
       ) : (
         <ImprovementList
           improvements={improvements}
@@ -100,25 +123,36 @@ function DetailsPanel(props: ImprovementsViewProps): ReactNode {
   );
 }
 
-function statusFacts(improvements: readonly Improvement[]): string[] {
+function statusFacts(props: ImprovementsViewProps): string[] {
+  const { improvements, names } = answeredOf(props.listing.answer);
   const count = (group: ReturnType<typeof groupOf>): number =>
     improvements.filter((each) => groupOf(each) === group).length;
   return [
-    'all repositories',
+    ...narrowingFacts(props.narrowing, names),
     countWords(count('needsYou'), 'needs you', 'need you'),
     `${String(count('running'))} running`,
     `${String(count('waiting'))} waiting`,
   ];
 }
 
-function keyHintsOf(count: number): KeyHint[] {
-  return count === 0
-    ? [{ key: 'tab', label: 'details' }]
-    : [
-        { key: 'up-down', label: 'move' },
-        { key: 'enter', label: 'open' },
-        { key: 'tab', label: 'details' },
-      ];
+function listHints(count: number, layout: Layout): KeyHint[] {
+  return [
+    ...(count === 0
+      ? []
+      : [
+          { key: 'up-down', label: 'move' },
+          { key: 'enter', label: 'open' },
+        ]),
+    ...filterHints(layout),
+    { key: 'tab', label: 'details' },
+  ];
+}
+
+/** The keys that work now: the filter's while it types, else the list's. */
+function keyHintsOf(props: ImprovementsViewProps, count: number): KeyHint[] {
+  return props.narrowing.path.typing
+    ? [...TYPING_HINTS]
+    : listHints(count, layoutOf(props.frame.size));
 }
 
 /**
@@ -131,6 +165,7 @@ export function ImprovementsView(props: ImprovementsViewProps): ReactNode {
   return (
     <AppShell
       {...frame}
+      typing={props.narrowing.path.typing}
       body={
         <SplitView
           layout={layoutOf(frame.size)}
@@ -142,7 +177,7 @@ export function ImprovementsView(props: ImprovementsViewProps): ReactNode {
       status={
         <StatusLine
           path={PATH}
-          facts={statusFacts(improvements)}
+          facts={statusFacts(props)}
           freshness={{ ...listing, now: moment.now }}
         />
       }
@@ -151,7 +186,7 @@ export function ImprovementsView(props: ImprovementsViewProps): ReactNode {
         : {
             position: `row ${String(position.index + 1)} of ${String(improvements.length)}`,
           })}
-      keys={<KeyHints hints={keyHintsOf(improvements.length)} />}
+      keys={<KeyHints hints={keyHintsOf(props, improvements.length)} />}
     />
   );
 }

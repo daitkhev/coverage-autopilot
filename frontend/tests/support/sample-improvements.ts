@@ -8,6 +8,7 @@ import {
   type ImprovementStatus,
 } from '@coverage-autopilot/api-contracts/statuses';
 
+import type { Narrowing } from '#screens/improvements/improvement-filters';
 import {
   ACCEPTED_ATTEMPT,
   ACCEPTED_HASH,
@@ -246,4 +247,11 @@ export const PATCH_AWAITING_APPROVAL: ImprovementPatch = {
     '',
   ].join('\n'),
   patchHash: ACCEPTED_HASH,
+};
+
+/** The list of improvements as it is first shown: narrowed by nothing. */
+export const UNNARROWED: Narrowing = {
+  status: undefined,
+  repositoryId: undefined,
+  path: { text: '', typing: false, start: () => undefined, line: null },
 };

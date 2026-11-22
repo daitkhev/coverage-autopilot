@@ -10,6 +10,7 @@ import type { ClientSession } from '#api/client-session';
 import { improvementStartOf } from '#api/improvement-start';
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { type KeyHint, KeyHints } from '#components/key-hints';
+import { TYPING_HINTS } from '#components/list-filter';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import { SplitView } from '#components/split-view';
@@ -34,11 +35,6 @@ interface FilesBrowserProps {
   readonly onOpenImprovement: (improvementId: string) => void;
   readonly onBack: () => void;
 }
-
-const TYPING_HINTS: readonly KeyHint[] = [
-  { key: 'enter', label: 'accept' },
-  { key: 'esc', label: 'discard' },
-];
 
 /** The dialog lists its own keys. The one that always works is here. */
 const DIALOG_HINTS: readonly KeyHint[] = [{ key: 'esc', label: 'close' }];

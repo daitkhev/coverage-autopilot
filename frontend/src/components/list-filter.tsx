@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from 'react';
 
+import type { KeyHint } from '#components/key-hints';
 import { TextField } from '#components/text-field';
 import { useKeys } from '#hooks/use-keys';
 
@@ -11,6 +12,12 @@ export interface ListFilter {
   /** The field while it types or holds a text, and nothing otherwise. */
   readonly line: ReactNode;
 }
+
+/** The keys while the filter types: they keep or drop its text. */
+export const TYPING_HINTS: readonly KeyHint[] = [
+  { key: 'enter', label: 'accept' },
+  { key: 'esc', label: 'discard' },
+];
 
 /** Whether a path holds the text of the filter, in any case. */
 export function holdsFilter(path: string, filter: string): boolean {

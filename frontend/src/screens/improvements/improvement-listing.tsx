@@ -1,5 +1,8 @@
 import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
-import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
+import type {
+  Improvement,
+  ImprovementListQuery,
+} from '@coverage-autopilot/api-contracts/improvements';
 import type { RepositoryList } from '@coverage-autopilot/api-contracts/repositories';
 
 import type { ServiceAnswer, ServiceApi } from '#api/service-api';
@@ -52,12 +55,16 @@ function namesOf(
 }
 
 /**
- * Asks for the improvements of every repository, and for the names of
- * the repositories, which an improvement names only by id.
+ * Asks for the improvements the query allows, of every repository when it
+ * names none, and for the names of the repositories, which an improvement
+ * names only by id.
  */
-export async function listingOf(api: ServiceApi): Promise<Listing> {
+export async function listingOf(
+  api: ServiceApi,
+  query: ImprovementListQuery = {},
+): Promise<Listing> {
   const [improvements, repositories] = await Promise.all([
-    api.listImprovements(),
+    api.listImprovements(query),
     api.listRepositories(),
   ]);
   return improvements.outcome === 'answered'
