@@ -88,17 +88,12 @@ function feedbackOf(improvement: Improvement): RejectionFeedback | null {
   };
 }
 
-/**
- * The limits of the settings, and no more time than is left of the
- * budget. Work has started in `generating`, so the deadline is there.
- */
+/** The limits of the settings, and no more time than is left of the budget. */
 function limitsOf(parts: RequestParts): GenerationLimits {
   const { maxTurns, maxCostUsd, timeoutMs } = parts.settings.generation;
-  const { deadlineAt } = parts.improvement;
   const leftMs =
-    deadlineAt === null
-      ? timeoutMs
-      : deadlineAt.epochMilliseconds - parts.now.epochMilliseconds;
+    parts.improvement.workDeadline.epochMilliseconds -
+    parts.now.epochMilliseconds;
   return {
     maxTurns,
     maxCostUsd,

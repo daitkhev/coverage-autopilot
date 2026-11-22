@@ -223,6 +223,30 @@ describe('Improvement', () => {
     });
   });
 
+  describe('workDeadline', () => {
+    it('should give the deadline its work started with', () => {
+      const improvement = improvementIn('analyzing');
+
+      expect(improvement.workDeadline).toEqual(
+        requestOf().budget.deadlineFrom(minutesIn(STEP_MINUTE.started)),
+      );
+    });
+
+    describe('when its work never started', () => {
+      it.each(['created', 'cancelled'] as const)(
+        'should throw InvalidTransitionError for a %s one',
+        (status) => {
+          expect(() => improvementIn(status).workDeadline).toThrow(
+            new InvalidTransitionError(
+              `The improvement is ${status} and its work never started, so ` +
+                'it has no deadline.',
+            ),
+          );
+        },
+      );
+    });
+  });
+
   describe('usage and attemptAllowance', () => {
     it('should tell what was spent and whether an attempt may open', () => {
       const improvement = improvementIn('verifying');

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { AnalyzingStep } from '#improvement/application/commands/run-improvement/analyzing.step';
 import type { StepResult } from '#improvement/application/commands/run-improvement/improvement-step';
-import { MissingDeadlineError } from '#improvement/application/errors/missing-deadline.error';
 import { Improvement } from '#improvement/domain/entities/improvement.entity';
 import { ImprovementRequest } from '#improvement/domain/value-objects/improvement-request.vo';
 import { QualityPolicy } from '#improvement/domain/value-objects/quality-policy.vo';
@@ -283,17 +282,6 @@ describe('AnalyzingStep', () => {
         );
         expect(keys).toEqual([keys[0], keys[0]]);
         expect((await bench.stored()).status).toBe('generating');
-      });
-    });
-
-    describe('when the improvement has no deadline', () => {
-      it('should throw a fault before the gate is asked', async () => {
-        const { state } = improvementIn('analyzing');
-
-        await expect(
-          analyze(Improvement.restore({ ...state, deadlineAt: null })),
-        ).rejects.toBeInstanceOf(MissingDeadlineError);
-        expect(modules.verification.requests).toEqual([]);
       });
     });
 

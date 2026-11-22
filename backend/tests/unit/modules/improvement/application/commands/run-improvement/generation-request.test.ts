@@ -172,20 +172,5 @@ describe('generationRequestOf', () => {
         expect(request.limits.timeoutMs).toBe(1);
       });
     });
-
-    describe('when no deadline is set', () => {
-      it('should give the time of the settings', () => {
-        const improvement = Improvement.restore({
-          ...improvementIn('generating').state,
-          deadlineAt: null,
-        });
-
-        const request = generationRequestOf(
-          partsOf(improvement, { now: minutesIn(40) }),
-        );
-
-        expect(request.limits.timeoutMs).toBe(600_000);
-      });
-    });
   });
 });

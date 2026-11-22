@@ -33,13 +33,12 @@ interface GateInput {
 function gateInputOf(improvement: Improvement): GateInput {
   const attempt = improvement.currentAttempt;
   const patch = attempt?.patch ?? null;
-  const { verificationBaseline, baselineSnapshotId, deadlineAt } = improvement;
+  const { verificationBaseline, baselineSnapshotId } = improvement;
   if (
     attempt === null ||
     patch === null ||
     verificationBaseline === null ||
-    baselineSnapshotId === null ||
-    deadlineAt === null
+    baselineSnapshotId === null
   ) {
     throw new InvalidTransitionError(
       `The improvement is ${improvement.status} and has no stored patch ` +
@@ -51,7 +50,7 @@ function gateInputOf(improvement: Improvement): GateInput {
     patch,
     baseline: verificationBaseline,
     baselineSnapshotId,
-    deadline: deadlineAt,
+    deadline: improvement.workDeadline,
   };
 }
 

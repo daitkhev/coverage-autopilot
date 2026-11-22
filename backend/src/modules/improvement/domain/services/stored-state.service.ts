@@ -5,7 +5,10 @@ import {
   openAttemptOf,
 } from '#improvement/domain/services/attempt-list.service';
 import { MAX_LIMIT_WAITS } from '#improvement/domain/services/generation.service';
-import type { ImprovementStatus } from '#improvement/domain/value-objects/improvement-status.vo';
+import {
+  type ImprovementStatus,
+  isFinal,
+} from '#improvement/domain/value-objects/improvement-status.vo';
 
 /** The statuses an attempt can be open in: generation and the gate. */
 const WITH_OPEN_ATTEMPT: readonly ImprovementStatus[] = [
@@ -75,6 +78,11 @@ const RULES: readonly StateRule[] = [
     says: 'its baseline of the gate measured its base commit and its file',
     appliesTo: always,
     holdsFor: baselineFits,
+  },
+  {
+    says: 'it has a deadline once its work started',
+    appliesTo: (state) => state.status !== 'created' && !isFinal(state.status),
+    holdsFor: (state) => state.deadlineAt !== null,
   },
   {
     says: 'it generates only once both baselines are recorded',

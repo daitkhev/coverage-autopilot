@@ -1,5 +1,6 @@
 import type { Attempt } from '#improvement/domain/entities/attempt.entity';
 import type { ImprovementState } from '#improvement/domain/entities/improvement-state';
+import { InvalidTransitionError } from '#improvement/domain/errors/invalid-transition.error';
 import {
   type BaselineSnapshot,
   generationStarted,
@@ -121,6 +122,22 @@ export class Improvement extends Entity<ImprovementId> {
 
   public get deadlineAt(): Instant | null {
     return this.current.deadlineAt;
+  }
+
+  /**
+   * The deadline of work that has started. Work starts with one and no
+   * move takes it away, so only an improvement whose work never started
+   * has none, and a step must not ask for it then.
+   */
+  public get workDeadline(): Instant {
+    const { deadlineAt } = this.current;
+    if (deadlineAt === null) {
+      throw new InvalidTransitionError(
+        `The improvement is ${this.status} and its work never started, so ` +
+          'it has no deadline.',
+      );
+    }
+    return deadlineAt;
   }
 
   public get resumesAt(): Instant | null {

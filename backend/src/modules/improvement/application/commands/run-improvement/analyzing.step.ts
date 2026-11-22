@@ -18,7 +18,6 @@ import type {
   StepResult,
 } from '#improvement/application/commands/run-improvement/improvement-step';
 import type { Change } from '#improvement/application/commands/run-improvement/run-failures';
-import { MissingDeadlineError } from '#improvement/application/errors/missing-deadline.error';
 import { SnapshotId } from '#improvement/domain/value-objects/snapshot-id.vo';
 import {
   REPOSITORIES_PUBLIC_API,
@@ -41,20 +40,14 @@ function baselineRequestOf(
   run: ImprovementRun,
   progress: AnalysisProgress,
 ): MeasureBaselineRequest {
-  const { request, deadlineAt } = run.improvement;
-  if (deadlineAt === null) {
-    throw new MissingDeadlineError(
-      `The improvement ${run.improvement.id.value} analyzes without a ` +
-        'deadline, which its work starts with.',
-    );
-  }
+  const { request, workDeadline } = run.improvement;
   const { requiredChecks, repeatedRuns, mutationThreshold } = request.policy;
   return {
     repositoryId: request.repositoryId,
     commit: request.baseCommit,
     targetFile: request.targetFile,
     policy: { requiredChecks, repeatedRuns, mutationThreshold },
-    deadline: deadlineAt,
+    deadline: workDeadline,
     owner: run.owner,
     onProgress: (step) => {
       progress.hear(step);

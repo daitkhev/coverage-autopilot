@@ -75,6 +75,14 @@ describe('checkedState', () => {
         }),
       ],
       [
+        'it has a deadline once its work started',
+        stateIn('analyzing', { deadlineAt: null }),
+      ],
+      [
+        'it has a deadline once its work started',
+        stateIn('awaiting_approval', { deadlineAt: null }),
+      ],
+      [
         'it generates only once both baselines are recorded',
         stateIn('generating', { baselineSnapshotId: null }),
       ],
