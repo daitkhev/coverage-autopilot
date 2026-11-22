@@ -120,6 +120,29 @@ describe('Client', () => {
     });
   });
 
+  it('should end on ctrl+c while it looks for the service', async () => {
+    const { terminal, farewells } = show(() => new Promise(() => undefined));
+    await expect
+      .poll(() => screenOf(terminal), PATIENT)
+      .toContain('Looking for the service');
+
+    await press(terminal, KEYS.ctrlC);
+
+    expect(farewells).toEqual([undefined]);
+  });
+
+  it('should leave ctrl+c to the screens once they show', async () => {
+    const session = wholeSession();
+    const { terminal, farewells } = show(reachWith(ready(session)).reach);
+    await expect
+      .poll(() => screenOf(terminal), PATIENT)
+      .toContain('example/payments');
+
+    await press(terminal, KEYS.ctrlC);
+
+    expect(farewells).toHaveLength(1);
+  });
+
   it('should show a fault of the way to the service', async () => {
     const fault = new Error('The answer does not match the contract.');
 

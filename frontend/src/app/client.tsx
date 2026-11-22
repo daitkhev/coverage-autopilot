@@ -8,6 +8,7 @@ import { App } from '#app/app';
 import type { NotReached } from '#app/service-reach-words';
 import { ServiceNotReached, StartingService } from '#app/service-start-view';
 import { type ActionState, useAction } from '#hooks/use-action';
+import { useKeys } from '#hooks/use-keys';
 
 /** Reaches the service, and tells of each step on the way. */
 export type Reach = (
@@ -56,6 +57,15 @@ export function Client({ reach, sessionOf, onQuit }: ClientProps): ReactNode {
     lookFirst();
   }, []);
   const problem = problemOf(reaching.state);
+  // Before the screens show, no part of them takes this key.
+  useKeys(
+    {
+      'ctrl+c': () => {
+        onQuit(undefined);
+      },
+    },
+    { active: problem !== undefined || session === undefined },
+  );
   if (problem !== undefined) {
     return (
       <ServiceNotReached

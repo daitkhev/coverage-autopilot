@@ -21,7 +21,8 @@ interface Screens {
 
 /**
  * Shows the screens in the terminal until the user quits, and gives back
- * what the client says after them, when it has something to say.
+ * what the client says after them, when it has something to say. The
+ * caller prints it: what is drawn on the screens goes with them.
  */
 export async function runScreens({
   terminal,
@@ -41,10 +42,19 @@ export async function runScreens({
         }}
       />
     </ThemeContext>,
-    // The client writes nothing to the console, so Ink need not guard it.
-    // And the client was given a terminal, so Ink is told to draw on it:
-    // left to itself it reads the environment and draws nothing under CI.
-    { ...terminal, patchConsole: false, interactive: true },
+    {
+      ...terminal,
+      // The client writes nothing to the console, so Ink need not guard it.
+      patchConsole: false,
+      // The client was given a terminal, so Ink is told to draw on it:
+      // left to itself it reads the environment and draws nothing under CI.
+      interactive: true,
+      // The screens take the whole terminal and give it back as it was, so
+      // nothing of the shell shows around them or can be scrolled into.
+      alternateScreen: true,
+      // Ctrl+C is a key of the client, which leaves as `q` does.
+      exitOnCtrlC: false,
+    },
   );
   await ink.waitUntilExit();
   return farewell;

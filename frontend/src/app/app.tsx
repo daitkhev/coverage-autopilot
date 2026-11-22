@@ -25,7 +25,7 @@ import { Overlay, type ShellFrame } from '#components/app-shell';
 import { KeyHints } from '#components/key-hints';
 import { TabBar } from '#components/tab-bar';
 import { BackdropContext } from '#hooks/use-backdrop';
-import type { KeyHandlers } from '#hooks/use-keys';
+import { type KeyHandlers, useKeys } from '#hooks/use-keys';
 import { type TerminalLayout, useTerminalSize } from '#hooks/use-terminal-size';
 
 interface AppProps {
@@ -192,13 +192,10 @@ export function App({
   const [dialog, setDialog] = useState<AppDialog>('none');
   const watch = useServiceWatch(session);
   useLost(watch, onLost);
-  const commands = commandsOf({
-    move,
-    show: setDialog,
-    quit: () => {
-      onQuit(farewellOf(watch.activeWork));
-    },
-  });
+  const quit = (): void => {
+    onQuit(farewellOf(watch.activeWork));
+  };
+  const commands = commandsOf({ move, show: setDialog, quit });
   const header = (
     <Header
       section={sectionOf(trail)}
@@ -210,6 +207,8 @@ export function App({
   const keys = keysOf(commands, () => {
     setDialog('palette');
   });
+  // Also over a dialog and in a text field, where `q` is a letter.
+  useKeys({ 'ctrl+c': quit }, { active: true });
   return (
     <Box width={size.columns} height={size.rows}>
       <BackdropContext value={dialog !== 'none'}>
