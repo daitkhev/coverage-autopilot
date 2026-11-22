@@ -55,12 +55,23 @@ export interface ServiceStartBench {
   startedIds(): number[];
   /** The ids of the stand-ins that still run. */
   runningIds(): number[];
-  /** Ends every stand-in, and removes the folder once they are gone. */
+  /**
+   * The instance directories the stand-ins were started in, in order,
+   * such as the folder a client made for a service of its own.
+   */
+  instanceFolders(): string[];
+  /**
+   * Ends every stand-in, and removes its folder and every instance
+   * directory a stand-in was started in once they are gone.
+   */
   close(): Promise<void>;
 }
 
 /** The files a stand-in shares with its bench. */
-type SharedFiles = Pick<StandInScript, 'leash' | 'pids' | 'requests'>;
+type SharedFiles = Pick<
+  StandInScript,
+  'leash' | 'pids' | 'requests' | 'instances'
+>;
 
 /** Short enough for a socket: the temporary folder of macOS is not. */
 const SHORT_ROOT = '/tmp';
@@ -147,6 +158,7 @@ export function serviceStartBench(): ServiceStartBench {
     leash: join(root, 'leash'),
     pids: join(root, 'pids'),
     requests: join(root, 'requests'),
+    instances: join(root, 'instances'),
   };
   writeFileSync(files.leash, '');
   const steps: ServiceStep[] = [];
@@ -174,15 +186,31 @@ export function serviceStartBench(): ServiceStartBench {
     requests: () => linesOf(files.requests),
     startedIds,
     runningIds,
+    instanceFolders: () => linesOf(files.instances),
     close: async () => {
-      rmSync(files.leash, { force: true });
-      try {
-        await vi.waitFor(() => {
-          expect(runningIds()).toEqual([]);
-        }, PATIENT);
-      } finally {
-        rmSync(root, { recursive: true, force: true });
-      }
+      await closeBench(root, files, runningIds);
     },
   };
+}
+
+/**
+ * Takes the leash away, so every stand-in leaves, and removes the folder
+ * of the bench and every instance directory a stand-in was started in,
+ * also when one of them did not leave in time.
+ */
+async function closeBench(
+  root: string,
+  files: SharedFiles,
+  runningIds: () => number[],
+): Promise<void> {
+  rmSync(files.leash, { force: true });
+  try {
+    await vi.waitFor(() => {
+      expect(runningIds()).toEqual([]);
+    }, PATIENT);
+  } finally {
+    for (const folder of [...linesOf(files.instances), root]) {
+      rmSync(folder, { recursive: true, force: true });
+    }
+  }
 }

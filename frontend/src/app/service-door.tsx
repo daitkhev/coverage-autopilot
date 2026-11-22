@@ -63,31 +63,39 @@ function sharedDoor(setting: ServiceSetting): ServiceDoor {
 
 /**
  * A service of this run alone. It is started once, however often it is
- * reached, and stopped on the way out. A start that failed keeps its
- * folder for its log until the next try, which makes a folder of its
- * own, or until the way out: a run leaves at most one such folder at a
- * time, and none behind it.
+ * reached, and stopped on the way out, also when the way out comes while
+ * it starts. A start that failed keeps its folder for its log until the
+ * next try, which makes a folder of its own, or until the way out: a run
+ * leaves at most one such folder at a time, and none behind it.
  */
 function isolatedDoor(setting: ServiceSetting): ServiceDoor {
   let own: IsolatedService | undefined;
+  let reaching: Promise<IsolatedService> | undefined;
+  const reachOwn = async (
+    observe: Parameters<Reach>[0],
+  ): Promise<IsolatedService> => {
+    if (own?.outcome === 'ready') {
+      own = await own.again(observe);
+      return own;
+    }
+    own?.remove();
+    own = await startIsolatedService({
+      command: setting.command,
+      variables: setting.variables,
+      temporaryRoot: setting.temporaryRoot,
+      wait: WAIT,
+      pause,
+      observe,
+    });
+    return own;
+  };
   return {
     reach: async (observe) => {
-      if (own?.outcome === 'ready') {
-        own = await own.again(observe);
-        return own;
-      }
-      own?.remove();
-      own = await startIsolatedService({
-        command: setting.command,
-        variables: setting.variables,
-        temporaryRoot: setting.temporaryRoot,
-        wait: WAIT,
-        pause,
-        observe,
-      });
-      return own;
+      reaching = reachOwn(observe);
+      return reaching;
     },
     leave: async () => {
+      await Promise.allSettled([reaching]);
       if (own?.outcome === 'ready') {
         await own.stop();
       } else {

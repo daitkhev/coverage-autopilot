@@ -117,6 +117,18 @@ describe('doorOf', () => {
       expect(ownInstances()).toEqual([]);
     });
 
+    it('should stop the service it starts when it is left while it starts', async () => {
+      const door = doorOf(setting(), { isolated: true });
+
+      const reached = door.reach(() => undefined);
+      await door.leave();
+
+      await expect(reached).resolves.toMatchObject({ outcome: 'ready' });
+      expect(bench.startedIds()).toHaveLength(1);
+      expect(bench.runningIds()).toEqual([]);
+      expect(ownInstances()).toEqual([]);
+    });
+
     describe('when its start fails', () => {
       it('should keep the folder of the last try alone, and none after leaving', async () => {
         const command = bench.standIn({ errors: ['broken'], exitCode: 1 });

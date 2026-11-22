@@ -16,6 +16,11 @@ import {
   showsColour,
   showsUnicode,
 } from '#composition/client-environment';
+import {
+  type ProcessSignals,
+  type SignalWatch,
+  watchSignals,
+} from '#composition/process-signals';
 
 /** Everything of the process the client uses, read by the entry file. */
 export interface ClientProcess {
@@ -30,6 +35,8 @@ export interface ClientProcess {
   readonly out: (line: string) => void;
   /** Standard error: progress and diagnostics. */
   readonly err: (line: string) => void;
+  /** Where the signals of the process arrive: the process itself. */
+  readonly signals: ProcessSignals;
 }
 
 type Line<Kind extends CommandLine['kind']> = Extract<
@@ -37,11 +44,18 @@ type Line<Kind extends CommandLine['kind']> = Extract<
   { readonly kind: Kind }
 >;
 
+/** The way to the service of one run, and the way out of it at once. */
+interface Run {
+  readonly door: ServiceDoor;
+  /** Aborted by a signal. */
+  readonly leave: AbortSignal;
+}
+
 /** The screens need a terminal. Without one the help says what works. */
 async function showScreens(
   line: Line<'interactive'>,
   process: ClientProcess,
-  door: ServiceDoor,
+  run: Run,
 ): Promise<number> {
   if (process.terminal === undefined) {
     process.err(HELP_TEXT);
@@ -54,8 +68,9 @@ async function showScreens(
       unicode: showsUnicode(process.environment),
       animation: true,
     },
-    reach: door.reach,
+    reach: run.door.reach,
     sessionOf,
+    leave: run.leave,
   });
   if (farewell !== undefined) {
     process.out(farewell);
@@ -71,7 +86,7 @@ async function showScreens(
 async function runOne(
   line: Line<'command'>,
   process: ClientProcess,
-  door: ServiceDoor,
+  { door }: Run,
 ): Promise<number> {
   return overService(process.err, async () => {
     const reached = await door.reach((step) => {
@@ -92,25 +107,46 @@ async function runOne(
   });
 }
 
-/** What needs the service, and leaves it again whatever happens. */
+/** Leaves what the run started, and then stops watching its signals. */
+async function leaveAll(run: Run, signals: SignalWatch): Promise<void> {
+  try {
+    await run.door.leave();
+  } finally {
+    signals.end();
+  }
+}
+
+/**
+ * What needs the service, and leaves it again whatever happens: when it
+ * ends, or at once on a signal, whose code the process then ends with. A
+ * shared service is left running either way.
+ */
 async function withService(
   line: Line<'interactive' | 'command'>,
   process: ClientProcess,
 ): Promise<number> {
   const setting = serviceSettingOf(process.environment, process.service);
-  const door = doorOf(setting, { isolated: line.flags.isolated });
+  const signals = watchSignals(process.signals);
+  const run: Run = {
+    door: doorOf(setting, { isolated: line.flags.isolated }),
+    leave: signals.leave,
+  };
   try {
-    return line.kind === 'command'
-      ? await runOne(line, process, door)
-      : await showScreens(line, process, door);
+    return await Promise.race([
+      line.kind === 'command'
+        ? runOne(line, process, run)
+        : showScreens(line, process, run),
+      signals.code,
+    ]);
   } finally {
-    await door.leave();
+    await leaveAll(run, signals);
   }
 }
 
 /**
  * One run of the client: the command of its line, or the screens when
- * the line names none. It gives the exit code of the process.
+ * the line names none. It gives the exit code of the process, and after
+ * a signal ends the process itself once it has left what it started.
  */
 export async function runClient(process: ClientProcess): Promise<number> {
   const line = parseCommandLine(process.argv);

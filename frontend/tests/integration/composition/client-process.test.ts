@@ -9,6 +9,7 @@ import {
   type ServiceStartBench,
   serviceStartBench,
 } from '#tests/support/service-start-bench';
+import { signalStandIn } from '#tests/support/signal-stand-in';
 
 const DONE = 0;
 const FAILED = 1;
@@ -42,6 +43,7 @@ describe('runClient', () => {
       terminal: undefined,
       out: (line) => out.push(line),
       err: (line) => err.push(line),
+      signals: signalStandIn(),
       ...given,
     });
     return { code, out, err };

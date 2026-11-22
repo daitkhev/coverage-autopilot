@@ -14,6 +14,7 @@ const LEAVE_OTHER_SCREEN = '\u001B[?1049l';
 /** The screens over a busy service, in the terminal of a test. */
 async function showing(
   terminal: ReturnType<typeof fakeTerminal>,
+  leave: AbortSignal = new AbortController().signal,
 ): Promise<string | undefined> {
   const session = wholeSession({
     health: () => Promise.resolve(BUSY_HEALTH),
@@ -28,6 +29,7 @@ async function showing(
         health: IDLE_HEALTH,
       }),
     sessionOf: () => session,
+    leave,
   });
 }
 
@@ -56,6 +58,20 @@ describe('runScreens', () => {
     expect(terminal.drawn().indexOf(ENTER_OTHER_SCREEN)).toBeLessThan(
       terminal.drawn().indexOf('service up'),
     );
+    expect(terminal.drawn().lastIndexOf(LEAVE_OTHER_SCREEN)).toBeGreaterThan(
+      terminal.drawn().lastIndexOf('service up'),
+    );
+  });
+
+  it('should give the terminal back at once when it must leave, and say nothing', async () => {
+    const terminal = fakeTerminal();
+    const leaving = new AbortController();
+
+    const shown = showing(terminal, leaving.signal);
+    await expect.poll(terminal.drawn, PATIENT).toContain('service up');
+    leaving.abort();
+
+    await expect(shown).resolves.toBeUndefined();
     expect(terminal.drawn().lastIndexOf(LEAVE_OTHER_SCREEN)).toBeGreaterThan(
       terminal.drawn().lastIndexOf('service up'),
     );

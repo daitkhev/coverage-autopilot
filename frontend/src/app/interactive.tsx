@@ -17,18 +17,22 @@ interface Screens {
   readonly theme: ThemeSettings;
   readonly reach: Reach;
   readonly sessionOf: (api: ServiceApi) => ClientSession;
+  /** Aborted when the client must leave at once, as on a signal. */
+  readonly leave: AbortSignal;
 }
 
 /**
- * Shows the screens in the terminal until the user quits, and gives back
- * what the client says after them, when it has something to say. The
- * caller prints it: what is drawn on the screens goes with them.
+ * Shows the screens in the terminal until the user quits or the client
+ * must leave, and gives back what the client says after them, when the
+ * user quit and it has something to say. The caller prints it: what is
+ * drawn on the screens goes with them.
  */
 export async function runScreens({
   terminal,
   theme,
   reach,
   sessionOf,
+  leave,
 }: Screens): Promise<string | undefined> {
   let farewell: string | undefined;
   const ink = render(
@@ -55,6 +59,14 @@ export async function runScreens({
       // Ctrl+C is a key of the client, which leaves as `q` does.
       exitOnCtrlC: false,
     },
+  );
+  // The terminal is given back as on `q`, before what runs is stopped.
+  leave.addEventListener(
+    'abort',
+    () => {
+      ink.unmount();
+    },
+    { once: true },
   );
   await ink.waitUntilExit();
   return farewell;

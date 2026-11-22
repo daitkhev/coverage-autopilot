@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { exchange } from '#api/socket-exchange';
 import { runClient } from '#composition/client-process';
+import { signalStandIn } from '#tests/support/signal-stand-in';
 import {
   type ScriptedServer,
   startScriptedServer,
@@ -50,6 +51,7 @@ describe('runClient', () => {
         terminal: undefined,
         out: (line) => out.push(line),
         err: (line) => err.push(line),
+        signals: signalStandIn(),
       });
 
       expect(code).toBe(FAILED);

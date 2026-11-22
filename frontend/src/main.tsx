@@ -16,6 +16,12 @@ const FIRST_ARGUMENT = 2;
 
 if (import.meta.main) {
   const { stdout, stdin, stderr } = process;
+  // A terminal that was closed refuses every write, and its signal comes
+  // with it. A refused write must not end the client before it has left
+  // what it started.
+  for (const stream of [stdout, stderr]) {
+    stream.on('error', () => undefined);
+  }
   process.exitCode = await runClient({
     argv: process.argv.slice(FIRST_ARGUMENT),
     environment: process.env,
@@ -27,5 +33,6 @@ if (import.meta.main) {
     err: (line) => {
       stderr.write(`${line}\n`);
     },
+    signals: process,
   });
 }

@@ -8,7 +8,10 @@ import {
 import { argv, execPath, exit, pid } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-import { instanceLocationIn } from '#api/instance-location';
+import {
+  type InstanceLocation,
+  instanceLocationIn,
+} from '#api/instance-location';
 import type { ServiceCommand } from '#api/service-launch';
 
 /** How the stand-in answers `POST /service/stop`. */
@@ -38,6 +41,8 @@ export interface StandInScript extends StandInPlay {
   readonly leash: string;
   /** It adds its process id here once it wrote its errors. */
   readonly pids: string;
+  /** It adds the instance directory it was given here. */
+  readonly instances: string;
   /** It adds every request it receives here, as `METHOD path`. */
   readonly requests: string;
 }
@@ -111,10 +116,14 @@ async function listen(script: StandInScript, socket: string): Promise<void> {
   });
 }
 
-async function play(script: StandInScript, socket: string): Promise<void> {
+async function play(
+  script: StandInScript,
+  instance: InstanceLocation,
+): Promise<void> {
   for (const line of script.errors ?? []) {
     writeSync(STANDARD_ERROR, `${line}\n`);
   }
+  appendFileSync(script.instances, `${instance.directory}\n`);
   appendFileSync(script.pids, `${String(pid)}\n`);
   if (script.exitCode !== undefined) {
     exit(script.exitCode);
@@ -128,12 +137,12 @@ async function play(script: StandInScript, socket: string): Promise<void> {
     }
   }, LEASH_MS);
   if (script.health !== undefined) {
-    await listen(script, socket);
+    await listen(script, instance.socket);
   }
 }
 
 if (import.meta.main) {
   const file = argv[SCRIPT_ARGUMENT] ?? '';
-  const { socket } = instanceLocationIn(argv[INSTANCE_ARGUMENT] ?? '');
-  await play(JSON.parse(readFileSync(file, 'utf8')) as StandInScript, socket);
+  const instance = instanceLocationIn(argv[INSTANCE_ARGUMENT] ?? '');
+  await play(JSON.parse(readFileSync(file, 'utf8')) as StandInScript, instance);
 }
