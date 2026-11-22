@@ -63,7 +63,7 @@ export const FAILURE_WORDS: Readonly<
   },
   mutation_unsupported: {
     headline: 'Mutants cannot be measured in this project',
-    next: 'Start it again without the mutation check.',
+    next: 'Check that the mutation tool runs with the tests of this project.',
   },
   quota_exhausted: {
     headline: 'The quota of the generator ran out',
@@ -79,7 +79,7 @@ export const FAILURE_WORDS: Readonly<
   },
   publish_failed: {
     headline: 'The pull request could not be opened',
-    next: 'Check the access to the repository, then approve the patch again.',
+    next: 'Check the access to the repository, then start it again.',
   },
 };
 
