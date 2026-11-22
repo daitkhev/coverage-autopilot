@@ -2,25 +2,17 @@ import { Text } from 'ink';
 import { Fragment, type ReactNode } from 'react';
 
 import type { AccessStep } from '@coverage-autopilot/api-contracts/repositories';
-import type { AccessCheckName } from '@coverage-autopilot/api-contracts/statuses';
 
 import { Glyph } from '#components/glyph';
 import { RoleText } from '#components/role-text';
-import { ACCESS_CHECK_STATUS } from '#theme/status';
-
-/** What each step of the access check proves, in plain words. */
-const STEP_WORDS: Readonly<Record<AccessCheckName, string>> = {
-  git_present: 'git',
-  gh_authenticated: 'gh logged in',
-  push_allowed: 'can push',
-};
+import { ACCESS_CHECK_STATUS, ACCESS_STEP_WORDS } from '#theme/status';
 
 function Step({ step }: { readonly step: AccessStep }): ReactNode {
   const look = ACCESS_CHECK_STATUS[step.status];
   return (
     <Text>
       <Glyph name={look.glyph} role={look.role} />{' '}
-      <RoleText>{STEP_WORDS[step.name]}</RoleText>
+      <RoleText>{ACCESS_STEP_WORDS[step.name]}</RoleText>
       {step.status === 'passed' ? null : (
         <RoleText role={look.role}>{` ${look.word}`}</RoleText>
       )}

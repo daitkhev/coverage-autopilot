@@ -49,7 +49,7 @@ exports[`FilesBrowser > when i is pressed > should open the dialog over the scre
  │ › src/billing/inv╭─ Improve src/billing/invoice.ts ─────────────────────────────────────╮   41.2%    21/51 │
  │   src/billing/sum│                                                                      │   25.0%      2/8 │
  │                  │ READY ────────────────────────────────────────────────────────────── │   50.0%      3/6 │
- │                  │ ✓ git · ✓ gh logged in · ✓ can push                                  │   40.4%    23/57 │
+ │                  │ ✓ git installed · ✓ gh signed in · ✓ push access                     │   40.4%    23/57 │
  │                  │                                                                      │                  │
  │                  │ LIMITS ───────────────────────────────────────────────────────────── │───────────────── │
  │                  │ › Attempts    3             up to 10                                 │ 52-67            │

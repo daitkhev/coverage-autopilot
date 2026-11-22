@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  accessCheckNameSchema,
   accessCheckStatusSchema,
   fileStateSchema,
   improvementStatusSchema,
@@ -12,6 +13,7 @@ import {
 
 import {
   ACCESS_CHECK_STATUS,
+  ACCESS_STEP_WORDS,
   ATTEMPT_VERDICT,
   CHECK_STATUS,
   FILE_STATE,
@@ -67,6 +69,11 @@ const CONTRACT = [
     table: 'UNMEASURED_REASON',
     rows: UNMEASURED_REASON,
     schema: unmeasuredReasonSchema,
+  },
+  {
+    table: 'ACCESS_STEP_WORDS',
+    rows: ACCESS_STEP_WORDS,
+    schema: accessCheckNameSchema,
   },
 ];
 

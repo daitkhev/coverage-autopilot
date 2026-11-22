@@ -1,4 +1,5 @@
 import type {
+  AccessCheckName,
   AccessCheckStatus,
   FileState,
   ImprovementStatus,
@@ -54,6 +55,13 @@ export const ACCESS_CHECK_STATUS: Readonly<
   passed: { glyph: 'passed', word: 'passed', role: 'success' },
   failed: { glyph: 'failed', word: 'failed', role: 'danger' },
   not_run: { glyph: 'skipped', word: 'not checked', role: 'secondary' },
+};
+
+/** What each step of the access check proves, in plain words. */
+export const ACCESS_STEP_WORDS: Readonly<Record<AccessCheckName, string>> = {
+  git_present: 'git installed',
+  gh_authenticated: 'gh signed in',
+  push_allowed: 'push access',
 };
 
 /** A rejected attempt is routine, so it is yellow and not red. */

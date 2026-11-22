@@ -17,7 +17,7 @@ describe('AccessSteps', () => {
   it('should draw the steps that passed on one line', () => {
     expect(
       drawnAt(<AccessSteps steps={ACCESS_PASSED.steps} />, USUAL_COLUMNS),
-    ).toBe('✓ git · ✓ gh logged in · ✓ can push');
+    ).toBe('✓ git installed · ✓ gh signed in · ✓ push access');
   });
 
   describe('when a step failed and stopped the rest', () => {
@@ -30,7 +30,9 @@ describe('AccessSteps', () => {
           ),
           USUAL_COLUMNS,
         ),
-      ).toBe('✓ git · ✕ gh logged in failed · – can push not checked');
+      ).toBe(
+        '✓ git installed · ✕ gh signed in failed · – push access not checked',
+      );
     });
   });
 

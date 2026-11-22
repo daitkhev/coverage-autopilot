@@ -6,7 +6,6 @@ import type {
   AccessStep,
   Repository,
 } from '@coverage-autopilot/api-contracts/repositories';
-import type { AccessCheckName } from '@coverage-autopilot/api-contracts/statuses';
 
 import { Dialog } from '#components/dialog';
 import { ErrorDetails } from '#components/error-details';
@@ -21,7 +20,7 @@ import type {
 } from '#screens/repositories/connect-flow';
 import { isEditable } from '#screens/repositories/connect-flow';
 import { durationWords, elapsedMs } from '#theme/moments';
-import { ACCESS_CHECK_STATUS } from '#theme/status';
+import { ACCESS_CHECK_STATUS, ACCESS_STEP_WORDS } from '#theme/status';
 import { DIALOG_WIDTH } from '#theme/widths';
 
 /** The dialog that connects a repository: the address, and where it stands. */
@@ -53,12 +52,6 @@ const NEXT_BY_STATUS: ReadonlyMap<number, string> = new Map([
 ]);
 
 const TRY_AGAIN = 'Press enter to try again.';
-
-const STEP_WORDS: Readonly<Record<AccessCheckName, string>> = {
-  git_present: 'git installed',
-  gh_authenticated: 'gh signed in',
-  push_allowed: 'push access',
-};
 
 /** `enter` sends only an address that is not being checked. */
 const CONFIRM_LABELS: Readonly<Record<ConnectPhase['step'], string | null>> = {
@@ -121,7 +114,7 @@ function Working({
 
 /** A passed step says what it found; one that did not run says so. */
 function stepWords(step: AccessStep): string {
-  const words = STEP_WORDS[step.name];
+  const words = ACCESS_STEP_WORDS[step.name];
   if (step.status === 'passed') {
     return step.message ?? words;
   }
