@@ -1,0 +1,10 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`UnansweredBody > when the service refused > should give its sentence, its code and the way back 1`] = `
+"╭─ Improvement ────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ! No improvement has this id.  not_found                                                                     │
+│                                                                                                              │
+│ WHAT TO DO ───────────────────────────────────────────────────────────────────────────────────────────────── │
+│ Press esc to go back.                                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────╯"
+`;
