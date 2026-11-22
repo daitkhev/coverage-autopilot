@@ -1037,31 +1037,27 @@ A real run can fail, or lose work that was paid for:
 
 A person meets it in the first minutes of the client:
 
-- The screens need 24 rows, and the terminal of an editor has fewer, so
-  there they never appear.
-- The client draws below what the terminal already shows. The history
-  of the shell stays in view and can be scrolled into, and the header
-  can be scrolled away. A change of the size of the window leaves parts
-  of the frame before it on the screen. The screens should take the
-  whole screen and give it back, as a full-screen program does.
 - Going back draws the screen anew: the selected row, the chosen list
   and the text of the filter are lost, and the data is asked for again.
 - The list of commands holds the five commands of the app and no action
   of a screen, and a screen has no way to add one.
-- Built for no screen, though a route gives what it needs: asking again
-  with larger limits after a failure, opening a pull request in the
-  browser, the next file, the filters and the cancel in the list of
-  improvements, and the name of the test runner.
-- Ctrl+C on the screens ends them without the line that says the work
-  goes on.
+- A panel that is cut in a low window does not say that more is below.
+- The list of the keys is sixteen lines, the whole of the smallest
+  window: one more line needs a list that scrolls.
+- The browser is started with a path and nothing else. On Linux the
+  program that opens an address needs the variables of the desktop, so
+  there a pull request probably does not open, and nothing says so. Not
+  tried on Linux.
+- The name of the test runner is in the details of a repository and not
+  in a row of the list.
 
 Rare, and severe when it happens:
 
 - A request has no time limit, so a service that takes a connection and
   never answers holds the client for good.
-- A client with a service of its own that is ended by a signal, or by
-  Ctrl+C before the screens appear, leaves that service running with its
-  folder.
+- A client with a service of its own that is ended by a signal leaves
+  that service running with its folder. Ctrl+C is a key now and stops
+  it.
 - After it starts a service, the client takes whatever answers on the
   socket for its own and does not compare the version, so a service of
   another contract that starts in the same moment is used, or fails the
@@ -1116,3 +1112,32 @@ budget asked for before an attempt, the answers of an improvement, the
 two refusals without a status, one deadline for every step, and one set
 of settings for the tests. A working copy that was tampered with now
 fails the improvement as an exposed credential and keeps its tokens.
+
+### The screens take the whole screen, and sixteen rows are enough
+
+- The screens are drawn on the other screen of the terminal, as an
+  editor is. What the shell showed is hidden while they run and is back
+  when they end, nothing above them can be scrolled into, and a change
+  of the size of the window draws the frame anew with nothing left of
+  the one before.
+- Ctrl+C is a key of the client, not a signal. It leaves as `q` does:
+  the line about work that goes on is printed, and a service of this run
+  alone is stopped. Before the screens appear it leaves as well.
+- The client says that it draws for a person. Without that, the library
+  of the screens draws nothing until the end where a variable names an
+  automated run, and so did the tests of the screens in CI.
+- The smallest window is 80 by 16, down from 24 rows, because the
+  terminal of an editor is low. In a low window only the body gives way:
+  the header, the context, the notice and the footer keep their rows,
+  and a panel cuts its content at its end.
+- A screen has the actions its routes allow: asking again with larger
+  limits after a spent budget, a pull request in the browser, the next
+  file below the threshold, the filters and the cancel in the list of
+  improvements, and the name of the test runner. The browser is given
+  to the screens with the session, so a test opens nothing.
+- Why not before: the screens were tested as frames of one size, and a
+  frame does not show what a terminal keeps around it. The look in a
+  real emulator showed it.
+- Where: `frontend/src/app/interactive.tsx`,
+  `frontend/src/theme/widths.ts`, `frontend/src/components/panel.tsx`,
+  `frontend/src/api/browser.ts`.
