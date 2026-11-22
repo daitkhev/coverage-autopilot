@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import {
   existsSync,
   mkdirSync,
@@ -7,6 +8,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { createConnection } from 'node:net';
 import { join } from 'node:path';
 
 import { expect, vi } from 'vitest';
@@ -35,7 +37,10 @@ export interface ServiceStartBench {
   readonly steps: readonly ServiceStep[];
   /** The command of a stand-in that plays `play` when it is started. */
   standIn(play: StandInPlay): ServiceCommand;
-  /** Starts a stand-in that plays `play`, and waits until it listens. */
+  /**
+   * Starts a stand-in that plays `play`, and waits until it takes a
+   * connection on its socket.
+   */
   runStandIn(play: StandInPlay): Promise<void>;
   /** The options the client is given, which record its steps. */
   options(command: ServiceCommand, wait?: ServiceWait): ServiceStartOptions;
@@ -76,6 +81,20 @@ function linesOf(file: string): string[] {
   return existsSync(file)
     ? readFileSync(file, 'utf8').split('\n').filter(Boolean)
     : [];
+}
+
+/**
+ * Ends once a process takes a connection on the socket, and fails while
+ * none does. The file of a socket is there a moment before its process
+ * listens on it, and a client that comes in that moment is refused.
+ */
+async function takesConnection(socket: string): Promise<void> {
+  const connection = createConnection(socket);
+  try {
+    await once(connection, 'connect');
+  } finally {
+    connection.destroy();
+  }
 }
 
 /** Whether a process of that id runs. A signal 0 only asks. */
@@ -146,9 +165,7 @@ export function serviceStartBench(): ServiceStartBench {
         env: { AUTOPILOT_INSTANCE_DIR: location.directory },
         stdio: 'ignore',
       });
-      await vi.waitFor(() => {
-        expect(existsSync(location.socket)).toBe(true);
-      }, PATIENT);
+      await vi.waitFor(async () => takesConnection(location.socket), PATIENT);
     },
     options: recordingOptions(location, steps),
     pauseUntil: (check) => async () => {
