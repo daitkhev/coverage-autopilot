@@ -808,3 +808,114 @@ Where this log and the plan differ, this log and the code are right.
 - The status of an answer is set in two ways: the improvement module has
   a helper for it and the coverage module sets it in the route. The two
   cancels should also answer an ended one with the same status.
+
+### The client finds the service, and starts it when it must
+
+- One client of the socket serves the screens and the commands. Every
+  answer is read with the schema of its route. A refusal of the service
+  is a value with its status and its error. A socket nothing answers on
+  is an error of its own, which the callers catch in one place each.
+- Where nothing answers, the client starts the service once, as a
+  process of its own group that outlives the terminal. The service gets
+  the variables the client was started with, as it would from a person
+  who started it by hand, and the instance folder the client looks in.
+  The other choice, a list of the variables of the service kept in the
+  client, would be a second list to keep in step with the first.
+- The standard error of a started service goes to `service.log` in the
+  instance folder. When the service does not answer in time, or its
+  process ends, the client shows the last lines it wrote and the path of
+  the file.
+- A health of another contract may not match the schema of this client.
+  So the client reads the version and the running work first, and the
+  whole health only when the version is its own. An idle service of
+  another version is asked to stop and replaced. A busy one is left as it
+  is, and the client says which work it runs.
+- A client never ends a service of the user, also one it started and
+  that did not answer in time. With `--isolated` it makes an instance in
+  a new folder under `/tmp`, because the path of a socket is at most 104
+  bytes, and ends that service and removes the folder on the way out.
+- The client reads no clock to wait: a wait is counted in pauses.
+- Where: `frontend/src/api/socket-service-api.ts`,
+  `frontend/src/api/service-reach.ts`,
+  `frontend/src/api/isolated-service.ts`,
+  `frontend/src/app/service-door.tsx`.
+
+### A command prints its result, and everything else beside it
+
+- Standard output holds the result and only when the exit code is 0. A
+  refusal of the service and a job that failed go to standard error as
+  one line of JSON in the shape of the service, so a script that captures
+  the output never takes a reason for a result.
+- `--wait` asks about once a second and writes one line to standard
+  error for each change. An improvement that waits for approval ends the
+  wait with 0 and prints the `approve` command with the hash.
+- `cancel <id>` tries the improvement first, and the scan when the
+  service knows no improvement of that id.
+- Three things the plan shows that no route returns: the baseline
+  numbers on the line of `analyzing`, who cancelled an improvement, and
+  the paths and the version of the client in `doctor`. A command prints
+  what the service answers and makes up nothing.
+- Where: `frontend/src/commands/`.
+
+### One app over six screens
+
+- A screen draws the whole shell and is handed two things: the session,
+  which is the service, the moment and the time zone, and the frame,
+  which is what the app owns of the shell. A screen knows no other
+  screen: it asks for a move through a callback.
+- The app owns the keys that work everywhere: the sections, the
+  commands, the keys and quitting. A dialog of the app is drawn over the
+  screen, and the screen with its own dialog is then behind it: dim, and
+  without keys.
+- The header counts the improvements that wait for approval and says
+  how the service is, from one question the app repeats for all screens.
+- When the service stops answering, the app reaches it again as it did
+  at the start, and the screens stay open over the same session. That is
+  also how the restart of the service screen works: it asks an idle
+  service to stop, and the next question starts it.
+- Quitting while work runs prints which work keeps running and the
+  command that shows it later.
+- Colour is off with `NO_COLOR` or `--no-color`. Unicode is on when the
+  first locale variable that is set names UTF-8, and every symbol is its
+  ASCII replacement otherwise. The plan named no way to tell.
+- Where: `frontend/src/app/`, `frontend/src/screens/`.
+
+### The root of the client reads the process, and nothing else does
+
+- Only a root file may import both the app and the commands, so the
+  choice between them is made there. `main.tsx` reads the process and
+  holds no decision. `client-process.tsx` is given the arguments, the
+  variables and the terminal as values, so a test runs the whole client
+  with a stand-in of the service and a terminal of its own.
+- The root files of the client have an alias, as those of the service
+  have, because a relative import is refused.
+- The package has two programs in `dist/bin/`. The client is the one a
+  person starts: its file names what runs it, may be run, and is the
+  `bin` of the manifest under the name of the package. It starts the
+  service from the file beside its own.
+- An end-to-end test runs the built client with a home of its own. The
+  client repeats the names of the instance folder and of the socket,
+  which it cannot import from the service, and this test holds the two
+  together: the service makes the files and the client finds them.
+- Where: `frontend/src/main.tsx`, `frontend/src/client-process.tsx`,
+  `harness/gate/run-build.ts`, `frontend/tests/e2e/built-client.test.ts`.
+
+### Owed after the wave of the client
+
+- The list of commands holds the commands of the app only. The plan
+  wants every action of every screen in it.
+- Going back draws the screen anew, so the selected row is not kept.
+- No test runs the screens in a real pseudo-terminal, so a change of
+  width under a running client is not proven.
+- The screens leave out what no route returns: the last access check of
+  a repository, the name of its test runner, the paths of the service,
+  and who cancelled an improvement. They also leave out the filters and
+  the cancel of the list of improvements, opening a pull request in the
+  browser, the next file, and asking again with larger limits after a
+  failure.
+- An old service removes its socket a moment before it releases its
+  lock. A new one that tried the lock in that moment would leave, and
+  the client would wait its whole wait and say the service did not
+  start.
+- A request has no time limit, so a service that takes a connection and
+  never answers holds the client.
