@@ -1,3 +1,4 @@
+import type { ToolLog } from '#infrastructure/logging/tool-log';
 import { EngineProcess } from '#infrastructure/sandbox/engine-process';
 import { limitRun } from '#infrastructure/sandbox/run-limit';
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
@@ -27,12 +28,18 @@ const UNSTOPPABLE = new AbortController().signal;
 export async function askEngine(
   settings: SandboxSettings,
   args: readonly string[],
+  log: ToolLog,
 ): Promise<EngineAnswer> {
-  const call = new EngineProcess(settings.engine, {
-    arguments: args,
-    input: '',
-    outputBytes: settings.limits.outputBytes,
-  });
+  const call = new EngineProcess(
+    settings.engine,
+    {
+      arguments: args,
+      shown: args,
+      input: '',
+      outputBytes: settings.limits.outputBytes,
+    },
+    log,
+  );
   const limit = limitRun(ANSWER_TIMEOUT_MS, UNSTOPPABLE);
   try {
     const first = await Promise.race([call.exit, limit.reached]);

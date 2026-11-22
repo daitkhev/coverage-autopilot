@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 
+import { ToolLog } from '#infrastructure/logging/tool-log';
 import {
   NAME_PREFIX,
   runArguments,
@@ -24,6 +25,7 @@ import {
 } from '#infrastructure/sandbox/sandbox-settings';
 import { ID_GENERATOR, type IdGenerator } from '#kernel/id/id-generator';
 import { CLOCK, type Clock } from '#kernel/time/clock';
+import { LOGGER, type Logger } from '#ports/logger.port';
 import type {
   Sandbox,
   SandboxCommandRequest,
@@ -74,15 +76,18 @@ export class DockerSandbox implements Sandbox {
   private readonly settings: SandboxSettings;
   private readonly clock: Clock;
   private readonly ids: IdGenerator;
+  private readonly log: ToolLog;
 
   public constructor(
     @Inject(SANDBOX_SETTINGS) settings: SandboxSettings,
     @Inject(CLOCK) clock: Clock,
     @Inject(ID_GENERATOR) ids: IdGenerator,
+    @Inject(LOGGER) logger: Logger,
   ) {
     this.settings = settings;
     this.clock = clock;
     this.ids = ids;
+    this.log = new ToolLog(logger, clock);
   }
 
   public async run(
@@ -112,7 +117,7 @@ export class DockerSandbox implements Sandbox {
     try {
       return await this.attend(name, request, signal);
     } catch (error) {
-      await removeContainer(this.settings, name);
+      await removeContainer(this.settings, name, this.log);
       throw error;
     }
   }
@@ -122,11 +127,20 @@ export class DockerSandbox implements Sandbox {
     request: SandboxCommandRequest,
     signal: AbortSignal,
   ): Promise<Ending> {
-    const engine = new EngineProcess(this.settings.engine, {
-      arguments: runArguments(this.settings, name, request),
-      input: environmentFile(request.environment),
-      outputBytes: this.settings.limits.outputBytes,
-    });
+    const program = request.command.slice(0, 1);
+    const engine = new EngineProcess(
+      this.settings.engine,
+      {
+        arguments: runArguments(this.settings, name, request),
+        shown: runArguments(this.settings, name, {
+          ...request,
+          command: program,
+        }),
+        input: environmentFile(request.environment),
+        outputBytes: this.settings.limits.outputBytes,
+      },
+      this.log,
+    );
     const limit = limitRun(request.timeoutMs, signal);
     try {
       const first = await Promise.race([engine.exit, limit.reached]);
@@ -143,7 +157,7 @@ export class DockerSandbox implements Sandbox {
   }
 
   private async removeAfter(name: string, copy: string): Promise<void> {
-    const removal = await removeContainer(this.settings, name);
+    const removal = await removeContainer(this.settings, name, this.log);
     if (removal.outcome === 'left') {
       throw new SandboxContainerLeftError(
         `The container ${name} may still run once its command ended, and ` +

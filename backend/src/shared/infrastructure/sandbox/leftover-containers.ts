@@ -1,3 +1,4 @@
+import type { ToolLog } from '#infrastructure/logging/tool-log';
 import {
   listArguments,
   NAME_PREFIX,
@@ -26,8 +27,12 @@ export interface ContainerSweep {
 const OWN_NAME = new RegExp(`^${NAME_PREFIX}[0-9a-f-]+$`, 'u');
 
 /** The containers the engine says carry the label of the instance. */
-async function namesOf(settings: SandboxSettings): Promise<string[]> {
-  const answer = await askEngine(settings, listArguments(settings.instance));
+async function namesOf(
+  settings: SandboxSettings,
+  log: ToolLog,
+): Promise<string[]> {
+  const args = listArguments(settings.instance);
+  const answer = await askEngine(settings, args, log);
   if (answer.outcome === 'silent') {
     throw new SandboxListFailedError(
       'The engine did not list the containers of the instance within ' +
@@ -56,12 +61,13 @@ async function namesOf(settings: SandboxSettings): Promise<string[]> {
  */
 export async function removeLeftoverContainers(
   settings: SandboxSettings,
+  log: ToolLog,
 ): Promise<ContainerSweep> {
-  const names = await namesOf(settings);
+  const names = await namesOf(settings, log);
   const removals = await Promise.all(
     names.map(async (name) => ({
       name,
-      removal: await removeContainer(settings, name),
+      removal: await removeContainer(settings, name, log),
     })),
   );
   return {

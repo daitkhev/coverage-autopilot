@@ -66,6 +66,7 @@ import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
 import { ID_GENERATOR, type IdGenerator } from '#kernel/id/id-generator';
 import { CLOCK, type Clock } from '#kernel/time/clock';
 import type { JobHandler } from '#ports/job-handler.port';
+import { LOGGER, type Logger } from '#ports/logger.port';
 import type { Sandbox } from '#ports/sandbox.port';
 
 /** One step for each status that has work, in the order of the path. */
@@ -188,9 +189,12 @@ export class ImprovementModule implements OnModuleInit {
         { provide: GENERATOR_SETTINGS, useValue: values.adapter },
         {
           provide: GENERATOR_SANDBOX,
-          useFactory: (clock: Clock, ids: IdGenerator): Sandbox =>
-            new DockerSandbox(values.sandbox, clock, ids),
-          inject: [CLOCK, ID_GENERATOR],
+          useFactory: (
+            clock: Clock,
+            ids: IdGenerator,
+            logger: Logger,
+          ): Sandbox => new DockerSandbox(values.sandbox, clock, ids, logger),
+          inject: [CLOCK, ID_GENERATOR, LOGGER],
         },
       ],
     };

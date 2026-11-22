@@ -1,3 +1,4 @@
+import type { ToolLog } from '#infrastructure/logging/tool-log';
 import { removeArguments } from '#infrastructure/sandbox/container-arguments';
 import {
   askEngine,
@@ -44,9 +45,10 @@ function removalOf(answer: EngineAnswer): ContainerRemoval {
 export async function removeContainer(
   settings: SandboxSettings,
   name: string,
+  log: ToolLog,
 ): Promise<ContainerRemoval> {
   try {
-    return removalOf(await askEngine(settings, removeArguments(name)));
+    return removalOf(await askEngine(settings, removeArguments(name), log));
   } catch (error) {
     const said = error instanceof Error ? error.message : String(error);
     return { outcome: 'left', detail: said };

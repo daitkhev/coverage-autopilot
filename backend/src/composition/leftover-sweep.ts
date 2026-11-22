@@ -1,7 +1,9 @@
 import type { ServiceConfig } from '#infrastructure/config/service-config';
 import { faultFieldsOf } from '#infrastructure/logging/fault-fields';
+import { ToolLog } from '#infrastructure/logging/tool-log';
 import { removeLeftoverContainers } from '#infrastructure/sandbox/leftover-containers';
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
+import type { Clock } from '#kernel/time/clock';
 import type { Logger } from '#ports/logger.port';
 import { RepositoriesModule } from '#repositories/repositories.module';
 
@@ -9,9 +11,13 @@ import { RepositoriesModule } from '#repositories/repositories.module';
 async function sweptContainers(
   settings: SandboxSettings,
   log: Logger,
+  clock: Clock,
 ): Promise<number> {
   try {
-    const sweep = await removeLeftoverContainers(settings);
+    const sweep = await removeLeftoverContainers(
+      settings,
+      new ToolLog(log, clock),
+    );
     for (const { name, detail } of sweep.left) {
       log.warn('A container a stopped service left could not be removed.', {
         container: name,
@@ -62,9 +68,10 @@ async function sweptCopies(root: string, log: Logger): Promise<number> {
 export async function sweepLeftovers(
   config: ServiceConfig,
   logger: Logger,
+  clock: Clock,
 ): Promise<void> {
   const log = logger.child({ component: 'start-sweep' });
-  const containers = await sweptContainers(config.sandbox, log);
+  const containers = await sweptContainers(config.sandbox, log, clock);
   const workingCopies = await sweptCopies(config.instance.workingCopies, log);
   if (containers + workingCopies > 0) {
     log.info('The start removed what a stopped service left.', {

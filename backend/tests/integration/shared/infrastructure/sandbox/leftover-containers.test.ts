@@ -7,6 +7,7 @@ import type {
   EnginePlay,
   ListedContainer,
 } from '#tests/support/stand-in-engine';
+import { toolLogOf } from '#tests/support/tool-lines';
 
 const LABEL = 'coverage-autopilot.instance';
 const OWN = 'coverage-autopilot-00000000-0000-4000-8000-0000000000a1';
@@ -24,7 +25,7 @@ function labelled(name: string, instance = BENCH_INSTANCE): ListedContainer {
 async function sweptWith(
   play: EnginePlay,
 ): ReturnType<typeof removeLeftoverContainers> {
-  return removeLeftoverContainers(bench.settings(play));
+  return removeLeftoverContainers(bench.settings(play), toolLogOf());
 }
 
 function callArguments(): (readonly string[])[] {

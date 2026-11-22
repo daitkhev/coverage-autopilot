@@ -12,6 +12,7 @@ import {
 } from '#infrastructure/sandbox/sandbox-settings';
 import { ID_GENERATOR } from '#kernel/id/id-generator';
 import { CLOCK } from '#kernel/time/clock';
+import { LOGGER } from '#ports/logger.port';
 import {
   SANDBOX,
   type Sandbox,
@@ -166,6 +167,7 @@ describe('DockerSandbox', () => {
           { provide: SANDBOX_SETTINGS, useValue: bench.settings() },
           { provide: CLOCK, useValue: bench.clock },
           { provide: ID_GENERATOR, useClass: SequentialIdGenerator },
+          { provide: LOGGER, useValue: bench.logger },
         ],
       }).compile();
       const sandbox = module.get<Sandbox>(SANDBOX);

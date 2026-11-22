@@ -11,6 +11,7 @@ import type {
   SandboxCommandResult,
 } from '#ports/sandbox.port';
 import { FixedClock } from '#tests/support/fixed-clock';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
 import {
   callsIn,
@@ -37,6 +38,8 @@ const OUTPUT_BYTES = 1_000;
 /** A sandbox on the stand-in engine, and what the stand-in recorded. */
 export interface SandboxBench {
   readonly clock: FixedClock;
+  /** Every line the sandboxes of the test wrote. */
+  readonly logger: RecordingLogger;
   settings(play?: EnginePlay, outputBytes?: number): SandboxSettings;
   sandbox(settings: SandboxSettings): DockerSandbox;
   /** Runs a request on a sandbox whose engine plays `play`. */
@@ -61,22 +64,14 @@ export function commandRequest(
   };
 }
 
-/** Each test of the file gets a new record, a new clock and new ids. */
-export function useSandboxBench(): SandboxBench {
-  const state = { folder: '', clock: new FixedClock(START) };
-  const record = (): string => join(state.folder, 'calls.jsonl');
-  beforeEach(() => {
-    state.folder = mkdtempSync(join(tmpdir(), 'sandbox-'));
-    state.clock = new FixedClock(START);
-  });
-  afterEach(() => {
-    rmSync(state.folder, { recursive: true, force: true });
-  });
-  const settings = (
-    play: EnginePlay = {},
-    outputBytes = OUTPUT_BYTES,
-  ): SandboxSettings => ({
-    engine: standInEngine(record(), play),
+/** Settings over the stand-in engine, which records into `record`. */
+function benchSettings(
+  record: string,
+  play: EnginePlay,
+  outputBytes: number,
+): SandboxSettings {
+  return {
+    engine: standInEngine(record, play),
     instance: BENCH_INSTANCE,
     image: 'sandbox-image:1',
     user: '1000:1000',
@@ -87,12 +82,45 @@ export function useSandboxBench(): SandboxBench {
       scratchMb: 64,
       outputBytes,
     },
+  };
+}
+
+/**
+ * Each test of the file gets a new record, a new clock, a new logger and
+ * new ids.
+ */
+export function useSandboxBench(): SandboxBench {
+  const state = {
+    folder: '',
+    clock: new FixedClock(START),
+    logger: new RecordingLogger(),
+  };
+  const record = (): string => join(state.folder, 'calls.jsonl');
+  beforeEach(() => {
+    state.folder = mkdtempSync(join(tmpdir(), 'sandbox-'));
+    state.clock = new FixedClock(START);
+    state.logger = new RecordingLogger();
   });
+  afterEach(() => {
+    rmSync(state.folder, { recursive: true, force: true });
+  });
+  const settings = (
+    play: EnginePlay = {},
+    outputBytes = OUTPUT_BYTES,
+  ): SandboxSettings => benchSettings(record(), play, outputBytes);
   const sandbox = (of: SandboxSettings): DockerSandbox =>
-    new DockerSandbox(of, state.clock, new SequentialIdGenerator());
+    new DockerSandbox(
+      of,
+      state.clock,
+      new SequentialIdGenerator(),
+      state.logger,
+    );
   return {
     get clock() {
       return state.clock;
+    },
+    get logger() {
+      return state.logger;
     },
     settings,
     sandbox,

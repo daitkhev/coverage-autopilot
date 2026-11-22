@@ -21,6 +21,7 @@ import {
 } from '#infrastructure/service/service-start';
 import { SystemClock } from '#infrastructure/time/system-clock.adapter';
 import type { Pause } from '#infrastructure/time/timer-pause';
+import { CLOCK, type Clock } from '#kernel/time/clock';
 import { LOGGER, type Logger } from '#ports/logger.port';
 
 /** What the entry file gives a run besides the configuration. */
@@ -64,7 +65,11 @@ async function serving(
     APPLICATION_OPTIONS,
   );
   try {
-    await sweepLeftovers(wiring.config, application.get<Logger>(LOGGER));
+    await sweepLeftovers(
+      wiring.config,
+      application.get<Logger>(LOGGER),
+      application.get<Clock>(CLOCK),
+    );
     await application.listen(held.socket);
     restrictSocket(held.lock, held.socket);
   } catch (error) {
