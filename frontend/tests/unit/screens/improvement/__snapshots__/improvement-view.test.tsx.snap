@@ -169,10 +169,10 @@ exports[`ImprovementView > when the improvement failed > should show how it ende
  │ ✕ Attempt 3  rejected    The new tests detect 0 of 14 mutants. │ │                                         │
  │                                                                │ │ SETTINGS ────────────────────────────── │
  │ WHAT NOW ───────────────────────────────────────────────────── │ │ Publish   without asking                │
- │ Start it again from the files with larger limits.              │ │ Generator Claude Code, example-model    │
+ │ Larger limits give the generator more room to try.             │ │ Generator Claude Code, example-model    │
  │                                                                │ │ Gate      7 checks required             │
- │ › 1. Go back                                                   │ │                                         │
- │                                                                │ │ OUTPUT ──────────────────────────────── │
+ │ › 1. Request it again with larger limits                       │ │                                         │
+ │   2. Go back                                                   │ │ OUTPUT ──────────────────────────────── │
  │                                                                │ │ /tmp/coverage-autopilot/output/attempt- │
  │                                                                │ │ 1.jsonl                                 │
  │                                                                │ │                                         │

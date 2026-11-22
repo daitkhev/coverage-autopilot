@@ -18,13 +18,35 @@ import {
   WIDE,
 } from '#tests/support/sample-frame';
 import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
-import { SCANNED_REPOSITORY } from '#tests/support/sample-repositories';
+import {
+  ACCESS_PASSED,
+  BUDGET_SETTINGS,
+  PAYMENTS_SNAPSHOT,
+  SCANNED_REPOSITORY,
+} from '#tests/support/sample-repositories';
 import { screenLog } from '#tests/support/sample-work-log';
 import { drawnWith, widestLine } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
 import type { TerminalSize } from '#theme/widths';
 
-const { verifying } = IMPROVEMENT_BY_STATUS;
+const { verifying, failed, created } = IMPROVEMENT_BY_STATUS;
+
+/** The work a start asked for again: a new improvement of the same file. */
+const AGAIN = {
+  ...created,
+  id: 'improvement-webhook-2',
+  targetFile: failed.targetFile,
+};
+
+/** The failed improvement, then the one a start from it began. */
+const SPENT: Partial<ServiceApi> = {
+  getImprovement: (improvementId) =>
+    Promise.resolve(answered(improvementId === AGAIN.id ? AGAIN : failed)),
+  getRepository: () => Promise.resolve(answered(SCANNED_REPOSITORY)),
+  getBudgetSettings: () => Promise.resolve(answered(BUDGET_SETTINGS)),
+  checkAccess: () => Promise.resolve(answered(ACCESS_PASSED)),
+  startImprovement: () => Promise.resolve(answered(AGAIN, 202)),
+};
 
 /** The improvement and its repository, answered on every ask. */
 const RUNNING: Partial<ServiceApi> = {
@@ -46,19 +68,28 @@ function answeredOnceThen(failure: Error): Partial<ServiceApi> {
   };
 }
 
-function shown(scripted: Partial<ServiceApi>, size: TerminalSize = WIDE) {
+function shown(
+  scripted: Partial<ServiceApi>,
+  size: TerminalSize = WIDE,
+  improvementId = verifying.id,
+) {
   const noted = screenLog();
+  const session = fakeSession(scripted);
   const screen = (
     <ImprovementScreen
-      session={fakeSession(scripted)}
+      session={session}
       frame={sampleFrame(size, SECTION.improvements)}
-      improvementId={verifying.id}
+      improvementId={improvementId}
       onOpenPatch={noted.onOpenPatch}
       onBack={noted.onBack}
     />
   );
   const tree = <>{drawnWith({ animation: false }, screen)}</>;
-  return { terminal: renderAt(tree, size), log: noted.log };
+  return {
+    terminal: renderAt(tree, size),
+    log: noted.log,
+    calls: session.api.calls,
+  };
 }
 
 async function loaded(scripted: Partial<ServiceApi>, size = WIDE) {
@@ -148,6 +179,34 @@ describe('ImprovementScreen', () => {
         .toContain('! The improvement could not be read  not_found');
 
       expect(frameOf(terminal)).toContain('No repository.');
+    });
+  });
+
+  describe('when the budget ran out and it is asked for again', () => {
+    it('should start the file above its limits and show the new work', async () => {
+      const { terminal, calls } = shown(SPENT, WIDE, failed.id);
+      await expect
+        .poll(() => frameOf(terminal), PATIENT)
+        .toContain('› 1. Request it again with larger limits');
+
+      await press(terminal, KEYS.enter);
+      await expect
+        .poll(() => frameOf(terminal), PATIENT)
+        .toContain('Attempts    4');
+      await press(terminal, KEYS.enter);
+
+      await expect
+        .poll(() => frameOf(terminal), PATIENT)
+        .toContain(`Improvement ${AGAIN.id}`);
+      const start = calls.find((call) => call.method === 'startImprovement');
+      expect(start?.arguments[0]).toEqual({
+        snapshotId: PAYMENTS_SNAPSHOT.id,
+        filePath: failed.targetFile,
+        mode: 'automatic',
+        budget: { attempts: 4, tokens: null, minutes: 35 },
+      });
+      expect(calls.at(-1)?.method).not.toBe('startImprovement');
+      expect(frameOf(terminal)).not.toContain('Improve src/api/webhook.ts');
     });
   });
 

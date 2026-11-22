@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback } from 'react';
+import { type ReactNode, useCallback, useState } from 'react';
 
 import type { ClientSession } from '#api/client-session';
 import { isServiceUnreachable } from '#api/service-unreachable-error';
@@ -20,13 +20,37 @@ interface ImprovementScreenProps {
   readonly onBack: () => void;
 }
 
+/** Work this screen moved on to, from the improvement it was opened for. */
+interface Followed {
+  readonly from: string;
+  readonly to: string;
+}
+
+/**
+ * The improvement the screen shows: the one it was opened for, or the
+ * work it moved on to from there, such as one started here.
+ */
+function useShownId(opened: string): {
+  readonly shownId: string;
+  readonly follow: (improvementId: string) => void;
+} {
+  const [followed, setFollowed] = useState<Followed>();
+  return {
+    shownId: followed?.from === opened ? followed.to : opened,
+    follow: (to) => {
+      setFollowed({ from: opened, to });
+    },
+  };
+}
+
 /**
  * How far the work on one file has come and why: the screen a person
  * keeps open. It asks the service again about once a second, and closing
- * it stops nothing.
+ * it stops nothing. Work started here is shown in place.
  */
 export function ImprovementScreen(props: ImprovementScreenProps): ReactNode {
-  const { session, frame, improvementId, onBack } = props;
+  const { session, frame, onBack } = props;
+  const { shownId: improvementId, follow } = useShownId(props.improvementId);
   const load = useCallback(
     () => loadImprovement(session.api, improvementId),
     [session, improvementId],
@@ -60,6 +84,7 @@ export function ImprovementScreen(props: ImprovementScreenProps): ReactNode {
       improvement={shown.value.improvement}
       repository={shown.value.repository}
       freshness={freshness}
+      onOpenImprovement={follow}
     />
   );
 }

@@ -43,6 +43,7 @@ function viewing(improvement: Improvement, options: Viewing = {}) {
       repository={SCANNED_REPOSITORY}
       freshness={FRESH_ANSWER}
       onOpenPatch={noted.onOpenPatch}
+      onOpenImprovement={noted.onOpenImprovement}
       onBack={noted.onBack}
     />
   );
@@ -91,8 +92,8 @@ describe('ImprovementView', () => {
     it('should offer the way back as the next step', async () => {
       const { terminal, log } = viewing(failed);
 
-      expect(frameOf(terminal)).toContain('› 1. Go back');
-      await press(terminal, KEYS.enter);
+      expect(frameOf(terminal)).toContain('2. Go back');
+      await press(terminal, KEYS.down, KEYS.enter);
 
       expect(log).toEqual(['back']);
     });
@@ -160,7 +161,7 @@ describe('ImprovementView', () => {
       expect(frameOf(terminal)).toContain('tab work');
       expect(frameOf(terminal)).not.toContain('enter confirm');
 
-      await press(terminal, KEYS.enter, KEYS.left, KEYS.enter);
+      await press(terminal, KEYS.enter, KEYS.left, KEYS.down, KEYS.enter);
       expect(log).toEqual(['back']);
     });
   });

@@ -12,6 +12,7 @@ import { StartForm } from '#components/start-form';
 import {
   changed,
   fieldsOf,
+  largerLimits,
   type LimitField,
   type Limits,
   limitsOf,
@@ -39,6 +40,11 @@ interface StartDialogProps {
   readonly calls: StartCalls;
   readonly snapshotId: string;
   readonly filePath: string;
+  /**
+   * The limits of earlier work that this start asks for again: the form
+   * starts one step above each. Without them it starts at the defaults.
+   */
+  readonly earlier?: Limits;
   readonly onOpenImprovement: (improvementId: string) => void;
   readonly onClose: () => void;
 }
@@ -131,11 +137,16 @@ function formKeys({
 }
 
 /**
- * The limits of the form, from the defaults of the service until the
- * person changes one, and the field the arrows change.
+ * The limits of the form, from the defaults of the service or above the
+ * earlier ones until the person changes one, and the field the arrows
+ * change.
  */
-function useForm(settings: BudgetSettings): Form {
-  const [limits, setLimits] = useState(() => limitsOf(settings));
+function useForm(settings: BudgetSettings, earlier: Limits | undefined): Form {
+  const [limits, setLimits] = useState(() =>
+    earlier === undefined
+      ? limitsOf(settings)
+      : largerLimits(earlier, settings),
+  );
   const [index, setIndex] = useState(0);
   const fields = fieldsOf(settings);
   const field = fields[index] ?? fields[0];
@@ -165,7 +176,7 @@ function ReadyDialog({
   readonly facts: StartFacts;
 }): ReactNode {
   const start = useAction<Reply<Improvement>>();
-  const form = useForm(facts.settings);
+  const form = useForm(facts.settings, props.earlier);
   const confirm = (): void => {
     const named = namedBy(start.state);
     if (named === undefined) {

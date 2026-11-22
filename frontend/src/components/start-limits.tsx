@@ -79,3 +79,19 @@ export function changed(
     [field]: Math.min(Math.max(current + by * step, step), highest),
   };
 }
+
+/**
+ * The limits of earlier work, each one step larger within its maximum,
+ * for that work asked for again. How it is published stays as it was.
+ */
+export function largerLimits(
+  earlier: Limits,
+  settings: BudgetSettings,
+): Limits {
+  return fieldsOf(settings)
+    .filter((field) => field !== 'mode')
+    .reduce(
+      (limits, field) => changed(limits, { field, by: 1, settings }),
+      earlier,
+    );
+}

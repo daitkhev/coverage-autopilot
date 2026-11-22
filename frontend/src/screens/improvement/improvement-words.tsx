@@ -34,7 +34,7 @@ export const FAILURE_WORDS: Readonly<
 > = {
   budget_exhausted: {
     headline: 'The budget ran out',
-    next: 'Start it again from the files with larger limits.',
+    next: 'Larger limits give the generator more room to try.',
   },
   stale_snapshot: {
     headline: 'The file changed since the scan',
