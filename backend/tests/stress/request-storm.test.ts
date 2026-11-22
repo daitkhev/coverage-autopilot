@@ -114,6 +114,9 @@ beforeAll(async () => {
       CLAUDE_CODE_OAUTH_TOKEN: CREDENTIAL,
       AUTOPILOT_QUEUE_CONCURRENCY: String(WORKER_PLACES),
       AUTOPILOT_QUEUE_HEARTBEAT_MS: String(HEARTBEAT_MS),
+      // A job put back names the code of its fault and not the program
+      // that failed, and only the lines of the programs, at debug, do.
+      AUTOPILOT_LOG_LEVEL: 'debug',
     },
   });
   readers = startedReaders(storm, READERS);
