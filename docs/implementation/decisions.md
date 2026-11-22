@@ -1208,3 +1208,31 @@ fails the improvement as an exposed credential and keeps its tokens.
 - Where: `frontend/src/hooks/use-screen-actions.ts`,
   `frontend/src/app/shown-screen.tsx`, `frontend/src/app/navigation.tsx`,
   `frontend/src/hooks/use-selection.ts`.
+
+### What the service reads is beside the code that reads it
+
+- The migrations are in the folder of the database code,
+  `backend/src/shared/infrastructure/database/migrations/`, and the file
+  the image of the generator is built from is in the folder of the
+  sandbox. The workspace of the service holds its sources, its tests and
+  nothing beside them.
+- The entry file still finds each by one step from its own place, built
+  or not, because the build puts them at the same path from the bundle:
+  `bin/shared/infrastructure/database/migrations/` in the package. The
+  other way, short folders at the top of the package, needed an entry
+  file that knows whether it was built.
+- The table of the files of a workspace is read by the longest folder a
+  file is in, so a migration is allowed in its folder alone and not in
+  the whole of the sources.
+- The ratchet records a migration by the name of its file. It recorded
+  the whole path, and took a move of the folder for the removal of every
+  migration, in the tree and against any older commit. A migration still
+  may not change, go or get another name; the folder moves only with the
+  policy that names it. A baseline with whole paths is read as names, so
+  a tree is compared with a commit from before.
+- This overturns the place the plan gives the migrations, beside the
+  sources.
+- Where: `harness/policy/structure.json` (`files`, `backend.migrations`),
+  `harness/architecture/rules/unknown-file.ts`,
+  `harness/architecture/lists.ts`, `harness/gate/run-build.ts`,
+  `backend/src/main.ts`.
