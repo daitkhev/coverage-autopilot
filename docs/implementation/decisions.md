@@ -1057,36 +1057,40 @@ A person meets it in the first minutes of the client:
 
 Rare, and severe when it happens:
 
-- A request has no time limit, so a service that takes a connection and
-  never answers holds the client for good.
-- A client with a service of its own that is ended by a signal leaves
-  that service running with its folder. Ctrl+C is a key now and stops
-  it.
-- After it starts a service, the client takes whatever answers on the
-  socket for its own and does not compare the version, so a service of
-  another contract that starts in the same moment is used, or fails the
-  client with a mismatch.
 - A start removes what was left before it listens, and an engine that
   does not answer is waited for thirty seconds, longer than the client
   waits for a start.
 - The label of a container is made of the path of the instance, so the
   containers of a folder that was moved are not found, and those started
   before the label existed never are.
-- An old service removes its socket a moment before it releases its
-  lock. A new one that tries the lock then leaves without a word, and
-  the client says the service did not start.
+- A service that stops still gives its socket back a moment before its
+  lock. A start that comes then waits up to five seconds for the lock.
+  One that waited in vain leaves with a line and the code of a start
+  that gave way, so the client goes on asking for twenty seconds.
+- A signal that comes while the client leaves is not heard, so a leave
+  cannot be cut short. At worst it takes the wait for a start and the
+  wait for a stop, forty seconds.
+- A refused write to the terminal is ignored, for the terminal that was
+  closed. So is the one of a command whose reader went away: it runs to
+  its end and says nothing.
+- A request has thirty seconds. The connect and the access check of a
+  repository run tools while the client waits, and on a slow network
+  they can take longer than that.
 
 It makes a fault hard to find, or a screen say less:
 
-- A journey writes four lines to the log. No step of a job, no tool
-  that was started and no call of the code host leaves one.
+- A line of a tool carries no id of its job, so it is tied to a journey
+  by its time alone. The steps of a baseline that an improvement
+  measures leave no lines of their own.
+- A command whose service of its own did not start prints where the log
+  is, and the leave then removes that folder.
+- The advice for a service that does not answer in time is the one for
+  a service of another version.
 - Health says nothing of the account of the code host, the tools, the
   limits of the generator, the last sign of the worker and the paths of
   the service, and its two signs of life only repeat that the service
   is not stopping. The client knows the folder of the instance and the
   log itself and does not show them.
-- The worker keeps the last of two handlers of one kind without a word.
-  Only the composition refuses them.
 - No route returns the last access check of a repository or who
   cancelled an improvement.
 - The status of an answer is set in three places, and the two cancels
@@ -1094,8 +1098,7 @@ It makes a fault hard to find, or a screen say less:
 - A text right of a filler in a panel can stand one cell left, in six
   places. A dot and the marks of added and removed lines are written in
   five screens and not taken from the theme.
-- A start of a service of its own that failed keeps its folder, and
-  each new try makes another. `--json` without a command does nothing.
+- `--json` without a command does nothing.
 
 Tests and the gate:
 
@@ -1107,9 +1110,9 @@ Tests and the gate:
   a restart in the middle of an improvement.
 - No test runs the screens in a real terminal or changes its size while
   they run. Two faults were found by hand that way.
-- The bench of the client takes a socket file for a service that
-  listens, which it is not yet for a moment. That is the test that
-  failed once under load, and seven cases share the window.
+- A signal that ends the client was proven with a stand-in for the
+  process and by hand in a terminal for two of the three. Ctrl+C during
+  a command was not tried in one.
 - Mutation tests cover the harness only, and the rule that keeps colour
   and symbols in the theme is not written.
 
@@ -1236,3 +1239,53 @@ fails the improvement as an exposed credential and keeps its tokens.
   `harness/architecture/rules/unknown-file.ts`,
   `harness/architecture/lists.ts`, `harness/gate/run-build.ts`,
   `backend/src/main.ts`.
+
+### The client gives up on a request, and leaves on a signal as on a key
+
+- A request has thirty seconds from its connection to the last byte of
+  its answer. One that ran out is a fault of its own, not a service that
+  is not there: no second service is started for it, a command ends
+  with one line, and a screen shows it and asks again.
+- The signals that end a client, a closed terminal among them, make it
+  leave as `q` does: a service of this run alone is stopped and its
+  folder removed, the terminal is given back, and the process ends with
+  the code of the signal. A shared service is never stopped. The entry
+  file hands the process over as the place the signals arrive, as the
+  service does.
+- A closed terminal refuses the last write of the screens, and that
+  error ended the client in the middle of its leave. No test saw it: a
+  stand-in terminal refuses nothing. The entry file now ignores a
+  refused write.
+- What answers after a start is held to the contract as what was found
+  is. One reach replaces at most one service.
+- One run keeps at most one folder of a start that failed, and leaving
+  removes it.
+- Where: `frontend/src/api/socket-exchange.ts`,
+  `frontend/src/composition/process-signals.ts`,
+  `frontend/src/api/service-reach.ts`, `frontend/src/main.tsx`.
+
+### A journey can be read in the log, and a start waits for a lock
+
+- Every job leaves a line when it is taken, when it ends, when its
+  handler fails, when it is put back and when it is given up. Every
+  step of a scan and of an improvement leaves one at its start and one
+  at its end, with the ids of the job, the repository and the
+  improvement, so the lines of one journey are found by one id. At the
+  default level a scan and an improvement are ten lines each.
+- Every program the service starts leaves one line at debug: git, the
+  program of the code host and the container engine, with its
+  arguments, its exit code and its time. A runner hides the secrets it
+  knows in them, and a run of a container shows the image and the
+  program alone, since what follows may be a prompt. The environment,
+  the input and the output of a program are never written.
+- A service that stops deletes its socket as its server closes, before
+  the database and the lock are given back, and the order cannot be
+  turned: a lock given back first would let the close delete the socket
+  of the next service. So a start that finds the lock held and no socket
+  looks again for up to five seconds. One that finds a socket leaves at
+  once, as before, and now says why on the standard error.
+- The worker refuses a second handler of one kind when it is made.
+- Where: `backend/src/shared/infrastructure/queue/job-worker-log.ts`,
+  `backend/src/shared/infrastructure/logging/tool-log.ts`,
+  `backend/src/shared/infrastructure/service/service-start.ts`,
+  `backend/src/shared/infrastructure/queue/job-handlers.ts`.
