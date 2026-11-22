@@ -4,6 +4,7 @@ import type { Writable } from 'node:stream';
 import { runService } from '#composition/service-run';
 import type { Environment } from '#infrastructure/config/environment-values';
 import { loadServiceConfig } from '#infrastructure/config/service-config';
+import type { ShippedImageFiles } from '#infrastructure/config/shipped-images';
 import type { RunningService } from '#infrastructure/service/running-service';
 import type { HeldOutcome } from '#infrastructure/service/service-start';
 import { timerPause } from '#infrastructure/time/timer-pause';
@@ -28,8 +29,8 @@ export interface ServiceProcess {
   readonly migrationsFolder: string;
   /** The package of the service, found the same way. */
   readonly packageFile: string;
-  /** What the image of the generator is built from, found the same way. */
-  readonly generatorImageFile: string;
+  /** What the images the service makes are built from, found the same way. */
+  readonly imageFiles: ShippedImageFiles;
   /** The standard error: the lines of the log, and that of a failure. */
   readonly errors: Writable;
   readonly signals: SignalSource;
@@ -82,7 +83,7 @@ async function started(
       logStream: entry.errors,
       version: versionIn(entry.packageFile),
       pause: timerPause,
-      generatorImageFile: entry.generatorImageFile,
+      imageFiles: entry.imageFiles,
     });
     if (run.outcome === 'running') {
       return run.service;

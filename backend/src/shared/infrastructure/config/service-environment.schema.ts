@@ -36,7 +36,13 @@ export const VARIABLES = {
       'a JSON list of the program and its arguments, such as ["docker"]',
     fallback: '["docker"]',
   },
-  AUTOPILOT_SANDBOX_IMAGE: { expected: IMAGE_NAME, fallback: 'node:26-slim' },
+  AUTOPILOT_SANDBOX_IMAGE: {
+    expected: IMAGE_NAME,
+    // The Node the project itself uses, with the programs the tools of a
+    // repository start that its slim image leaves out, such as ps. The tag
+    // names the version of Node.
+    fallback: 'coverage-autopilot-sandbox:26',
+  },
   AUTOPILOT_SANDBOX_UID: {
     expected:
       'a whole number above 0, so that no command runs as root. When it ' +

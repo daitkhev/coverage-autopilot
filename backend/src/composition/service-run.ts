@@ -8,8 +8,11 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { AppModule, type ServiceWiring } from '#composition/app.module';
 import { prepareImages } from '#composition/image-start';
 import { sweepLeftovers } from '#composition/leftover-sweep';
-import { withShippedBuild } from '#infrastructure/config/generator-config';
 import type { ServiceConfig } from '#infrastructure/config/service-config';
+import {
+  type ShippedImageFiles,
+  withShippedBuilds,
+} from '#infrastructure/config/shipped-images';
 import { JobWorkerScheduler } from '#infrastructure/queue/job-worker-scheduler';
 import {
   giveBack,
@@ -37,10 +40,10 @@ export interface ServiceStartup {
   /** Between two looks at a lock that another service holds. */
   readonly pause: Pause;
   /**
-   * What the image of the generator is built from, found from the place of
-   * the entry file as the migrations are.
+   * What the images the service makes are built from, found from the place
+   * of the entry file as the migrations are.
    */
-  readonly generatorImageFile: string;
+  readonly imageFiles: ShippedImageFiles;
 }
 
 /** A service that runs, or, as a value, why another one keeps the lock. */
@@ -89,13 +92,6 @@ async function serving(
   return application;
 }
 
-/** The configuration, with the build of the default image of the generator. */
-function servedConfig(config: ServiceConfig, imageFile: string): ServiceConfig {
-  const { generator } = config;
-  const sandbox = withShippedBuild(generator.sandbox, imageFile);
-  return { ...config, generator: { ...generator, sandbox } };
-}
-
 /**
  * Starts the service of an instance in its fixed order: the lock, waited
  * for while a service on its way out still holds it, the database, the
@@ -127,7 +123,7 @@ export async function runService(
   try {
     const { logStream } = startup;
     const wiring = {
-      config: servedConfig(config, startup.generatorImageFile),
+      config: withShippedBuilds(config, startup.imageFiles),
       connection,
       logStream,
       life: service,

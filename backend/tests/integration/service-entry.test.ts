@@ -3,12 +3,8 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  GENERATOR_IMAGE_FILE,
-  MIGRATIONS_FOLDER,
-  PACKAGE_FILE,
-} from '#service/main';
-import { SHIPPED_IMAGE_FILE } from '#tests/support/shipped-image';
+import { IMAGE_FILES, MIGRATIONS_FOLDER, PACKAGE_FILE } from '#service/main';
+import { SHIPPED_IMAGE_FILES } from '#tests/support/shipped-image';
 import { MIGRATIONS_FOLDER as MIGRATIONS_OF_THE_TESTS } from '#tests/support/temporary-database';
 
 describe('main', () => {
@@ -22,8 +18,13 @@ describe('main', () => {
     );
   });
 
-  it('should find the file of the image of the generator below its own folder', () => {
-    expect(resolve(GENERATOR_IMAGE_FILE)).toBe(resolve(SHIPPED_IMAGE_FILE));
-    expect(readFileSync(GENERATOR_IMAGE_FILE, 'utf8')).toMatch(/^FROM /mu);
-  });
+  it.each(['sandbox', 'generator'] as const)(
+    'should find the file of the image of the %s below its own folder',
+    (image) => {
+      const file = IMAGE_FILES[image];
+
+      expect(resolve(file)).toBe(resolve(SHIPPED_IMAGE_FILES[image]));
+      expect(readFileSync(file, 'utf8')).toMatch(/^FROM /mu);
+    },
+  );
 });

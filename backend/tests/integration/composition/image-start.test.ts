@@ -13,12 +13,17 @@ import {
 } from '#tests/support/hosted-service';
 import { MISSING_IMAGE } from '#tests/support/sandbox-bench';
 import {
-  SHIPPED_IMAGE_FILE,
+  SHIPPED_IMAGE_FILES,
   shippedImageLabel,
 } from '#tests/support/shipped-image';
 import type { EnginePlay } from '#tests/support/stand-in-engine';
 
+const LABEL = 'coverage-autopilot.build-file-sha256';
+const SANDBOX_IMAGE = 'coverage-autopilot-sandbox:26';
 const GENERATOR_IMAGE = 'coverage-autopilot-generator:2.1.329';
+
+/** An image of a registry that a person names for the commands. */
+const NAMED_IMAGE = 'node:26-slim';
 
 let folder: string;
 let hosted: HostedService | undefined;
@@ -40,11 +45,15 @@ function running(run: ServiceRun): RunningService {
   return run.service;
 }
 
-/** A service whose engine lacks both images, and builds as `build` says. */
+/**
+ * A service whose engine lacks both images, and builds as `build` says,
+ * with the variables a test sets.
+ */
 async function startedWith(
   build: NonNullable<EnginePlay['build']>,
+  variables: Record<string, string> = {},
 ): Promise<{ service: RunningService; on: HostedService }> {
-  const on = hostedService({ inspection: MISSING_IMAGE, build });
+  const on = hostedService({ inspection: MISSING_IMAGE, build }, variables);
   hosted = on;
   return { service: running(await on.bench.run()), on };
 }
@@ -54,6 +63,20 @@ function callsOf(on: HostedService, verb: string): (readonly string[])[] {
     .engineCalls()
     .map((call) => call.arguments)
     .filter((args) => args[0] === verb);
+}
+
+/** A build of `image` from `file`, labelled with it, before the folder. */
+function buildOf(image: string, file: string): string[] {
+  return [
+    ...['build', '--tag', image],
+    ...['--label', `${LABEL}=${shippedImageLabel(image)}`],
+    ...['--file', file],
+  ];
+}
+
+/** The builds the engine was asked for, without their folders. */
+function buildsOf(on: HostedService): (readonly string[])[] {
+  return callsOf(on, 'build').map((args) => args.slice(0, -1));
 }
 
 /** The level, the message, the image and the fault of each line of the start. */
@@ -71,59 +94,71 @@ function imageLines(on: HostedService): unknown[][] {
 
 describe('prepareImages', () => {
   describe('when a service starts and its engine lacks the images', () => {
-    it('should build the image of the generator and pull the other, and answer meanwhile', async () => {
+    it('should build the image of the commands and that of the generator, pull nothing, and answer meanwhile', async () => {
       const built = join(folder, 'built');
       const { on } = await startedWith({ until: built });
 
-      await expect.poll(() => callsOf(on, 'build').length, WORK_WAIT).toBe(1);
+      await expect.poll(() => callsOf(on, 'build').length, WORK_WAIT).toBe(2);
       const answer = await on.send('/nowhere');
       writeFileSync(built, '');
 
       expect(answer.status).toBe(404);
-      expect(callsOf(on, 'build')[0]?.slice(0, -1)).toEqual([
-        'build',
-        '--tag',
-        GENERATOR_IMAGE,
-        '--label',
-        `coverage-autopilot.build-file-sha256=${shippedImageLabel()}`,
-        '--file',
-        SHIPPED_IMAGE_FILE,
-      ]);
+      expect(buildsOf(on)).toEqual(
+        expect.arrayContaining([
+          buildOf(SANDBOX_IMAGE, SHIPPED_IMAGE_FILES.sandbox),
+          buildOf(GENERATOR_IMAGE, SHIPPED_IMAGE_FILES.generator),
+        ]),
+      );
+      expect(callsOf(on, 'pull')).toEqual([]);
+    });
+  });
+
+  describe('when a person names another image for the commands', () => {
+    it('should pull that image, and build the image of the generator alone', async () => {
+      const { on } = await startedWith(
+        {},
+        { AUTOPILOT_SANDBOX_IMAGE: NAMED_IMAGE },
+      );
+
       await expect
         .poll(() => callsOf(on, 'pull'), WORK_WAIT)
-        .toEqual([['pull', 'node:26-slim']]);
+        .toEqual([['pull', NAMED_IMAGE]]);
+      await expect
+        .poll(() => buildsOf(on), WORK_WAIT)
+        .toEqual([buildOf(GENERATOR_IMAGE, SHIPPED_IMAGE_FILES.generator)]);
     });
   });
 
   describe('when the preparation fails', () => {
-    it('should say so in a warning and go on answering', async () => {
+    it('should say so in a warning for each image and go on answering', async () => {
       const said = 'npm error 404 Not Found';
       const { on } = await startedWith({
         exitCode: 1,
         output: [{ stream: 'stderr', text: `${said}\n` }],
       });
 
-      await expect
-        .poll(() => imageLines(on), WORK_WAIT)
-        .toEqual([
-          [
+      await expect.poll(() => imageLines(on).length, WORK_WAIT).toBe(2);
+      expect(imageLines(on)).toEqual(
+        expect.arrayContaining(
+          [SANDBOX_IMAGE, GENERATOR_IMAGE].map((image) => [
             'warn',
             'The image of a sandbox is not ready. The first command in it ' +
               'prepares it again.',
-            GENERATOR_IMAGE,
+            image,
             'sandbox_image_build_failed',
-          ],
-        ]);
+          ]),
+        ),
+      );
       expect((await on.send('/nowhere')).status).toBe(404);
     });
   });
 
-  describe('when the service stops while the image is built', () => {
-    it('should cut the build short and say nothing of it', async () => {
+  describe('when the service stops while the images are built', () => {
+    it('should cut the builds short and say nothing of them', async () => {
       const { service, on } = await startedWith({
         until: join(folder, 'never'),
       });
-      await expect.poll(() => callsOf(on, 'build').length, WORK_WAIT).toBe(1);
+      await expect.poll(() => callsOf(on, 'build').length, WORK_WAIT).toBe(2);
 
       await service.stop();
 

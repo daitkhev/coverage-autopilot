@@ -46,7 +46,7 @@ describe('loadServiceConfig', () => {
       sandbox: {
         engine,
         instance: INSTANCE,
-        image: 'node:26-slim',
+        image: 'coverage-autopilot-sandbox:26',
         user: '501:20',
         limits: SANDBOX_LIMITS,
       },

@@ -35,6 +35,10 @@ import {
   WIDGETS_NAME,
 } from '#tests/support/widgets-project';
 
+/** The images the service makes and the engine already has. */
+const SANDBOX_IMAGE = 'coverage-autopilot-sandbox:26';
+const GENERATOR_IMAGE = 'coverage-autopilot-generator:2.1.329';
+
 /** Fictional, and in no other place, so a copy of it anywhere is found. */
 const CREDENTIAL = 'fictional-generator-credential-4711';
 
@@ -234,6 +238,20 @@ describe('the built service, from a repository to a pull request', () => {
     );
     expect(host.git(remote, 'show', `${head}:${NEW_TESTS}`)).toBe(
       NEW_TEST_FILE.trimEnd(),
+    );
+  });
+
+  it('should find both of its images in the engine, and build or pull none', () => {
+    const asked = running()
+      .imageCalls()
+      .map((args) => [args[0], args.at(-1)]);
+
+    expect(asked).toHaveLength(2);
+    expect(asked).toEqual(
+      expect.arrayContaining([
+        ['image', SANDBOX_IMAGE],
+        ['image', GENERATOR_IMAGE],
+      ]),
     );
   });
 

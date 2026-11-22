@@ -17,15 +17,24 @@ export const PACKAGE_FILE = fileURLToPath(
 );
 
 /**
- * What the image of the generator is built from. The build of the package
- * puts it at the path it has from this file in the sources.
+ * What the images the service makes are built from: the image of the
+ * commands of a repository and that of the generator. The build of the
+ * package puts each file at the path it has from this file in the sources.
  */
-export const GENERATOR_IMAGE_FILE = fileURLToPath(
-  new URL(
-    './shared/infrastructure/sandbox/generator.Dockerfile',
-    import.meta.url,
+export const IMAGE_FILES = {
+  sandbox: fileURLToPath(
+    new URL(
+      './shared/infrastructure/sandbox/sandbox.Dockerfile',
+      import.meta.url,
+    ),
   ),
-);
+  generator: fileURLToPath(
+    new URL(
+      './shared/infrastructure/sandbox/generator.Dockerfile',
+      import.meta.url,
+    ),
+  ),
+};
 
 if (import.meta.main) {
   process.exitCode = await serveProcess({
@@ -33,7 +42,7 @@ if (import.meta.main) {
     user: { uid: process.getuid?.(), gid: process.getgid?.() },
     migrationsFolder: MIGRATIONS_FOLDER,
     packageFile: PACKAGE_FILE,
-    generatorImageFile: GENERATOR_IMAGE_FILE,
+    imageFiles: IMAGE_FILES,
     errors: process.stderr,
     signals: process,
   });

@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  BUILT_IMAGE,
+  BUILT_IMAGE_FILE,
   FIRST_CONTAINER,
   MISSING_IMAGE,
   useSandboxBench,
 } from '#tests/support/sandbox-bench';
-import {
-  SHIPPED_IMAGE_FILE,
-  shippedImageLabel,
-} from '#tests/support/shipped-image';
+import { shippedImageLabel } from '#tests/support/shipped-image';
 
 /** What a generator is asked: it may quote the text of a file. */
 const PROMPT = 'Write tests for: export const secretSauce = 1;';
@@ -71,9 +70,9 @@ describe('DockerSandbox', () => {
 
       expect(exitCodes()).toEqual([1, 0, 0, 0]);
       expect(shownArguments()[1]).toContain(
-        ' build --tag built-image:1 --label ' +
-          `coverage-autopilot.build-file-sha256=${shippedImageLabel()} ` +
-          `--file ${SHIPPED_IMAGE_FILE} `,
+        ` build --tag ${BUILT_IMAGE} --label ` +
+          `coverage-autopilot.build-file-sha256=${shippedImageLabel(BUILT_IMAGE)} ` +
+          `--file ${BUILT_IMAGE_FILE} `,
       );
     });
 

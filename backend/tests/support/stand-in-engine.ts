@@ -57,8 +57,9 @@ export interface ListedContainer {
  * a test says so, to remove or to list containers or to look at, build or
  * pull an image. Left out, a removal ends well, a listing prints the
  * names of `containers` whose labels match every filter of the call, an
- * image is there with the label of the file the service ships, and a
- * build and a pull end well.
+ * image is there with the label of the file the service ships for it, or
+ * with none for an image the service does not make, and a build and a
+ * pull end well.
  */
 export interface EnginePlay extends Ending {
   /**
@@ -187,10 +188,13 @@ function playListing(play: EnginePlay, args: readonly string[]): void {
   end({ output: [{ stream: 'stdout', text: names.join('') }] });
 }
 
-/** An image the engine has, labelled as one built from the shipped file. */
-function playInspection(play: EnginePlay): void {
-  const label = { stream: 'stdout', text: `${shippedImageLabel()}\n` } as const;
-  end(play.inspection ?? { output: [label] });
+/**
+ * An image the engine has, labelled as one built from the file the
+ * service ships for it. The image is the last argument.
+ */
+function playInspection(play: EnginePlay, args: readonly string[]): void {
+  const text = `${shippedImageLabel(args.at(-1) ?? '')}\n`;
+  end(play.inspection ?? { output: [{ stream: 'stdout', text }] });
 }
 
 const PLAYS: Readonly<

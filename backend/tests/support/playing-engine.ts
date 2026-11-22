@@ -55,6 +55,10 @@ interface Played {
 type Tool = (run: PlayedRun) => Played;
 
 const RUNS = 'runs.jsonl';
+const IMAGE_CALLS = 'image-calls.jsonl';
+
+/** The calls of the engine that make an image ready. */
+const IMAGE_VERBS: ReadonlySet<string> = new Set(['image', 'build', 'pull']);
 
 /** After Node and the path of this file: the folder, then the engine's own. */
 const FOLDER_ARGUMENT = 2;
@@ -89,15 +93,28 @@ export function playingEngine(folder: string): string[] {
   return [execPath, '--', fileURLToPath(import.meta.url), folder];
 }
 
-/** The containers the stand-in in `folder` was asked to run, in order. */
-export function playedRuns(folder: string): PlayedRun[] {
-  const path = join(folder, RUNS);
+/** What the stand-in in `folder` recorded in the file `name`, in order. */
+function recordedIn<Value>(folder: string, name: string): Value[] {
+  const path = join(folder, name);
   return existsSync(path)
     ? readFileSync(path, 'utf8')
         .split('\n')
         .filter((line) => line !== '')
-        .map((line) => JSON.parse(line) as PlayedRun)
+        .map((line) => JSON.parse(line) as Value)
     : [];
+}
+
+/** The containers the stand-in in `folder` was asked to run, in order. */
+export function playedRuns(folder: string): PlayedRun[] {
+  return recordedIn(folder, RUNS);
+}
+
+/**
+ * The arguments of each call that looked at, built or pulled an image,
+ * which the stand-in in `folder` was asked, in order.
+ */
+export function imageCalls(folder: string): string[][] {
+  return recordedIn(folder, IMAGE_CALLS);
 }
 
 function write(root: string, path: string, content: string): void {
@@ -201,17 +218,26 @@ function runOf(args: readonly string[], input: string): PlayedRun {
   };
 }
 
+/** Records a call about an image, and answers a look at one. */
+function playImageCall(folder: string, args: readonly string[]): void {
+  appendFileSync(join(folder, IMAGE_CALLS), `${JSON.stringify(args)}\n`);
+  if (args[0] === 'image') {
+    stdout.write(`${shippedImageLabel(args.at(-1) ?? '')}\n`);
+  }
+}
+
 /**
  * Records each `run` and plays its tool. Every image is there, labelled as
- * one built from the file the service ships, so no build or pull is
- * asked. Any other call, such as the removal of a container, succeeds: no
+ * one built from the file the service ships for it, so no build or pull
+ * is asked, and each call about an image is recorded so a test sees that.
+ * Any other call, such as the removal of a container, succeeds: no
  * container was ever made.
  */
 function main(): void {
   const [folder = '', ...args] = argv.slice(FOLDER_ARGUMENT);
   const input = readFileSync(0, 'utf8');
-  if (args[0] === 'image') {
-    stdout.write(`${shippedImageLabel()}\n`);
+  if (IMAGE_VERBS.has(args[0] ?? '')) {
+    playImageCall(folder, args);
     return;
   }
   if (args[0] !== 'run') {

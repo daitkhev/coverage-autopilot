@@ -6,6 +6,7 @@ import {
   startBuiltService,
 } from '#tests/support/built-service';
 import {
+  imageCalls,
   type PlayedRun,
   playedRuns,
   playingEngine,
@@ -33,6 +34,8 @@ export interface HostedBuiltService {
   readonly service: BuiltService;
   /** Every container the engine was asked to run, in order. */
   playedRuns(): PlayedRun[];
+  /** The arguments of every call of the engine about an image, in order. */
+  imageCalls(): string[][];
   /** Stops the service, and removes its instance and the host. */
   close(): Promise<void>;
 }
@@ -116,6 +119,7 @@ export function hostedBuiltService(
     host,
     service,
     playedRuns: () => playedRuns(engineFolder),
+    imageCalls: () => imageCalls(engineFolder),
     close: async () => {
       try {
         await service.close();

@@ -5,15 +5,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BUILT_IMAGE,
+  BUILT_IMAGE_FILE,
   commandRequest,
   FIRST_CONTAINER,
   MISSING_IMAGE,
   useSandboxBench,
 } from '#tests/support/sandbox-bench';
-import {
-  SHIPPED_IMAGE_FILE,
-  shippedImageLabel,
-} from '#tests/support/shipped-image';
+import { shippedImageLabel } from '#tests/support/shipped-image';
 
 const LABEL = 'coverage-autopilot.build-file-sha256';
 
@@ -75,9 +73,9 @@ describe('DockerSandbox', () => {
         '--tag',
         BUILT_IMAGE,
         '--label',
-        `${LABEL}=${shippedImageLabel()}`,
+        `${LABEL}=${shippedImageLabel(BUILT_IMAGE)}`,
         '--file',
-        SHIPPED_IMAGE_FILE,
+        BUILT_IMAGE_FILE,
       ]);
       expect(callOf('run').slice(0, 4)).toEqual([
         'run',
@@ -96,7 +94,7 @@ describe('DockerSandbox', () => {
         .filter((call) => call.arguments[0] === 'build');
       const context = buildCall?.arguments.at(-1) ?? '';
       expect(buildCall?.context).toEqual([]);
-      expect(context).not.toBe(dirname(SHIPPED_IMAGE_FILE));
+      expect(context).not.toBe(dirname(BUILT_IMAGE_FILE));
       expect(existsSync(context)).toBe(false);
     });
   });

@@ -16,7 +16,7 @@ import {
   serviceBench,
 } from '#tests/support/service-bench';
 import { DEVELOPER } from '#tests/support/service-variables';
-import { SHIPPED_IMAGE_FILE } from '#tests/support/shipped-image';
+import { SHIPPED_IMAGE_FILES } from '#tests/support/shipped-image';
 import { MIGRATIONS_FOLDER } from '#tests/support/temporary-database';
 
 let bench: ServiceBench;
@@ -29,7 +29,7 @@ function processOf(change: Partial<ServiceProcess> = {}): ServiceProcess {
     user: DEVELOPER,
     migrationsFolder: MIGRATIONS_FOLDER,
     packageFile,
-    generatorImageFile: SHIPPED_IMAGE_FILE,
+    imageFiles: SHIPPED_IMAGE_FILES,
     errors: bench.logStream,
     signals: new EventEmitter(),
     ...change,

@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { withShippedBuild } from '#infrastructure/config/generator-config';
 import { loadWith } from '#tests/support/service-variables';
-
-const SHIPPED = '/opt/autopilot/bin/shared/infrastructure/sandbox/x.Dockerfile';
 
 describe('generatorOf', () => {
   it('should take the generator from its variables', () => {
@@ -105,33 +102,5 @@ describe('generatorOf', () => {
         value: null,
       });
     });
-  });
-});
-
-describe('withShippedBuild', () => {
-  it('should build the default image of the generator from the shipped file', () => {
-    const { sandbox } = loadWith({}).generator;
-
-    expect(withShippedBuild(sandbox, SHIPPED)).toEqual({
-      ...sandbox,
-      build: { file: SHIPPED },
-    });
-  });
-
-  it('should build it as well when a person names the default image', () => {
-    const { sandbox } = loadWith({
-      AUTOPILOT_GENERATOR_IMAGE: 'coverage-autopilot-generator:2.1.329',
-    }).generator;
-
-    expect(withShippedBuild(sandbox, SHIPPED).build).toEqual({ file: SHIPPED });
-  });
-
-  it('should build nothing for an image a person named', () => {
-    const { sandbox } = loadWith({
-      AUTOPILOT_GENERATOR_IMAGE: 'registry.local/generator:7',
-    }).generator;
-
-    expect(withShippedBuild(sandbox, SHIPPED)).toEqual(sandbox);
-    expect(withShippedBuild(sandbox, SHIPPED)).not.toHaveProperty('build');
   });
 });

@@ -5,7 +5,6 @@ import {
 import {
   COST_WITH_A_KEY_USD,
   type ServiceEnvironment,
-  VARIABLES,
 } from '#infrastructure/config/service-environment.schema';
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
 
@@ -54,21 +53,6 @@ function credentialOf(
 ): GeneratorCredential {
   const variable = CREDENTIAL_VARIABLES[values.AUTOPILOT_GENERATOR_BILLING];
   return { variable, value: setValue(environment, variable) ?? null };
-}
-
-/**
- * The sandbox of the generator with the build of its image from `file`,
- * the file the service ships, when its variable names the default image:
- * no registry has that image, so the service makes it. A person who names
- * another image gets that image as the engine has it or pulls it.
- */
-export function withShippedBuild(
-  sandbox: SandboxSettings,
-  file: string,
-): SandboxSettings {
-  return sandbox.image === VARIABLES.AUTOPILOT_GENERATOR_IMAGE.fallback
-    ? { ...sandbox, build: { file } }
-    : sandbox;
 }
 
 /** The generator of the variables, in the sandbox of the commands. */

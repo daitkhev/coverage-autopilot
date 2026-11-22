@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, expect, vi } from 'vitest';
 
+import { VARIABLES } from '#infrastructure/config/service-environment.schema';
 import { DockerSandbox } from '#infrastructure/sandbox/docker-sandbox.adapter';
 import { SandboxImages } from '#infrastructure/sandbox/sandbox-images';
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
@@ -14,7 +15,7 @@ import type {
 import { FixedClock } from '#tests/support/fixed-clock';
 import { RecordingLogger } from '#tests/support/recording-logger';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
-import { SHIPPED_IMAGE_FILE } from '#tests/support/shipped-image';
+import { SHIPPED_IMAGE_FILES } from '#tests/support/shipped-image';
 import {
   callsIn,
   type EngineCall,
@@ -29,8 +30,15 @@ export const WORKING_COPY =
 /** The instance the sandboxes of the bench label their containers with. */
 export const BENCH_INSTANCE = 'instance-of-the-bench';
 
-/** The image a sandbox of the bench builds from the shipped file. */
-export const BUILT_IMAGE = 'built-image:1';
+/**
+ * The image a sandbox of the bench builds from the shipped file: the
+ * default image of the commands of a repository, which the stand-in has
+ * from that file unless a test says otherwise.
+ */
+export const BUILT_IMAGE = VARIABLES.AUTOPILOT_SANDBOX_IMAGE.fallback;
+
+/** The file the service ships for that image. */
+export const BUILT_IMAGE_FILE = SHIPPED_IMAGE_FILES.sandbox;
 
 /** What the engine says of an image it does not have. */
 export const MISSING_IMAGE: NonNullable<EnginePlay['inspection']> = {
@@ -197,7 +205,7 @@ export function useSandboxBench(): SandboxBench {
     builtSettings: (play = {}) => ({
       ...settings(play),
       image: BUILT_IMAGE,
-      build: { file: SHIPPED_IMAGE_FILE },
+      build: { file: BUILT_IMAGE_FILE },
     }),
     sandbox,
     run: async (play = {}, overrides = {}) =>

@@ -8,11 +8,12 @@ import { SandboxImageFileMissingError } from '#infrastructure/sandbox/errors/san
 import { SandboxImagePullFailedError } from '#infrastructure/sandbox/errors/sandbox-image-pull-failed.error';
 import { SandboxImages } from '#infrastructure/sandbox/sandbox-images';
 import {
+  BUILT_IMAGE,
+  BUILT_IMAGE_FILE,
   commandRequest,
   MISSING_IMAGE,
   useSandboxBench,
 } from '#tests/support/sandbox-bench';
-import { SHIPPED_IMAGE_FILE } from '#tests/support/shipped-image';
 import type { EnginePlay } from '#tests/support/stand-in-engine';
 
 const MINUTE = 60_000;
@@ -22,7 +23,7 @@ const NOT_RUNNING =
   'Cannot connect to the Docker daemon at unix:///var/run/docker.sock. ' +
   'Is the docker daemon running?';
 
-const NOT_BUILT = `The engine did not build the image built-image:1 from ${SHIPPED_IMAGE_FILE}.`;
+const NOT_BUILT = `The engine did not build the image ${BUILT_IMAGE} from ${BUILT_IMAGE_FILE}.`;
 
 const bench = useSandboxBench();
 
@@ -193,7 +194,7 @@ describe('SandboxImages', () => {
 
       await expect(running).rejects.toThrow(
         new SandboxImageFileMissingError(
-          `The image built-image:1 is built from ${file}, which cannot be ` +
+          `The image ${BUILT_IMAGE} is built from ${file}, which cannot be ` +
             'read. The package of the service is incomplete: install it again.',
         ),
       );

@@ -59,7 +59,7 @@ function containerCommands(): string[][] {
     .engineCalls()
     .filter((call) => call.arguments[0] === 'run')
     .map((call) => {
-      const image = call.arguments.indexOf('node:26-slim');
+      const image = call.arguments.indexOf('coverage-autopilot-sandbox:26');
       return call.arguments.slice(image + 1);
     });
 }
