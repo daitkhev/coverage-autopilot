@@ -1,3 +1,4 @@
+import type { TestCounts } from '@coverage-autopilot/api-contracts/snapshots';
 import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses';
 
 /** Every counter of coverage, in the order the mock-ups list them. */
@@ -49,4 +50,17 @@ export function countWords(
   plural = `${singular}s`,
 ): string {
   return `${String(count)} ${count === 1 ? singular : plural}`;
+}
+
+/**
+ * How many tests of the repository failed in the sandbox at the scan, as
+ * `33 of 53 tests fail in the sandbox`. `null` when none did, or when the
+ * scan did not count them.
+ */
+export function failingTestsWords(tests: TestCounts | null): string | null {
+  if (tests === null || tests.failed === 0) {
+    return null;
+  }
+  const verb = tests.failed === 1 ? 'fails' : 'fail';
+  return `${String(tests.failed)} of ${countWords(tests.ran, 'test')} ${verb} in the sandbox`;
 }

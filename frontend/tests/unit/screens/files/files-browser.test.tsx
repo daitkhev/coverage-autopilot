@@ -18,6 +18,7 @@ import {
 import {
   ACCESS_PASSED,
   BUDGET_SETTINGS,
+  FAILING_TESTS_REPOSITORY,
   OWN_THRESHOLD_REPOSITORY,
   PAYMENTS_SNAPSHOT,
   SCANNED_REPOSITORY,
@@ -83,6 +84,14 @@ describe('FilesBrowser', () => {
       const { terminal } = browsing(PREFLIGHT, WIDE, OWN_THRESHOLD_REPOSITORY);
 
       expect(frameOf(terminal)).toContain('own threshold 90.0%');
+    });
+  });
+
+  describe('when tests failed in the sandbox at the scan', () => {
+    it('should warn of them beside the commit', () => {
+      const { terminal } = browsing(PREFLIGHT, WIDE, FAILING_TESTS_REPOSITORY);
+
+      expect(frameOf(terminal)).toContain('33 of 53 tests fail in the sandbox');
     });
   });
 

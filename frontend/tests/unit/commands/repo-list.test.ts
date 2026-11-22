@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { repoList } from '#commands/repo-list';
 import { answered, refused } from '#tests/support/fake-service-api';
 import { expectRefusal, recordingIo } from '#tests/support/sample-command-io';
-import { REPOSITORY_LIST } from '#tests/support/sample-repositories';
+import {
+  FAILING_TESTS_REPOSITORY,
+  REPOSITORY_LIST,
+} from '#tests/support/sample-repositories';
 
 const LIST = { name: 'repo list' } as const;
 
@@ -24,6 +27,21 @@ describe('repoList', () => {
       ]
     `);
     expect(io.said).toEqual([]);
+  });
+
+  describe('when tests failed in the sandbox at the latest scan', () => {
+    it('should note how many beside the scan', async () => {
+      const list = { ...REPOSITORY_LIST, items: [FAILING_TESTS_REPOSITORY] };
+      const io = recordingIo({
+        listRepositories: () => Promise.resolve(answered(list)),
+      });
+
+      await repoList(LIST, io);
+
+      expect(io.printed[0]).toMatch(
+        /scanned 2h ago {2}33 of 53 tests fail in the sandbox$/u,
+      );
+    });
   });
 
   describe('when no repository is connected', () => {

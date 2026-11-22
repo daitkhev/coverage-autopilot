@@ -11,7 +11,7 @@ import type {
 import { CoverageBar } from '#components/coverage-bar';
 import { counterCoverage } from '#components/coverage-change';
 import { EmptyState } from '#components/empty-state';
-import { type Fact, FactLine } from '#components/fact-line';
+import { type Fact, FactLine, warningFact } from '#components/fact-line';
 import { FactRow } from '#components/fact-row';
 import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
@@ -28,6 +28,7 @@ import {
 import {
   COUNTER_NAMES,
   COUNTERS,
+  failingTestsWords,
   percentWords,
   thresholdLabel,
 } from '#theme/counts';
@@ -83,10 +84,12 @@ function Measured({
   readonly parameters: ScanParameters | undefined;
 }): ReactNode {
   const { threshold, totals, files } = snapshot;
+  const failing = failingTestsWords(snapshot.tests);
   return (
     <>
       <Section title="COVERAGE">
         <FactLine facts={measuredFacts(judgedBy, parameters)} />
+        {failing === null ? null : <FactLine facts={[warningFact(failing)]} />}
         {COUNTERS.map((metric) => (
           <FactRow key={metric} label={COUNTER_NAMES[metric]}>
             <CoverageBar

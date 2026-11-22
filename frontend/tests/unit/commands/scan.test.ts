@@ -15,6 +15,7 @@ import {
   recordingIo,
 } from '#tests/support/sample-command-io';
 import {
+  FAILING_TESTS,
   PAYMENTS_SNAPSHOTS,
   REPOSITORY_LIST,
   SCAN_BY_STATUS,
@@ -144,6 +145,26 @@ describe('scan', () => {
         ]
       `);
       expect(io.pauses).toEqual([1000, 1000, 1000, 1000, 1000]);
+    });
+
+    it('should say how many tests failed in the sandbox after the totals', async () => {
+      const snapshots = {
+        ...PAYMENTS_SNAPSHOTS,
+        items: PAYMENTS_SNAPSHOTS.items.map((item) => ({
+          ...item,
+          tests: FAILING_TESTS,
+        })),
+      };
+      const io = recordingIo({
+        listRepositories: () => Promise.resolve(answered(REPOSITORY_LIST)),
+        startScan: () => Promise.resolve(answered(QUEUED, ACCEPTED)),
+        getScan: inTurn(answered(COMPLETED)),
+        listSnapshots: () => Promise.resolve(answered(snapshots)),
+      });
+
+      await expect(scan(WAIT, io)).resolves.toBe(0);
+
+      expect(io.printed.at(-1)).toBe('33 of 53 tests fail in the sandbox');
     });
 
     it('should print the snapshot of the contract with --json', async () => {

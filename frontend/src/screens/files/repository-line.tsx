@@ -5,19 +5,15 @@ import type { Repository } from '@coverage-autopilot/api-contracts/repositories'
 import type { SnapshotSummary } from '@coverage-autopilot/api-contracts/snapshots';
 
 import { CounterPercent } from '#components/coverage-change';
-import { type Fact, FactLine } from '#components/fact-line';
+import { type Fact, FactLine, warningFact } from '#components/fact-line';
 import { RoleText } from '#components/role-text';
-import { percentWords, thresholdLabel } from '#theme/counts';
+import { failingTestsWords, percentWords, thresholdLabel } from '#theme/counts';
 import { ageWords } from '#theme/moments';
 import { repositoryName, shortHash } from '#theme/names';
 import { GAP, type Layout } from '#theme/widths';
 
 /** The branch moved since the scan: a warning, with its symbol. */
-const OUTDATED: Fact = {
-  text: 'outdated',
-  role: 'warning',
-  glyph: { name: 'attention', role: 'warning' },
-};
+const OUTDATED: Fact = warningFact('outdated');
 
 function Total({
   label,
@@ -76,7 +72,8 @@ function Totals({
 /**
  * What the screen is about: the repository, the commit of its latest
  * snapshot and its age, and the totals beside the threshold. Below the
- * wide layout the branches are left out.
+ * wide layout the branches are left out. When tests failed in the
+ * sandbox at the scan, a line below says how many.
  */
 export function RepositoryLine({
   repository,
@@ -89,17 +86,21 @@ export function RepositoryLine({
   readonly now: string;
   readonly layout: Layout;
 }): ReactNode {
+  const failing = failingTestsWords(snapshot.tests);
   return (
-    <Box flexGrow={1} justifyContent="space-between" gap={GAP}>
-      <FactLine
-        facts={[
-          { text: repositoryName(repository), role: 'primary' },
-          { text: shortHash(snapshot.commitSha), role: 'primary' },
-          { text: `scanned ${ageWords(snapshot.capturedAt, now)} ago` },
-          ...(repository.outdated ? [OUTDATED] : []),
-        ]}
-      />
-      <Totals repository={repository} snapshot={snapshot} layout={layout} />
+    <Box flexGrow={1} flexDirection="column">
+      <Box justifyContent="space-between" gap={GAP}>
+        <FactLine
+          facts={[
+            { text: repositoryName(repository), role: 'primary' },
+            { text: shortHash(snapshot.commitSha), role: 'primary' },
+            { text: `scanned ${ageWords(snapshot.capturedAt, now)} ago` },
+            ...(repository.outdated ? [OUTDATED] : []),
+          ]}
+        />
+        <Totals repository={repository} snapshot={snapshot} layout={layout} />
+      </Box>
+      {failing === null ? null : <FactLine facts={[warningFact(failing)]} />}
     </Box>
   );
 }

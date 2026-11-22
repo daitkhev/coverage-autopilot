@@ -17,6 +17,15 @@ export interface Fact {
   readonly glyph?: { readonly name: GlyphName; readonly role: Role };
 }
 
+/** A fact that stands out as a warning, led by its symbol. */
+export function warningFact(text: string): Fact {
+  return {
+    text,
+    role: 'warning',
+    glyph: { name: 'attention', role: 'warning' },
+  };
+}
+
 interface FactLineProps {
   readonly facts: readonly Fact[];
 }

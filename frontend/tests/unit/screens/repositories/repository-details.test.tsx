@@ -8,6 +8,7 @@ import type { RepositoryWork } from '#screens/repositories/repository-listing';
 import { answered, refused, SAMPLE_NOW } from '#tests/support/fake-service-api';
 import { IMPROVEMENT_LIST } from '#tests/support/sample-improvements';
 import {
+  FAILING_TESTS_REPOSITORY,
   NEVER_SCANNED_REPOSITORY,
   OWN_THRESHOLD_REPOSITORY,
   PAYMENTS_SNAPSHOTS,
@@ -58,6 +59,13 @@ describe('RepositoryDetails', () => {
 
     expect(drawn).toContain('own threshold 90.0% of lines');
     expect(drawn).toContain('20 below 90.0% · 22 at or above');
+  });
+
+  it('should warn of tests that failed in the sandbox at the scan', () => {
+    expect(draw({ repository: FAILING_TESTS_REPOSITORY })).toContain(
+      '33 of 53 tests fail in the sandbox',
+    );
+    expect(draw({})).not.toContain('in the sandbox');
   });
 
   it('should name the test runner beside the threshold once it is known', () => {

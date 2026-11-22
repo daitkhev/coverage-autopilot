@@ -6,6 +6,7 @@ import {
   COUNTER_NAMES,
   COUNTERS,
   countWords,
+  failingTestsWords,
   percentWords,
   ratioWords,
   thresholdLabel,
@@ -64,5 +65,19 @@ describe('countWords', () => {
       );
       expect(countWords(1, 'repository', 'repositories')).toBe('1 repository');
     });
+  });
+});
+
+describe('failingTestsWords', () => {
+  it.each([
+    [{ ran: 53, failed: 33 }, '33 of 53 tests fail in the sandbox'],
+    [{ ran: 1, failed: 1 }, '1 of 1 test fails in the sandbox'],
+  ])('should say %j as %s', (tests, words) => {
+    expect(failingTestsWords(tests)).toBe(words);
+  });
+
+  it('should say nothing when no test failed, or the scan did not count them', () => {
+    expect(failingTestsWords({ ran: 53, failed: 0 })).toBeNull();
+    expect(failingTestsWords(null)).toBeNull();
   });
 });

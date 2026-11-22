@@ -14,7 +14,7 @@ import { findRepository } from '#commands/repository-lookup';
 import { runningStep, scanCells } from '#commands/scan-words';
 import { endCancelled, type Ending, reportStart } from '#commands/started-work';
 import { percentText } from '#commands/words';
-import { ratioWords } from '#theme/counts';
+import { failingTestsWords, ratioWords } from '#theme/counts';
 
 /** The counters of a snapshot in the order the screens show them. */
 const COUNTERS: readonly CoverageMetric[] = [
@@ -24,17 +24,22 @@ const COUNTERS: readonly CoverageMetric[] = [
   'statements',
 ];
 
+/** The counters, then how many tests failed in the sandbox when some did. */
 function totalsLines(snapshot: Snapshot): string[] {
-  return alignedRows(
-    COUNTERS.map((metric) => {
-      const counter = snapshot.totals[metric];
-      return [
-        metric,
-        percentText(counter),
-        ratioWords(counter.covered, counter.total),
-      ];
-    }),
-  );
+  const failing = failingTestsWords(snapshot.tests);
+  return [
+    ...alignedRows(
+      COUNTERS.map((metric) => {
+        const counter = snapshot.totals[metric];
+        return [
+          metric,
+          percentText(counter),
+          ratioWords(counter.covered, counter.total),
+        ];
+      }),
+    ),
+    ...(failing === null ? [] : [failing]),
+  ];
 }
 
 /**

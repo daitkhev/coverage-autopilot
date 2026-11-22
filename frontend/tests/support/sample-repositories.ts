@@ -88,6 +88,15 @@ export const OWN_THRESHOLD_REPOSITORY: Repository = {
   threshold: { metric: 'lines', percentage: 90, isDefault: false },
 };
 
+/** Tests that failed in the sandbox at the latest scan: 33 of 53. */
+export const FAILING_TESTS = { ran: 53, failed: 33 } as const;
+
+/** `example/payments` whose latest scan ran with tests that failed. */
+export const FAILING_TESTS_REPOSITORY: Repository = {
+  ...SCANNED_REPOSITORY,
+  latestSnapshot: { ...PAYMENTS_SNAPSHOT, tests: FAILING_TESTS },
+};
+
 /** Connected a minute ago, and never scanned. */
 export const NEVER_SCANNED_REPOSITORY: Repository = {
   ...SCANNED_REPOSITORY,

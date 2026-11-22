@@ -3,18 +3,25 @@ import type { Repository } from '@coverage-autopilot/api-contracts/repositories'
 import type { Cells } from '#commands/columns';
 import type { CommandIo } from '#commands/command-io';
 import { percentText } from '#commands/words';
-import { percentWords } from '#theme/counts';
+import { failingTestsWords, percentWords } from '#theme/counts';
 import { ageWords } from '#theme/moments';
 import { repositoryName, shortHash } from '#theme/names';
 
 /** The name a person types for a repository, as the screens show it. */
 export { repositoryName };
 
-/** What is worth knowing beside the numbers: the head moved, or a scan runs. */
+/**
+ * What is worth knowing beside the numbers: the head moved, tests failed
+ * in the sandbox at the scan, or a scan runs.
+ */
 function notesOf(repository: Repository): string {
   const notes: string[] = [];
   if (repository.outdated) {
     notes.push('outdated');
+  }
+  const failing = failingTestsWords(repository.latestSnapshot?.tests ?? null);
+  if (failing !== null) {
+    notes.push(failing);
   }
   if (repository.activeScanId !== null) {
     notes.push(`scanning (${repository.activeScanId})`);
