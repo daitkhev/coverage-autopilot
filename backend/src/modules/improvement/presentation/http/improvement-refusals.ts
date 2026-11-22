@@ -7,6 +7,7 @@ import {
 
 import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
 
+import type { ApprovalRefusal } from '#improvement/application/commands/approve-improvement/approve-improvement.command';
 import type { StartRefusal } from '#improvement/application/commands/start-improvement/start-improvement.command';
 
 /** No improvement has the id of the path, or it is no id of one at all. */
@@ -58,4 +59,12 @@ export function startRefusalOf(refusal: StartRefusal): HttpException {
         improvementId: refusal.improvementId,
       } satisfies ErrorBody);
   }
+}
+
+/** An approval of another patch, or of an improvement that waits for none. */
+export function approvalRefusalOf(refusal: ApprovalRefusal): ConflictException {
+  return new ConflictException({
+    error: refusal.reason,
+    message: refusal.message,
+  } satisfies ErrorBody);
 }
