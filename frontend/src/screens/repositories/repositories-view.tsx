@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { DataList } from '#components/data-list';
 import { EmptyState } from '#components/empty-state';
-import { FactLine } from '#components/fact-line';
 import { type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
 import { ProblemDetails } from '#components/problem-details';
@@ -38,6 +37,8 @@ type RepositoriesPanel = (typeof REPOSITORIES_PANELS)[number];
 const CHROME_ROWS = 8;
 
 const ROW_LINES = 2;
+
+const PATH = ['Repositories'];
 
 /** How many repositories fit in the list, each on two lines. */
 export function visibleRowsOf(size: TerminalSize): number {
@@ -161,9 +162,16 @@ function footerOf(props: RepositoriesViewProps): {
   readonly position?: string;
 } {
   const { connect, listing, position, starting } = props;
+  const freshness = { ...listing, now: props.now };
   if (connect !== undefined) {
     return {
-      status: <FactLine facts={[{ text: connectStatusOf(connect.state) }]} />,
+      status: (
+        <StatusLine
+          path={PATH}
+          facts={[connectStatusOf(connect.state)]}
+          freshness={freshness}
+        />
+      ),
       keys: <KeyHints hints={connectHintsOf(connect.state.phase)} />,
     };
   }
@@ -172,15 +180,12 @@ function footerOf(props: RepositoriesViewProps): {
   return {
     status: (
       <StatusLine
+        path={PATH}
         facts={[
           countWords(rows.length, 'repository', 'repositories'),
           countWords(scanning, 'scan running', 'scans running'),
         ]}
-        freshness={{
-          answeredAt: listing.answeredAt,
-          stale: listing.stale,
-          now: props.now,
-        }}
+        freshness={freshness}
       />
     ),
     keys: <KeyHints hints={listHints(props)} />,

@@ -21,6 +21,7 @@ import {
 } from '#tests/support/sample-improvements';
 import { SCANNED_REPOSITORY } from '#tests/support/sample-repositories';
 import {
+  FRESH_ANSWER,
   NARROW,
   sampleFrame,
   SIZES,
@@ -57,7 +58,7 @@ function reviewing(options: Reviewing = {}) {
       session={session}
       frame={sampleFrame(size)}
       shown={shown}
-      stale={false}
+      freshness={FRESH_ANSWER}
       onReload={() => {
         log.push('reload');
       }}

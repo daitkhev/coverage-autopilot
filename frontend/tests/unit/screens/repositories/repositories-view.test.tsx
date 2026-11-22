@@ -275,7 +275,7 @@ describe('RepositoriesView', () => {
       });
 
       expect(drawn).toMatch(
-        /reading https:\/\/github\.com\/example\/notifier\n esc close/u,
+        /Repositories · reading https:\/\/github\.com\/example\/notifier · updated 1s ago\n esc close/u,
       );
     });
 

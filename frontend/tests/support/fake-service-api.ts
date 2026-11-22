@@ -25,6 +25,9 @@ export interface FakeSession extends ClientSession {
 /** The moment a fake session starts at. The samples are as old as it says. */
 export const SAMPLE_NOW = '2026-11-21T14:05:00.000Z';
 
+/** A second before `SAMPLE_NOW`: when an answer that is fresh came. */
+export const SECOND_AGO = '2026-11-21T14:04:59.000Z';
+
 const OK = 200;
 
 /** An answer of the service with the value of its contract. */

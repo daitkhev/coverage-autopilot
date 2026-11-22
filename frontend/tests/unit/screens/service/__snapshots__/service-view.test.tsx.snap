@@ -33,7 +33,7 @@ exports[`ServiceView > should say whether everything is in order 1`] = `
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- service 0.1.0 · updated 1s ago
+ Service · service 0.1.0 · updated 1s ago
  tab other panel    r restart                                                                            ? help"
 `;
 
@@ -70,7 +70,7 @@ exports[`ServiceView > when no answer came yet > should draw the panels empty an
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- ⠋ asking the service
+ Service · ⠋ asking the service
  tab other panel                                                                                         ? help"
 `;
 
@@ -107,6 +107,6 @@ exports[`ServiceView > when the last request failed > should keep the last healt
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- service 0.1.0 · ! not fresh, updated 1s ago
+ Service · service 0.1.0 · ! not fresh, updated 1s ago
  tab other panel    r restart                                                                            ? help"
 `;

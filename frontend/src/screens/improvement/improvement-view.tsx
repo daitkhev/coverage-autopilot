@@ -7,7 +7,7 @@ import type { ClientSession } from '#api/client-session';
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { type KeyHint, KeyHints } from '#components/key-hints';
 import { SplitView } from '#components/split-view';
-import { StatusLine } from '#components/status-line-pathed';
+import { type Freshness, StatusLine } from '#components/status-line';
 import { useFocusRing } from '#hooks/use-focus-ring';
 import { useKeys } from '#hooks/use-keys';
 import { type Selection, useSelection } from '#hooks/use-selection';
@@ -35,7 +35,7 @@ interface ImprovementViewProps {
   readonly frame: ShellFrame;
   readonly improvement: Improvement;
   readonly repository: Repository;
-  readonly stale: boolean;
+  readonly freshness: Freshness;
   readonly onOpenPatch: (improvementId: string) => void;
   readonly onBack: () => void;
 }
@@ -155,8 +155,8 @@ function Body({
 }
 
 /**
- * How fresh the work is, or how long ago it ended. Running work goes on
- * without the client, which the footer says last, so a narrow line cuts it.
+ * How long ago the work ended, or that running work goes on without the
+ * client. How old the work is the history says on its last line.
  */
 function statusFacts(props: ImprovementViewProps, place: Place): string[] {
   const { improvement } = props;
@@ -166,10 +166,7 @@ function statusFacts(props: ImprovementViewProps, place: Place): string[] {
   }
   return hasEnded(improvement)
     ? [`${improvement.status} ${ageWords(endOf(improvement, now), now)} ago`]
-    : [
-        `updated ${ageWords(improvement.updatedAt, now)} ago`,
-        'closing this window stops nothing',
-      ];
+    : ['closing this window stops nothing'];
 }
 
 /**
@@ -192,7 +189,7 @@ export function ImprovementView(props: ImprovementViewProps): ReactNode {
             improvement.targetFile,
           ]}
           facts={statusFacts(props, place)}
-          stale={props.stale}
+          freshness={props.freshness}
         />
       }
       keys={

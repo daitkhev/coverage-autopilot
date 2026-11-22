@@ -5,7 +5,7 @@ import { ServiceUnreachableError } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
 import { BareScreen } from '#components/bare-screen';
 import { shownOf, UnansweredBody } from '#components/unanswered-body';
-import { useRepeatedRequest } from '#hooks/use-repeated-request';
+import { useDatedRequest } from '#hooks/use-dated-request';
 import { loadPatch } from '#screens/patch/patch-answer';
 import { PatchView } from '#screens/patch/patch-view';
 
@@ -43,15 +43,19 @@ export function PatchScreen({
     () => loadPatch(session.api, improvementId),
     [session, improvementId, round],
   );
-  const request = useRepeatedRequest(load, EVERY_MS);
+  const request = useDatedRequest(load, {
+    now: session.now,
+    everyMs: EVERY_MS,
+  });
   const shown = shownOf(request, isUnreachable);
+  const freshness = { ...request, now: session.now() };
   if (shown.kind !== 'answered') {
     return (
       <BareScreen
         frame={frame}
         path={PATH}
         body={<UnansweredBody title="Patch" state={shown} />}
-        stale={request.stale}
+        freshness={freshness}
         onBack={onBack}
       />
     );
@@ -61,7 +65,7 @@ export function PatchScreen({
       session={session}
       frame={frame}
       shown={shown.value}
-      stale={request.stale}
+      freshness={freshness}
       onReload={() => {
         setRound(round + 1);
       }}

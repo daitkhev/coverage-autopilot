@@ -33,7 +33,7 @@ exports[`PatchScreen > should say that it asks the service before the first answ
  │                                                                                                            │
  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements
+ Improvements · ⠋ asking the service
  esc back                                                                                                ? help"
 `;
 
@@ -61,6 +61,7 @@ exports[`PatchScreen > when the service stops answering > should keep the last p
  │                                                                │ │                                         │
  │                                                                │ │                                         │
  │                                                                │ │                                         │
+ │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ╭─ Your decision ────────────────────────────────────────────────────────────────────────────────────────────╮
  │ ? Approve the patch and open the pull request?                              to example/payments, base main │
@@ -69,7 +70,6 @@ exports[`PatchScreen > when the service stops answering > should keep the last p
  │   3. Reject the patch and cancel the improvement                                                           │
  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements › example/payments › src/billing/sum.ts · waiting for appro… ! not fresh, asking again line 1 of
-                                                                                                     7
+ Improvements › example/payments › src/billing/sum.ts · waiting for … · ! not fresh, updated 0s ago line 1 of 7
  ↑↓ choose    enter confirm    pgdn scroll    tab evidence    esc later                                  ? help"
 `;

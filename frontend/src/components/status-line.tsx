@@ -1,7 +1,11 @@
-import type { ReactNode } from 'react';
+import { Box, Text } from 'ink';
+import { Fragment, type ReactNode } from 'react';
 
 import { type Fact, FactLine } from '#components/fact-line';
+import { Glyph } from '#components/glyph';
+import { RoleText } from '#components/role-text';
 import { ageWords } from '#theme/moments';
+import type { GlyphName } from '#theme/symbols';
 
 /** How fresh the last answer of the service is, at a moment. */
 export interface Freshness {
@@ -13,6 +17,8 @@ export interface Freshness {
 }
 
 interface StatusLineProps {
+  /** Where the screen is: `Repositories › example/payments`. */
+  readonly path: readonly string[];
   /** What the screen shows, such as `5 repositories`. */
   readonly facts: readonly string[];
   readonly freshness: Freshness;
@@ -36,15 +42,55 @@ function freshnessFact({ answeredAt, stale, now }: Freshness): Fact {
     : { text: updated };
 }
 
-/**
- * The status line of a screen: what it shows, and how fresh that is. A
- * request that failed leaves the last answer, and this line says it is
- * not fresh.
- */
-export function StatusLine({ facts, freshness }: StatusLineProps): ReactNode {
+function Joint({ glyph }: { readonly glyph: GlyphName }): ReactNode {
   return (
-    <FactLine
-      facts={[...facts.map((text) => ({ text })), freshnessFact(freshness)]}
-    />
+    <Text>
+      {' '}
+      <Glyph name={glyph} role="secondary" />{' '}
+    </Text>
+  );
+}
+
+function Where({
+  path,
+  facts,
+}: Pick<StatusLineProps, 'path' | 'facts'>): ReactNode {
+  return (
+    <Text wrap="truncate-end">
+      {path.map((part, index) => (
+        <Fragment key={`path ${String(index)}`}>
+          {index === 0 ? null : <Joint glyph="selected" />}
+          <RoleText role="secondary">{part}</RoleText>
+        </Fragment>
+      ))}
+      {facts.map((fact) => (
+        <Fragment key={`fact ${fact}`}>
+          <Joint glyph="separator" />
+          <RoleText role="secondary">{fact}</RoleText>
+        </Fragment>
+      ))}
+    </Text>
+  );
+}
+
+/**
+ * The status line of the footer: the path to the screen, what it shows,
+ * and how fresh that is. A request that failed leaves the last answer,
+ * and this line says it is not fresh. A line too long for its room is
+ * cut before the freshness, so a kept answer never passes for a fresh one.
+ */
+export function StatusLine({
+  path,
+  facts,
+  freshness,
+}: StatusLineProps): ReactNode {
+  return (
+    <Box>
+      <Where path={path} facts={facts} />
+      <Box flexShrink={0}>
+        <Joint glyph="separator" />
+        <FactLine facts={[freshnessFact(freshness)]} />
+      </Box>
+    </Box>
   );
 }

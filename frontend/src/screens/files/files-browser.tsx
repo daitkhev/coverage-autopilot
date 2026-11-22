@@ -12,7 +12,7 @@ import { type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import { SplitView } from '#components/split-view';
-import { StatusLine } from '#components/status-line-pathed';
+import { type Freshness, StatusLine } from '#components/status-line';
 import { FileDetails } from '#screens/files/file-details';
 import { FileListPanel } from '#screens/files/file-list';
 import { type Browser, useBrowser } from '#screens/files/files-browsing';
@@ -28,7 +28,7 @@ interface FilesBrowserProps {
   readonly repository: Repository;
   readonly snapshot: SnapshotSummary;
   readonly files: SnapshotFiles;
-  readonly stale: boolean;
+  readonly freshness: Freshness;
   readonly onOpenImprovement: (improvementId: string) => void;
   readonly onBack: () => void;
 }
@@ -163,7 +163,7 @@ export function FilesBrowser(props: FilesBrowserProps): ReactNode {
         <StatusLine
           path={['Repositories', `${repository.owner}/${repository.name}`]}
           facts={statusFacts(browser)}
-          stale={props.stale}
+          freshness={props.freshness}
         />
       }
       {...positionOf(browser)}

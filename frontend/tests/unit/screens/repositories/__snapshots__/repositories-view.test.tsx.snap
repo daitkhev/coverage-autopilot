@@ -33,7 +33,7 @@ exports[`RepositoriesView > should list the repositories with the first chosen 1
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- 4 repositories · 1 scan running · updated 1s ago                                                    row 1 of 4
+ Repositories · 4 repositories · 1 scan running · updated 1s ago                                     row 1 of 4
  ↑↓ move    enter open    s scan    a add    tab details                                                 ? help"
 `;
 
@@ -70,7 +70,7 @@ exports[`RepositoriesView > when no answer came yet > should draw the panels emp
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- 0 repositories · 0 scans running · ⠋ asking the service
+ Repositories · 0 repositories · 0 scans running · ⠋ asking the service
  a add    tab details                                                                                    ? help"
 `;
 
@@ -107,7 +107,7 @@ exports[`RepositoriesView > when the connect dialog is open > should ask for the
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- type the address of a repository
+ Repositories · type the address of a repository · updated 1s ago
  enter check    esc close                                                                                ? help"
 `;
 
@@ -144,7 +144,7 @@ exports[`RepositoriesView > when the connect dialog is open > should keep what t
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- access to example/notifier was refused
+ Repositories · access to example/notifier was refused · updated 1s ago
  enter check again    esc close                                                                          ? help"
 `;
 
@@ -181,6 +181,6 @@ exports[`RepositoriesView > when the last request failed > should keep the last 
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- 4 repositories · 1 scan running · ! not fresh, updated 1s ago                                       row 1 of 4
+ Repositories · 4 repositories · 1 scan running · ! not fresh, updated 1s ago                        row 1 of 4
  ↑↓ move    enter open    s scan    a add    tab details                                                 ? help"
 `;

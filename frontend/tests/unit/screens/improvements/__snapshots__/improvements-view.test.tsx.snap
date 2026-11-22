@@ -33,7 +33,7 @@ exports[`ImprovementsView > should group the improvements by what they need, wit
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- all repositories · 1 needs you · 4 running · 2 waiting · updated 1s ago                            row 1 of 11
+ Improvements · all repositories · 1 needs you · 4 running · 2 waiting · updated 1s ago             row 1 of 11
  ↑↓ move    enter open    tab details                                                                    ? help"
 `;
 
@@ -70,7 +70,7 @@ exports[`ImprovementsView > when no answer came yet > should draw the panels emp
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- all repositories · 0 need you · 0 running · 0 waiting · ⠋ asking the service
+ Improvements · all repositories · 0 need you · 0 running · 0 waiting · ⠋ asking the service
  tab details                                                                                             ? help"
 `;
 
@@ -107,6 +107,6 @@ exports[`ImprovementsView > when the last request failed > should keep the last 
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- all repositories · 1 needs you · 4 running · 2 waiting · ! not fresh, updated 1s ago               row 1 of 11
+ Improvements · all repositories · 1 needs you · 4 running · 2 waiti… · ! not fresh, updated 1s ago row 1 of 11
  ↑↓ move    enter open    tab details                                                                    ? help"
 `;

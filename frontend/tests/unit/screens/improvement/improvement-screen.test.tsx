@@ -94,7 +94,7 @@ describe('ImprovementScreen', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('not fresh, asking again');
+        .toContain('! not fresh, updated');
       expect(frameOf(terminal)).toMatchSnapshot();
     });
   });

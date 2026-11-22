@@ -11,6 +11,7 @@ import { ACCEPTED_ATTEMPT } from '#tests/support/sample-attempts';
 import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
 import { SCANNED_REPOSITORY } from '#tests/support/sample-repositories';
 import {
+  FRESH_ANSWER,
   NARROW,
   sampleFrame,
   SIZES,
@@ -39,7 +40,7 @@ function viewing(improvement: Improvement, options: Viewing = {}) {
       frame={sampleFrame(size)}
       improvement={improvement}
       repository={SCANNED_REPOSITORY}
-      stale={false}
+      freshness={FRESH_ANSWER}
       onOpenPatch={noted.onOpenPatch}
       onBack={noted.onBack}
     />

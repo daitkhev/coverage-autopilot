@@ -4,7 +4,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { BareScreen } from '#components/bare-screen';
 import { KEYS, press } from '#tests/support/keys';
-import { NARROW, sampleFrame } from '#tests/support/sample-work-frame';
+import {
+  FRESH_ANSWER,
+  NARROW,
+  sampleFrame,
+} from '#tests/support/sample-work-frame';
 import { drawnWith } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
 
@@ -15,7 +19,7 @@ function shown(stale: { readonly stale: boolean }) {
       frame={sampleFrame(NARROW)}
       path={['Improvements', 'example/payments']}
       body={<Text>Nothing to show</Text>}
-      stale={stale.stale}
+      freshness={{ ...FRESH_ANSWER, ...stale }}
       onBack={() => {
         log.push('back');
       }}
@@ -43,7 +47,7 @@ describe('BareScreen', () => {
     it('should say that the body is not fresh', () => {
       const { terminal } = shown({ stale: true });
 
-      expect(frameOf(terminal)).toContain('not fresh, asking again');
+      expect(frameOf(terminal)).toContain('! not fresh, updated 1s ago');
     });
   });
 });

@@ -43,6 +43,8 @@ interface ServiceViewProps {
   readonly restart: Restart;
 }
 
+const PATH = ['Service'];
+
 /** Where the service keeps its files. The health does not say it yet. */
 const STORAGE_ROWS: readonly HealthRow[] = [
   { label: 'Data', fact: UNKNOWN },
@@ -148,12 +150,9 @@ export function ServiceView(props: ServiceViewProps): ReactNode {
       }
       status={
         <StatusLine
+          path={PATH}
           facts={facts}
-          freshness={{
-            answeredAt: health.answeredAt,
-            stale: health.stale,
-            now: moment.now,
-          }}
+          freshness={{ ...health, now: moment.now }}
         />
       }
       keys={<KeyHints hints={footerHints(props)} />}

@@ -5,7 +5,7 @@ import { ServiceUnreachableError } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
 import { BareScreen } from '#components/bare-screen';
 import { shownOf, UnansweredBody } from '#components/unanswered-body';
-import { useRepeatedRequest } from '#hooks/use-repeated-request';
+import { useDatedRequest } from '#hooks/use-dated-request';
 import { loadImprovement } from '#screens/improvement/improvement-answer';
 import { ImprovementView } from '#screens/improvement/improvement-view';
 
@@ -37,15 +37,19 @@ export function ImprovementScreen(props: ImprovementScreenProps): ReactNode {
     () => loadImprovement(session.api, improvementId),
     [session, improvementId],
   );
-  const request = useRepeatedRequest(load, EVERY_MS);
+  const request = useDatedRequest(load, {
+    now: session.now,
+    everyMs: EVERY_MS,
+  });
   const shown = shownOf(request, isUnreachable);
+  const freshness = { ...request, now: session.now() };
   if (shown.kind !== 'answered') {
     return (
       <BareScreen
         frame={frame}
         path={PATH}
         body={<UnansweredBody title="Improvement" state={shown} />}
-        stale={request.stale}
+        freshness={freshness}
         onBack={onBack}
       />
     );
@@ -55,7 +59,7 @@ export function ImprovementScreen(props: ImprovementScreenProps): ReactNode {
       {...props}
       improvement={shown.value.improvement}
       repository={shown.value.repository}
-      stale={request.stale}
+      freshness={freshness}
     />
   );
 }

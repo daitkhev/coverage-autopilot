@@ -33,7 +33,7 @@ exports[`FilesBrowser > when another list is chosen > should explain a file that
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Repositories › example/payments · 3 files without numbers                                           row 1 of 3
+ Repositories › example/payments · 3 files without numbers · updated 1s ago                          row 1 of 3
  ↑↓ move    [ ] list    / filter    tab details    esc back                                              ? help"
 `;
 
@@ -70,6 +70,6 @@ exports[`FilesBrowser > when i is pressed > should open the dialog over the scre
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Repositories › example/payments · limits for src/billing/invoice.ts                                 row 1 of 2
+ Repositories › example/payments · limits for src/billing/invoice.ts · updated 1s ago                row 1 of 2
  esc close                                                                                               ? help"
 `;

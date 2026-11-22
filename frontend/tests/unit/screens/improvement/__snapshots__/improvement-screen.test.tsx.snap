@@ -33,7 +33,7 @@ exports[`ImprovementScreen > should say that it asks the service before the firs
  │                                                                                                            │
  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements
+ Improvements · ⠋ asking the service
  esc back                                                                                                ? help"
 `;
 
@@ -70,6 +70,6 @@ exports[`ImprovementScreen > when the service stops answering > should keep the 
  │ repeated runs                                                  │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements › example/payments › src/billing/invoice.ts · updated 1s ago · closin…  ! not fresh, asking again
+ Improvements › example/payments › src/billing/invoice.ts · closing this window … · ! not fresh, updated 0s ago
  c cancel    tab details    esc back                                                                     ? help"
 `;

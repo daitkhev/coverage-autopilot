@@ -33,6 +33,6 @@ exports[`PatchView > should show the patch, its evidence and the question 1`] = 
  │   3. Reject the patch and cancel the improvement                                                           │
  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements › example/payments › src/billing/sum.ts · waiting for approval for 3h                 line 1 of 7
+ Improvements › example/payments › src/billing/sum.ts · waiting for approval for … · updated 1s ago line 1 of 7
  ↑↓ choose    enter confirm    pgdn scroll    tab evidence    esc later                                  ? help"
 `;

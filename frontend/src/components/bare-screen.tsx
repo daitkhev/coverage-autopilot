@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { KeyHints } from '#components/key-hints';
-import { StatusLine } from '#components/status-line-pathed';
+import { type Freshness, StatusLine } from '#components/status-line';
 import { useKeys } from '#hooks/use-keys';
 
 interface BareScreenProps {
@@ -10,8 +10,7 @@ interface BareScreenProps {
   /** The path to the screen, as the status line says it. */
   readonly path: readonly string[];
   readonly body: ReactNode;
-  /** The last try failed, so what the body shows is not fresh. */
-  readonly stale: boolean;
+  readonly freshness: Freshness;
   readonly onBack: () => void;
 }
 
@@ -23,7 +22,7 @@ export function BareScreen({
   frame,
   path,
   body,
-  stale,
+  freshness,
   onBack,
 }: BareScreenProps): ReactNode {
   useKeys({ esc: onBack }, { active: true });
@@ -31,7 +30,7 @@ export function BareScreen({
     <AppShell
       {...frame}
       body={body}
-      status={<StatusLine path={path} facts={[]} stale={stale} />}
+      status={<StatusLine path={path} facts={[]} freshness={freshness} />}
       keys={<KeyHints hints={[{ key: 'esc', label: 'back' }]} />}
     />
   );

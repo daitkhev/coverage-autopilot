@@ -33,7 +33,7 @@ exports[`FilesScreen > should say that it asks the service before the first answ
  │                                                                                                            │
  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Repositories
+ Repositories · ⠋ asking the service
  esc back                                                                                                ? help"
 `;
 
@@ -70,7 +70,7 @@ exports[`FilesScreen > should show the files below the threshold, the first one 
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Repositories › example/payments · 2 files below the threshold                                       row 1 of 2
+ Repositories › example/payments · 2 files below the threshold · updated 0s ago                      row 1 of 2
  ↑↓ move    i improve    [ ] list    / filter    tab details    esc back                                 ? help"
 `;
 
@@ -107,6 +107,6 @@ exports[`FilesScreen > when the service stops answering > should keep the last a
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Repositories › example/payments · 2 files below the threshold  ! not fresh, asking again            row 1 of 2
+ Repositories › example/payments · 2 files below the threshold · ! not fresh, updated 0s ago         row 1 of 2
  ↑↓ move    i improve    [ ] list    / filter    tab details    esc back                                 ? help"
 `;

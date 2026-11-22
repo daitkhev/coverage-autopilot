@@ -7,7 +7,7 @@ import { BareScreen } from '#components/bare-screen';
 import { EmptyState } from '#components/empty-state';
 import { Panel } from '#components/panel';
 import { shownOf, UnansweredBody } from '#components/unanswered-body';
-import { useRepeatedRequest } from '#hooks/use-repeated-request';
+import { useDatedRequest } from '#hooks/use-dated-request';
 import { type FilesView, loadFiles } from '#screens/files/files-answer';
 import { FilesBrowser } from '#screens/files/files-browser';
 
@@ -52,9 +52,13 @@ export function FilesScreen(props: FilesScreenProps): ReactNode {
     () => loadFiles(session.api, repositoryId),
     [session, repositoryId],
   );
-  const request = useRepeatedRequest(load, EVERY_MS);
+  const request = useDatedRequest(load, {
+    now: session.now,
+    everyMs: EVERY_MS,
+  });
   const shown = shownOf(request, isUnreachable);
-  const bare = { frame, path: PATH, stale: request.stale, onBack };
+  const freshness = { ...request, now: session.now() };
+  const bare = { frame, path: PATH, freshness, onBack };
   if (shown.kind !== 'answered') {
     return (
       <BareScreen
@@ -74,7 +78,7 @@ export function FilesScreen(props: FilesScreenProps): ReactNode {
       repository={repository}
       snapshot={snapshot}
       files={files}
-      stale={request.stale}
+      freshness={freshness}
     />
   );
 }

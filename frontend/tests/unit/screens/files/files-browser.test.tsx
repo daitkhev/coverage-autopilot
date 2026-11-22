@@ -12,7 +12,12 @@ import {
   PAYMENTS_SNAPSHOT,
   SCANNED_REPOSITORY,
 } from '#tests/support/sample-repositories';
-import { NARROW, sampleFrame, WIDE } from '#tests/support/sample-work-frame';
+import {
+  FRESH_ANSWER,
+  NARROW,
+  sampleFrame,
+  WIDE,
+} from '#tests/support/sample-work-frame';
 import { screenLog } from '#tests/support/sample-work-log';
 import { drawnWith } from '#tests/support/terminal-text';
 import { frameOf, renderAt } from '#tests/support/wide-terminal';
@@ -44,7 +49,7 @@ function browsing(
       repository={SCANNED_REPOSITORY}
       snapshot={PAYMENTS_SNAPSHOT}
       files={PAYMENTS_FILES}
-      stale={false}
+      freshness={FRESH_ANSWER}
       onOpenImprovement={noted.onOpenImprovement}
       onBack={noted.onBack}
     />
@@ -81,7 +86,7 @@ describe('FilesBrowser', () => {
 
       const frame = frameOf(terminal);
       expect(frame).toContain('All 7');
-      expect(frame).toContain('7 files in the snapshot');
+      expect(frame).toContain('row 1 of 7');
       for (const path of ['src/legacy/parser.ts', 'src/billing/types.ts']) {
         expect(rowsNaming(frame, path)).toHaveLength(1);
         expect(rowsNaming(frame, path).join('')).not.toContain('%');

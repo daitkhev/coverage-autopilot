@@ -33,7 +33,7 @@ exports[`ImprovementView > should show the history, the running checks and the f
  │ repeated runs                                                  │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements › example/payments › src/billing/invoice.ts · updated 1s ago · closing this window stops nothing
+ Improvements › example/payments › src/billing/invoice.ts · closing this window stops nothing · updated 1s ago
  c cancel    tab details    esc back                                                                     ? help"
 `;
 
@@ -70,7 +70,7 @@ exports[`ImprovementView > when c is pressed > should ask first, with the answer
  │ repeated runs                                                  │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements › example/payments › src/billing/invoice.ts · waiting for your answer
+ Improvements › example/payments › src/billing/invoice.ts · waiting for your answer · updated 1s ago
  esc keep                                                                                                ? help"
 `;
 
@@ -107,7 +107,7 @@ exports[`ImprovementView > when the improvement cancelled > should show how it e
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements › example/payments › src/core/retry.ts · cancelled 4m ago
+ Improvements › example/payments › src/core/retry.ts · cancelled 4m ago · updated 1s ago
  tab details    esc back                                                                                 ? help"
 `;
 
@@ -144,7 +144,7 @@ exports[`ImprovementView > when the improvement completed > should show how it e
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements › example/payments › src/billing/currency.ts · completed 45m ago
+ Improvements › example/payments › src/billing/currency.ts · completed 45m ago · updated 1s ago
  p patch    tab details    esc back                                                                      ? help"
 `;
 
@@ -181,7 +181,7 @@ exports[`ImprovementView > when the improvement failed > should show how it ende
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements › example/payments › src/api/webhook.ts · failed 1s ago
+ Improvements › example/payments › src/api/webhook.ts · failed 1s ago · updated 1s ago
  ↑↓ choose    enter confirm    tab details    esc back                                                   ? help"
 `;
 
@@ -218,6 +218,6 @@ exports[`ImprovementView > when the improvement skipped > should show how it end
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Improvements › example/payments › src/ids.ts · skipped 30s ago
+ Improvements › example/payments › src/ids.ts · skipped 30s ago · updated 1s ago
  tab details    esc back                                                                                 ? help"
 `;

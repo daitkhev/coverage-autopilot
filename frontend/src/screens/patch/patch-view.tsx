@@ -5,7 +5,7 @@ import type { ClientSession } from '#api/client-session';
 import { AppShell, type ShellFrame } from '#components/app-shell';
 import { KeyHints } from '#components/key-hints';
 import { SplitView } from '#components/split-view';
-import { StatusLine } from '#components/status-line-pathed';
+import { type Freshness, StatusLine } from '#components/status-line';
 import { type Action, useAction } from '#hooks/use-action';
 import { useFocusRing } from '#hooks/use-focus-ring';
 import { useKeys } from '#hooks/use-keys';
@@ -40,7 +40,7 @@ interface PatchViewProps {
   readonly session: ClientSession;
   readonly frame: ShellFrame;
   readonly shown: LoadedPatch;
-  readonly stale: boolean;
+  readonly freshness: Freshness;
   /** Asks for the patch again at once, after it changed. */
   readonly onReload: () => void;
   readonly onBack: () => void;
@@ -280,7 +280,7 @@ export function PatchView(props: PatchViewProps): ReactNode {
             improvement.targetFile,
           ]}
           facts={statusFacts(props)}
-          stale={props.stale}
+          freshness={props.freshness}
         />
       }
       {...positionOf(place.reading)}

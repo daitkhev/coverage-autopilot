@@ -36,6 +36,8 @@ interface ImprovementsViewProps {
 
 const NO_NAMES: ReadonlyMap<string, string> = new Map();
 
+const PATH = ['Improvements'];
+
 function answeredOf(listing: Listing | undefined): {
   readonly improvements: readonly Improvement[];
   readonly names: ReadonlyMap<string, string>;
@@ -140,12 +142,9 @@ export function ImprovementsView(props: ImprovementsViewProps): ReactNode {
       }
       status={
         <StatusLine
+          path={PATH}
           facts={statusFacts(improvements)}
-          freshness={{
-            answeredAt: listing.answeredAt,
-            stale: listing.stale,
-            now: moment.now,
-          }}
+          freshness={{ ...listing, now: moment.now }}
         />
       }
       {...(improvements.length === 0

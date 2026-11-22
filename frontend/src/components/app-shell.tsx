@@ -123,7 +123,10 @@ function Footer(
       <Box justifyContent="space-between" gap={1}>
         {props.status}
         {props.position === undefined ? null : (
-          <RoleText role="secondary">{props.position}</RoleText>
+          // The status line gives way first, so the position is never cut.
+          <Box flexShrink={0}>
+            <RoleText role="secondary">{props.position}</RoleText>
+          </Box>
         )}
       </Box>
       <Box justifyContent="space-between" gap={1}>
