@@ -18,6 +18,12 @@ import type { JobProgress, JobWait } from '#ports/job-queue.port';
 /** No limit of tokens is `null`: a subscription has windows instead. */
 export type BudgetDto = BudgetLimits;
 
+/** What the service fills a request with, and the most it accepts. */
+export interface BudgetSettingsDto {
+  readonly defaults: BudgetDto;
+  readonly maximums: BudgetDto;
+}
+
 /** What has been spent: every attempt opened, and seconds of work. */
 export interface BudgetUsageDto {
   readonly attempts: number;
