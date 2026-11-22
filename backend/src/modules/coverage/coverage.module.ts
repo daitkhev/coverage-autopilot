@@ -87,6 +87,7 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
   exports: [
     COVERAGE_PUBLIC_API,
     RunScanHandler,
+    ScanRepositoryHandler,
     GetScanHandler,
     CancelScanHandler,
     ListSnapshotsHandler,
