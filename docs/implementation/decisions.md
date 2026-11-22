@@ -1345,6 +1345,12 @@ fails the improvement as an exposed credential and keeps its tokens.
   The program of the engine leads a group of its own now, as a tool of
   the host does, and a stop kills the group. A test plays a helper that
   outlives its program.
+- One kill of the group is not enough. That test hung once in a full gate
+  beside other work: a helper its program was starting while the group
+  was killed was not yet in the group, outlived the kill and kept the
+  streams. Under load it happened in 35 of 1200 rounds. The group is
+  killed again once its leader ended, and that second kill reached the
+  helper in every round where one was left.
 - Why a test did not find it: the stand-in of the engine started no
   program of its own.
 - The CLI logged in inside the container with a token of a subscription
