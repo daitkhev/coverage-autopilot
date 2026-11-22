@@ -1022,10 +1022,16 @@ This list replaces them: what is not named here was found done.
 
 A real run can fail, or lose work that was paid for:
 
-- Nothing in the repository builds the image of the generator. The
-  settings only name it, and the engine is not told to leave the
-  registry alone, so without an image built by hand it looks for one
-  there and every generation fails.
+- The image of the generator was never built by a real engine. Not
+  tried: the build itself, the label read from an image that has none,
+  `--pull=never` on an old engine, and a build that is cut short.
+- A build that fails ends the improvement as a generator that is not
+  there, with the words of the engine. No call was paid for, but the
+  attempt was opened before the image was asked for, so it is counted.
+  An engine that is not running is tried three times, and the reason
+  that is then shown names no engine.
+- The base of the image is named by its tag, not by its digest, and an
+  image that was replaced stays in the engine without a name.
 - Three readings of the generator are guesses that no run has measured:
   the status of a spent limit, the words of a failed login, and the
   error of a key with no credit.
@@ -1289,3 +1295,29 @@ fails the improvement as an exposed credential and keeps its tokens.
   `backend/src/shared/infrastructure/logging/tool-log.ts`,
   `backend/src/shared/infrastructure/service/service-start.ts`,
   `backend/src/shared/infrastructure/queue/job-handlers.ts`.
+
+### The service makes the image of the generator, and never looks for one
+
+- The default image of the generator is built by the service from the
+  file it ships: Node and the CLI at the version the command line was
+  measured with. A public image was weighed and refused: none comes from
+  the maker of the CLI, the container is given the credential of the
+  generator, and the version would move with its publisher. A person who
+  names another image in the setting gets that image and no build.
+- Before the first command in an image the sandbox asks the engine for
+  it. An image the service builds is built when it is missing or was
+  built from another file, which a label with the digest of the file
+  tells. Any other image is pulled when it is missing. Every run then
+  tells the engine not to pull, so a name that exists nowhere fails with
+  words that say so. One mechanism serves both sandboxes.
+- The preparation starts in the background once the service listens, so
+  a build does not use the time of a generation. A command that comes
+  meanwhile waits for the same preparation, a failure is not kept, and a
+  service that stops cuts the build short.
+- The engine is given a new empty folder beside the file, since the file
+  copies nothing and its own folder holds the code of the service.
+- A test holds the version in the file to the tag of the default image.
+- Where: `backend/src/shared/infrastructure/sandbox/generator.Dockerfile`,
+  `backend/src/shared/infrastructure/sandbox/image-preparation.ts`,
+  `backend/src/shared/infrastructure/sandbox/sandbox-images.ts`,
+  `backend/src/composition/image-start.ts`.
