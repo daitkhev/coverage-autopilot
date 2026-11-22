@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Bar } from '#components/bar';
 import { RoleText } from '#components/role-text';
 import { coverageRoleOf, fractionOfPercent } from '#theme/bars';
+import { percentWords } from '#theme/counts';
 import { FILE_STATE } from '#theme/status';
 import { GAP, PERCENT_CELLS } from '#theme/widths';
 
@@ -70,7 +71,7 @@ export function CoverageBar({
       <Bar shape={shape} role={role} />
       <Box width={PERCENT_CELLS + GAP} justifyContent="flex-end">
         <Text>
-          <RoleText role={role}>{`${coverage.percent.toFixed(1)}%`}</RoleText>
+          <RoleText role={role}>{percentWords(coverage.percent)}</RoleText>
         </Text>
       </Box>
     </Box>
