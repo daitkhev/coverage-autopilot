@@ -21,12 +21,16 @@ export interface StartImprovementCommand {
 }
 
 /**
- * Refused before any improvement is made, because of the snapshot the
- * request names: it is not there, it did not measure the file, or the
- * file changed on the default branch since.
+ * Refused before any improvement is made: a value of the request breaks
+ * a rule, such as a budget above the maximum, or the snapshot it names is
+ * not there, did not measure the file, or the file changed on the default
+ * branch since.
  */
-type SourceRefusalReason =
-  'snapshot_not_found' | 'target_not_measured' | 'stale_snapshot';
+type RequestRefusalReason =
+  | 'invalid_request'
+  | 'snapshot_not_found'
+  | 'target_not_measured'
+  | 'stale_snapshot';
 
 /**
  * Refused because of earlier work: the key was used for other work, the
@@ -40,7 +44,7 @@ export type ConflictReason =
 export type StartRefusal =
   | {
       readonly outcome: 'refused';
-      readonly reason: SourceRefusalReason;
+      readonly reason: RequestRefusalReason;
       readonly message: string;
     }
   | {

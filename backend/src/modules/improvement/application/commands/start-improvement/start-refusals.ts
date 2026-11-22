@@ -7,6 +7,11 @@ import type { Improvement } from '#improvement/domain/entities/improvement.entit
 import type { CommitSha } from '#kernel/primitives/commit-sha';
 import type { RevisionAssessmentDto } from '#repositories/contracts/repositories-public-api';
 
+/** A value of the request breaks a rule, in the words of the rule. */
+export function invalidRequest(message: string): StartRefusal {
+  return { outcome: 'refused', reason: 'invalid_request', message };
+}
+
 /** The snapshot is not there, or was never stored. */
 export function snapshotNotFound(asked: AskedImprovement): StartRefusal {
   return {

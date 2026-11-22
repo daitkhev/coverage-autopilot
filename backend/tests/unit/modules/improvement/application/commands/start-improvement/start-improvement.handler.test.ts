@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { BudgetAboveMaximumError } from '#improvement/domain/errors/budget-above-maximum.error';
-import { InvalidImprovementValueError } from '#improvement/domain/errors/invalid-improvement-value.error';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { FilePath } from '#kernel/primitives/file-path';
 import { RepositoryId } from '#kernel/primitives/repository-id';
@@ -247,15 +245,34 @@ describe('StartImprovementHandler', () => {
         [
           'a snapshot id',
           { snapshotId: 'snapshot-1' },
-          InvalidImprovementValueError,
+          '"snapshot-1" is not the id of a snapshot: a UUID in lower case.',
         ],
-        ['a budget', { budget: { attempts: 11 } }, BudgetAboveMaximumError],
+        [
+          'a budget',
+          { budget: { attempts: 11 } },
+          'The budget asks for 11 of attempts, and the service allows 10.',
+        ],
+        [
+          'a limit of tokens under a subscription',
+          { budget: { tokens: 5000 } },
+          'The budget asks for 5000 of tokens, and the service allows no limit.',
+        ],
+        [
+          'a path',
+          { filePath: 'src//price.ts' },
+          '"src//price.ts" is not a path as git stores it: it has an ' +
+            'empty, a "." or a ".." part.',
+        ],
       ] as const)(
-        'should throw the error of %s before it asks anything',
-        async (_value, spec, error) => {
-          await expect(
-            world.start.execute(startCommandOf(spec), NEVER),
-          ).rejects.toThrow(error);
+        'should refuse with invalid_request for %s before it asks anything',
+        async (_value, spec, message) => {
+          const result = await world.start.execute(startCommandOf(spec), NEVER);
+
+          expect(result).toEqual({
+            outcome: 'refused',
+            reason: 'invalid_request',
+            message,
+          });
           expect(world.coverage.asked).toEqual([]);
           expectNothingRegistered();
         },

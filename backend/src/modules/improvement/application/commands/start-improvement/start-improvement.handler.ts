@@ -18,6 +18,7 @@ import type {
   StartRefusal,
 } from '#improvement/application/commands/start-improvement/start-improvement.command';
 import {
+  invalidRequest,
   snapshotNotFound,
   staleSnapshot,
   targetNotMeasured,
@@ -31,6 +32,7 @@ import {
   REQUEST_HASHER,
   type RequestHasher,
 } from '#improvement/application/ports/request-hasher.port';
+import { requestValueOf } from '#improvement/application/request-values';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
@@ -43,10 +45,12 @@ interface UsableSource {
 }
 
 /**
- * Requests an improvement of one file from a snapshot. The request is
- * checked against the snapshot and the head of the default branch first,
- * outside any transaction, because the head is read from the host of the
- * code. Only a request that is still good is registered.
+ * Requests an improvement of one file from a snapshot. Every value of the
+ * request is made first, so a value that breaks a rule is refused before
+ * any call. The request is then checked against the snapshot and the head
+ * of the default branch, outside any transaction, because the head is
+ * read from the host of the code. Only a request that is still good is
+ * registered.
  */
 @Injectable()
 export class StartImprovementHandler {
@@ -77,16 +81,21 @@ export class StartImprovementHandler {
     command: StartImprovementCommand,
     signal: AbortSignal,
   ): Promise<StartImprovementResult> {
-    const asked = askedImprovementOf(command, this.settings);
-    const source = await this.sourceOf(asked, signal);
+    const asked = requestValueOf(() =>
+      askedImprovementOf(command, this.settings),
+    );
+    if (asked.outcome === 'invalid') {
+      return invalidRequest(asked.message);
+    }
+    const source = await this.sourceOf(asked.value, signal);
     if (source.outcome === 'refused') {
       return source;
     }
     const fingerprint = this.hasher.fingerprintOf(
-      canonicalTextOf(asked, source.snapshot),
+      canonicalTextOf(asked.value, source.snapshot),
     );
     const registered = await this.registration.register(
-      improvementRequestOf(asked, source.snapshot, fingerprint),
+      improvementRequestOf(asked.value, source.snapshot, fingerprint),
     );
     return registered.outcome === 'refused'
       ? registered
