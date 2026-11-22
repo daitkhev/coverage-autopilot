@@ -2,7 +2,10 @@ import type {
   Attempt,
   VerificationReport,
 } from '@coverage-autopilot/api-contracts/attempts';
-import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
+import type {
+  Improvement,
+  ImprovementList,
+} from '@coverage-autopilot/api-contracts/improvements';
 import type { Progress } from '@coverage-autopilot/api-contracts/progress';
 
 import type {
@@ -11,6 +14,7 @@ import type {
 } from '#improvement/application/dto/attempt.dto';
 import type {
   ImprovementDto,
+  ImprovementListDto,
   ProgressDto,
 } from '#improvement/application/dto/improvement.dto';
 import type { Instant } from '#kernel/time/instant';
@@ -84,4 +88,10 @@ export function improvementAnswerOf(improvement: ImprovementDto): Improvement {
     updatedAt: improvement.updatedAt.toString(),
     cancelledAt: momentOf(improvement.cancelledAt),
   };
+}
+
+export function improvementListAnswerOf(
+  list: ImprovementListDto,
+): ImprovementList {
+  return { items: list.items.map(improvementAnswerOf) };
 }

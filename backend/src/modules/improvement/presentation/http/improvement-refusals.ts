@@ -9,6 +9,23 @@ import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
 
 import type { StartRefusal } from '#improvement/application/commands/start-improvement/start-improvement.command';
 
+/** No improvement has the id of the path, or it is no id of one at all. */
+export function improvementNotFound(): NotFoundException {
+  return new NotFoundException({
+    error: 'not_found',
+    message: 'No improvement has this id.',
+  } satisfies ErrorBody);
+}
+
+/** The gate has accepted no patch of the improvement yet, or never will. */
+export function noAcceptedPatch(improvementId: string): ConflictException {
+  return new ConflictException({
+    error: 'status_conflict',
+    message: `The improvement ${improvementId} has no accepted patch.`,
+    improvementId,
+  } satisfies ErrorBody);
+}
+
 /**
  * A request for an improvement the service would not take: 400 for a
  * value that breaks a rule, 404 for a snapshot or a measured file that is
