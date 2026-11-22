@@ -4,9 +4,8 @@ import type {
   WaitingFor,
 } from '@coverage-autopilot/api-contracts/statuses';
 
-import { clockWords } from '#theme/moments';
 import type { Role } from '#theme/roles';
-import { waitWords } from '#theme/status';
+import { besideStatusWords, type ResultWords } from '#theme/status';
 
 /** What an improvement needs now: the user, the worker, its turn, nothing. */
 export type GroupName = 'needsYou' | 'running' | 'waiting' | 'finished';
@@ -81,45 +80,13 @@ export function groupOf(improvement: Improvement): GroupName {
     : GROUP_OF_WAIT[improvement.waitingFor];
 }
 
-type Words = (improvement: Improvement, timeZone: string) => string;
-
-/** What a waiting improvement needs: the user's approval, or its wait. */
-const waitingWords: Words = (improvement, timeZone) =>
-  improvement.waitingFor === 'approval'
-    ? 'approve the patch'
-    : `waits ${waitWords(improvement, timeZone)}`;
-
-function attemptWords({ usage, budget }: Improvement): string {
-  return `attempt ${String(usage.attempts)} of ${String(budget.attempts)}`;
-}
-
-/** Which of the checks runs, counted in the steps the service wrote. */
-function checkWords({ progress }: Improvement): string {
-  const steps = progress?.steps ?? [];
-  const running = steps.findIndex((step) => step.status === 'running');
-  return running === -1
-    ? 'verifying'
-    : `check ${String(running + 1)} of ${String(steps.length)}`;
-}
-
-const STATUS_WORDS: Readonly<Record<ImprovementStatus, Words>> = {
-  created: waitingWords,
-  analyzing: () => 'analyzing',
-  generating: (improvement) => `${attemptWords(improvement)}, writing a test`,
-  waiting_for_limit: waitingWords,
-  verifying: (improvement) =>
-    `${attemptWords(improvement)}, ${checkWords(improvement)}`,
-  awaiting_approval: () => 'approve the patch',
-  publishing: () => 'publishing',
+/** A row has no room for an address or a code: a number and a sentence. */
+const RESULT_WORDS: ResultWords = {
   completed: ({ pullRequest }) =>
     pullRequest === null
       ? 'published'
       : `pull request #${String(pullRequest.number)}`,
   failed: ({ failure }) => failure?.message ?? 'failed',
-  cancelled: ({ cancelledAt }, timeZone) =>
-    cancelledAt === null
-      ? 'cancelled'
-      : `cancelled at ${clockWords(cancelledAt, timeZone)}`,
   skipped: ({ skip }) => skip?.message ?? 'skipped',
 };
 
@@ -131,11 +98,7 @@ export function besideWords(
   improvement: Improvement,
   timeZone: string,
 ): string {
-  const words =
-    improvement.waitingFor === null
-      ? STATUS_WORDS[improvement.status]
-      : waitingWords;
-  return words(improvement, timeZone);
+  return besideStatusWords(improvement, timeZone, RESULT_WORDS);
 }
 
 /** The moment its age is told from: how long it has run, or since when. */

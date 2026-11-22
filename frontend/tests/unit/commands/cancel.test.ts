@@ -30,7 +30,7 @@ describe('cancel', () => {
         { method: 'cancelImprovement', arguments: ['improvement-retry'] },
       ]);
       expect(io.printed).toEqual([
-        '■ CANCEL  improvement-retry  src/core/retry.ts  4m  cancelled 4m ago',
+        '■ CANCEL  improvement-retry  src/core/retry.ts  4m  cancelled at 14:01',
       ]);
     });
 

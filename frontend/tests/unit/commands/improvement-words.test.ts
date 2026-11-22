@@ -32,7 +32,7 @@ describe('statusWords', () => {
     [BY_STATUS.analyzing, '⠋ RUN  analyzing'],
     [BY_STATUS.generating, '⠋ RUN  attempt 2 of 3, writing a test'],
     [BY_STATUS.waiting_for_limit, '○ WAIT  waits for the limit until 16:00'],
-    [BY_STATUS.verifying, '⠋ RUN  attempt 2 of 3, checking the patch'],
+    [BY_STATUS.verifying, '⠋ RUN  attempt 2 of 3, check 5 of 7'],
     [BY_STATUS.awaiting_approval, '? REVIEW  approve the patch'],
     [BY_STATUS.publishing, '⠋ RUN  publishing'],
     [
@@ -44,7 +44,7 @@ describe('statusWords', () => {
       BY_STATUS.skipped,
       '– SKIP  The fresh measurement is already above the threshold. (threshold_met)',
     ],
-    [BY_STATUS.cancelled, '■ CANCEL  cancelled 4m ago'],
+    [BY_STATUS.cancelled, '■ CANCEL  cancelled at 14:01'],
   ])('should say %o as the status table does', (improvement, words) => {
     expect(statusWords(improvement, IO)).toBe(words);
   });
@@ -58,7 +58,7 @@ describe('statusWords', () => {
       [{ ...BY_STATUS.completed, pullRequest: null }, '✓ DONE'],
       [{ ...BY_STATUS.failed, failure: null }, '✕ FAIL'],
       [{ ...BY_STATUS.skipped, skip: null }, '– SKIP'],
-      [{ ...BY_STATUS.cancelled, cancelledAt: null }, '■ CANCEL'],
+      [{ ...BY_STATUS.cancelled, cancelledAt: null }, '■ CANCEL  cancelled'],
     ])('should say only what it knows of %o', (improvement, words) => {
       expect(statusWords(improvement, IO)).toBe(words);
     });

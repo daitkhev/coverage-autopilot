@@ -80,6 +80,79 @@ export function waitWords(
   return `for ${what}${until}`;
 }
 
+type Beside = (improvement: Improvement, timeZone: string) => string;
+
+/**
+ * The statuses whose words differ by place: a command prints the address
+ * and the code for scripts, and a row of a list has no room for them.
+ */
+type ResultStatus = Extract<
+  ImprovementStatus,
+  'completed' | 'failed' | 'skipped'
+>;
+
+/** How a place says the result of an improvement beside its status. */
+export type ResultWords = Readonly<
+  Record<ResultStatus, (improvement: Improvement) => string>
+>;
+
+/** The attempt that runs, of those the budget allows: `attempt 2 of 3`. */
+function ofBudget({ usage, budget }: Improvement): string {
+  return `attempt ${String(usage.attempts)} of ${String(budget.attempts)}`;
+}
+
+/** Which of the checks runs, counted in the steps the service wrote. */
+function checkWords({ progress }: Improvement): string {
+  const steps = progress?.steps ?? [];
+  const running = steps.findIndex((step) => step.status === 'running');
+  return running === -1
+    ? 'verifying'
+    : `check ${String(running + 1)} of ${String(steps.length)}`;
+}
+
+/** What a waiting improvement needs: the user's approval, or its wait. */
+const waiting: Beside = (improvement, timeZone) =>
+  improvement.waitingFor === 'approval'
+    ? 'approve the patch'
+    : `waits ${waitWords(improvement, timeZone)}`;
+
+/** What is said alike in every place, as the status table says it. */
+const ALIKE: Readonly<
+  Record<Exclude<ImprovementStatus, ResultStatus>, Beside>
+> = {
+  created: waiting,
+  analyzing: () => 'analyzing',
+  generating: (improvement) => `${ofBudget(improvement)}, writing a test`,
+  waiting_for_limit: waiting,
+  verifying: (improvement) =>
+    `${ofBudget(improvement)}, ${checkWords(improvement)}`,
+  awaiting_approval: () => 'approve the patch',
+  publishing: () => 'publishing',
+  cancelled: ({ cancelledAt }, timeZone) =>
+    cancelledAt === null
+      ? 'cancelled'
+      : `cancelled at ${clockWords(cancelledAt, timeZone)}`,
+};
+
+/**
+ * What stands beside the status of an improvement: what it waits for, how
+ * far it has come, or how it ended. What it waits for wins over its status.
+ */
+export function besideStatusWords(
+  improvement: Improvement,
+  timeZone: string,
+  results: ResultWords,
+): string {
+  if (improvement.waitingFor !== null) {
+    return waiting(improvement, timeZone);
+  }
+  const words: Readonly<Record<ImprovementStatus, Beside>> = {
+    ...ALIKE,
+    ...results,
+  };
+  return words[improvement.status](improvement, timeZone);
+}
+
 /** A refused step of the access check stops the work, so it is red. */
 export const ACCESS_CHECK_STATUS: Readonly<
   Record<AccessCheckStatus, StatusLook>

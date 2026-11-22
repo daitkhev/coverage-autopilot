@@ -38,13 +38,13 @@ describe('list', () => {
         "example/payments  ⠋ RUN     improvement-entries   src/ledger/entries.ts    1s   analyzing",
         "example/payments  ⠋ RUN     improvement-tax       src/billing/tax.ts       1s   attempt 2 of 3, writing a test",
         "example/payments  ○ WAIT    improvement-discount  src/billing/discount.ts  1s   waits for the limit until 16:00",
-        "example/payments  ⠋ RUN     improvement-invoice   src/billing/invoice.ts   1s   attempt 2 of 3, checking the patch",
+        "example/payments  ⠋ RUN     improvement-invoice   src/billing/invoice.ts   1s   attempt 2 of 3, check 5 of 7",
         "example/payments  ? REVIEW  improvement-sum       src/billing/sum.ts       3h   approve the patch",
         "example/payments  ⠋ RUN     improvement-rounding  src/billing/rounding.ts  1s   publishing",
         "example/payments  ✓ DONE    improvement-currency  src/billing/currency.ts  45m  https://github.com/example/payments/pull/131",
         "example/payments  ✕ FAIL    improvement-webhook   src/api/webhook.ts       1s   3 attempts were rejected. (budget_exhausted)",
         "example/payments  – SKIP    improvement-ids       src/ids.ts               30s  The fresh measurement is already above the threshold. (threshold_met)",
-        "example/payments  ■ CANCEL  improvement-retry     src/core/retry.ts        4m   cancelled 4m ago",
+        "example/payments  ■ CANCEL  improvement-retry     src/core/retry.ts        4m   cancelled at 14:01",
       ]
     `);
     expect(io.said).toEqual([]);

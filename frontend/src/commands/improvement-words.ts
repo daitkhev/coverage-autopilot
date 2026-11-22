@@ -3,7 +3,6 @@ import type {
   VerificationReport,
 } from '@coverage-autopilot/api-contracts/attempts';
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
-import type { ImprovementStatus } from '@coverage-autopilot/api-contracts/statuses';
 
 import { type Cells, labelled } from '#commands/columns';
 import type { CommandIo } from '#commands/command-io';
@@ -13,7 +12,9 @@ import { ageWords } from '#theme/moments';
 import {
   ATTEMPT_VERDICT,
   attemptLook,
+  besideStatusWords,
   IMPROVEMENT_STATUS,
+  type ResultWords,
   unjudgedWords,
   waitWords,
 } from '#theme/status';
@@ -29,35 +30,18 @@ export function attemptLabel(improvement: Improvement): string {
   return `attempt ${String(improvement.usage.attempts)}`;
 }
 
-const ofBudget: Words = (improvement) =>
-  `${attemptLabel(improvement)} of ${String(improvement.budget.attempts)}`;
-
-/** What stands beside the status of an improvement, as the status table says. */
-const BESIDE: Readonly<Record<ImprovementStatus, Words>> = {
-  created: (improvement, io) => `waits ${waitingWords(improvement, io)}`,
-  analyzing: () => 'analyzing',
-  generating: (improvement, io) =>
-    `${ofBudget(improvement, io)}, writing a test`,
-  waiting_for_limit: (improvement, io) =>
-    `waits ${waitingWords(improvement, io)}`,
-  verifying: (improvement, io) =>
-    `${ofBudget(improvement, io)}, checking the patch`,
-  awaiting_approval: () => 'approve the patch',
-  publishing: () => 'publishing',
+/** A script reads the address of a pull request and the code of a reason. */
+const RESULT_WORDS: ResultWords = {
   completed: (improvement) => improvement.pullRequest?.url ?? '',
   failed: (improvement) =>
     improvement.failure === null ? '' : reasonText(improvement.failure),
-  cancelled: (improvement, io) =>
-    improvement.cancelledAt === null
-      ? ''
-      : `cancelled ${ageWords(improvement.cancelledAt, io.session.now())} ago`,
   skipped: (improvement) =>
     improvement.skip === null ? '' : reasonText(improvement.skip),
 };
 
 /** What stands beside the status: the next step, the reason or the result. */
 export const besideWords: Words = (improvement, io) =>
-  BESIDE[improvement.status](improvement, io);
+  besideStatusWords(improvement, io.session.timeZone, RESULT_WORDS);
 
 /** The status of an improvement with what stands beside it: `✓ DONE  url`. */
 export function statusWords(improvement: Improvement, io: CommandIo): string {
