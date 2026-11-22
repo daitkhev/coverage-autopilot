@@ -134,8 +134,7 @@ export function useBrowser({
         selection.first();
       },
       filter: filter.start,
-      focus: ring.focus,
-      next: ring.next,
+      ring,
       openWork: onOpenImprovement,
       improve: dialog.open,
       back: onBack,

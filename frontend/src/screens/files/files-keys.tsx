@@ -5,6 +5,8 @@ import type {
 } from '@coverage-autopilot/api-contracts/snapshots';
 
 import type { KeyHint } from '#components/key-hints';
+import { browseKeysOf } from '#hooks/list-keys';
+import type { FocusRing } from '#hooks/use-focus-ring';
 import type { KeyHandlers } from '#hooks/use-keys';
 import type { Selection } from '#hooks/use-selection';
 import type { Layout } from '#theme/widths';
@@ -24,31 +26,15 @@ export interface FilesActions {
   readonly selection: Selection;
   readonly showList: (by: number) => void;
   readonly filter: () => void;
-  readonly focus: (panel: FilesPanel) => void;
-  readonly next: () => void;
+  readonly ring: FocusRing<FilesPanel>;
   readonly openWork: (improvementId: string) => void;
   readonly improve: (file: MeasuredFile) => void;
   readonly back: () => void;
 }
 
-function listKeys(actions: FilesActions): KeyHandlers {
-  const { selection } = actions;
-  const by = (rows: number) => (): void => {
-    selection.moveBy(rows);
-  };
+/** The keys that choose which files the list shows. */
+function choiceKeys(actions: FilesActions): KeyHandlers {
   return {
-    up: by(-1),
-    k: by(-1),
-    down: by(1),
-    j: by(1),
-    pgup: () => {
-      selection.pageBy(-1);
-    },
-    pgdn: () => {
-      selection.pageBy(1);
-    },
-    g: selection.first,
-    G: selection.last,
     '[': () => {
       actions.showList(-1);
     },
@@ -90,21 +76,6 @@ function fileKeys(state: FilesKeysState, actions: FilesActions): KeyHandlers {
   };
 }
 
-/** The keys that act on the chosen file and the panels, from either panel. */
-function itemKeys(state: FilesKeysState, actions: FilesActions): KeyHandlers {
-  return {
-    tab: actions.next,
-    right: () => {
-      actions.focus('details');
-    },
-    left: () => {
-      actions.focus('list');
-    },
-    esc: actions.back,
-    ...fileKeys(state, actions),
-  };
-}
-
 /**
  * The keys of the screen. The list moves only while it has the focus; the
  * keys of the chosen file work from both panels. `enter` opens the work
@@ -115,9 +86,12 @@ export function filesKeys(
   state: FilesKeysState,
   actions: FilesActions,
 ): KeyHandlers {
-  return state.focused === 'list'
-    ? { ...listKeys(actions), ...itemKeys(state, actions) }
-    : itemKeys(state, actions);
+  return {
+    ...browseKeysOf(actions.selection, actions.ring),
+    ...(state.focused === 'list' ? choiceKeys(actions) : {}),
+    esc: actions.back,
+    ...fileKeys(state, actions),
+  };
 }
 
 /** At 80 columns `→` opens the chosen file in place of the list. */
