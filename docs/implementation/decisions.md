@@ -1801,3 +1801,80 @@ fails the improvement as an exposed credential and keeps its tokens.
 - Where: `backend/src/modules/coverage/infrastructure/detection/source-file-list.ts`,
   `readCoverage` in
   `backend/src/modules/coverage/application/commands/run-tests/test-execution.ts`.
+
+### The tests of a repository may fail in the sandbox
+
+- A repository whose tests fail in the sandbox, such as tests that need
+  the network, could not be improved. The mutation tool runs every test
+  before it mutates anything and stops when one fails, so the analysis
+  ended as `mutation_unsupported`, which named the wrong cause.
+- `AUTOPILOT_BASELINE_TESTS` is `may_fail`, the default, or `must_pass`.
+  The service refuses to start with any other word. It reaches the gate
+  as `gate.baselineTests`.
+- A failing test is named the same way for both runners, from the JSON
+  report they share: its file, a path as git stores it, and its full
+  name, every `describe` and then the test, as plain text without the
+  path of the copy and not cut. A file that failed with no failed test
+  failed to run, and counts as one test with no name. The baseline keeps
+  them as `failingTests`: version 2 of its stored document. A version 1
+  baseline reads as none when its tests passed and as not known when
+  they did not.
+- With `must_pass` one failing test ends the improvement at its
+  analysis with `existing_tests_fail`, and a message such as `33 of 53
+  tests of the repository fail in the sandbox. The first is "feed > reads
+  the feed" in tests/feed.test.ts.` A run that failed and named no test
+  ends the same way under either setting, since nothing can be left out.
+- With `may_fail` the checks of a patch are:
+  - `test_files_only`, `type_check`, `new_tests_pass`, `repeated_runs`
+    and `coverage_increase` as before. Both runners write coverage after
+    a failure, Vitest by `--coverage.reportOnFailure=true` and Jest on its
+    own, and the coverage check compares the numbers of a full run in
+    which a test failed.
+  - `existing_tests_pass` fails only on a test that fails with the patch
+    and did not fail before it. A file that failed to run before leaves
+    all its tests out. It passes with `Left out: 2 that failed before the
+    patch.` A run that failed and named no test fails it. The failure the
+    generator hears is kept only when it is about a test the patch broke.
+    A baseline whose tests passed is judged as before, and one that timed
+    out, or a version 1 baseline whose tests failed, makes the check
+    `not_applicable` as before.
+  - `mutation_gain` is skipped only when the full run fails beyond what
+    failed before. Each file with a failing test goes to StrykerJS as an
+    ignore pattern, `/` and the path written as a pattern of itself, so
+    it is not copied into the sandbox of the tool and no runner, Jest or
+    Vitest, finds it. The baseline run and the run with a patch leave out
+    the same files.
+  - With `allowEmpty` the tool ends well and writes no report when no
+    test is left. A second run then has the command runner of the tool
+    run `exit 0`, with no coverage analysis and no incremental file, and
+    lists every mutant as survived. They are read as `no_coverage`, with
+    the same set hash as a run with tests, the runner of the request as
+    the runner of the tool, and no cache.
+- A scan completes with failing tests, and its snapshot counts the tests
+  that ran and failed: `tests` of a snapshot, `null` in an older one. The
+  document of the unmeasured files is version 2 for it, and version 1
+  reads as `null`. The client says `33 of 53 tests fail in the sandbox`
+  in the details of a repository, on a line below the repository above
+  its files, in the notes of `repo list` and after the totals of `scan
+  --wait`.
+- No migration: what is new lives in the stored documents, which carry
+  their versions, and the reason of a failure is a column of text with no
+  check. The contract gained `tests` on the summary of a snapshot, a
+  strict object, and the reason `existing_tests_fail`. `CONTRACT_VERSION`
+  was not raised here: owed.
+- Not proven without a real container:
+  - That the ignore pattern keeps a file away from the Jest runner of
+    StrykerJS as it does from the Vitest one.
+  - That the command runner runs `exit 0` through the shell of the image,
+    and that its report files its one test under no file, which is not
+    read.
+  - That tests which need the network fail with a report that names
+    them, and that coverage is written in the image after they fail.
+- Where:
+  `backend/src/modules/verification/application/commands/measure-baseline/baseline-tests.ts`,
+  `backend/src/modules/verification/application/failing-tests.ts`,
+  `backend/src/modules/verification/application/commands/verify-patch/checks/existing-tests-check.ts`,
+  `backend/src/modules/verification/infrastructure/mutation/stryker-configuration.ts`,
+  `backend/src/modules/verification/infrastructure/mutation/stryker-mutation-runner.adapter.ts`,
+  `backend/src/modules/coverage/infrastructure/reports/test-outcomes.ts`,
+  `frontend/src/theme/counts.ts`.
