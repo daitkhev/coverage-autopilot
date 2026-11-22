@@ -20,10 +20,15 @@ import {
   SHORT_HASH,
 } from '#screens/improvement/improvement-words';
 import { countWords } from '#theme/counts';
-import { BAR_CELLS } from '#theme/widths';
 
 /** The cells of the name of a fact, as "Generator". */
-const LABEL_CELLS = 11;
+const LABEL_CELLS = 10;
+
+/**
+ * A bar that leaves room for its numbers in the narrower of two panels,
+ * where "28 of 30 min" follows it.
+ */
+const FACT_BAR_CELLS = 8;
 const SECONDS_PER_MINUTE = 60;
 
 /** The counters of the file before the work, as the mock-ups name them. */
@@ -64,7 +69,7 @@ function Used({
 }): ReactNode {
   const { budget, usage } = improvement;
   const minutes = Math.floor(usage.seconds / SECONDS_PER_MINUTE);
-  const cells = BAR_CELLS.list;
+  const cells = FACT_BAR_CELLS;
   return (
     <Section title="USED">
       <Fact label="Attempts">
@@ -124,7 +129,7 @@ function Baseline({
           <CoverageBar
             coverage={counterCoverage(before[counter])}
             threshold={threshold}
-            cells={BAR_CELLS.list}
+            cells={FACT_BAR_CELLS}
           />
         </Fact>
       ))}
@@ -168,7 +173,7 @@ function Target({ improvement, repository, threshold }: FactsProps): ReactNode {
   return (
     <Section title="TARGET">
       <Fact label="File">
-        <RoleText>{improvement.targetFile}</RoleText>
+        <RoleText truncate>{improvement.targetFile}</RoleText>
       </Fact>
       <Fact label="Commit">
         <RoleText>{`${commit} on ${repository.defaultBranch}`}</RoleText>
