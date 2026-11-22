@@ -5,6 +5,7 @@ import type {
   AccessCheckStatus,
   FileState,
   GenerationOutcome,
+  GeneratorCli,
   ImprovementStatus,
   ScanStatus,
   StepStatus,
@@ -140,6 +141,11 @@ export const GENERATION_OUTCOME: Readonly<Record<GenerationOutcome, string>> = {
   window_exhausted: 'the window of the subscription ran out',
   quota_exhausted: 'the quota of the generator ran out',
   credential_exposed: 'its output showed a credential and was thrown away',
+};
+
+/** The name of the generator as people know it. */
+export const GENERATOR_WORDS: Readonly<Record<GeneratorCli, string>> = {
+  claude_code: 'Claude Code',
 };
 
 /** Why an attempt has no verdict; with no outcome, no test was written. */

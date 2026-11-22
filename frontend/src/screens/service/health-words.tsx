@@ -5,15 +5,12 @@ import type {
   ToolVersion,
   WorkerState,
 } from '@coverage-autopilot/api-contracts/health';
-import type {
-  Billing,
-  GeneratorCli,
-} from '@coverage-autopilot/api-contracts/statuses';
+import type { Billing } from '@coverage-autopilot/api-contracts/statuses';
 
 import type { Fact } from '#components/fact-line';
 import { countWords, percentWords } from '#theme/counts';
 import { ageWords, clockWords, durationWords, elapsedMs } from '#theme/moments';
-import type { StatusLook } from '#theme/status';
+import { GENERATOR_WORDS, type StatusLook } from '#theme/status';
 
 /** The moment now and the zone of the user, for every age and time. */
 export interface Moment {
@@ -38,10 +35,6 @@ export const UNKNOWN: Fact = {
 
 const FOUND = { name: 'passed', role: 'success' } as const;
 const WRONG = { name: 'attention', role: 'warning' } as const;
-
-const GENERATOR_WORDS: Readonly<Record<GeneratorCli, string>> = {
-  claude_code: 'Claude Code',
-};
 
 const BILLING_WORDS: Readonly<Record<Billing, string>> = {
   subscription: 'a subscription',

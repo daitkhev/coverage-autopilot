@@ -1,5 +1,4 @@
 import type {
-  GeneratorCli,
   ImprovementFailureReason,
   ImprovementStatus,
   SkipReason,
@@ -75,11 +74,6 @@ export const FAILURE_WORDS: Readonly<
 export const SKIP_WORDS: Readonly<Record<SkipReason, string>> = {
   threshold_met: 'The file is already above the threshold',
   no_undetected_mutants: 'The tests already detect every mutant',
-};
-
-/** The name of the generator as people know it. */
-export const GENERATOR_WORDS: Readonly<Record<GeneratorCli, string>> = {
-  claude_code: 'Claude Code',
 };
 
 /** The cells of a short commit or hash, as git prints it. */

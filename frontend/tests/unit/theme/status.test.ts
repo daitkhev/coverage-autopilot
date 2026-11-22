@@ -5,6 +5,7 @@ import {
   accessCheckStatusSchema,
   fileStateSchema,
   generationOutcomeSchema,
+  generatorCliSchema,
   improvementStatusSchema,
   scanStatusSchema,
   stepStatusSchema,
@@ -21,6 +22,7 @@ import {
   CHECK_STATUS,
   FILE_STATE,
   GENERATION_OUTCOME,
+  GENERATOR_WORDS,
   IMPROVEMENT_STATUS,
   NO_VERDICT,
   SCAN_STATUS,
@@ -83,6 +85,11 @@ const CONTRACT = [
     table: 'GENERATION_OUTCOME',
     rows: GENERATION_OUTCOME,
     schema: generationOutcomeSchema,
+  },
+  {
+    table: 'GENERATOR_WORDS',
+    rows: GENERATOR_WORDS,
+    schema: generatorCliSchema,
   },
   {
     table: 'ACCESS_STEP_WORDS',

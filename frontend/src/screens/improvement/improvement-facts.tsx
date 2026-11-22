@@ -15,11 +15,9 @@ import {
   acceptedOf,
   baselineOf,
 } from '#screens/improvement/improvement-answer';
-import {
-  GENERATOR_WORDS,
-  SHORT_HASH,
-} from '#screens/improvement/improvement-words';
+import { SHORT_HASH } from '#screens/improvement/improvement-words';
 import { countWords } from '#theme/counts';
+import { GENERATOR_WORDS } from '#theme/status';
 
 /** The cells of the name of a fact, as "Generator". */
 const LABEL_CELLS = 10;
