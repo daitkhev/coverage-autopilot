@@ -1347,5 +1347,17 @@ fails the improvement as an exposed credential and keeps its tokens.
   outlives its program.
 - Why a test did not find it: the stand-in of the engine started no
   program of its own.
+- The CLI logged in inside the container with a token of a subscription
+  and answered one turn in under a second. The token was in no line of
+  the log.
+- The first real improvement ended as `mutation_unsupported` before the
+  generator was called. Each runner of the mutation tool starts only the
+  tests related to the mutated file, and a file nobody tested has none,
+  so the tool ran no test and stopped. Seen with Vitest 4 and with
+  Jest 30. The configuration tells both runners to run every test now.
+- Owed: the mutation tool ends its test runners through `ps`, and the
+  default image of a sandbox has none. A run that got past its first
+  test run ended there with no report. An image with `ps` in it passed.
 - Where: `backend/src/shared/infrastructure/processes/kill-group.ts`,
-  `backend/src/shared/infrastructure/sandbox/engine-process.ts`.
+  `backend/src/shared/infrastructure/sandbox/engine-process.ts`,
+  `backend/src/modules/verification/infrastructure/mutation/stryker-configuration.ts`.
