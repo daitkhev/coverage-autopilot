@@ -4,6 +4,7 @@ import type {
 } from '@coverage-autopilot/api-contracts/health';
 
 import type { ServiceAnswer } from '#api/service-api';
+import { faultWords } from '#components/problem-details';
 import type { ActionState } from '#hooks/use-action';
 
 /** Where the request to stop the service stands. */
@@ -27,10 +28,6 @@ export function restartBlockOf(
   return scans > 0 || improvements > 0
     ? 'after the running work ends'
     : undefined;
-}
-
-function faultWords(fault: unknown): string {
-  return fault instanceof Error ? fault.message : String(fault);
 }
 
 /** What just happened to the request to stop, for the line of notices. */

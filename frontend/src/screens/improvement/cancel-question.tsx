@@ -9,6 +9,7 @@ import type { Answer } from '#components/answer-list';
 import { Dialog } from '#components/dialog';
 import { Glyph } from '#components/glyph';
 import type { KeyHint } from '#components/key-hints';
+import { faultWords } from '#components/problem-details';
 import { RoleText } from '#components/role-text';
 import { type ActionState, useAction } from '#hooks/use-action';
 import { countWords } from '#theme/counts';
@@ -30,10 +31,6 @@ const HINTS: readonly KeyHint[] = [
 
 const TOKENS = new Intl.NumberFormat('en');
 
-function failureWords(failure: unknown): string {
-  return failure instanceof Error ? failure.message : String(failure);
-}
-
 type Cancelling = ActionState<ServiceAnswer<Improvement>>;
 
 /** What the service said to the cancel, while it is not yet done. */
@@ -50,7 +47,7 @@ function Outcome({ state }: { readonly state: Cancelling }): ReactNode {
       );
     case 'failed':
       return (
-        <RoleText role="danger">{`Nothing answered the cancel: ${failureWords(state.failure)}`}</RoleText>
+        <RoleText role="danger">{`Nothing answered the cancel: ${faultWords(state.failure)}`}</RoleText>
       );
     case 'ended':
       return state.outcome.outcome === 'refused' ? (

@@ -9,6 +9,7 @@ import type { ServiceAnswer } from '#api/service-api';
 import { AccessSteps } from '#components/access-steps';
 import { ErrorDetails } from '#components/error-details';
 import { Glyph } from '#components/glyph';
+import { faultWords } from '#components/problem-details';
 import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
 import type { ActionState } from '#hooks/use-action';
@@ -39,11 +40,6 @@ export function stageOf(state: ActionState<ServiceAnswer<StartFacts>>): Stage {
   return answer.value.access.passed
     ? { kind: 'ready', facts: answer.value }
     : { kind: 'blocked', access: answer.value.access };
-}
-
-/** The words of a failure a request threw, which may be no error at all. */
-function failureWords(failure: unknown): string {
-  return failure instanceof Error ? failure.message : String(failure);
 }
 
 /** One line that says what went wrong, with the stable code beside it. */
@@ -126,7 +122,7 @@ export function StartOutcome({
     case 'failed':
       return (
         <Problem
-          sentence={`Nothing answered the start: ${failureWords(state.failure)} Press enter to try again.`}
+          sentence={`Nothing answered the start: ${faultWords(state.failure)} Press enter to try again.`}
         />
       );
     case 'ended':
@@ -150,7 +146,7 @@ export function StageContent({
     case 'unanswered':
       return (
         <Problem
-          sentence={`The service did not answer: ${failureWords(stage.failure)}`}
+          sentence={`The service did not answer: ${faultWords(stage.failure)}`}
         />
       );
     case 'refused':

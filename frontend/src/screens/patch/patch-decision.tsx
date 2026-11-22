@@ -8,6 +8,7 @@ import type { ServiceAnswer, ServiceApi } from '#api/service-api';
 import { type Answer, AnswerList } from '#components/answer-list';
 import { Glyph } from '#components/glyph';
 import { Panel } from '#components/panel';
+import { faultWords } from '#components/problem-details';
 import { RoleText } from '#components/role-text';
 import type { ActionState } from '#hooks/use-action';
 import { repositoryName } from '#theme/names';
@@ -87,10 +88,6 @@ export function wasChanged(state: ActionState<Decided>): boolean {
   );
 }
 
-function failureWords(failure: unknown): string {
-  return failure instanceof Error ? failure.message : String(failure);
-}
-
 /** The decision on its way, or a refusal that the notice does not say. */
 function Outcome({
   state,
@@ -107,7 +104,7 @@ function Outcome({
   }
   if (state.phase === 'failed') {
     return (
-      <RoleText role="danger">{`Nothing answered the decision: ${failureWords(state.failure)}`}</RoleText>
+      <RoleText role="danger">{`Nothing answered the decision: ${faultWords(state.failure)}`}</RoleText>
     );
   }
   const reply = state.phase === 'ended' ? state.outcome.reply : undefined;

@@ -2,6 +2,7 @@ import { type RefObject, useRef, useState } from 'react';
 
 import type { ClientSession } from '#api/client-session';
 import { newRequestKey } from '#api/request-key';
+import { faultWords } from '#components/problem-details';
 
 /**
  * A scan this screen asked for: on its way to the service, or queued
@@ -26,10 +27,6 @@ interface ScanStartOptions {
   /** The number of the last list request started. */
   readonly asked: RefObject<number>;
   readonly onNotice: (notice: string) => void;
-}
-
-function faultWords(fault: unknown): string {
-  return fault instanceof Error ? fault.message : String(fault);
 }
 
 /**

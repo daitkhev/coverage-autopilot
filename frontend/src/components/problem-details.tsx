@@ -74,6 +74,11 @@ const REFUSED: StatusLook = {
 /** A fault is failed work of the client, so it is red. */
 const FAULT: StatusLook = { glyph: 'failed', word: 'fault', role: 'danger' };
 
+/** What a fault says, which may be no error at all. */
+export function faultWords(fault: unknown): string {
+  return fault instanceof Error ? fault.message : String(fault);
+}
+
 function saidOf(problem: Problem): Said {
   if (problem.kind === 'refused') {
     return {
@@ -84,10 +89,12 @@ function saidOf(problem: Problem): Said {
     };
   }
   const { fault } = problem;
-  const said = { look: FAULT, heading: 'THE CLIENT SAID' };
-  return fault instanceof Error
-    ? { ...said, code: fault.name, text: fault.message }
-    : { ...said, code: 'fault', text: String(fault) };
+  return {
+    look: FAULT,
+    code: fault instanceof Error ? fault.name : 'fault',
+    heading: 'THE CLIENT SAID',
+    text: faultWords(fault),
+  };
 }
 
 /**
