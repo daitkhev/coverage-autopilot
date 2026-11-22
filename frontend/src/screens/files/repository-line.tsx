@@ -7,7 +7,7 @@ import type { SnapshotSummary } from '@coverage-autopilot/api-contracts/snapshot
 import { CounterPercent } from '#components/coverage-change';
 import { type Fact, FactLine } from '#components/fact-line';
 import { RoleText } from '#components/role-text';
-import { percentWords } from '#theme/counts';
+import { percentWords, thresholdLabel } from '#theme/counts';
 import { ageWords } from '#theme/moments';
 import { repositoryName, shortHash } from '#theme/names';
 import { GAP, type Layout } from '#theme/widths';
@@ -34,11 +34,16 @@ function Total({
   );
 }
 
-/** The totals of the snapshot, the branches only in the wide layout. */
+/**
+ * The totals of the snapshot, the branches only in the wide layout, and
+ * the threshold that split it, marked when the repository has its own.
+ */
 function Totals({
+  repository,
   snapshot,
   layout,
 }: {
+  readonly repository: Repository;
   readonly snapshot: SnapshotSummary;
   readonly layout: Layout;
 }): ReactNode {
@@ -59,7 +64,7 @@ function Totals({
           />
         </Total>
       ) : null}
-      <Total label="threshold">
+      <Total label={thresholdLabel(repository.threshold)}>
         <RoleText role="emphasis">
           {percentWords(threshold.percentage)}
         </RoleText>
@@ -94,7 +99,7 @@ export function RepositoryLine({
           ...(repository.outdated ? [OUTDATED] : []),
         ]}
       />
-      <Totals snapshot={snapshot} layout={layout} />
+      <Totals repository={repository} snapshot={snapshot} layout={layout} />
     </Box>
   );
 }

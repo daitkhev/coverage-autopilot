@@ -9,6 +9,7 @@ import { answered, refused, SAMPLE_NOW } from '#tests/support/fake-service-api';
 import { IMPROVEMENT_LIST } from '#tests/support/sample-improvements';
 import {
   NEVER_SCANNED_REPOSITORY,
+  OWN_THRESHOLD_REPOSITORY,
   PAYMENTS_SNAPSHOTS,
   SCANNED_REPOSITORY,
 } from '#tests/support/sample-repositories';
@@ -50,6 +51,13 @@ describe('RepositoryDetails', () => {
     expect(drawn).toMatch(/Branches +━+─+┼── {3}61\.3%/u);
     expect(drawn).toContain('12 below 80.0% · 30 at or above');
     expect(drawn).toContain('2 not measured · 4 no code');
+  });
+
+  it('should mark a threshold the repository has of its own', () => {
+    const drawn = draw({ repository: OWN_THRESHOLD_REPOSITORY });
+
+    expect(drawn).toContain('own threshold 90.0% of lines');
+    expect(drawn).toContain('20 below 90.0% · 22 at or above');
   });
 
   it('should name the test runner beside the threshold once it is known', () => {

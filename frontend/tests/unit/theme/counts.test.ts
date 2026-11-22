@@ -8,6 +8,7 @@ import {
   countWords,
   percentWords,
   ratioWords,
+  thresholdLabel,
 } from '#theme/counts';
 
 describe('the counters and the contract', () => {
@@ -28,6 +29,15 @@ describe('percentWords', () => {
     [100, '100.0%'],
   ])('should write %f as %s', (percentage, words) => {
     expect(percentWords(percentage)).toBe(words);
+  });
+});
+
+describe('thresholdLabel', () => {
+  it.each([
+    [true, 'threshold'],
+    [false, 'own threshold'],
+  ])('should mark only a threshold of its own', (isDefault, words) => {
+    expect(thresholdLabel({ isDefault })).toBe(words);
   });
 });
 

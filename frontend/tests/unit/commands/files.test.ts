@@ -56,13 +56,13 @@ describe('files', () => {
 
     expect(io.printed).toMatchInlineSnapshot(`
       [
-        "src/billing/invoice.ts   41.2%  21/51  below",
-        "src/billing/sum.ts       76.3%  29/38  below         ? REVIEW improvement-sum",
-        "src/billing/currency.ts  91.7%  44/48  at or above",
+        "src/billing/invoice.ts   41.2%  21/51  below 80.0%",
+        "src/billing/sum.ts       76.3%  29/38  below 80.0%        ? REVIEW improvement-sum",
+        "src/billing/currency.ts  91.7%  44/48  at or above 80.0%",
         "src/billing/types.ts     0/0           no code",
-        "src/legacy/parser.ts     N/A           not measured  has a syntax error",
-        "src/api/schema.ts        N/A           not measured  is missing from the report",
-        "src/api/webhook.ts       N/A           not measured  was reported without numbers",
+        "src/legacy/parser.ts     N/A           not measured       has a syntax error",
+        "src/api/schema.ts        N/A           not measured       is missing from the report",
+        "src/api/webhook.ts       N/A           not measured       was reported without numbers",
       ]
     `);
     expect(io.said).toEqual([]);
@@ -80,7 +80,9 @@ describe('files', () => {
 
       await files(FILES, io);
 
-      expect(io.printed).toEqual(['src/billing/invoice.ts  25.0%  2/8  below']);
+      expect(io.printed).toEqual([
+        'src/billing/invoice.ts  25.0%  2/8  below 80.0%',
+      ]);
     });
 
     it('should give no percentage where the file has none of that code', async () => {
@@ -102,7 +104,9 @@ describe('files', () => {
 
       await files(FILES, io);
 
-      expect(io.printed).toEqual(['src/billing/invoice.ts    0/0  below']);
+      expect(io.printed).toEqual([
+        'src/billing/invoice.ts    0/0  below 80.0%',
+      ]);
     });
   });
 

@@ -24,6 +24,16 @@ export function percentWords(percentage: number): string {
   return `${percentage.toFixed(1)}%`;
 }
 
+/**
+ * The words before the percent of a threshold. The one a person gave a
+ * repository is marked, so it is not taken for the default.
+ */
+export function thresholdLabel(threshold: {
+  readonly isDefault: boolean;
+}): string {
+  return threshold.isDefault ? 'threshold' : 'own threshold';
+}
+
 /** Covered of the total, as `12/30`. */
 export function ratioWords(covered: number, total: number): string {
   return `${String(covered)}/${String(total)}`;

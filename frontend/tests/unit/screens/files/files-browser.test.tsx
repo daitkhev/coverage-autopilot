@@ -1,6 +1,8 @@
 import { cleanup } from 'ink-testing-library';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
+
 import type { ServiceApi } from '#api/service-api';
 import { FilesBrowser } from '#screens/files/files-browser';
 import { answered, fakeSession } from '#tests/support/fake-service-api';
@@ -16,6 +18,7 @@ import {
 import {
   ACCESS_PASSED,
   BUDGET_SETTINGS,
+  OWN_THRESHOLD_REPOSITORY,
   PAYMENTS_SNAPSHOT,
   SCANNED_REPOSITORY,
 } from '#tests/support/sample-repositories';
@@ -33,6 +36,7 @@ const PREFLIGHT: Partial<ServiceApi> = {
 function browsing(
   scripted: Partial<ServiceApi> = PREFLIGHT,
   size: TerminalSize = WIDE,
+  repository: Repository = SCANNED_REPOSITORY,
 ): {
   readonly terminal: ReturnType<typeof renderAt>;
   readonly log: string[];
@@ -47,8 +51,8 @@ function browsing(
     <FilesBrowser
       session={fakeSession(scripted)}
       frame={frame}
-      repository={SCANNED_REPOSITORY}
-      snapshot={PAYMENTS_SNAPSHOT}
+      repository={repository}
+      snapshot={repository.latestSnapshot ?? PAYMENTS_SNAPSHOT}
       files={PAYMENTS_FILES}
       freshness={FRESH_ANSWER}
       onOpenImprovement={noted.onOpenImprovement}
@@ -67,6 +71,21 @@ function rowsNaming(frame: string, path: string): string[] {
 afterEach(cleanup);
 
 describe('FilesBrowser', () => {
+  it('should show the threshold the files were judged by beside the totals', () => {
+    const { terminal } = browsing();
+
+    expect(frameOf(terminal)).toContain('threshold 80.0%');
+    expect(frameOf(terminal)).not.toContain('own threshold');
+  });
+
+  describe('when the repository has a threshold of its own', () => {
+    it('should mark it beside the totals', () => {
+      const { terminal } = browsing(PREFLIGHT, WIDE, OWN_THRESHOLD_REPOSITORY);
+
+      expect(frameOf(terminal)).toContain('own threshold 90.0%');
+    });
+  });
+
   it('should move the chosen row and show it on the right', async () => {
     const { terminal } = browsing();
 

@@ -2,6 +2,7 @@ import { Box } from 'ink';
 import type { ReactNode } from 'react';
 
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
+import type { RepositoryThreshold } from '@coverage-autopilot/api-contracts/repositories';
 import type {
   ScanParameters,
   SnapshotSummary,
@@ -24,7 +25,12 @@ import {
   rowStateOf,
   runnerWords,
 } from '#screens/repositories/repository-words';
-import { COUNTER_NAMES, COUNTERS, percentWords } from '#theme/counts';
+import {
+  COUNTER_NAMES,
+  COUNTERS,
+  percentWords,
+  thresholdLabel,
+} from '#theme/counts';
 import { ageWords } from '#theme/moments';
 import { IMPROVEMENT_STATUS } from '#theme/status';
 import { GAP } from '#theme/widths';
@@ -47,23 +53,32 @@ interface RepositoryDetailsProps {
   readonly parameters?: ScanParameters | undefined;
 }
 
-/** What the counters are held to, and the test runner that measured them. */
+/**
+ * What the counters are held to, marked when the repository has one of
+ * its own, and the test runner that measured them.
+ */
 function measuredFacts(
-  { percentage, metric }: SnapshotSummary['threshold'],
+  threshold: RepositoryThreshold,
   parameters: ScanParameters | undefined,
 ): Fact[] {
+  const { percentage, metric } = threshold;
   return [
-    { text: `threshold ${percentWords(percentage)} of ${metric}` },
+    {
+      text: `${thresholdLabel(threshold)} ${percentWords(percentage)} of ${metric}`,
+    },
     ...(parameters === undefined ? [] : [{ text: runnerWords(parameters) }]),
   ];
 }
 
 function Measured({
   snapshot,
+  judgedBy,
   cells,
   parameters,
 }: {
   readonly snapshot: SnapshotSummary;
+  /** The threshold of the repository, which split the snapshot. */
+  readonly judgedBy: RepositoryThreshold;
   readonly cells: number;
   readonly parameters: ScanParameters | undefined;
 }): ReactNode {
@@ -71,7 +86,7 @@ function Measured({
   return (
     <>
       <Section title="COVERAGE">
-        <FactLine facts={measuredFacts(threshold, parameters)} />
+        <FactLine facts={measuredFacts(judgedBy, parameters)} />
         {COUNTERS.map((metric) => (
           <FactRow key={metric} label={COUNTER_NAMES[metric]}>
             <CoverageBar
@@ -179,7 +194,12 @@ export function RepositoryDetails({
           <NotMeasured scanning={state === 'scanning'} />
         </Box>
       ) : (
-        <Measured snapshot={snapshot} cells={cells} parameters={parameters} />
+        <Measured
+          snapshot={snapshot}
+          judgedBy={repository.threshold}
+          cells={cells}
+          parameters={parameters}
+        />
       )}
       <Section title="WORK">
         <Work items={workItemsOf(work, repository.id)} now={now} />
