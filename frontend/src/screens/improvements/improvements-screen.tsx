@@ -15,6 +15,7 @@ import {
   IMPROVEMENTS_PANELS,
   ImprovementsView,
 } from '#screens/improvements/improvements-view';
+import { ASK_EVERY_MS } from '#theme/moments';
 
 interface ImprovementsScreenProps {
   readonly session: ClientSession;
@@ -22,9 +23,6 @@ interface ImprovementsScreenProps {
   /** `enter`: the screen of one improvement. */
   readonly onOpenImprovement: (improvementId: string) => void;
 }
-
-/** The screen asks the service again about once a second. */
-const ASK_EVERY_MS = 1000;
 
 /**
  * All improvements of all repositories, grouped by what they need. The

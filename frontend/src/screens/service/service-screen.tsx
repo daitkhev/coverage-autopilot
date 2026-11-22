@@ -13,14 +13,12 @@ import { useFocusRing } from '#hooks/use-focus-ring';
 import { useKeys } from '#hooks/use-keys';
 import { restartBlockOf } from '#screens/service/restart';
 import { SERVICE_PANELS, ServiceView } from '#screens/service/service-view';
+import { ASK_EVERY_MS } from '#theme/moments';
 
 interface ServiceScreenProps {
   readonly session: ClientSession;
   readonly frame: ShellFrame;
 }
-
-/** The screen asks the service again about once a second. */
-const ASK_EVERY_MS = 1000;
 
 /**
  * The screen "is everything in order": the health of the service, asked

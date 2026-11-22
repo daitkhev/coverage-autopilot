@@ -38,6 +38,7 @@ import {
   type ScanStarts,
   useScanStarts,
 } from '#screens/repositories/use-scan-starts';
+import { ASK_EVERY_MS } from '#theme/moments';
 import { repositoryName } from '#theme/names';
 
 interface RepositoriesScreenProps {
@@ -46,9 +47,6 @@ interface RepositoriesScreenProps {
   /** `enter`: the files of the latest snapshot of a repository. */
   readonly onOpenFiles: (repositoryId: string) => void;
 }
-
-/** The screen asks the service again about once a second. */
-const ASK_EVERY_MS = 1000;
 
 interface NumberedListing {
   /** The number of the last list request started. */

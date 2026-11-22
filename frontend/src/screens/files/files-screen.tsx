@@ -10,10 +10,8 @@ import { shownOf, UnansweredBody } from '#components/unanswered-body';
 import { useDatedRequest } from '#hooks/use-dated-request';
 import { type FilesView, loadFiles } from '#screens/files/files-answer';
 import { FilesBrowser } from '#screens/files/files-browser';
+import { ASK_EVERY_MS } from '#theme/moments';
 import { repositoryName } from '#theme/names';
-
-/** The screen asks the service again about once a second. */
-const EVERY_MS = 1000;
 
 const PATH = ['Repositories'];
 
@@ -50,7 +48,7 @@ export function FilesScreen(props: FilesScreenProps): ReactNode {
   );
   const request = useDatedRequest(load, {
     now: session.now,
-    everyMs: EVERY_MS,
+    everyMs: ASK_EVERY_MS,
   });
   const shown = shownOf(request, isServiceUnreachable);
   const freshness = { ...request, now: session.now() };

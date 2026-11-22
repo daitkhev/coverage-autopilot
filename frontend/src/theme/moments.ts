@@ -8,6 +8,9 @@ const TWO_DIGITS = 2;
 /** The steps of running work are drawn as old, in yellow, past this age. */
 export const STALE_AFTER_MS = 10_000;
 
+/** A screen asks the service again about once a second. */
+export const ASK_EVERY_MS = SECOND_MS;
+
 interface Unit {
   readonly ms: number;
   readonly suffix: string;

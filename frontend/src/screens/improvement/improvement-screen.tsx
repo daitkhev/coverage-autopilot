@@ -8,9 +8,7 @@ import { shownOf, UnansweredBody } from '#components/unanswered-body';
 import { useDatedRequest } from '#hooks/use-dated-request';
 import { loadImprovement } from '#screens/improvement/improvement-answer';
 import { ImprovementView } from '#screens/improvement/improvement-view';
-
-/** The screen asks the service again about once a second. */
-const EVERY_MS = 1000;
+import { ASK_EVERY_MS } from '#theme/moments';
 
 const PATH = ['Improvements'];
 
@@ -35,7 +33,7 @@ export function ImprovementScreen(props: ImprovementScreenProps): ReactNode {
   );
   const request = useDatedRequest(load, {
     now: session.now,
-    everyMs: EVERY_MS,
+    everyMs: ASK_EVERY_MS,
   });
   const shown = shownOf(request, isServiceUnreachable);
   const freshness = { ...request, now: session.now() };

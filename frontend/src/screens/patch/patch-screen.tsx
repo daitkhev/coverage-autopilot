@@ -8,9 +8,7 @@ import { shownOf, UnansweredBody } from '#components/unanswered-body';
 import { useDatedRequest } from '#hooks/use-dated-request';
 import { loadPatch } from '#screens/patch/patch-answer';
 import { PatchView } from '#screens/patch/patch-view';
-
-/** The screen asks the service again about once a second. */
-const EVERY_MS = 1000;
+import { ASK_EVERY_MS } from '#theme/moments';
 
 const PATH = ['Improvements'];
 
@@ -41,7 +39,7 @@ export function PatchScreen({
   );
   const request = useDatedRequest(load, {
     now: session.now,
-    everyMs: EVERY_MS,
+    everyMs: ASK_EVERY_MS,
   });
   const shown = shownOf(request, isServiceUnreachable);
   const freshness = { ...request, now: session.now() };
