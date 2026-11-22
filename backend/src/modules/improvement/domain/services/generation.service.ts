@@ -17,7 +17,10 @@ import {
   requireStatus,
   touched,
 } from '#improvement/domain/services/status-move.service';
-import type { Generation } from '#improvement/domain/value-objects/generation.vo';
+import type {
+  Generation,
+  GeneratorCall,
+} from '#improvement/domain/value-objects/generation.vo';
 import {
   type FailureReason,
   ImprovementFailure,
@@ -143,6 +146,26 @@ export function afterGeneration(
         at,
       );
   }
+}
+
+/** A call whose output must not be used, and why the improvement fails. */
+export interface UnusableCall {
+  readonly call: GeneratorCall;
+  readonly failure: ImprovementFailure;
+}
+
+/**
+ * An unusable call ends the improvement. What it spent was paid for, so
+ * it is kept with the attempt, and nothing it wrote is.
+ */
+export function failedAfterCall(
+  state: ImprovementState,
+  unusable: UnusableCall,
+  at: Instant,
+): ImprovementState {
+  requireStatus(state, 'generating');
+  const attempt = requireOpenAttempt(state.attempts).withCall(unusable.call);
+  return failed(withChanged(state, attempt), unusable.failure, at);
 }
 
 /** The window opened: the same attempt generates again. */

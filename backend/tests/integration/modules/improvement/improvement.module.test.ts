@@ -20,10 +20,12 @@ import { Sha256RequestHasher } from '#improvement/infrastructure/hashing/sha256-
 import { SqliteImprovementRepository } from '#improvement/infrastructure/persistence/sqlite-improvement.repository';
 import { GENERATOR_TEST_SETTINGS } from '#tests/support/generator-request';
 import {
+  CALL_REPORT,
   patchDtoOf,
   resultOf,
   windowSpent,
 } from '#tests/support/improvement-generation-results';
+import { tamperedCopyFault } from '#tests/support/improvement-handler-fault';
 import {
   type ImprovementWorld,
   improvementWorld,
@@ -167,6 +169,23 @@ describe('ImprovementModule', () => {
     });
   });
 
+  describe('when the generator wrote a .git into its working copy', () => {
+    it('should fail as a credential exposed and count the tokens it was paid', async () => {
+      const { work, copies } = await open();
+      copies.extraction = tamperedCopyFault();
+      const { id } = await start();
+
+      await work();
+
+      expect(await read(id)).toMatchObject({
+        status: 'failed',
+        failure: { reason: 'credential_exposed' },
+        usage: { attempts: 1, tokens: CALL_REPORT.tokensUsed },
+        attempts: [{ generationOutcome: null, patchHash: null }],
+      });
+    });
+  });
+
   describe('when a patch reaches publishing', () => {
     it('should publish byte for byte the text the gate read with the endings of the settings', async () => {
       const { work, gate, publisher } = await open();
@@ -174,23 +193,19 @@ describe('ImprovementModule', () => {
 
       await work();
 
-      const [verified] = gate.requests;
-      expect(verified?.patch.text).toBe(patchDtoOf().text);
-      expect(verified?.testFileSuffixes).toEqual(
-        REQUEST_SETTINGS.testFileSuffixes,
-      );
-      expect(publisher.publications.map(({ patchText }) => patchText)).toEqual([
-        verified?.patch.text,
+      const { text } = patchDtoOf();
+      const { testFileSuffixes } = REQUEST_SETTINGS;
+      expect(gate.requests).toMatchObject([
+        { patch: { text }, testFileSuffixes },
       ]);
+      expect(publisher.publications).toMatchObject([{ patchText: text }]);
     });
   });
 
   describe('when the gate refuses the files of every patch', () => {
     it('should publish none of them', async () => {
       const { work, gate, publisher } = await open();
-      const reason =
-        'The patch adds .gitattributes, whose name does not end like a ' +
-        'test file: .test.ts or .test.tsx.';
+      const reason = 'The patch adds .gitattributes, not a test file.';
       const refused = {
         ...reportPropsOf('rejected'),
         reasons: [reason],

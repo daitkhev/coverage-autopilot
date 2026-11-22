@@ -21,7 +21,9 @@ import {
 } from '#improvement/domain/services/budget-use.service';
 import {
   afterGeneration,
+  failedAfterCall,
   resumed,
+  type UnusableCall,
   withAttemptOpened,
 } from '#improvement/domain/services/generation.service';
 import {
@@ -235,6 +237,11 @@ export class Improvement extends Entity<ImprovementId> {
 
   public recordGeneration(generation: Generation, at: Instant): void {
     this.change(afterGeneration(this.current, generation, at));
+  }
+
+  /** Keeps what a call spent and fails, as its output must not be used. */
+  public failAfterCall(unusable: UnusableCall, at: Instant): void {
+    this.change(failedAfterCall(this.current, unusable, at));
   }
 
   public resume(at: Instant): void {

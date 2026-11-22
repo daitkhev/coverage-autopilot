@@ -13,6 +13,10 @@ import {
   windowSpent,
 } from '#tests/support/improvement-generation-results';
 import {
+  tamperedCopyFault,
+  ToolFault,
+} from '#tests/support/improvement-handler-fault';
+import {
   improvementIn,
   WINDOW_OPENS_AT,
 } from '#tests/support/improvement-journeys';
@@ -227,6 +231,30 @@ describe('GeneratingStep', () => {
         expect(stored.attempts[0]?.outcome).toBe('no_changes');
         expect(stored.attempts[0]?.isOpen).toBe(false);
         expect(stored.attempts[0]?.tokensUsed).toBe(CALL_REPORT.tokensUsed);
+      });
+    });
+
+    describe('when the patch cannot be taken from the copy', () => {
+      it('should keep what a call that wrote a .git spent, and fail as a credential exposed', async () => {
+        bench.repositories.extraction = tamperedCopyFault();
+
+        const stored = await storedAfterRun(improvementIn('generating'));
+
+        expect(stored.failure?.reason).toBe('credential_exposed');
+        expect(stored.attempts[0]?.tokensUsed).toBe(CALL_REPORT.tokensUsed);
+        expect(bench.repositories.disposed).toEqual(['copy-1']);
+      });
+
+      it('should let any other fault pass', async () => {
+        const fault = new ToolFault({
+          message: 'git broke.',
+          retryable: false,
+        });
+        bench.repositories.extraction = fault;
+
+        await expect(bench.run(improvementIn('generating'))).rejects.toBe(
+          fault,
+        );
       });
     });
 

@@ -5,8 +5,9 @@ import {
   type CoveragePublicApi,
 } from '#coverage/contracts/coverage-public-api';
 import {
+  type CopyContent,
   type FinishedCall,
-  generationOf,
+  recordOf,
 } from '#improvement/application/commands/run-improvement/generation-record';
 import {
   generationRequestOf,
@@ -42,12 +43,28 @@ import {
   type JobQueue,
 } from '#ports/job-queue.port';
 import {
-  type PatchDto,
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
 } from '#repositories/contracts/repositories-public-api';
 
 const CONTINUE: StepResult = { next: 'continue' };
+
+/**
+ * The code the repositories module throws, as its contract says, for a
+ * copy whose tree holds a `.git` of its own.
+ */
+const TAMPERED_COPY = 'working_copy_tampered';
+
+const UNCHANGED: CopyContent = { state: 'unchanged' };
+
+const TAMPERED: CopyContent = { state: 'tampered' };
+
+/** A fault is known by its code: the contract names no class of it. */
+function isTampering(error: unknown): boolean {
+  return (
+    error instanceof Error && 'code' in error && error.code === TAMPERED_COPY
+  );
+}
 
 /**
  * The generator reports no steps: the screen shows the attempt and the
@@ -166,21 +183,37 @@ export class GeneratingStep implements ImprovementStep {
         now: run.now(),
       });
       const result = await this.generator.generate(request, run.signal);
-      return { result, patch: await this.patchOf(result, copy.id) };
+      return { result, copy: await this.contentOf(result, copy.id) };
     } finally {
       await this.repositories.disposeWorkingCopy({ workingCopyId: copy.id });
     }
   }
 
-  private async patchOf(
+  /**
+   * A copy that holds a `.git` of its own is the one fault of taking a
+   * patch that is answered here: the call before it was paid for, and a
+   * fault would lose what it spent.
+   */
+  private async contentOf(
     result: GenerationResult,
     workingCopyId: string,
-  ): Promise<PatchDto | null> {
+  ): Promise<CopyContent> {
     if (result.outcome !== 'generated') {
-      return null;
+      return UNCHANGED;
     }
-    const extraction = await this.repositories.extractPatch({ workingCopyId });
-    return extraction.outcome === 'extracted' ? extraction.patch : null;
+    try {
+      const extraction = await this.repositories.extractPatch({
+        workingCopyId,
+      });
+      return extraction.outcome === 'extracted'
+        ? { state: 'patch', patch: extraction.patch }
+        : UNCHANGED;
+    } catch (error) {
+      if (isTampering(error)) {
+        return TAMPERED;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -192,15 +225,8 @@ export class GeneratingStep implements ImprovementStep {
     run: ImprovementRun,
     finished: FinishedCall,
   ): Promise<void> {
-    const generation = generationOf(
-      finished,
-      run.now(),
-      this.settings.limitWaitMs,
-    );
     await run.save(
-      (improvement, at) => {
-        improvement.recordGeneration(generation, at);
-      },
+      recordOf(finished, run.now(), this.settings.limitWaitMs),
       async (transaction, saved) => this.resumeLater(saved, transaction),
     );
   }

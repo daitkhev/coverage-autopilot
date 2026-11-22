@@ -6,11 +6,13 @@ import { InvalidTransitionError } from '#improvement/domain/errors/invalid-trans
 import { PatchIntegrityError } from '#improvement/domain/errors/patch-integrity.error';
 import {
   afterGeneration,
+  failedAfterCall,
   MAX_LIMIT_WAITS,
   resumed,
   withAttemptOpened,
 } from '#improvement/domain/services/generation.service';
 import {
+  failureOf,
   improvementIn,
   STEP_MINUTE,
   WINDOW_OPENS_AT,
@@ -216,6 +218,41 @@ describe('afterGeneration', () => {
       ],
     ])('should throw InvalidTransitionError', (state, message) => {
       expect(() => afterGeneration(state, endedWith('no_changes'), AT)).toThrow(
+        new InvalidTransitionError(message),
+      );
+    });
+  });
+});
+
+describe('failedAfterCall', () => {
+  const call = endedWith('no_changes');
+  const unusable = { call, failure: failureOf() };
+
+  it('should keep what the call spent with the attempt and fail', () => {
+    const state = failedAfterCall(withOpenAttempt(), unusable, AT);
+
+    const [attempt] = state.attempts;
+    expect(state.status).toBe('failed');
+    expect(state.failure).toEqual(failureOf());
+    expect(attempt?.tokensUsed).toBe(call.tokensUsed);
+    expect(attempt?.outputReferences).toEqual([call.outputReference]);
+    expect([attempt?.outcome, attempt?.patch]).toEqual([null, null]);
+    expect(attempt?.finishedAt).toEqual(AT);
+  });
+
+  describe('when no attempt is open or the improvement does not generate', () => {
+    it.each([
+      [
+        improvementIn('generating').state,
+        'The improvement has no open attempt.',
+      ],
+      [
+        improvementIn('verifying').state,
+        'The improvement is verifying, and this step is for one that is ' +
+          'generating.',
+      ],
+    ])('should throw InvalidTransitionError', (state, message) => {
+      expect(() => failedAfterCall(state, unusable, AT)).toThrow(
         new InvalidTransitionError(message),
       );
     });

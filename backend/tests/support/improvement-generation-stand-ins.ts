@@ -88,8 +88,11 @@ export function generationCoverage(): GenerationCoverage {
 }
 
 export interface GenerationRepositories extends StandInRepositories {
-  /** What a copy holds after the call: a new test unless a test says. */
-  extraction: ExtractPatchResult;
+  /**
+   * What a copy holds after the call, or the fault taking a patch from it
+   * throws: a new test unless a test says.
+   */
+  extraction: ExtractPatchResult | Error;
   /** The copies a patch was taken from. */
   readonly extracted: string[];
 }
@@ -102,7 +105,10 @@ export function generationRepositories(): GenerationRepositories {
     extracted: [],
     extractPatch: async ({ workingCopyId }) => {
       repositories.extracted.push(workingCopyId);
-      return Promise.resolve(repositories.extraction);
+      const { extraction } = repositories;
+      return extraction instanceof Error
+        ? Promise.reject(extraction)
+        : Promise.resolve(extraction);
     },
   };
   return repositories;
