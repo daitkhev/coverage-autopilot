@@ -1527,3 +1527,130 @@ fails the improvement as an exposed credential and keeps its tokens.
   `backend/src/modules/repositories/infrastructure/gh/gh-code-host.adapter.ts`,
   `backend/src/modules/repositories/infrastructure/git/git-working-copies.adapter.ts`,
   `api-contracts/src/repositories.ts`, `frontend/src/commands/start-access.ts`.
+
+### A project of pnpm or yarn is installed with the manager it names
+
+- The manager is the one the `packageManager` field of package.json
+  names, or else the one whose lockfile the copy has. The field must name
+  an exact version, with or without a hash: a range or an address is
+  refused, since the program would not be the one the repository asks
+  for. npm stays lenient and is the npm of the image. Two lockfiles and
+  no field, a field without its lockfile, bun and workspaces are refused
+  as before.
+- Corepack, not managers baked into the image. A repository asks for any
+  of pnpm 7 to 12, yarn 1, 3 and 4, at an exact version, and a baked
+  manager would be the wrong one for most. Corepack 0.36.0 is installed
+  into the image at an exact version, since Node 26 ships none. It
+  fetches the exact program while the install has the network, and
+  checks the hash of the field. Without a hash, its source checks the
+  signature the registry gives pnpm and yarn 1, and nothing for yarn 2
+  and later, so a yarn 2 or later the service picks carries the hash of
+  its program. The program goes to the home folder in memory, a few
+  megabytes, and is gone with the container, so no later command can
+  start a manager: the network is closed then.
+- `COREPACK_NPM_REGISTRY` names the registry of npm, so every program
+  comes from it: yarn 2 and later as `@yarnpkg/cli-dist`, not from the
+  site of yarn. The hash of a field still holds for that program, seen
+  for 4.18.1 and 3.8.7, and a wrong hash failed. `COREPACK_ENV_FILE=0`:
+  a `.corepack.env` of the repository sent the download elsewhere in the
+  spike. Corepack refuses a manager other than the one the field names,
+  and the service never asks for one.
+- Without a field, the version comes from the format of the lockfile.
+  pnpm: `5.4` is 7.33.7, `6.0` is 8.15.9, `9.0` is 10.34.9. pnpm 9 to 12
+  all write `9.0`, 12 in two documents, which 9 refused and 10 read.
+  yarn 1 is 1.22.22. yarn 2 and later by `__metadata.version`: 6 is
+  3.8.7, 8 is 4.13.0, 9 is 4.14.1, 10 is 4.18.1. Seen: 3.2.4 writes 6,
+  4.0.2 to 4.13.0 write 8, 4.14.1 writes 9, 4.15.0 and later write 10,
+  and an immutable install by a yarn of another format failed with
+  YN0028. The registry of npm and the site of yarn served each of the
+  four programs with one hash, and an install with each pinned hash
+  passed. A field of yarn 1 with a lockfile of yarn 2 or later, or the
+  reverse, is refused.
+- The installs, each with the variables of the settings besides:
+  - npm: `npm ci --ignore-scripts --no-audit --no-fund --cache <cache>`.
+  - pnpm: `corepack pnpm@<v> install --frozen-lockfile --ignore-scripts
+    --ignore-pnpmfile --store-dir <cache>
+    --config.manage-package-manager-versions=false
+    --reporter=append-only`, with `COREPACK_ENV_FILE=0` and
+    `COREPACK_NPM_REGISTRY`.
+  - yarn 1: `corepack yarn@<v> install --frozen-lockfile
+    --ignore-scripts --ignore-engines --non-interactive --cache-folder
+    <cache>`, with `YARN_IGNORE_PATH=1` as well. `--ignore-engines`
+    installs a package that asks for another Node as npm does.
+  - yarn 2 and later: `corepack yarn@<v> install --immutable
+    --mode=skip-build`, with `YARN_IGNORE_PATH=1`,
+    `YARN_RC_FILENAME=.coverage-autopilot-yarnrc.yml`,
+    `YARN_ENABLE_SCRIPTS=0`, `YARN_ENABLE_GLOBAL_CACHE=0`,
+    `YARN_ENABLE_MIRROR=0`, `YARN_CACHE_FOLDER=.yarn/cache`,
+    `YARN_ENABLE_TELEMETRY=0`, `YARN_CHECKSUM_BEHAVIOR=throw` and
+    `YARN_NODE_LINKER=node-modules`.
+- yarn 2 and later read settings the service writes: `.yarnrc.yml`
+  without `yarnPath`, `plugins` and `enableConstraintsChecks`, the rest
+  kept, since package extensions and scopes change how the lockfile
+  resolves. An immutable install with a package extension passed with
+  the written file. A line the service does not read, such as a mapping
+  indented as a whole, a flow mapping or a merge, is refused, since a
+  dropped setting could hide in it. The file is written after whatever is
+  at its place is removed, and never through a link. A patch adds only
+  test files, the generator works in a fresh copy with no install, and a
+  publication pushes from a clean copy, so the file reaches none of them.
+- Refused with `install_runs_code`, naming what was found: pnpm
+  `configDependencies`, whose hooks pnpm runs as it starts; a package
+  from git for pnpm, yarn 1 and yarn 2 and later, which each prepares by
+  running its scripts; an `exec:` package of yarn, made by a script; a
+  `.yarnrc.yml` the service does not read. Refused with
+  `plug_and_play`: yarn 2 and later with no `nodeLinker: node-modules`.
+  `nodeLinker: pnpm` is refused as an unsupported manager.
+- The cache of an install is `node_modules/.cache/coverage-autopilot/install`
+  for npm, pnpm and yarn 1: on the disk of the copy, gone with it, never
+  shared, and under `node_modules`, where the generator's copy has
+  nothing. yarn 2 and later keep theirs in `.yarn/cache`: under
+  `node_modules` the linker removed what it had just fetched and failed
+  with ENOENT.
+- The version of the runner is read from the lockfile of the manager:
+  npm by `packages["node_modules/<runner>"]`, pnpm by the dependency of
+  the project without its peers, yarn 1 by the entry that lists
+  `<runner>@<range>`, yarn 2 and later by the one that lists
+  `<runner>@npm:<range>`, the range being the one of the manifest.
+- The mutation tool is installed by the npm of the image into a folder
+  of its own, `node_modules/.cache/coverage-autopilot/mutation`, with
+  its own cache and no peer, so the runner plugin loads the test runner
+  of the project. An install among the packages of the project would
+  reshape a tree pnpm or yarn laid out. A run gets
+  `NODE_PATH=<copy>/node_modules/.pnpm/node_modules`: without it the
+  runner of Jest did not find `jest-environment-node` on a project of
+  pnpm. The tool ignores `/.yarn/cache`, which it would copy into its
+  sandbox. Seen: StrykerJS 10.1.1 with Jest 30.5.2 and Vitest 4.1.12 on
+  projects of pnpm 10.34.9, yarn 1.22.22 and yarn 4.18.1 killed every
+  mutant, and both runners wrote their coverage reports.
+- Spike, on fixtures with a manifest, a lockfile and files that leave a
+  mark when they run:
+  - pnpm ran `.pnpmfile.cjs` and the root `postinstall` without the
+    switches, and nothing with them.
+  - yarn 1 ran the program of a `yarn-path` of `.yarnrc` and of a
+    `yarnPath` of `.yarnrc.yml` without `YARN_IGNORE_PATH`, and neither
+    with it. `ignore-scripts false` in `.yarnrc` or `.npmrc` did not turn
+    the scripts back on, and `--cache-folder` won over `.yarnrc`.
+  - yarn 4 ran `yarnPath`, a plugin and the root `postinstall`.
+    `YARN_ENABLE_SCRIPTS=0` alone still ran the root `postinstall`, and
+    `--mode=skip-build` stopped it. `enableConstraintsChecks: true` ran
+    `yarn.config.cjs` during the install. yarn 3.8.7 fails an install on
+    `YARN_ENABLE_CONSTRAINTS_CHECKS`, a setting it does not know, so the
+    setting is dropped from the file instead. A variable won over the
+    file for `nodeLinker`.
+  - The install the service code decides, run on such fixtures of
+    pnpm 10.34.9, yarn 1.22.22, 3.8.7 and 4.18.1, ran nothing of the
+    repository, left the manifest and the lockfile as they were, and
+    left packages that load.
+- Only a real container can show: the build of the image with Corepack,
+  the fetch from the registry over the default network of the engine,
+  and an install as a user that is not root, on a read-only root, with
+  the home folder in the 512 MB memory folder.
+- Not looked at: whether npm runs scripts of a package from git, a yarn 1
+  offline mirror, which writes the archives it lacks into the copy, and
+  the `.env.yarn` file yarn 4 reads. The spike installed no package from
+  git and no `exec:` package: those refusals rest on how the managers
+  describe them.
+- Where: `backend/src/modules/coverage/infrastructure/detection/`,
+  `backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile`,
+  `backend/src/modules/verification/infrastructure/mutation/stryker-configuration.ts`.
