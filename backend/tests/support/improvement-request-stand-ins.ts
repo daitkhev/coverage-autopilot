@@ -3,6 +3,8 @@ import type {
   CoverageSnapshotDto,
   FileCoverageDto,
   FileCoverageRequest,
+  SnapshotFilesDto,
+  SnapshotFilesRequest,
   SnapshotRequest,
 } from '#coverage/contracts/coverage-public-api';
 import type { StartImprovementCommand } from '#improvement/application/commands/start-improvement/start-improvement.command';
@@ -31,6 +33,12 @@ import {
 /** The head of the default branch once it moved past the snapshot. */
 const MOVED_HEAD = 'd'.repeat(BASE_COMMIT.length);
 
+/** A file of the source snapshot with no code in it. */
+export const NO_CODE_FILE = 'src/types.ts';
+
+/** A file of the source snapshot whose report could not be read. */
+export const UNMEASURED_FILE = 'src/broken.ts';
+
 /** A request for the target of the source snapshot, the rest left out. */
 export function startCommandOf(
   spec: Partial<StartImprovementCommand> = {},
@@ -47,17 +55,43 @@ async function refuse(): Promise<never> {
   return Promise.reject(new Error('A request never calls this.'));
 }
 
-/** The snapshot and the file a test sets, and every read in order. */
+/** The snapshot, its files and the target a test sets, and every read in order. */
 export interface SourceCoverage extends CoveragePublicApi {
   /** The source snapshot, at the base commit of the journeys. */
   snapshot: CoverageSnapshotDto | null;
   /** The target in it, measured below the threshold. */
   file: FileCoverageDto | null;
-  readonly asked: (SnapshotRequest | FileCoverageRequest)[];
+  /** The target, a file with no code and one that was not measured. */
+  files: SnapshotFilesDto | null;
+  readonly asked: (
+    SnapshotRequest | FileCoverageRequest | SnapshotFilesRequest
+  )[];
 }
 
-/** The coverage module as a request reads it, in memory. */
+/** The three files of the source snapshot, the least covered first. */
+function sourceFiles(target: FileCoverageDto): SnapshotFilesDto {
+  return {
+    snapshotId: SOURCE_SNAPSHOT_ID,
+    threshold: { metric: 'lines', percentage: 80 },
+    files: [
+      target,
+      { path: FilePath.create(NO_CODE_FILE), state: 'no_executable_code' },
+      {
+        path: FilePath.create(UNMEASURED_FILE),
+        state: 'unmeasured',
+        reason: 'parse_failed',
+        toolMessage: 'Unexpected token.',
+      },
+    ],
+  };
+}
+
+/** The coverage module as a request and the files screen read it, in memory. */
 export function sourceCoverage(): SourceCoverage {
+  const target = {
+    ...measuredTarget({ covered: 4, total: 10 }),
+    path: FilePath.create(TARGET_FILE),
+  };
   const stand: SourceCoverage = {
     snapshot: {
       ...snapshotDto(),
@@ -65,10 +99,8 @@ export function sourceCoverage(): SourceCoverage {
       repositoryId: RepositoryId.create(REPOSITORY_ID),
       commit: CommitSha.create(BASE_COMMIT),
     },
-    file: {
-      ...measuredTarget({ covered: 4, total: 10 }),
-      path: FilePath.create(TARGET_FILE),
-    },
+    file: target,
+    files: sourceFiles(target),
     asked: [],
     getSnapshot: async (request) => {
       stand.asked.push(request);
@@ -78,10 +110,13 @@ export function sourceCoverage(): SourceCoverage {
       stand.asked.push(request);
       return Promise.resolve(stand.file);
     },
+    listSnapshotFiles: async (request) => {
+      stand.asked.push(request);
+      return Promise.resolve(stand.files);
+    },
     captureSnapshot: refuse,
     prepareProject: refuse,
     runTests: refuse,
-    listSnapshotFiles: refuse,
   };
   return stand;
 }
