@@ -11,6 +11,7 @@
     "#kernel/*": "./src/shared/kernel/*.ts",
     "#ports/*": "./src/shared/application/ports/*.ts",
     "#infrastructure/*": "./src/shared/infrastructure/*.ts",
+    "#service/*": "./src/*.ts",
     "#tests/*": "./tests/*.ts"
   },
   "dependencies": {
