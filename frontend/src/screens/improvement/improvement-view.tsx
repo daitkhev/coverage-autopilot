@@ -5,13 +5,13 @@ import type { Repository } from '@coverage-autopilot/api-contracts/repositories'
 
 import type { ClientSession } from '#api/client-session';
 import { AppShell, type ShellFrame } from '#components/app-shell';
+import { CancelQuestion } from '#components/cancel-question';
 import { type KeyHint, KeyHints } from '#components/key-hints';
 import { SplitView } from '#components/split-view';
 import { type Freshness, StatusLine } from '#components/status-line';
 import { useFocusRing } from '#hooks/use-focus-ring';
 import { useKeys } from '#hooks/use-keys';
 import { type Selection, useSelection } from '#hooks/use-selection';
-import { CancelQuestion } from '#screens/improvement/cancel-question';
 import {
   acceptedOf,
   endOf,
@@ -202,8 +202,10 @@ export function ImprovementView(props: ImprovementViewProps): ReactNode {
         ? {
             dialog: (
               <CancelQuestion
-                session={props.session}
                 improvement={improvement}
+                cancel={async () =>
+                  props.session.api.cancelImprovement(improvement.id)
+                }
                 onClose={place.close}
               />
             ),

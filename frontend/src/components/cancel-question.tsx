@@ -3,14 +3,13 @@ import type { ReactNode } from 'react';
 
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 
-import type { ClientSession } from '#api/client-session';
-import type { ServiceAnswer } from '#api/service-api';
 import type { Answer } from '#components/answer-list';
 import { Dialog } from '#components/dialog';
 import type { KeyHint } from '#components/key-hints';
 import { BusyLine, FaultLine, RefusalLine } from '#components/outcome-line';
 import { faultWords } from '#components/problem-details';
 import { RoleText } from '#components/role-text';
+import type { Reply } from '#components/unanswered-body';
 import { type ActionState, useAction } from '#hooks/use-action';
 import { countWords } from '#theme/counts';
 import { DIALOG_WIDTH } from '#theme/widths';
@@ -31,7 +30,7 @@ const HINTS: readonly KeyHint[] = [
 
 const TOKENS = new Intl.NumberFormat('en');
 
-type Cancelling = ActionState<ServiceAnswer<Improvement>>;
+type Cancelling = ActionState<Reply<unknown>>;
 
 /** What the service said to the cancel, while it is not yet done. */
 function Outcome({ state }: { readonly state: Cancelling }): ReactNode {
@@ -54,8 +53,9 @@ function Outcome({ state }: { readonly state: Cancelling }): ReactNode {
 }
 
 interface CancelQuestionProps {
-  readonly session: ClientSession;
-  readonly improvement: Improvement;
+  readonly improvement: Pick<Improvement, 'usage'>;
+  /** The cancel the question asks before: one request for one confirmation. */
+  readonly cancel: () => Promise<Reply<unknown>>;
   readonly onClose: () => void;
 }
 
@@ -65,11 +65,11 @@ interface CancelQuestionProps {
  * second `enter` while the cancel is on its way sends nothing.
  */
 export function CancelQuestion({
-  session,
   improvement,
+  cancel: send,
   onClose,
 }: CancelQuestionProps): ReactNode {
-  const cancel = useAction<ServiceAnswer<Improvement>>();
+  const cancel = useAction<Reply<unknown>>();
   const { usage } = improvement;
   const spent = `${countWords(usage.attempts, 'attempt')} and ${TOKENS.format(usage.tokens)} tokens`;
   const confirm = (answer: number): void => {
@@ -78,7 +78,7 @@ export function CancelQuestion({
       return;
     }
     cancel.start(async () => {
-      const answered = await session.api.cancelImprovement(improvement.id);
+      const answered = await send();
       if (answered.outcome === 'answered') {
         onClose();
       }

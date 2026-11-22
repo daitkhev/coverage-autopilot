@@ -2,7 +2,7 @@ import { cleanup } from 'ink-testing-library';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { ServiceApi } from '#api/service-api';
-import { CancelQuestion } from '#screens/improvement/cancel-question';
+import { CancelQuestion } from '#components/cancel-question';
 import {
   answered,
   fakeSession,
@@ -21,8 +21,8 @@ function asked(scripted: Partial<ServiceApi> = {}) {
   const session = fakeSession(scripted);
   const question = (
     <CancelQuestion
-      session={session}
       improvement={verifying}
+      cancel={async () => session.api.cancelImprovement(verifying.id)}
       onClose={() => {
         log.push('closed');
       }}
