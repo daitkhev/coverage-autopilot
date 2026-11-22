@@ -50,14 +50,12 @@ export class RepositoryViews {
 
   /** The subject of a scan job is its repository. */
   public async viewOf(repository: RepositoryDto): Promise<RepositoryViewDto> {
-    const [latest] = await this.snapshots.listByRepository(repository.id);
+    const latest = await this.snapshots.findNewestOf(repository.id);
     const scan = await this.queue.getOpenJob(repository.id.value, 'scan');
     return {
       ...repository,
       latestSnapshot:
-        latest === undefined
-          ? null
-          : snapshotDtoOf(latest, this.settings.threshold),
+        latest === null ? null : snapshotDtoOf(latest, this.settings.threshold),
       activeScanId: scan?.id ?? null,
       outdated: isOutdated(repository.headCommit, latest?.commit ?? null),
     };

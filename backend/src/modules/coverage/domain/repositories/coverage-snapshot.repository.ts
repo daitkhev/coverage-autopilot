@@ -21,6 +21,11 @@ export interface CoverageSnapshotRepository {
    * the same moment, the one with the greater id comes first.
    */
   listByRepository(repositoryId: RepositoryId): Promise<CoverageSnapshot[]>;
+  /**
+   * The first of that list, read alone: a list of repositories shows the
+   * newest snapshot of each and would otherwise load every one.
+   */
+  findNewestOf(repositoryId: RepositoryId): Promise<CoverageSnapshot | null>;
 }
 
 /** The injection token of the repository of snapshots. */

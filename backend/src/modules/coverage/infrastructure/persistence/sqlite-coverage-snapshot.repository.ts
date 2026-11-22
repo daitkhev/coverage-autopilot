@@ -63,6 +63,10 @@ const SELECT_SNAPSHOT = `SELECT id, repository_id, commit_sha, origin_key,
     detected_project, scan_parameters, unmeasured_files, captured_at
   FROM coverage_snapshots`;
 
+/** Of two captured at the same moment, the greater id comes first. */
+const NEWEST_FIRST = `WHERE repository_id = ?
+  ORDER BY captured_at DESC, id DESC`;
+
 const SELECT_FILES = `SELECT file_path, state, lines_covered, lines_total,
     branches_covered, branches_total, statements_covered, statements_total,
     functions_covered, functions_total, uncovered
@@ -113,13 +117,21 @@ export class SqliteCoverageSnapshotRepository implements CoverageSnapshotReposit
     repositoryId: RepositoryId,
   ): Promise<CoverageSnapshot[]> {
     const found = this.connection
-      .prepare(
-        `${SELECT_SNAPSHOT} WHERE repository_id = ?
-         ORDER BY captured_at DESC, id DESC`,
-      )
+      .prepare(`${SELECT_SNAPSHOT} ${NEWEST_FIRST}`)
       .all(repositoryId.value);
     return Promise.resolve(
       found.map((row) => this.snapshotOf(this.connection, row)),
+    );
+  }
+
+  public async findNewestOf(
+    repositoryId: RepositoryId,
+  ): Promise<CoverageSnapshot | null> {
+    const found = this.connection
+      .prepare(`${SELECT_SNAPSHOT} ${NEWEST_FIRST} LIMIT 1`)
+      .get(repositoryId.value);
+    return Promise.resolve(
+      found === undefined ? null : this.snapshotOf(this.connection, found),
     );
   }
 

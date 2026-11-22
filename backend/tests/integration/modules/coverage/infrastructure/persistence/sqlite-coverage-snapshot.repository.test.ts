@@ -158,6 +158,40 @@ describe('SqliteCoverageSnapshotRepository', () => {
     });
   });
 
+  describe('findNewestOf', () => {
+    it('should find the first snapshot of the list, with its files', async () => {
+      await save(snapshot);
+      await save(
+        snapshotOf({
+          id: LATER_ID,
+          originKey: 'scan:later',
+          capturedAt: LATER,
+        }),
+      );
+      await save(
+        snapshotOf({ id: TIED_ID, originKey: 'scan:tied', capturedAt: LATER }),
+      );
+      const repositoryId = RepositoryId.create(REPOSITORY_ID);
+
+      const newest = await repository.findNewestOf(repositoryId);
+
+      expect(newest?.id.value).toBe(TIED_ID);
+      expect(newest).toEqual(
+        (await repository.listByRepository(repositoryId))[0],
+      );
+    });
+
+    describe('when the repository has no snapshot', () => {
+      it('should answer null', async () => {
+        await save(snapshot);
+
+        await expect(
+          repository.findNewestOf(RepositoryId.create(OTHER_ID)),
+        ).resolves.toBeNull();
+      });
+    });
+  });
+
   describe('findByOriginKey', () => {
     it('should find the snapshot an origin asked for', async () => {
       await save(snapshot);

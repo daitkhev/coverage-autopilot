@@ -16,6 +16,7 @@ import type {
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
 import type { CoverageSnapshotRepository } from '#coverage/domain/repositories/coverage-snapshot.repository';
 import type { SourceReading } from '#coverage/domain/services/file-state.service';
+import type { RepositoryId } from '#kernel/primitives/repository-id';
 import type { Transaction } from '#kernel/transaction/transaction';
 import type {
   ArtifactStore,
@@ -70,6 +71,10 @@ export function inMemorySnapshots(
   const saved = [...stored];
   const byKey = (key: string): CoverageSnapshot | null =>
     saved.find((each) => each.originKey === key) ?? null;
+  const newestOf = (repositoryId: RepositoryId): CoverageSnapshot[] =>
+    saved
+      .filter((each) => each.repositoryId.equals(repositoryId))
+      .sort(newestFirst);
   return {
     saved,
     save: async (snapshot) => {
@@ -83,11 +88,9 @@ export function inMemorySnapshots(
       Promise.resolve(saved.find((each) => each.id.equals(id)) ?? null),
     findByOriginKey: async (key) => Promise.resolve(byKey(key)),
     listByRepository: async (repositoryId) =>
-      Promise.resolve(
-        saved
-          .filter((each) => each.repositoryId.equals(repositoryId))
-          .sort(newestFirst),
-      ),
+      Promise.resolve(newestOf(repositoryId)),
+    findNewestOf: async (repositoryId) =>
+      Promise.resolve(newestOf(repositoryId)[0] ?? null),
   };
 }
 
