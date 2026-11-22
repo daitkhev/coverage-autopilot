@@ -1355,9 +1355,36 @@ fails the improvement as an exposed credential and keeps its tokens.
   tests related to the mutated file, and a file nobody tested has none,
   so the tool ran no test and stopped. Seen with Vitest 4 and with
   Jest 30. The configuration tells both runners to run every test now.
-- Owed: the mutation tool ends its test runners through `ps`, and the
-  default image of a sandbox has none. A run that got past its first
-  test run ended there with no report. An image with `ps` in it passed.
+- The mutation tool ends its test runners through `ps`, and the default
+  image of a sandbox had none. A run that got past its first test run
+  ended there with no report. An image with `ps` in it passed, and the
+  service now builds one, as the next entry says.
 - Where: `backend/src/shared/infrastructure/processes/kill-group.ts`,
   `backend/src/shared/infrastructure/sandbox/engine-process.ts`,
   `backend/src/modules/verification/infrastructure/mutation/stryker-configuration.ts`.
+
+### The service makes the image of the commands as well
+
+- The default image of the commands of a repository is
+  `coverage-autopilot-sandbox:26`: `node:26-slim` and the `procps`
+  package, which holds `ps`. The slim image of Node leaves `ps` out, and
+  the mutation tool cannot end its test runners without it. The service
+  builds the image from the file it ships, as it builds the image of the
+  generator. This replaces the default `node:26-slim` that "A sandboxed
+  command runs as the user of the service" names.
+- One function gives each sandbox the build of its image when the sandbox
+  names an image the service makes, from the file of that image. Any
+  other name is taken as the engine has it, or pulled. The preparation
+  after the start, the wait of a command, the limits and the errors are
+  the same code for both sandboxes.
+- The tag of the image is the version of Node of its base. A test holds
+  the file to that base, to the base of the file of the generator, and to
+  `procps`.
+- The stand-ins of the engine answer each image with the label of its
+  own file, so a test of the whole service builds nothing unless it says
+  so. The end-to-end journey checks that no image was built or pulled.
+- Owed: the service has not yet built this image on a real engine, and
+  `.env.example` still names `node:26-slim` as the default.
+- Where: `backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile`,
+  `backend/src/shared/infrastructure/config/shipped-images.ts`,
+  `backend/src/main.ts`.
