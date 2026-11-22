@@ -1880,3 +1880,127 @@ fails the improvement as an exposed credential and keeps its tokens.
   `backend/src/modules/coverage/infrastructure/reports/reported-failures.ts`,
   `backend/src/modules/coverage/infrastructure/reports/test-outcomes.ts`,
   `frontend/src/theme/counts.ts`.
+
+### A repository may be trusted to install as its developers do
+
+- What trust lets a repository do, in plain words: while its packages
+  are installed, its own code and the scripts of its packages run, and
+  the network of the container is open then. That code can send away
+  anything in the copy, its sources and its history, and can reach
+  whatever the network of the container reaches. It still cannot read a
+  credential of this computer: the container holds no token and no key,
+  and has no socket of the service and no database. A person trusts a
+  repository only when they would run its install on their own machine.
+- The default of the service is `AUTOPILOT_INSTALL`, `sandboxed` or
+  `trusted`, and `sandboxed` when it is not set. A repository may keep a
+  mode of its own in `repositories.install_mode`, added by migration
+  0010. Empty means the default of the service.
+- The repositories module owns the mode, as it owns the threshold. Its
+  contract gives each repository the mode in effect with `isDefault`, and
+  the answer of a repository has it as `install`.
+  `POST /repositories/:id/install-mode` with `{ "mode": "trusted" }` or
+  `{ "mode": "sandboxed" }` sets it and `{ "mode": null }` clears it. The
+  answer is the repository as its next copy is installed. The change of a
+  threshold and the change of a mode share one step that reads the
+  repository in a transaction, changes it and saves it.
+- The coverage module keeps no mode. A lent working copy names its
+  repository now, and the coverage module asks the repositories module
+  for the mode each time it detects a copy: when it prepares the copy and
+  again when it runs its tests. A change counts from the next copy
+  detected, and a scan or an improvement under way may meet the new mode
+  at its run of tests: a mode taken back is then an honest refusal. The
+  files of a lent copy are still judged by no threshold.
+- Trusted changes the install and nothing else. The lockfile still
+  decides every version and is never written, and the manager is still
+  the one the repository names, at its version:
+
+  | Manager | Sandboxed | Trusted |
+  | --- | --- | --- |
+  | npm | `npm ci --ignore-scripts --no-audit --no-fund --cache <cache>` | `npm ci --no-audit --no-fund --cache <cache>` |
+  | pnpm | `corepack pnpm@<v> install --frozen-lockfile --ignore-scripts --ignore-pnpmfile --store-dir <cache> --config.manage-package-manager-versions=false --reporter=append-only` | the same without `--ignore-scripts` and `--ignore-pnpmfile` |
+  | yarn 1 | `corepack yarn@<v> install --frozen-lockfile --ignore-scripts --ignore-engines --non-interactive --cache-folder <cache>`, with `YARN_IGNORE_PATH=1` | the same without `--ignore-scripts` and without `YARN_IGNORE_PATH` |
+  | yarn 2 and later | `corepack yarn@<v> install --immutable --mode=skip-build`, with `YARN_IGNORE_PATH=1`, `YARN_RC_FILENAME=.coverage-autopilot-yarnrc.yml` and `YARN_ENABLE_SCRIPTS=0` | `corepack yarn@<v> install --immutable`, with none of the three: the `.yarnrc.yml` of the repository is read as it is, with its `yarnPath`, plugins and constraints |
+
+  Every install of pnpm and yarn has `COREPACK_ENV_FILE=0` and
+  `COREPACK_NPM_REGISTRY` in both modes, and yarn 2 and later have
+  `YARN_ENABLE_GLOBAL_CACHE=0`, `YARN_ENABLE_MIRROR=0`,
+  `YARN_CACHE_FOLDER=.yarn/cache`, `YARN_ENABLE_TELEMETRY=0`,
+  `YARN_CHECKSUM_BEHAVIOR=throw` and `YARN_NODE_LINKER=node-modules` in
+  both.
+- `install_runs_code` is a refusal of a sandboxed install alone: pnpm
+  `configDependencies`, a package from git for pnpm, yarn 1 and yarn 2
+  and later and an `exec:` package of yarn are installed when the
+  repository is trusted. A `.yarnrc.yml` the service does not read is
+  refused when trusted too, but with `plug_and_play`: the service cannot
+  tell from it that yarn installs into `node_modules`. The detail of
+  `install_runs_code` ends with what to do, such as `Trust the repository
+  to install it as its developers do: repo trust acme/gadgets trusted.`,
+  so a scan, the ending of an improvement and the command line say it
+  where they say why a project is not supported.
+- A new sandboxed refusal: a `pnpm-lock.yaml` with `pnpmfileChecksum` was
+  written with the hooks of a `.pnpmfile.cjs`, and a frozen install that
+  skips them fails with `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`. It is
+  refused with `install_runs_code` and installed when trusted.
+- Still refused when trusted, since trust changes whose code runs and
+  not what the service can measure: workspaces and other monorepos, bun,
+  yarn Plug'n'Play and `nodeLinker: pnpm`, a `.yarnrc.yml` that is not a
+  plain file of keys, since the service then cannot tell that yarn
+  installs into `node_modules`, no lockfile, two lockfiles and no field,
+  a `packageManager` that names no exact version, a lockfile of yarn
+  whose format no yarn of the field writes, and every refusal of a
+  runner or a provider of coverage.
+- Trusted leaves the rest of the sandbox as it is: no credential, no
+  socket of the service, no database, a read-only root, a user that is
+  not root, the limits, and no network after the install. The tests, the
+  type check, the generator and the mutation tool run as before. A
+  publication still pushes from a clean copy on the host.
+- The image of the commands has `git` and the certificates of https, for
+  a package from a git repository, and no ssh client: the sandbox holds
+  no key, so such a package is fetched over https only.
+- The client: `repo trust <repo> <trusted|sandboxed|default>` prints the
+  mode in effect and whether it is the default. `i` on the screen of the
+  repositories opens a dialog that says what trusted code can and cannot
+  reach. The footer has no room for one more hint, so the command palette
+  names the key. A trusted install is written `trusted install` in the
+  notes of `repo list` and `repo add`, on the row and in the panel of the
+  repository, and on the screen of its files.
+- Spike, on fixtures of our own: one project per manager whose root
+  `postinstall` and `.pnpmfile.cjs` leave a mark, and one that takes a
+  package from a public git repository over https, each installed with
+  the command and the variables the code decides:
+  - pnpm 10.34.9: trusted ran `.pnpmfile.cjs` and the `postinstall` and
+    installed the package from git; sandboxed refused the package from
+    git, and failed the lockfile written with a `.pnpmfile.cjs`, as
+    above.
+  - yarn 1.22.22: trusted ran the `postinstall` and installed the
+    package from git; sandboxed ran nothing and refused the package from
+    git.
+  - yarn 4.18.1: trusted ran the `postinstall`, a `yarnPath` of the
+    repository and installed the package from git, and wrote no settings
+    of the service; sandboxed ran none of them. yarn 4.18.1 refuses to
+    fetch a git repository that no `approvedGitRepositories` pattern of
+    `.yarnrc.yml` names, with YN0080: a repository that takes one names
+    it already, since its own install needs it.
+  - npm 11.20.0, with a package from a git repository of our own on
+    disk: the sandboxed install installed it without running its
+    `prepare`, and the trusted one ran its `prepare` in a clone inside
+    the cache. npm is lenient as before and installs such a package in
+    both modes, which the image can do now that it has git.
+  - Each install left the manifest and the lockfile as they were, and the
+    package loaded afterwards.
+- Only a real container can show: the build of the image with git and the
+  certificates, the clone of a package from git over https from the
+  network of the engine, the scripts of a trusted install as a user that
+  is not root on a read-only root, with the home folder in the 512 MB
+  memory folder, a script that downloads more than that folder holds, and
+  that nothing after the install has the network.
+- Owed: `.env.example` does not name `AUTOPILOT_INSTALL` yet, and the
+  version of the contract is not raised for the new field and the new
+  route. Both are the owner's.
+- Where: `backend/src/modules/repositories/application/commands/change-install-mode/`,
+  `backend/src/modules/repositories/application/repository-changes.ts`,
+  `backend/src/modules/coverage/application/repository-detection.ts`,
+  `backend/src/modules/coverage/infrastructure/detection/`,
+  `backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile`,
+  `frontend/src/commands/repo-trust.ts`,
+  `frontend/src/screens/repositories/trust-dialog.tsx`.
