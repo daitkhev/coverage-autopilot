@@ -5,7 +5,11 @@ import {
   patchedCopyOf,
   verificationApplication,
 } from '#tests/support/verification-application';
-import { testRunOf } from '#tests/support/verification-coverage';
+import {
+  failedRunOf,
+  TEST_FAILURE,
+  testRunOf,
+} from '#tests/support/verification-coverage';
 import { NEW_TEST_FILE } from '#tests/support/verification-requests';
 import { NewTestsCheck } from '#verification/application/commands/verify-patch/checks/new-tests-check';
 
@@ -49,6 +53,18 @@ describe('NewTestsCheck', () => {
         );
 
         expect(result.message).toBe('The new tests fail.');
+      });
+
+      it('should keep what the run said first', async () => {
+        const application = verificationApplication();
+        application.coverage.answers.push(failedRunOf(TEST_FAILURE));
+
+        const result = await new NewTestsCheck(application.coverage).run(
+          patchedCopyOf(application).copy,
+          RUNNING,
+        );
+
+        expect(result.testFailure).toEqual(TEST_FAILURE);
       });
     });
   });

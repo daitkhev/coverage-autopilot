@@ -2,6 +2,7 @@ import { InvalidImprovementValueError } from '#improvement/domain/errors/invalid
 import type { SurvivingMutant } from '#improvement/domain/value-objects/mutant.vo';
 import type { CheckName } from '#improvement/domain/value-objects/quality-policy.vo';
 import { SHA256_HEX } from '#improvement/domain/value-objects/test-patch.vo';
+import type { FilePath } from '#kernel/primitives/file-path';
 import { ValueObject } from '#kernel/primitives/value-object';
 
 export const VERDICTS = ['accepted', 'rejected', 'inconclusive'] as const;
@@ -23,6 +24,17 @@ export const CHECK_STATUSES = [
 
 type CheckStatus = (typeof CHECK_STATUSES)[number];
 
+/**
+ * What a run of tests that failed said first, in the words of its runner:
+ * text of the repository, which the gate cleaned and cut.
+ */
+export interface TestFailure {
+  readonly file: FilePath;
+  /** The names of the test that failed, `null` when the file failed to run. */
+  readonly test: string | null;
+  readonly lines: readonly string[];
+}
+
 export interface CheckResult {
   readonly name: CheckName;
   readonly status: CheckStatus;
@@ -34,6 +46,8 @@ export interface CheckResult {
   readonly message: string | null;
   /** The raw output of the tool in the store of raw output. */
   readonly outputReference: string | null;
+  /** Of a failed run of tests, what it said first, when its runner said it. */
+  readonly testFailure: TestFailure | null;
 }
 
 interface CoverageCount {

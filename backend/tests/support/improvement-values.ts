@@ -25,6 +25,7 @@ import {
 } from '#improvement/domain/value-objects/verification-baseline.vo';
 import {
   type CheckResult,
+  type TestFailure,
   type Verdict,
   VerificationReport,
   type VerificationReportProps,
@@ -207,12 +208,35 @@ export function checkOf(
     runs: null,
     message: verdict === 'accepted' ? null : 'The new test does not pass.',
     outputReference: 'outputs/new-tests.txt',
+    testFailure: null,
   };
 }
 
 /** A report of the gate on the patch of `digit`, with one check. */
 export function reportOf(verdict: Verdict, digit = 'a'): VerificationReport {
   return VerificationReport.create(reportPropsOf(verdict, digit));
+}
+
+/** What the run of the new tests said first: their file failed to run. */
+export const RUN_FAILURE: TestFailure = {
+  file: FilePath.create('tests/helpers/utils.test.ts'),
+  test: null,
+  lines: [
+    '● Test suite failed to run',
+    "src/helpers/utils.ts:3:25 - error TS2307: Cannot find module 'crypto' or its corresponding type declarations.",
+  ],
+};
+
+/** A rejection of new tests whose run said what `RUN_FAILURE` says. */
+export function failedRunReportProps(): VerificationReportProps {
+  const props = reportPropsOf('rejected');
+  return {
+    ...props,
+    checks: props.checks.map((check) => ({
+      ...check,
+      testFailure: RUN_FAILURE,
+    })),
+  };
 }
 
 export function reportPropsOf(

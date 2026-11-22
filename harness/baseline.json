@@ -74,6 +74,7 @@
         "QualityPolicyDto",
         "SurvivingMutantDto",
         "TargetCoverageDto",
+        "TestFailureDto",
         "UndetectedMutantDto",
         "VERIFICATION_PUBLIC_API",
         "VerificationBaselineDto",

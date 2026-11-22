@@ -49,6 +49,7 @@ export function testRunResultOf(reading: TestRunReading): CheckResult {
       return CheckResult.failed(name, reading.failed, {
         runs,
         outputReference,
+        testFailure: run.testRun.firstFailure,
       });
     case 'timed_out':
       return CheckResult.error(name, {

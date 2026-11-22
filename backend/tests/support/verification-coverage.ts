@@ -6,6 +6,7 @@ import type {
   RunCoverageDto,
   RunTestsResult,
   ScanParametersDto,
+  TestFailureDto,
   TestRunDto,
 } from '#coverage/application/contracts/coverage-public-api';
 import { CommitSha } from '#kernel/primitives/commit-sha';
@@ -101,21 +102,42 @@ export function runCoverageOf(
   return { parameters, files: [file] };
 }
 
+function testRunDtoOf(status: TestRunDto['status']): TestRunDto {
+  return {
+    status,
+    exitCode: status === 'passed' ? 0 : null,
+    durationMs: 900,
+    outputReference: `test-run-${status}`,
+    firstFailure: null,
+  };
+}
+
 /** A run that ended so, with nothing measured. */
 export function testRunOf(
   status: TestRunDto['status'],
   coverage: RunCoverageDto | null = null,
 ): RunTestsResult {
+  return { outcome: 'completed', testRun: testRunDtoOf(status), coverage };
+}
+
+/** What a run of the new tests said first: its file failed to run. */
+export const TEST_FAILURE: TestFailureDto = {
+  file: FilePath.create('tests/helpers/utils.test.ts'),
+  test: null,
+  lines: [
+    '● Test suite failed to run',
+    "src/helpers/utils.ts:3:25 - error TS2307: Cannot find module 'crypto' or its corresponding type declarations.",
+  ],
+};
+
+/** A run that failed, and what its runner said first. */
+export function failedRunOf(
+  failure: TestFailureDto = TEST_FAILURE,
+): RunTestsResult {
   return {
     outcome: 'completed',
-    testRun: {
-      status,
-      exitCode: status === 'passed' ? 0 : null,
-      durationMs: 900,
-      outputReference: `test-run-${status}`,
-      firstFailure: null,
-    },
-    coverage,
+    testRun: { ...testRunDtoOf('failed'), firstFailure: failure },
+    coverage: null,
   };
 }
 

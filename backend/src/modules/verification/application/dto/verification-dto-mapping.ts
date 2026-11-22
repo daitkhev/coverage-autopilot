@@ -82,5 +82,6 @@ export function checkResultDtoOf(result: CheckResult): CheckResultDto {
     runs: result.runs,
     message: result.message,
     outputReference: result.outputReference,
+    testFailure: result.testFailure,
   };
 }

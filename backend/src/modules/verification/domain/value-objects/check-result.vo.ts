@@ -1,3 +1,4 @@
+import type { FilePath } from '#kernel/primitives/file-path';
 import { ValueObject } from '#kernel/primitives/value-object';
 import { InvalidCheckResultError } from '#verification/domain/errors/invalid-check-result.error';
 
@@ -19,6 +20,17 @@ export type CheckName =
 export type CheckStatus =
   'passed' | 'failed' | 'skipped' | 'not_applicable' | 'error';
 
+/**
+ * The failure a run of tests named first, as its runner worded it: text
+ * of the repository, cleaned and cut by the module that ran the tests.
+ */
+export interface TestFailure {
+  readonly file: FilePath;
+  /** `null` when the file failed to run. */
+  readonly test: string | null;
+  readonly lines: readonly string[];
+}
+
 interface CheckResultProps {
   readonly name: CheckName;
   readonly status: CheckStatus;
@@ -27,6 +39,7 @@ interface CheckResultProps {
   readonly runs: number | null;
   readonly message: string | null;
   readonly outputReference: string | null;
+  readonly testFailure: TestFailure | null;
 }
 
 /** What a check that ran leaves behind besides its status. */
@@ -34,6 +47,8 @@ interface Evidence {
   /** How many runs a check that repeats made. */
   readonly runs?: number | null;
   readonly outputReference?: string | null;
+  /** What the run of a check that failed said first. */
+  readonly testFailure?: TestFailure | null;
 }
 
 /** Why a check could not finish, and whether running it again can help. */
@@ -50,6 +65,9 @@ function problemOf(props: CheckResultProps): string {
   const { status, message, runs, durationMs } = props;
   if (status !== 'passed' && status !== 'skipped' && message === '') {
     return `a ${status} check gives no reason`;
+  }
+  if (status !== 'failed' && props.testFailure !== null) {
+    return `a ${status} check names a failure of a test`;
   }
   return isCount(runs) && isCount(durationMs)
     ? ''
@@ -103,6 +121,7 @@ export class CheckResult extends ValueObject<CheckResultProps> {
       durationMs: null,
       runs: evidence.runs ?? null,
       outputReference: evidence.outputReference ?? null,
+      testFailure: evidence.testFailure ?? null,
     });
   }
 
@@ -146,6 +165,11 @@ export class CheckResult extends ValueObject<CheckResultProps> {
   /** The raw output of the tool in the artifact store. */
   public get outputReference(): string | null {
     return this.props.outputReference;
+  }
+
+  /** Of a failed run of tests, what it said first, when its runner said it. */
+  public get testFailure(): TestFailure | null {
+    return this.props.testFailure;
   }
 
   /** The same result with the time the check took. */

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { RunTestsResult } from '#coverage/application/contracts/coverage-public-api';
 import {
+  failedRunOf,
+  TEST_FAILURE,
   testRunOf,
   UNSUPPORTED_RUN,
 } from '#tests/support/verification-coverage';
@@ -34,6 +36,14 @@ describe('testRunResultOf', () => {
 
     expect(result.status).toBe('failed');
     expect(result.message).toBe('They fail.');
+    expect(result.testFailure).toBeNull();
+  });
+
+  it('should keep what a failed run said first', () => {
+    const result = resultOf(failedRunOf(TEST_FAILURE));
+
+    expect(result.message).toBe('They fail.');
+    expect(result.testFailure).toEqual(TEST_FAILURE);
   });
 
   describe('when the run was stopped at its limit', () => {

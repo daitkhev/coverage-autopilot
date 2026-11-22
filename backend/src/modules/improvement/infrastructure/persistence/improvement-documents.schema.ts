@@ -21,11 +21,18 @@ import {
 } from '#improvement/domain/value-objects/verification-report.vo';
 
 /**
- * The version every document below is written with. A change of a shape
- * keeps the schema of the old version here and converts it when it is
- * read, or a migration rewrites the stored documents.
+ * The version the documents below are written with, unless one names its
+ * own. A change of a shape keeps the schema of the old version here and
+ * converts it when it is read, or a migration rewrites the stored
+ * documents.
  */
 export const DOCUMENT_VERSION = 1;
+
+/**
+ * The version the report of the gate is written with. The second keeps
+ * with each check what its run of tests said first.
+ */
+export const REPORT_DOCUMENT_VERSION = 2;
 
 const count = z.int().nonnegative();
 const text = z.string();
@@ -88,35 +95,61 @@ const targetCoverage = z
   })
   .nullable();
 
-export const verificationReportDocumentSchema = versioned({
-  patchHash: text,
-  verdict: z.enum(VERDICTS),
-  reasons: z.array(text),
-  checks: z.array(
-    z.strictObject({
-      name: z.enum(CHECK_NAMES),
-      status: z.enum(CHECK_STATUSES),
-      retryable: z.boolean(),
-      durationMs: count.nullable(),
-      runs: count.nullable(),
-      message: optionalText,
-      outputReference: optionalText,
-    }),
-  ),
-  coverageBefore: targetCoverage,
-  coverageAfter: targetCoverage,
-  mutants: z
-    .strictObject({
-      undetectedBefore: count,
-      killed: count,
-      reached: count,
-      timedOut: count,
-    })
-    .nullable(),
-  survivingMutants: z.array(
-    z.strictObject({ ...mutantShape, reached: z.boolean() }),
-  ),
+const checkShape = {
+  name: z.enum(CHECK_NAMES),
+  status: z.enum(CHECK_STATUSES),
+  retryable: z.boolean(),
+  durationMs: count.nullable(),
+  runs: count.nullable(),
+  message: optionalText,
+  outputReference: optionalText,
+};
+
+const testFailure = z
+  .strictObject({ file: text, test: optionalText, lines: z.array(text) })
+  .nullable();
+
+/** Every part of a report but its version, with checks of the given shape. */
+function reportShapeOf<Check extends z.ZodType>(check: Check) {
+  return {
+    patchHash: text,
+    verdict: z.enum(VERDICTS),
+    reasons: z.array(text),
+    checks: z.array(check),
+    coverageBefore: targetCoverage,
+    coverageAfter: targetCoverage,
+    mutants: z
+      .strictObject({
+        undetectedBefore: count,
+        killed: count,
+        reached: count,
+        timedOut: count,
+      })
+      .nullable(),
+    survivingMutants: z.array(
+      z.strictObject({ ...mutantShape, reached: z.boolean() }),
+    ),
+  };
+}
+
+/** The first version, read as the second: no check of it kept a failure. */
+const firstReportDocumentSchema = versioned(
+  reportShapeOf(z.strictObject(checkShape)),
+).transform((document) => ({
+  ...document,
+  checks: document.checks.map((check) => ({ ...check, testFailure: null })),
+}));
+
+const secondReportDocumentSchema = z.strictObject({
+  version: z.literal(REPORT_DOCUMENT_VERSION),
+  ...reportShapeOf(z.strictObject({ ...checkShape, testFailure })),
 });
+
+/** A report of either version, in the shape of the second. */
+export const verificationReportDocumentSchema = z.union([
+  secondReportDocumentSchema,
+  firstReportDocumentSchema,
+]);
 
 /** What the calls of the generator in one attempt left behind. */
 export const generationOutputDocumentSchema = versioned({

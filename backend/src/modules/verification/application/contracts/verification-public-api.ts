@@ -161,6 +161,19 @@ export interface VerifyPatchRequest {
   readonly onProgress?: ProgressObserver<CheckProgress>;
 }
 
+/**
+ * The failure a run of tests named first: text of the repository, without
+ * the codes of a terminal and the path of the working copy, cut to a few
+ * short lines.
+ */
+export interface TestFailureDto {
+  readonly file: FilePath;
+  /** The names of the test that failed, `null` when the file failed to run. */
+  readonly test: string | null;
+  /** At least one. */
+  readonly lines: readonly string[];
+}
+
 export interface CheckResultDto {
   readonly name: CheckName;
   readonly status: CheckStatus;
@@ -172,6 +185,11 @@ export interface CheckResultDto {
   readonly message: string | null;
   /** The raw output of the tool in the artifact store. */
   readonly outputReference: string | null;
+  /**
+   * Of a `failed` check that is a run of tests, what the run said first.
+   * `null` for any other check, and when the runner named no failure.
+   */
+  readonly testFailure: TestFailureDto | null;
 }
 
 interface CoverageCounterDto {

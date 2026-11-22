@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { TEST_FAILURE } from '#tests/support/verification-coverage';
 import {
   killedByNewTest,
   mutantAt,
@@ -56,7 +57,16 @@ describe('verification DTO mapping', () => {
         runs: 2,
         message: 'The new tests ran out of time on run 2 of 3.',
         outputReference: 'test-run',
+        testFailure: null,
       });
+    });
+
+    it('should carry what the run of a failed check said first', () => {
+      const result = CheckResult.failed('new_tests_pass', 'They fail.', {
+        testFailure: TEST_FAILURE,
+      });
+
+      expect(checkResultDtoOf(result).testFailure).toEqual(TEST_FAILURE);
     });
   });
 });

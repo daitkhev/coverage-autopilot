@@ -1,13 +1,17 @@
 import { GeneratorConfig } from '#improvement/domain/value-objects/generator-config.vo';
 import { QualityPolicy } from '#improvement/domain/value-objects/quality-policy.vo';
 import { VerificationBaseline } from '#improvement/domain/value-objects/verification-baseline.vo';
-import { VerificationReport } from '#improvement/domain/value-objects/verification-report.vo';
+import {
+  type CheckResult,
+  VerificationReport,
+} from '#improvement/domain/value-objects/verification-report.vo';
 import {
   DOCUMENT_VERSION,
   documentOf,
   generationOutputDocumentSchema,
   generatorConfigDocumentSchema,
   qualityPolicyDocumentSchema,
+  REPORT_DOCUMENT_VERSION,
   verificationBaselineDocumentSchema,
   verificationReportDocumentSchema,
 } from '#improvement/infrastructure/persistence/improvement-documents.schema';
@@ -29,8 +33,17 @@ function withText<Item extends { readonly file: FilePath }>(
 }
 
 /** The version is the first key, so a person who reads the row sees it. */
-function written(document: object): string {
-  return JSON.stringify({ version: DOCUMENT_VERSION, ...document });
+function written(document: object, version = DOCUMENT_VERSION): string {
+  return JSON.stringify({ version, ...document });
+}
+
+/** A check as a document holds it, with the file of its failure as text. */
+function checkText(check: CheckResult): object {
+  const { testFailure } = check;
+  return {
+    ...check,
+    testFailure: testFailure === null ? null : withText(testFailure),
+  };
 }
 
 export function qualityPolicyText(policy: QualityPolicy): string {
@@ -122,16 +135,19 @@ export function generationOutputFrom(json: string | null): GenerationOutput {
 }
 
 export function verificationReportText(report: VerificationReport): string {
-  return written({
-    patchHash: report.patchHash,
-    verdict: report.verdict,
-    reasons: report.reasons,
-    checks: report.checks,
-    coverageBefore: report.coverageBefore,
-    coverageAfter: report.coverageAfter,
-    mutants: report.mutants,
-    survivingMutants: report.survivingMutants.map(withText),
-  });
+  return written(
+    {
+      patchHash: report.patchHash,
+      verdict: report.verdict,
+      reasons: report.reasons,
+      checks: report.checks.map(checkText),
+      coverageBefore: report.coverageBefore,
+      coverageAfter: report.coverageAfter,
+      mutants: report.mutants,
+      survivingMutants: report.survivingMutants.map(withText),
+    },
+    REPORT_DOCUMENT_VERSION,
+  );
 }
 
 export function verificationReportFrom(json: string): VerificationReport {
@@ -140,7 +156,11 @@ export function verificationReportFrom(json: string): VerificationReport {
     patchHash: document.patchHash,
     verdict: document.verdict,
     reasons: document.reasons,
-    checks: document.checks,
+    checks: document.checks.map((check) => ({
+      ...check,
+      testFailure:
+        check.testFailure === null ? null : withPath(check.testFailure),
+    })),
     coverageBefore: document.coverageBefore,
     coverageAfter: document.coverageAfter,
     mutants: document.mutants,

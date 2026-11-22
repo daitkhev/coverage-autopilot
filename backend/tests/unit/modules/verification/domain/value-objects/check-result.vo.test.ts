@@ -1,9 +1,33 @@
 import { describe, expect, it } from 'vitest';
 
+import { TEST_FAILURE } from '#tests/support/verification-coverage';
 import { InvalidCheckResultError } from '#verification/domain/errors/invalid-check-result.error';
 import { CheckResult } from '#verification/domain/value-objects/check-result.vo';
 
 describe('CheckResult', () => {
+  describe('when a check that did not fail names a failure of a test', () => {
+    it.each([
+      [
+        'passed',
+        () =>
+          CheckResult.passed('new_tests_pass', { testFailure: TEST_FAILURE }),
+      ],
+      [
+        'error',
+        () =>
+          CheckResult.error('new_tests_pass', {
+            message: 'The new tests ran out of time.',
+            retryable: true,
+            testFailure: TEST_FAILURE,
+          }),
+      ],
+    ])('should refuse a %s check', (_status, make) => {
+      expect(make).toThrow(
+        /^The result of the check new_tests_pass cannot be: a \w+ check names a failure of a test\.$/u,
+      );
+    });
+  });
+
   describe('passed', () => {
     it('should keep its evidence and no reason', () => {
       const result = CheckResult.passed('repeated_runs', {
@@ -31,6 +55,19 @@ describe('CheckResult', () => {
       expect(result.message).toBe('The new tests fail.');
       expect(result.runs).toBeNull();
       expect(result.outputReference).toBeNull();
+      expect(result.testFailure).toBeNull();
+    });
+
+    it('should keep what the run of the tests said first', () => {
+      const result = CheckResult.failed(
+        'new_tests_pass',
+        'The new tests fail.',
+        {
+          testFailure: TEST_FAILURE,
+        },
+      );
+
+      expect(result.testFailure).toEqual(TEST_FAILURE);
     });
 
     describe('when the sentence is empty', () => {
