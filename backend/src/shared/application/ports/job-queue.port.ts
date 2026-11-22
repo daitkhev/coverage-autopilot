@@ -136,6 +136,13 @@ export interface JobQueue {
    */
   cancelSubject(subjectId: string, transaction: Transaction): Promise<void>;
   getJob(jobId: JobId): Promise<JobDto | null>;
+  /**
+   * The job of an object, of the kind, that has not ended: the leased one
+   * first, else the oldest pending one. `null` when every one has ended.
+   */
+  getOpenJob(subjectId: string, kind: JobKind): Promise<JobDto | null>;
+  /** How many jobs of each kind a worker holds now. */
+  countRunning(): Promise<Readonly<Record<JobKind, number>>>;
   /** The progress of the leased job of an object. A finished job has none. */
   getProgress(subjectId: string): Promise<JobProgressDto | null>;
   /** `null` when no job of the object is pending. */

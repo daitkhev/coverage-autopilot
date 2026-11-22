@@ -22,6 +22,7 @@ import type {
   EnqueueJobResult,
   JobDto,
   JobId,
+  JobKind,
   JobProgressDto,
   JobQueue,
   JobWait,
@@ -143,6 +144,23 @@ export class SqliteJobQueue implements JobQueue {
   public async getJob(jobId: JobId): Promise<JobDto | null> {
     const row = this.table.find(jobId);
     return Promise.resolve(row === undefined ? null : jobDtoOf(row));
+  }
+
+  public async getOpenJob(
+    subjectId: string,
+    kind: JobKind,
+  ): Promise<JobDto | null> {
+    const row = this.table.openOf(subjectId, kind);
+    return Promise.resolve(row === undefined ? null : jobDtoOf(row));
+  }
+
+  /** A kind with no leased job counts none, so every kind has a number. */
+  public async countRunning(): Promise<Readonly<Record<JobKind, number>>> {
+    const counts: Record<JobKind, number> = { scan: 0, improvement: 0 };
+    for (const { kind, running } of this.table.countLeased()) {
+      counts[jobKindOf(kind)] = running;
+    }
+    return Promise.resolve(counts);
   }
 
   public async getProgress(subjectId: string): Promise<JobProgressDto | null> {

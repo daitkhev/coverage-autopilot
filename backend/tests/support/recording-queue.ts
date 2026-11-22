@@ -5,6 +5,7 @@ import type {
   EnqueueJobResult,
   JobDto,
   JobId,
+  JobKind,
   JobProgressDto,
   JobQueue,
   JobWait,
@@ -45,10 +46,40 @@ export interface RecordingQueue extends JobQueue {
   wait: JobWait | null;
 }
 
+/** The leased job first, then the pending ones in the order they came. */
+function openFirst(left: JobDto, right: JobDto): number {
+  const leased = Number(right.status === 'leased');
+  return (
+    leased - Number(left.status === 'leased') ||
+    left.createdAt.epochMilliseconds - right.createdAt.epochMilliseconds
+  );
+}
+
+function openOf(
+  jobs: ReadonlyMap<JobId, JobDto>,
+  subjectId: string,
+  kind: JobKind,
+): JobDto | null {
+  const open = [...jobs.values()].filter(
+    (job) =>
+      job.subjectId === subjectId && job.kind === kind && job.endedAt === null,
+  );
+  return open.sort(openFirst)[0] ?? null;
+}
+
+function runningOf(
+  jobs: ReadonlyMap<JobId, JobDto>,
+): Readonly<Record<JobKind, number>> {
+  const leased = [...jobs.values()].filter((job) => job.status === 'leased');
+  const count = (kind: JobKind): number =>
+    leased.filter((job) => job.kind === kind).length;
+  return { scan: count('scan'), improvement: count('improvement') };
+}
+
 /**
  * A queue that runs nothing and keeps every job it is given. It answers
  * the progress and the wait a test sets, the same for every subject, and
- * finds the jobs a test stores.
+ * finds the jobs a test stores, the open job of a subject among them.
  */
 export function recordingQueue(): RecordingQueue {
   const queue: RecordingQueue = {
@@ -68,6 +99,9 @@ export function recordingQueue(): RecordingQueue {
       return Promise.resolve();
     },
     getJob: async (jobId) => Promise.resolve(queue.jobs.get(jobId) ?? null),
+    getOpenJob: async (subjectId, kind) =>
+      Promise.resolve(openOf(queue.jobs, subjectId, kind)),
+    countRunning: async () => Promise.resolve(runningOf(queue.jobs)),
     getProgress: async () => Promise.resolve(queue.progress),
     getWait: async () => Promise.resolve(queue.wait),
     cancel: async (jobId, transaction) => {

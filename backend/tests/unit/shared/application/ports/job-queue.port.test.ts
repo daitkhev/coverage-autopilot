@@ -8,6 +8,7 @@ import {
   JOB_QUEUE,
   type JobDocument,
   type JobDto,
+  type JobKind,
   type JobProgressDto,
   type JobQueue,
 } from '#ports/job-queue.port';
@@ -54,6 +55,18 @@ describe('JobQueue', () => {
     expectTypeOf<JobDto['createdAt']>().toEqualTypeOf<Instant>();
     expectTypeOf<JobDto['startedAt']>().toEqualTypeOf<Instant | null>();
     expectTypeOf<JobDto['endedAt']>().toEqualTypeOf<Instant | null>();
+  });
+
+  it('should count the running jobs of every kind', () => {
+    expectTypeOf<JobQueue['countRunning']>().returns.resolves.toEqualTypeOf<
+      Readonly<Record<JobKind, number>>
+    >();
+  });
+
+  it('should answer an object with no open job of a kind with null', () => {
+    expectTypeOf<
+      JobQueue['getOpenJob']
+    >().returns.resolves.toEqualTypeOf<JobDto | null>();
   });
 
   it('should report the steps of a check with the statuses of a check', () => {

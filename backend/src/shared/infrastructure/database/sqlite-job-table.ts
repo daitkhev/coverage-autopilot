@@ -46,6 +46,12 @@ export interface PendingRow {
   readonly repositoryBusy: boolean;
 }
 
+/** How many leased jobs one kind has. */
+export interface RunningRow {
+  readonly kind: string;
+  readonly running: number;
+}
+
 /** The last progress a worker wrote for a leased job. */
 export interface ProgressRow {
   readonly jobId: string;
@@ -154,6 +160,33 @@ export class SqliteJobTable {
       .prepare(`SELECT ${JOB_COLUMNS} FROM jobs WHERE id = ?`)
       .get(id);
     return record === undefined ? undefined : jobRowOf(record);
+  }
+
+  /** The leased job of the subject and the kind, else its oldest pending. */
+  public openOf(subjectId: string, kind: string): JobRow | undefined {
+    const record = this.connection
+      .prepare(
+        `SELECT ${JOB_COLUMNS} FROM jobs
+         WHERE subject_id = ? AND kind = ? AND status IN ('pending', 'leased')
+         ORDER BY status = 'leased' DESC, created_at, id
+         LIMIT 1`,
+      )
+      .get(subjectId, kind);
+    return record === undefined ? undefined : jobRowOf(record);
+  }
+
+  /** The kinds that have a leased job, with how many each has. */
+  public countLeased(): RunningRow[] {
+    return this.connection
+      .prepare(
+        `SELECT kind, COUNT(*) AS running FROM jobs
+         WHERE status = 'leased' GROUP BY kind`,
+      )
+      .all()
+      .map((record) => ({
+        kind: String(record['kind']),
+        running: Number(record['running']),
+      }));
   }
 
   /** The oldest pending job of the subject. */
