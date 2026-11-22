@@ -61,17 +61,15 @@ const NOTHING_OF: readonly { readonly what: string; readonly query: string }[] =
     },
   ];
 
-function soundness(paths: InstancePaths, database: DatabaseSync): string[] {
-  const { integrity } = databaseStateOf(paths);
-  const references = database
-    .prepare('PRAGMA foreign_key_check')
-    .all()
-    .map((row) => `A row breaks a foreign key: ${JSON.stringify(row)}.`);
+function soundness(paths: InstancePaths): string[] {
+  const { integrity, brokenReferences } = databaseStateOf(paths);
   return [
     ...(integrity.join() === SOUND
       ? []
       : [`The file is damaged: ${integrity.join('; ')}.`]),
-    ...references,
+    ...brokenReferences.map(
+      (row) => `A row breaks a foreign key: ${JSON.stringify(row)}.`,
+    ),
   ];
 }
 
@@ -85,7 +83,7 @@ export function storedFindings(paths: InstancePaths): string[] {
   const database = new DatabaseSync(paths.database, { readOnly: true });
   try {
     return [
-      ...soundness(paths, database),
+      ...soundness(paths),
       ...NOTHING_OF.flatMap(({ what, query }) =>
         database
           .prepare(query)
