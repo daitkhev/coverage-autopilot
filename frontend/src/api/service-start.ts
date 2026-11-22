@@ -74,7 +74,7 @@ export function readyService(socket: string, reply: SocketReply): ReadyService {
  * service the client started is of its own package, so the version is not
  * compared again.
  */
-async function answerAfterStart(
+export async function answerAfterStart(
   options: ServiceStartOptions,
   launched: LaunchedService,
 ): Promise<ReadyService | ServiceDidNotStart> {
