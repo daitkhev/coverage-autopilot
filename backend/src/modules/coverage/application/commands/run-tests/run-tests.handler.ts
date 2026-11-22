@@ -79,7 +79,10 @@ export class RunTestsHandler {
     command: RunTestsCommand,
     signal: AbortSignal,
   ): Promise<RunTestsResult> {
-    const detection = await this.detector.detect(command.workingCopyPath);
+    const detection = await this.detector.detect(
+      command.workingCopyPath,
+      'sandboxed',
+    );
     if (detection.outcome === 'unsupported') {
       return detection;
     }

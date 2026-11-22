@@ -1,6 +1,9 @@
 import type { UnsupportedProject } from '#coverage/application/ports/project-detector.port';
 import { readText } from '#coverage/infrastructure/detection/copy-text';
-import type { ManagerChoice } from '#coverage/infrastructure/detection/manager-choice';
+import type {
+  CopyToInstall,
+  ManagerChoice,
+} from '#coverage/infrastructure/detection/manager-choice';
 import {
   type Found,
   unsupported,
@@ -46,10 +49,10 @@ function formatRefusal(
 
 /** The yarn of the format of the lockfile, at the version package.json names. */
 export function yarnChoice(
-  root: string,
+  copy: CopyToInstall,
   descriptor: string | null,
 ): Found<ManagerChoice> | UnsupportedProject {
-  const lockfile = readText(root, YARN_LOCKFILE) ?? '';
+  const lockfile = readText(copy.root, YARN_LOCKFILE) ?? '';
   const format = CLASSIC_HEADER.test(lockfile) ? CLASSIC : BERRY;
   const refusal =
     descriptor === null ? null : formatRefusal(descriptor, format);
@@ -57,6 +60,6 @@ export function yarnChoice(
     return refusal;
   }
   return format === CLASSIC
-    ? classicChoice(lockfile, descriptor)
-    : berryChoice(root, lockfile, descriptor);
+    ? classicChoice(lockfile, descriptor, copy.mode)
+    : berryChoice(copy, lockfile, descriptor);
 }

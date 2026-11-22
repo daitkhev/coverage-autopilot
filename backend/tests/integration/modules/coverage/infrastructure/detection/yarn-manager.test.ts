@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
+import type { InstallMode } from '#coverage/application/ports/project-detector.port';
 import { yarnChoice } from '#coverage/infrastructure/detection/yarn-manager';
 import {
   createProjectFolder,
@@ -16,10 +17,11 @@ const folders: ProjectFolder[] = [];
 function choiceIn(
   lockfile: string,
   descriptor: string | null = null,
+  mode: InstallMode = 'sandboxed',
 ): ReturnType<typeof yarnChoice> {
   const folder = createProjectFolder({ 'yarn.lock': lockfile });
   folders.push(folder);
-  return yarnChoice(folder.root, descriptor);
+  return yarnChoice({ root: folder.root, mode }, descriptor);
 }
 
 function lockedIn(lockfile: string, name: string, range: string): unknown {
@@ -101,6 +103,37 @@ describe('yarnChoice', () => {
         detail:
           'yarn.lock takes a package from a git repository, which yarn ' +
           'prepares by running its scripts.',
+      });
+    });
+
+    describe('when the repository is trusted', () => {
+      it('should install with its scripts and its own yarn, still frozen', () => {
+        const choice = choiceIn(CLASSIC_LOCK, null, 'trusted');
+
+        expect(choice.outcome === 'found' && choice.value.install).toEqual({
+          command: [
+            'corepack',
+            'yarn@1.22.22',
+            'install',
+            '--frozen-lockfile',
+            '--ignore-engines',
+            '--non-interactive',
+            '--cache-folder',
+            'node_modules/.cache/coverage-autopilot/install',
+          ],
+          environment: {
+            COREPACK_ENV_FILE: '0',
+            COREPACK_NPM_REGISTRY: 'https://registry.npmjs.org',
+          },
+        });
+      });
+
+      it('should take a package from git', () => {
+        const resolved = 'git+https://example.com/acme/gadgets.git#0a1b';
+
+        expect(choiceIn(withEntry(resolved), null, 'trusted').outcome).toBe(
+          'found',
+        );
       });
     });
 

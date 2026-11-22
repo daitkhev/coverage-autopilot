@@ -1,5 +1,14 @@
-import type { PackageInstall } from '#coverage/application/ports/project-detector.port';
+import type {
+  InstallMode,
+  PackageInstall,
+} from '#coverage/application/ports/project-detector.port';
 import type { PackageManagerName } from '#coverage/domain/value-objects/detected-project.vo';
+
+/** The root of a copy, and whose code the install of its packages may run. */
+export interface CopyToInstall {
+  readonly root: string;
+  readonly mode: InstallMode;
+}
 
 /** A package of the manifest: its name and the range it is declared with. */
 export interface DeclaredPackage {

@@ -52,7 +52,10 @@ export class PrepareProjectHandler {
     command: PrepareProjectCommand,
     signal: AbortSignal,
   ): Promise<Preparation> {
-    const detection = await this.detector.detect(command.workingCopyPath);
+    const detection = await this.detector.detect(
+      command.workingCopyPath,
+      'sandboxed',
+    );
     if (detection.outcome === 'unsupported') {
       return detection;
     }

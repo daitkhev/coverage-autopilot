@@ -1,9 +1,13 @@
-import type { UnsupportedProject } from '#coverage/application/ports/project-detector.port';
+import type {
+  InstallMode,
+  UnsupportedProject,
+} from '#coverage/application/ports/project-detector.port';
 import {
   type KeyLine,
   keyLinesOf,
 } from '#coverage/infrastructure/detection/indented-keys';
 import {
+  type CopyToInstall,
   COREPACK,
   type DeclaredPackage,
   type ManagerChoice,
@@ -19,6 +23,7 @@ import {
 import {
   CLEAN_SETTINGS,
   cleanSettingsIn,
+  linkerRefusalIn,
 } from '#coverage/infrastructure/detection/yarn-settings';
 
 /**
@@ -47,21 +52,55 @@ const FORMAT = ['__metadata', 'version'];
 const CACHE_FOLDER = '.yarn/cache';
 
 /**
- * The settings the service wrote, no script, no cache or mirror outside
- * the copy, no report sent, and a package whose checksum differs from the
- * lockfile refused. The packages go into `node_modules`, whatever the
- * settings say.
+ * Whatever the mode: no cache or mirror outside the copy, no report sent,
+ * and a package whose checksum differs from the lockfile refused. The
+ * packages go into `node_modules`, whatever the settings say.
  */
-const BERRY_ENVIRONMENT: Readonly<Record<string, string>> = {
-  ...YARN_ENVIRONMENT,
-  YARN_RC_FILENAME: CLEAN_SETTINGS,
-  YARN_ENABLE_SCRIPTS: '0',
+const LOCAL_ENVIRONMENT: Readonly<Record<string, string>> = {
   YARN_ENABLE_GLOBAL_CACHE: '0',
   YARN_ENABLE_MIRROR: '0',
   YARN_CACHE_FOLDER: CACHE_FOLDER,
   YARN_ENABLE_TELEMETRY: '0',
   YARN_CHECKSUM_BEHAVIOR: 'throw',
   YARN_NODE_LINKER: 'node-modules',
+};
+
+/**
+ * Sandboxed, yarn reads the settings the service wrote and runs no
+ * script. Trusted, it reads those of the repository, with its own yarn,
+ * plugins and constraints, and runs the scripts.
+ */
+const BERRY_ENVIRONMENT: Readonly<
+  Record<InstallMode, Readonly<Record<string, string>>>
+> = {
+  sandboxed: {
+    ...YARN_ENVIRONMENT.sandboxed,
+    YARN_RC_FILENAME: CLEAN_SETTINGS,
+    YARN_ENABLE_SCRIPTS: '0',
+    ...LOCAL_ENVIRONMENT,
+  },
+  trusted: { ...YARN_ENVIRONMENT.trusted, ...LOCAL_ENVIRONMENT },
+};
+
+/**
+ * `YARN_ENABLE_SCRIPTS=0` alone still ran the `postinstall` of the root,
+ * so a sandboxed install builds no package at all.
+ */
+const BUILD_SWITCHES: Readonly<Record<InstallMode, readonly string[]>> = {
+  sandboxed: ['--mode=skip-build'],
+  trusted: [],
+};
+
+/**
+ * Sandboxed, the settings are read without what loads code of the
+ * repository. Trusted, they are read as they are, and only the linker is
+ * the service's to judge.
+ */
+const SETTINGS_REFUSAL: Readonly<
+  Record<InstallMode, (root: string) => UnsupportedProject | null>
+> = {
+  sandboxed: cleanSettingsIn,
+  trusted: linkerRefusalIn,
 };
 
 /**
@@ -75,9 +114,9 @@ const RUNS_CODE =
 /** A range with no protocol is one of the registry. */
 const PROTOCOL = /^[a-z]+:/u;
 
-/** The lockfile decides every version, and no package is built. */
-function installArguments(): string[] {
-  return ['install', '--immutable', '--mode=skip-build'];
+/** The lockfile decides every version. */
+function installArguments(mode: InstallMode): string[] {
+  return ['install', '--immutable', ...BUILD_SWITCHES[mode]];
 }
 
 function descriptorOf(declared: DeclaredPackage): string {
@@ -134,12 +173,13 @@ function programOf(
 
 /**
  * yarn 2 or later at the version package.json names, or else at the
- * version that writes the format of the lockfile. It reads the settings
- * the service writes, those of the repository without the ones that load
- * its code.
+ * version that writes the format of the lockfile. Sandboxed, it reads the
+ * settings the service writes, those of the repository without the ones
+ * that load its code, and a package from git or from a script is a
+ * reason to refuse.
  */
 export function berryChoice(
-  root: string,
+  { root, mode }: CopyToInstall,
   lockfile: string,
   descriptor: string | null,
 ): Found<ManagerChoice> | UnsupportedProject {
@@ -147,7 +187,7 @@ export function berryChoice(
   if (typeof program !== 'string') {
     return program;
   }
-  if (RUNS_CODE.test(lockfile)) {
+  if (mode === 'sandboxed' && RUNS_CODE.test(lockfile)) {
     return unsupported(
       'install_runs_code',
       `${YARN_LOCKFILE} takes a package from a git repository, which yarn ` +
@@ -155,14 +195,14 @@ export function berryChoice(
     );
   }
   return (
-    cleanSettingsIn(root) ?? {
+    SETTINGS_REFUSAL[mode](root) ?? {
       outcome: 'found',
       value: {
         name: 'yarn',
         lockfile: YARN_LOCKFILE,
         install: {
-          command: [COREPACK, program, ...installArguments()],
-          environment: BERRY_ENVIRONMENT,
+          command: [COREPACK, program, ...installArguments(mode)],
+          environment: BERRY_ENVIRONMENT[mode],
         },
         lockedVersion,
       },

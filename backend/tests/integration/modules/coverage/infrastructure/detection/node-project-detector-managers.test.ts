@@ -1,9 +1,12 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { ProjectDetection } from '#coverage/application/ports/project-detector.port';
+import type {
+  InstallMode,
+  ProjectDetection,
+} from '#coverage/application/ports/project-detector.port';
 import { NodeProjectDetector } from '#coverage/infrastructure/detection/node-project-detector.adapter';
 import { pnpmLockfileOf } from '#tests/support/pnpm-lockfiles';
 import {
@@ -44,10 +47,11 @@ const folders: ProjectFolder[] = [];
 
 async function detect(
   files: Readonly<Record<string, string>>,
+  mode: InstallMode = 'sandboxed',
 ): Promise<ProjectDetection> {
   const folder = createProjectFolder(files);
   folders.push(folder);
-  return new NodeProjectDetector().detect(folder.root);
+  return new NodeProjectDetector().detect(folder.root, mode);
 }
 
 afterEach(() => {
@@ -112,8 +116,8 @@ describe('NodeProjectDetector', () => {
       folders.push(folder);
       const detector = new NodeProjectDetector();
 
-      const first = await detector.detect(folder.root);
-      const second = await detector.detect(folder.root);
+      const first = await detector.detect(folder.root, 'sandboxed');
+      const second = await detector.detect(folder.root, 'sandboxed');
 
       expect(first.outcome).toBe('supported');
       expect(second).toEqual(first);
@@ -123,6 +127,48 @@ describe('NodeProjectDetector', () => {
           'utf8',
         ),
       ).toBe('nodeLinker: node-modules\n');
+    });
+  });
+
+  describe('when the repository is trusted', () => {
+    const fromGit =
+      '"gadgets@acme/gadgets":\n  version: 1.0.0\n' +
+      '  resolution: "gadgets@https://example.com/acme/gadgets.git#commit=0a1b"\n';
+
+    it('should install a package from git with the yarn and the settings of the repository', async () => {
+      const folder = createProjectFolder({
+        ...BERRY_FILES,
+        'yarn.lock': `${berryLockfileOf({ jest: '30.5.2' })}\n${fromGit}`,
+        '.yarnrc.yml': 'nodeLinker: node-modules\nyarnPath: ./yarn.cjs\n',
+      });
+      folders.push(folder);
+
+      const detection = await new NodeProjectDetector().detect(
+        folder.root,
+        'trusted',
+      );
+
+      expect(detection).toMatchObject({
+        outcome: 'supported',
+        install: {
+          command: ['corepack', 'yarn@4.13.0', 'install', '--immutable'],
+        },
+      });
+      expect(
+        existsSync(join(folder.root, '.coverage-autopilot-yarnrc.yml')),
+      ).toBe(false);
+    });
+
+    it('should refuse what no trust changes, such as a workspace', async () => {
+      const detection = await detect(
+        { ...PNPM_FILES, 'pnpm-workspace.yaml': 'packages:\n  - lib\n' },
+        'trusted',
+      );
+
+      expect(detection).toMatchObject({
+        outcome: 'unsupported',
+        reason: 'monorepo',
+      });
     });
   });
 });

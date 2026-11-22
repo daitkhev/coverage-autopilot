@@ -15,8 +15,9 @@ import { unsupported } from '#coverage/infrastructure/detection/runner-choice';
 const SETTINGS = '.yarnrc.yml';
 
 /**
- * The settings yarn reads instead, written by the service at the root of
- * the copy. A patch adds only test files, so it never holds this one.
+ * The settings a sandboxed yarn reads instead, written by the service at
+ * the root of the copy. A patch adds only test files, so it never holds
+ * this one.
  */
 export const CLEAN_SETTINGS = '.coverage-autopilot-yarnrc.yml';
 
@@ -127,21 +128,43 @@ function writeClean(root: string, lines: readonly string[]): void {
   writeFileSync(path, `${lines.join('\n').trimEnd()}\n`, { flag: 'wx' });
 }
 
+/** The text of the settings, empty for none, or `null` for a file that is not plain. */
+function settingsOf(root: string): string | null {
+  return readText(root, SETTINGS) ?? (hasFile(root, SETTINGS) ? null : '');
+}
+
 /**
- * Writes the settings of the repository without those that load its
- * code, for yarn to read instead, or refuses a project whose settings
- * keep the packages out of `node_modules` or cannot be read.
+ * For a sandboxed install: writes the settings of the repository without
+ * those that load its code, for yarn to read instead, or refuses a
+ * project whose settings keep the packages out of `node_modules` or
+ * cannot be read.
  */
 export function cleanSettingsIn(root: string): UnsupportedProject | null {
-  const text = readText(root, SETTINGS);
-  if (text === null && hasFile(root, SETTINGS)) {
+  const text = settingsOf(root);
+  if (text === null) {
     return unreadable(`${SETTINGS}, which is not a plain file`);
   }
-  const refusal = linkerRefusal(text ?? '');
-  const lines = cleanedLines((text ?? '').split(/\r?\n/u));
+  const refusal = linkerRefusal(text);
+  const lines = cleanedLines(text.split(/\r?\n/u));
   if (refusal !== null || typeof lines === 'number') {
     return refusal ?? unreadable(`line ${String(lines)} of ${SETTINGS}`);
   }
   writeClean(root, lines);
   return null;
+}
+
+/**
+ * For a trusted install, yarn reads the settings of the repository as
+ * they are, so the service reads its linker alone, and writes nothing.
+ */
+export function linkerRefusalIn(root: string): UnsupportedProject | null {
+  const text = settingsOf(root);
+  return text === null
+    ? unsupported(
+        'plug_and_play',
+        `${SETTINGS} is not a plain file, so the service cannot tell that ` +
+          `yarn installs into node_modules. Only ${LINKER}: ` +
+          `${NODE_MODULES} is supported.`,
+      )
+    : linkerRefusal(text);
 }

@@ -1,6 +1,9 @@
 import type { UnsupportedProject } from '#coverage/application/ports/project-detector.port';
 import { hasFile } from '#coverage/infrastructure/detection/copy-text';
-import type { ManagerChoice } from '#coverage/infrastructure/detection/manager-choice';
+import type {
+  CopyToInstall,
+  ManagerChoice,
+} from '#coverage/infrastructure/detection/manager-choice';
 import {
   NPM_LOCKFILES,
   npmChoice,
@@ -49,15 +52,15 @@ const NPM_FIELD = /^npm(?:@|$)/u;
 const INSTALLERS: Readonly<
   Record<
     string,
-    (root: string, asked: AskedManager, lockfile: string) => Choice
+    (copy: CopyToInstall, asked: AskedManager, lockfile: string) => Choice
   >
 > = {
-  npm: (_root, _asked, lockfile) => ({
+  npm: (copy, _asked, lockfile) => ({
     outcome: 'found',
-    value: npmChoice(lockfile),
+    value: npmChoice(lockfile, copy.mode),
   }),
-  pnpm: (root, asked) => pnpmChoice(root, asked.descriptor),
-  yarn: (root, asked) => yarnChoice(root, asked.descriptor),
+  pnpm: (copy, asked) => pnpmChoice(copy, asked.descriptor),
+  yarn: (copy, asked) => yarnChoice(copy, asked.descriptor),
 };
 
 const LIST = new Intl.ListFormat('en');
@@ -107,7 +110,7 @@ function guessed(
 }
 
 function installedWith(
-  root: string,
+  copy: CopyToInstall,
   asked: AskedManager,
   lockfiles: Map<string, string>,
 ): Choice {
@@ -126,7 +129,7 @@ function installedWith(
         `package.json names ${asked.name}, and the repository has no ` +
           `lockfile of ${asked.name}.`,
       )
-    : installer(root, asked, lockfile);
+    : installer(copy, asked, lockfile);
 }
 
 /**
@@ -134,9 +137,12 @@ function installedWith(
  * in `packageManager`, or else the one whose lockfile the copy has. The
  * lockfile of that manager must be there, since it decides every version.
  */
-export function chooseManager(root: string, manifest: PackageManifest): Choice {
-  const lockfiles = lockfilesIn(root);
+export function chooseManager(
+  copy: CopyToInstall,
+  manifest: PackageManifest,
+): Choice {
+  const lockfiles = lockfilesIn(copy.root);
   const field = manifest.packageManager;
   const asked = field === undefined ? guessed(lockfiles) : askedOf(field);
-  return 'outcome' in asked ? asked : installedWith(root, asked, lockfiles);
+  return 'outcome' in asked ? asked : installedWith(copy, asked, lockfiles);
 }

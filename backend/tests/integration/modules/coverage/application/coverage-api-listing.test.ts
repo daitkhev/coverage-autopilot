@@ -62,6 +62,7 @@ beforeEach(async () => {
   application = coverageApplication();
   application.detector.detection = await new NodeProjectDetector().detect(
     folder.root,
+    'sandboxed',
   );
   application.reader.report = new Map([
     reportRowOf(measuredFile(PRODUCT, { statements: [3, 6], lines: [2, 5] })),

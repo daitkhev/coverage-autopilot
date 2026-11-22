@@ -1,5 +1,9 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { afterEach, describe, expect, it } from 'vitest';
 
+import type { InstallMode } from '#coverage/application/ports/project-detector.port';
 import { berryChoice } from '#coverage/infrastructure/detection/yarn-berry';
 import {
   createProjectFolder,
@@ -13,17 +17,27 @@ const HASHED = 'yarn@4.13.0+sha224.953c8233f7a92884eee2de69a1b92d1f2ec1655e';
 
 const folders: ProjectFolder[] = [];
 
+function folderWith(settings: string): ProjectFolder {
+  const folder = createProjectFolder({ '.yarnrc.yml': settings });
+  folders.push(folder);
+  return folder;
+}
+
 function choiceIn(
   lockfile: string,
   descriptor: string | null = null,
+  mode: InstallMode = 'sandboxed',
 ): ReturnType<typeof berryChoice> {
-  const folder = createProjectFolder({
-    'yarn.lock': lockfile,
-    '.yarnrc.yml': 'nodeLinker: node-modules\n',
-  });
-  folders.push(folder);
-  return berryChoice(folder.root, lockfile, descriptor);
+  const folder = folderWith('nodeLinker: node-modules\n');
+  return berryChoice({ root: folder.root, mode }, lockfile, descriptor);
 }
+
+/** A package from git, one of git in a patch, and one a script makes. */
+const RUNS_CODE = [
+  'gadgets@https://example.com/acme/gadgets.git#commit=0a1b',
+  'gadgets@patch:gadgets@https%3A//example.com/acme/gadgets.git%23commit%3D0a1b#./gadgets.patch',
+  'gadgets@exec:./make-gadgets.js#./make-gadgets.js::hash=0a1b',
+];
 
 function lockedIn(name: string, range: string): string | null {
   const choice = choiceIn(LOCK);
@@ -107,11 +121,7 @@ describe('berryChoice', () => {
   });
 
   describe('when the install would run code', () => {
-    it.each([
-      'gadgets@https://example.com/acme/gadgets.git#commit=0a1b',
-      'gadgets@patch:gadgets@https%3A//example.com/acme/gadgets.git%23commit%3D0a1b#./gadgets.patch',
-      'gadgets@exec:./make-gadgets.js#./make-gadgets.js::hash=0a1b',
-    ])('should refuse %s', (resolution) => {
+    it.each(RUNS_CODE)('should refuse %s', (resolution) => {
       expect(choiceIn(withResolution(resolution))).toEqual({
         outcome: 'unsupported',
         reason: 'install_runs_code',
@@ -126,6 +136,57 @@ describe('berryChoice', () => {
         'typescript@patch:typescript@npm%3A5.6.3#optional!builtin<compat/typescript>::version=5.6.3';
 
       expect(choiceIn(withResolution(resolution)).outcome).toBe('found');
+    });
+  });
+
+  describe('when the repository is trusted', () => {
+    it('should install with its own yarn, settings and scripts, still immutable', () => {
+      const choice = choiceIn(LOCK, HASHED, 'trusted');
+
+      expect(choice.outcome === 'found' && choice.value.install).toEqual({
+        command: ['corepack', HASHED, 'install', '--immutable'],
+        environment: {
+          COREPACK_ENV_FILE: '0',
+          COREPACK_NPM_REGISTRY: 'https://registry.npmjs.org',
+          YARN_ENABLE_GLOBAL_CACHE: '0',
+          YARN_ENABLE_MIRROR: '0',
+          YARN_CACHE_FOLDER: '.yarn/cache',
+          YARN_ENABLE_TELEMETRY: '0',
+          YARN_CHECKSUM_BEHAVIOR: 'throw',
+          YARN_NODE_LINKER: 'node-modules',
+        },
+      });
+    });
+
+    it.each(RUNS_CODE)('should take %s', (resolution) => {
+      expect(
+        choiceIn(withResolution(resolution), HASHED, 'trusted').outcome,
+      ).toBe('found');
+    });
+
+    it('should read the settings of the repository as they are, and write none', () => {
+      const folder = folderWith(
+        'nodeLinker: node-modules\nyarnPath: ./yarn.cjs\n{plugins: []}\n',
+      );
+
+      const choice = berryChoice(
+        { root: folder.root, mode: 'trusted' },
+        LOCK,
+        HASHED,
+      );
+
+      expect(choice.outcome).toBe('found');
+      expect(
+        existsSync(join(folder.root, '.coverage-autopilot-yarnrc.yml')),
+      ).toBe(false);
+    });
+
+    it('should still refuse Plug and Play', () => {
+      const folder = folderWith('nodeLinker: pnp\n');
+
+      expect(
+        berryChoice({ root: folder.root, mode: 'trusted' }, LOCK, HASHED),
+      ).toMatchObject({ outcome: 'unsupported', reason: 'plug_and_play' });
     });
   });
 

@@ -24,7 +24,7 @@ function chosenIn(
 ): ReturnType<typeof chooseManager> {
   const folder = createProjectFolder(files);
   folders.push(folder);
-  return chooseManager(folder.root, manifest);
+  return chooseManager({ root: folder.root, mode: 'sandboxed' }, manifest);
 }
 
 function nameOrReason(choice: ReturnType<typeof chooseManager>): string {
@@ -125,6 +125,27 @@ describe('chooseManager', () => {
         reason: 'no_lockfile',
         detail:
           'package.json names pnpm, and the repository has no lockfile of pnpm.',
+      });
+    });
+  });
+
+  describe('when the repository is trusted', () => {
+    it('should let npm run the scripts, from the lockfile alone', () => {
+      const folder = createProjectFolder({ 'package-lock.json': NPM_LOCK });
+      folders.push(folder);
+
+      const choice = chooseManager({ root: folder.root, mode: 'trusted' }, {});
+
+      expect(choice.outcome === 'found' && choice.value.install).toEqual({
+        command: [
+          'npm',
+          'ci',
+          '--no-audit',
+          '--no-fund',
+          '--cache',
+          'node_modules/.cache/coverage-autopilot/install',
+        ],
+        environment: {},
       });
     });
   });

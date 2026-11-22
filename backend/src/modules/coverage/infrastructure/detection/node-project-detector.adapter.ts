@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import type {
+  InstallMode,
   ProjectDetection,
   ProjectDetector,
   UnsupportedProject,
@@ -16,7 +17,10 @@ import {
   readText,
 } from '#coverage/infrastructure/detection/copy-text';
 import { topKeysOf } from '#coverage/infrastructure/detection/indented-keys';
-import type { ManagerChoice } from '#coverage/infrastructure/detection/manager-choice';
+import type {
+  CopyToInstall,
+  ManagerChoice,
+} from '#coverage/infrastructure/detection/manager-choice';
 import { chooseManager } from '#coverage/infrastructure/detection/package-managers';
 import {
   type PackageManifest,
@@ -179,11 +183,15 @@ function supportedProject(
  */
 @Injectable()
 export class NodeProjectDetector implements ProjectDetector {
-  public async detect(workingCopyPath: string): Promise<ProjectDetection> {
-    return Promise.resolve(this.detectIn(workingCopyPath));
+  public async detect(
+    workingCopyPath: string,
+    mode: InstallMode,
+  ): Promise<ProjectDetection> {
+    return Promise.resolve(this.detectIn({ root: workingCopyPath, mode }));
   }
 
-  private detectIn(root: string): ProjectDetection {
+  private detectIn(copy: CopyToInstall): ProjectDetection {
+    const { root } = copy;
     const manifest = readManifest(root);
     if (manifest.outcome === 'unsupported') {
       return manifest;
@@ -192,7 +200,7 @@ export class NodeProjectDetector implements ProjectDetector {
     if (refusal !== null) {
       return refusal;
     }
-    const manager = chooseManager(root, manifest.value);
+    const manager = chooseManager(copy, manifest.value);
     if (manager.outcome === 'unsupported') {
       return manager;
     }

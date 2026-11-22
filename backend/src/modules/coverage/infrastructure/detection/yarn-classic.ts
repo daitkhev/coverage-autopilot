@@ -1,4 +1,7 @@
-import type { UnsupportedProject } from '#coverage/application/ports/project-detector.port';
+import type {
+  InstallMode,
+  UnsupportedProject,
+} from '#coverage/application/ports/project-detector.port';
 import { unquoted } from '#coverage/infrastructure/detection/indented-keys';
 import {
   COREPACK,
@@ -17,11 +20,19 @@ export const YARN_LOCKFILE = 'yarn.lock';
 /**
  * Every yarn starts the program a `yarnPath` of `.yarnrc.yml` names, and
  * yarn 1 also the one a `yarn-path` of `.yarnrc` names: code of the
- * repository, unless this says no.
+ * repository, which a sandboxed install says no to.
  */
-export const YARN_ENVIRONMENT: Readonly<Record<string, string>> = {
-  ...COREPACK_ENVIRONMENT,
-  YARN_IGNORE_PATH: '1',
+export const YARN_ENVIRONMENT: Readonly<
+  Record<InstallMode, Readonly<Record<string, string>>>
+> = {
+  sandboxed: { ...COREPACK_ENVIRONMENT, YARN_IGNORE_PATH: '1' },
+  trusted: COREPACK_ENVIRONMENT,
+};
+
+/** Sandboxed, no script of the repository or of a package runs. */
+const SCRIPT_SWITCHES: Readonly<Record<InstallMode, readonly string[]>> = {
+  sandboxed: ['--ignore-scripts'],
+  trusted: [],
 };
 
 /** For a project whose manifest names no yarn: the last yarn 1. */
@@ -40,16 +51,16 @@ const ENTRY = /^(?<descriptors>[^\s#].*):$/u;
 const VERSION = /^ {2}version "(?<version>[^"]+)"$/u;
 
 /**
- * The lockfile decides every version, and no script runs. A package that
- * asks for another version of Node than the image has is installed as npm
- * installs it, since the tests of the project decide whether it works.
- * The cache of the install is the one of the service.
+ * The lockfile decides every version. A package that asks for another
+ * version of Node than the image has is installed as npm installs it,
+ * since the tests of the project decide whether it works. The cache of
+ * the install is the one of the service.
  */
-function installArguments(): string[] {
+function installArguments(mode: InstallMode): string[] {
   return [
     'install',
     '--frozen-lockfile',
-    '--ignore-scripts',
+    ...SCRIPT_SWITCHES[mode],
     '--ignore-engines',
     '--non-interactive',
     '--cache-folder',
@@ -83,12 +94,16 @@ function lockedVersion(text: string, declared: DeclaredPackage): string | null {
   return null;
 }
 
-/** yarn 1 at the version package.json names, or else the last yarn 1. */
+/**
+ * yarn 1 at the version package.json names, or else the last yarn 1. A
+ * package from git is a reason to refuse a sandboxed install alone.
+ */
 export function classicChoice(
   lockfile: string,
   descriptor: string | null,
+  mode: InstallMode,
 ): Found<ManagerChoice> | UnsupportedProject {
-  if (FROM_GIT.test(lockfile)) {
+  if (mode === 'sandboxed' && FROM_GIT.test(lockfile)) {
     return unsupported(
       'install_runs_code',
       `${YARN_LOCKFILE} takes a package from a git repository, which yarn ` +
@@ -102,8 +117,8 @@ export function classicChoice(
       name: 'yarn',
       lockfile: YARN_LOCKFILE,
       install: {
-        command: [COREPACK, program, ...installArguments()],
-        environment: YARN_ENVIRONMENT,
+        command: [COREPACK, program, ...installArguments(mode)],
+        environment: YARN_ENVIRONMENT[mode],
       },
       lockedVersion,
     },

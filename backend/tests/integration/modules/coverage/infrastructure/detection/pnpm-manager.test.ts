@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
+import type { InstallMode } from '#coverage/application/ports/project-detector.port';
 import { pnpmChoice } from '#coverage/infrastructure/detection/pnpm-manager';
 import {
   PNPM_7_LOCKFILE,
@@ -20,11 +21,45 @@ const folders: ProjectFolder[] = [];
 function choiceIn(
   files: Readonly<Record<string, string>>,
   descriptor: string | null = null,
+  mode: InstallMode = 'sandboxed',
 ): ReturnType<typeof pnpmChoice> {
   const folder = createProjectFolder(files);
   folders.push(folder);
-  return pnpmChoice(folder.root, descriptor);
+  return pnpmChoice({ root: folder.root, mode }, descriptor);
 }
+
+/** What a sandboxed install refuses, each with the words of its refusal. */
+const RUNS_CODE: readonly (readonly [
+  string,
+  Readonly<Record<string, string>>,
+  string,
+])[] = [
+  [
+    'a hook of pnpm-workspace.yaml',
+    {
+      'pnpm-workspace.yaml': 'configDependencies:\n  acme: 1.0.0+sha512-x\n',
+    },
+    'pnpm-workspace.yaml names configDependencies',
+  ],
+  [
+    'a package from git',
+    {
+      'pnpm-lock.yaml':
+        "lockfileVersion: '9.0'\n\npackages:\n\n  gadgets@git+https://example.com/acme/gadgets.git#abc:\n" +
+        '    resolution: {commit: abc, repo: https://example.com/acme/gadgets.git, type: git}\n',
+    },
+    'pnpm-lock.yaml takes a package from a git repository',
+  ],
+  [
+    'an archive of a host of git',
+    {
+      'pnpm-lock.yaml':
+        "lockfileVersion: '9.0'\n\npackages:\n\n  gadgets@https://codeload.github.com/acme/gadgets/tar.gz/abc:\n" +
+        '    resolution: {gitHosted: true, tarball: https://codeload.github.com/acme/gadgets/tar.gz/abc}\n',
+    },
+    'pnpm-lock.yaml takes a package from a git repository',
+  ],
+];
 
 function lockedIn(lockfile: string, name: string): string | null {
   const choice = choiceIn({ 'pnpm-lock.yaml': lockfile });
@@ -107,47 +142,23 @@ describe('pnpmChoice', () => {
   });
 
   describe('when the install would run code', () => {
-    it.each([
-      [
-        'a hook of pnpm-workspace.yaml',
-        {
-          'pnpm-workspace.yaml':
-            'configDependencies:\n  acme: 1.0.0+sha512-x\n',
-        },
-        'pnpm-workspace.yaml names configDependencies',
-      ],
-      [
-        'a package from git',
-        {
-          'pnpm-lock.yaml':
-            "lockfileVersion: '9.0'\n\npackages:\n\n  gadgets@git+https://example.com/acme/gadgets.git#abc:\n" +
-            '    resolution: {commit: abc, repo: https://example.com/acme/gadgets.git, type: git}\n',
-        },
-        'pnpm-lock.yaml takes a package from a git repository',
-      ],
-      [
-        'an archive of a host of git',
-        {
-          'pnpm-lock.yaml':
-            "lockfileVersion: '9.0'\n\npackages:\n\n  gadgets@https://codeload.github.com/acme/gadgets/tar.gz/abc:\n" +
-            '    resolution: {tarball: https://codeload.github.com/acme/gadgets/tar.gz/abc}\n',
-        },
-        'pnpm-lock.yaml takes a package from a git repository',
-      ],
-    ])('should refuse %s, naming it', (_what, files, detail) => {
-      const choice = choiceIn(
-        { 'pnpm-lock.yaml': pnpmLockfileOf({}), ...files },
-        HASHED,
-      );
+    it.each(RUNS_CODE)(
+      'should refuse %s, naming it',
+      (_what, files, detail) => {
+        const choice = choiceIn(
+          { 'pnpm-lock.yaml': pnpmLockfileOf({}), ...files },
+          HASHED,
+        );
 
-      expect(choice).toMatchObject({
-        outcome: 'unsupported',
-        reason: 'install_runs_code',
-      });
-      expect(choice.outcome === 'unsupported' && choice.detail).toContain(
-        detail,
-      );
-    });
+        expect(choice).toMatchObject({
+          outcome: 'unsupported',
+          reason: 'install_runs_code',
+        });
+        expect(choice.outcome === 'unsupported' && choice.detail).toContain(
+          detail,
+        );
+      },
+    );
 
     it('should take a workspace file of settings alone for no hook', () => {
       const choice = choiceIn(
@@ -156,6 +167,43 @@ describe('pnpmChoice', () => {
           'pnpm-workspace.yaml': 'onlyBuiltDependencies:\n  - esbuild\n',
         },
         HASHED,
+      );
+
+      expect(choice.outcome).toBe('found');
+    });
+  });
+
+  describe('when the repository is trusted', () => {
+    it('should install with its scripts and its pnpmfile, still frozen', () => {
+      const choice = choiceIn(
+        { 'pnpm-lock.yaml': pnpmLockfileOf({}) },
+        HASHED,
+        'trusted',
+      );
+
+      expect(choice.outcome === 'found' && choice.value.install).toEqual({
+        command: [
+          'corepack',
+          HASHED,
+          'install',
+          '--frozen-lockfile',
+          '--store-dir',
+          'node_modules/.cache/coverage-autopilot/install',
+          '--config.manage-package-manager-versions=false',
+          '--reporter=append-only',
+        ],
+        environment: {
+          COREPACK_ENV_FILE: '0',
+          COREPACK_NPM_REGISTRY: 'https://registry.npmjs.org',
+        },
+      });
+    });
+
+    it.each(RUNS_CODE)('should take %s', (_what, files) => {
+      const choice = choiceIn(
+        { 'pnpm-lock.yaml': pnpmLockfileOf({}), ...files },
+        HASHED,
+        'trusted',
       );
 
       expect(choice.outcome).toBe('found');

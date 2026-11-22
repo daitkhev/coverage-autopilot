@@ -1,3 +1,4 @@
+import type { InstallMode } from '#coverage/application/ports/project-detector.port';
 import { parseJson } from '#coverage/infrastructure/detection/copy-text';
 import {
   INSTALL_CACHE,
@@ -9,26 +10,35 @@ import { packageLockSchema } from '#coverage/infrastructure/detection/package-ma
 export const NPM_LOCKFILES = ['package-lock.json', 'npm-shrinkwrap.json'];
 
 /**
- * The npm of the image, whatever version package.json names. The lockfile
- * decides every version, and no script of a package runs while the
- * network is open: the code of the repository runs only later, in a
- * sandbox with no network.
+ * Sandboxed, no script of a package runs while the network is open: the
+ * code of the repository runs only later, in a sandbox with no network.
  */
-const INSTALL_COMMAND = [
-  'npm',
-  'ci',
-  '--ignore-scripts',
-  '--no-audit',
-  '--no-fund',
-  '--cache',
-  INSTALL_CACHE,
-];
+const SCRIPT_SWITCHES: Readonly<Record<InstallMode, readonly string[]>> = {
+  sandboxed: ['--ignore-scripts'],
+  trusted: [],
+};
 
-export function npmChoice(lockfile: string): ManagerChoice {
+/**
+ * The npm of the image, whatever version package.json names. The lockfile
+ * decides every version.
+ */
+function installCommand(mode: InstallMode): string[] {
+  return [
+    'npm',
+    'ci',
+    ...SCRIPT_SWITCHES[mode],
+    '--no-audit',
+    '--no-fund',
+    '--cache',
+    INSTALL_CACHE,
+  ];
+}
+
+export function npmChoice(lockfile: string, mode: InstallMode): ManagerChoice {
   return {
     name: 'npm',
     lockfile,
-    install: { command: INSTALL_COMMAND, environment: {} },
+    install: { command: installCommand(mode), environment: {} },
     lockedVersion: (text, declared) =>
       parseJson(text, packageLockSchema)?.packages?.[
         `node_modules/${declared.name}`

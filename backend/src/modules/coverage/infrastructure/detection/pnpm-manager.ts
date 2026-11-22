@@ -1,4 +1,7 @@
-import type { UnsupportedProject } from '#coverage/application/ports/project-detector.port';
+import type {
+  InstallMode,
+  UnsupportedProject,
+} from '#coverage/application/ports/project-detector.port';
 import { readText } from '#coverage/infrastructure/detection/copy-text';
 import {
   type KeyLine,
@@ -6,6 +9,7 @@ import {
   topKeysOf,
 } from '#coverage/infrastructure/detection/indented-keys';
 import {
+  type CopyToInstall,
   COREPACK,
   COREPACK_ENVIRONMENT,
   type DeclaredPackage,
@@ -54,18 +58,22 @@ const FROM_GIT =
 /** pnpm 10 installs these and runs the hooks they bring as it starts. */
 const CONFIG_DEPENDENCIES = 'configDependencies';
 
+/** Sandboxed, no script and no `.pnpmfile.cjs` of the repository runs. */
+const CODE_SWITCHES: Readonly<Record<InstallMode, readonly string[]>> = {
+  sandboxed: ['--ignore-scripts', '--ignore-pnpmfile'],
+  trusted: [],
+};
+
 /**
- * The lockfile decides every version, and the switches keep every script
- * and the `.pnpmfile.cjs` of the repository from running. The store of
- * the packages is the cache of the install. pnpm switches to no other
- * version of itself, and writes a line for each step.
+ * The lockfile decides every version. The store of the packages is the
+ * cache of the install. pnpm switches to no other version of itself, and
+ * writes a line for each step.
  */
-function installArguments(): string[] {
+function installArguments(mode: InstallMode): string[] {
   return [
     'install',
     '--frozen-lockfile',
-    '--ignore-scripts',
-    '--ignore-pnpmfile',
+    ...CODE_SWITCHES[mode],
     '--store-dir',
     INSTALL_CACHE,
     '--config.manage-package-manager-versions=false',
@@ -106,25 +114,28 @@ function formatOf(text: string): string {
   return line?.value ?? 'none';
 }
 
-function codeRefusal(
-  root: string,
-  lockfile: string,
-): UnsupportedProject | null {
-  const workspace = readText(root, PNPM_WORKSPACE);
-  if (workspace !== null && topKeysOf(workspace).has(CONFIG_DEPENDENCIES)) {
-    return unsupported(
-      'install_runs_code',
+/** What in the copy would run code while pnpm installs, or `null`. */
+function codeFoundIn(root: string, lockfile: string): string | null {
+  const workspace = readText(root, PNPM_WORKSPACE) ?? '';
+  if (topKeysOf(workspace).has(CONFIG_DEPENDENCIES)) {
+    return (
       `${PNPM_WORKSPACE} names ${CONFIG_DEPENDENCIES}, whose hooks pnpm ` +
-        'runs while it installs.',
+      'runs while it installs.'
     );
   }
   return FROM_GIT.test(lockfile)
-    ? unsupported(
-        'install_runs_code',
-        `${PNPM_LOCKFILE} takes a package from a git repository, which ` +
-          'pnpm builds from its sources by running its scripts.',
-      )
+    ? `${PNPM_LOCKFILE} takes a package from a git repository, which ` +
+        'pnpm builds from its sources by running its scripts.'
     : null;
+}
+
+/** What would run code is a reason to refuse a sandboxed install alone. */
+function codeRefusal(
+  { root, mode }: CopyToInstall,
+  lockfile: string,
+): UnsupportedProject | null {
+  const found = mode === 'sandboxed' ? codeFoundIn(root, lockfile) : null;
+  return found === null ? null : unsupported('install_runs_code', found);
 }
 
 /**
@@ -132,10 +143,10 @@ function codeRefusal(
  * version that writes the format of the lockfile.
  */
 export function pnpmChoice(
-  root: string,
+  copy: CopyToInstall,
   descriptor: string | null,
 ): Found<ManagerChoice> | UnsupportedProject {
-  const lockfile = readText(root, PNPM_LOCKFILE) ?? '';
+  const lockfile = readText(copy.root, PNPM_LOCKFILE) ?? '';
   const format = formatOf(lockfile);
   const fallback = PNPM_OF_FORMAT[format];
   const program =
@@ -148,13 +159,13 @@ export function pnpmChoice(
     );
   }
   return (
-    codeRefusal(root, lockfile) ?? {
+    codeRefusal(copy, lockfile) ?? {
       outcome: 'found',
       value: {
         name: 'pnpm',
         lockfile: PNPM_LOCKFILE,
         install: {
-          command: [COREPACK, program, ...installArguments()],
+          command: [COREPACK, program, ...installArguments(copy.mode)],
           environment: COREPACK_ENVIRONMENT,
         },
         lockedVersion,

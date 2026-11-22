@@ -43,7 +43,7 @@ async function detect(
 ): Promise<ProjectDetection> {
   const folder = createProjectFolder(files);
   folders.push(folder);
-  return new NodeProjectDetector().detect(folder.root);
+  return new NodeProjectDetector().detect(folder.root, 'sandboxed');
 }
 
 async function reasonOf(
@@ -295,7 +295,10 @@ describe('NodeProjectDetector', () => {
       symlinkSync(outside.root, join(folder.root, 'src', 'linked'));
       symlinkSync(join(outside.root, 'secret.ts'), join(folder.root, 'b.ts'));
 
-      const detection = await new NodeProjectDetector().detect(folder.root);
+      const detection = await new NodeProjectDetector().detect(
+        folder.root,
+        'sandboxed',
+      );
 
       expect(
         detection.outcome === 'supported' &&

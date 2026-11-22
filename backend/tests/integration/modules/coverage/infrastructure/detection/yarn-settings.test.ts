@@ -1,9 +1,12 @@
-import { readFileSync, symlinkSync } from 'node:fs';
+import { readdirSync, readFileSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { cleanSettingsIn } from '#coverage/infrastructure/detection/yarn-settings';
+import {
+  cleanSettingsIn,
+  linkerRefusalIn,
+} from '#coverage/infrastructure/detection/yarn-settings';
 import {
   createProjectFolder,
   type ProjectFolder,
@@ -135,6 +138,44 @@ describe('cleanSettingsIn', () => {
           '.yarnrc.yml, which is not a plain file',
         ) as unknown,
       });
+    });
+  });
+});
+
+describe('linkerRefusalIn', () => {
+  it('should take settings the service does not read, and write nothing', () => {
+    const folder = folderWith({
+      '.yarnrc.yml': `${LINKER}yarnPath: ./yarn.cjs\n{plugins: []}\n`,
+    });
+
+    expect(linkerRefusalIn(folder.root)).toBeNull();
+    expect(readdirSync(folder.root)).toEqual(['.yarnrc.yml']);
+  });
+
+  it('should refuse Plug and Play as for a sandboxed install', () => {
+    const folder = folderWith({ '.yarnrc.yml': 'enableTelemetry: false\n' });
+
+    expect(linkerRefusalIn(folder.root)).toMatchObject({
+      reason: 'plug_and_play',
+      detail: expect.stringContaining('sets no nodeLinker') as unknown,
+    });
+  });
+
+  it('should refuse a file that is not plain, whose linker it cannot read', () => {
+    const outside = folderWith({ 'settings.yml': LINKER });
+    const folder = folderWith({});
+    symlinkSync(
+      join(outside.root, 'settings.yml'),
+      join(folder.root, '.yarnrc.yml'),
+    );
+
+    expect(linkerRefusalIn(folder.root)).toEqual({
+      outcome: 'unsupported',
+      reason: 'plug_and_play',
+      detail:
+        '.yarnrc.yml is not a plain file, so the service cannot tell that ' +
+        'yarn installs into node_modules. Only nodeLinker: node-modules is ' +
+        'supported.',
     });
   });
 });
