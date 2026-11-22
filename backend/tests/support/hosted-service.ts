@@ -1,8 +1,12 @@
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { repositorySchema } from '@coverage-autopilot/api-contracts/repositories';
+import { type Scan, scanSchema } from '@coverage-autopilot/api-contracts/scans';
+
 import type { ServiceConfig } from '#infrastructure/config/service-config';
 import type { SandboxEngine } from '#infrastructure/sandbox/sandbox-settings';
+import { lockfileOf } from '#tests/support/project-folder';
 import {
   askOver,
   type ServiceBench,
@@ -21,6 +25,16 @@ const SEARCH_PATH = '/usr/bin:/bin';
 
 /** The script may be run by its owner, and read and run by the others. */
 const RUNNABLE = 0o755;
+
+/** A project of a test runner the service supports, with one source file. */
+const PROJECT = {
+  'package.json': JSON.stringify({
+    name: 'widgets',
+    devDependencies: { jest: '^30.5.2' },
+  }),
+  'package-lock.json': lockfileOf({ jest: '30.5.2' }),
+  'src/sum.ts': 'export const sum = (a: number, b: number) => a + b;\n',
+};
 
 /** A worker that looks for work often, so a test waits little. */
 const QUICK_POLL = { AUTOPILOT_QUEUE_POLL_MS: '20' };
@@ -69,9 +83,11 @@ interface Stand {
   readonly engine: SandboxEngine;
 }
 
-function hostedConfig(config: ServiceConfig, stand: Stand): ServiceConfig {
-  const { host, engine } = stand;
-  const ghPath = `${ghOnThePath(host)}:${SEARCH_PATH}`;
+/** The configuration with both of its sandboxes on `engine`. */
+export function onEngine(
+  config: ServiceConfig,
+  engine: SandboxEngine,
+): ServiceConfig {
   return {
     ...config,
     sandbox: { ...config.sandbox, engine },
@@ -79,6 +95,14 @@ function hostedConfig(config: ServiceConfig, stand: Stand): ServiceConfig {
       ...config.generator,
       sandbox: { ...config.generator.sandbox, engine },
     },
+  };
+}
+
+function hostedConfig(config: ServiceConfig, stand: Stand): ServiceConfig {
+  const { host, engine } = stand;
+  const ghPath = `${ghOnThePath(host)}:${SEARCH_PATH}`;
+  return {
+    ...onEngine(config, engine),
     git: { ...config.git, environment: host.settings.git.environment },
     gh: {
       ...config.gh,
@@ -107,4 +131,23 @@ export function hostedService(play: EnginePlay): HostedService {
       host.remove();
     },
   };
+}
+
+/**
+ * Connects `acme/widgets`, a project of a supported test runner, to the
+ * running service and asks for its scan over the socket, as the client
+ * does. Gives the scan as the service first answered it.
+ */
+export async function askedScan(hosted: HostedService): Promise<Scan> {
+  hosted.host.createRepository('acme/widgets', PROJECT);
+  const connected = await hosted.send('/repositories', {
+    method: 'POST',
+    body: { url: TemporaryCodeHost.urlOf('acme/widgets') },
+  });
+  const { id } = repositorySchema.parse(connected.body);
+  const asked = await hosted.send(`/repositories/${id}/scans`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': 'scan-1' },
+  });
+  return scanSchema.parse(asked.body);
 }

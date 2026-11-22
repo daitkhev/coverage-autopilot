@@ -33,9 +33,17 @@ interface Ending {
   readonly endless?: boolean;
 }
 
+/** A container the stand-in lists, as if it were there. */
+export interface ListedContainer {
+  readonly name: string;
+  readonly labels: Readonly<Record<string, string>>;
+}
+
 /**
  * What the stand-in does when it is asked to run a container, and, when
- * a test says so, to remove one. Left out, a removal ends well.
+ * a test says so, to remove or to list containers. Left out, a removal
+ * ends well and a listing prints the names of `containers` whose labels
+ * match every filter of the call.
  */
 export interface EnginePlay extends Ending {
   /**
@@ -44,6 +52,8 @@ export interface EnginePlay extends Ending {
    */
   readonly locksCopies?: boolean;
   readonly removal?: Ending;
+  readonly listing?: Ending;
+  readonly containers?: readonly ListedContainer[];
 }
 
 const RECORD = 'STAND_IN_RECORD';
@@ -58,6 +68,9 @@ const STANDARD_ERROR = 2;
 
 /** Read and enter, but not write. */
 const READ_ONLY = 0o555;
+
+/** How a listing names the label it filters by. */
+const LABEL_FILTER = 'label=';
 
 /**
  * macOS adds it to every process that loads its text services, Node among
@@ -118,9 +131,26 @@ function playRemoval(play: EnginePlay): void {
   end(play.removal ?? {});
 }
 
+/** The containers whose labels hold every `key=value` the call filters by. */
+function playListing(play: EnginePlay, args: readonly string[]): void {
+  if (play.listing !== undefined) {
+    end(play.listing);
+    return;
+  }
+  const filters = args
+    .filter((arg) => arg.startsWith(LABEL_FILTER))
+    .map((arg) => arg.slice(LABEL_FILTER.length).split('='));
+  const names = (play.containers ?? [])
+    .filter(({ labels }) =>
+      filters.every(([key = '', value]) => labels[key] === value),
+    )
+    .map(({ name }) => `${name}\n`);
+  end({ output: [{ stream: 'stdout', text: names.join('') }] });
+}
+
 const PLAYS: Readonly<
   Record<string, (play: EnginePlay, args: readonly string[]) => void>
-> = { run: playRun, rm: playRemoval };
+> = { run: playRun, rm: playRemoval, ps: playListing };
 
 /** The stand-in records what it got before it does anything else. */
 function main(): void {

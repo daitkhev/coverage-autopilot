@@ -2,26 +2,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { errorSchema } from '@coverage-autopilot/api-contracts/errors';
 import { improvementListSchema } from '@coverage-autopilot/api-contracts/improvements';
-import { repositorySchema } from '@coverage-autopilot/api-contracts/repositories';
 import { type Scan, scanSchema } from '@coverage-autopilot/api-contracts/scans';
 
 import {
+  askedScan,
   type HostedService,
   hostedService,
   WORK_WAIT,
 } from '#tests/support/hosted-service';
 import { giveBackFolders } from '#tests/support/locked-tree';
-import { lockfileOf } from '#tests/support/project-folder';
-import { TemporaryCodeHost } from '#tests/support/temporary-code-host';
-
-const PROJECT = {
-  'package.json': JSON.stringify({
-    name: 'widgets',
-    devDependencies: { jest: '^30.5.2' },
-  }),
-  'package-lock.json': lockfileOf({ jest: '30.5.2' }),
-  'src/sum.ts': 'export const sum = (a: number, b: number) => a + b;\n',
-};
 
 const ENDED = new Set(['completed', 'failed', 'cancelled']);
 
@@ -42,18 +31,8 @@ afterEach(async () => {
  * client does, and waits until the worker has ended it.
  */
 async function scanned(): Promise<Scan> {
-  hosted.host.createRepository('acme/widgets', PROJECT);
   await hosted.bench.run();
-  const connected = await hosted.send('/repositories', {
-    method: 'POST',
-    body: { url: TemporaryCodeHost.urlOf('acme/widgets') },
-  });
-  const { id } = repositorySchema.parse(connected.body);
-  const asked = await hosted.send(`/repositories/${id}/scans`, {
-    method: 'POST',
-    headers: { 'Idempotency-Key': 'scan-1' },
-  });
-  let scan = scanSchema.parse(asked.body);
+  let scan = await askedScan(hosted);
   const path = `/scans/${scan.id}`;
   await expect
     .poll(async () => {

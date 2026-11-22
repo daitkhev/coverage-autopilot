@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SandboxContainerLeftError } from '#infrastructure/sandbox/errors/sandbox-container-left.error';
-import type {
-  SandboxCommandRequest,
-  SandboxCommandResult,
-} from '#ports/sandbox.port';
 import {
   commandRequest,
   FIRST_CONTAINER,
@@ -28,14 +24,6 @@ const BUSY =
 
 const bench = useSandboxBench();
 
-function run(
-  play: EnginePlay,
-  overrides: Partial<SandboxCommandRequest> = {},
-): Promise<SandboxCommandResult> {
-  const sandbox = bench.sandbox(bench.settings(play));
-  return sandbox.run(commandRequest(overrides), new AbortController().signal);
-}
-
 function refusedWith(said: string): NonNullable<EnginePlay['removal']> {
   return { exitCode: 1, output: [{ stream: 'stderr', text: `${said}\n` }] };
 }
@@ -47,7 +35,7 @@ afterEach(() => {
 describe('DockerSandbox', () => {
   describe('when the engine refuses to remove the container of a command that ended', () => {
     it('should throw SandboxContainerLeftError, which a later try may pass', async () => {
-      const running = run({ removal: refusedWith(BUSY) });
+      const running = bench.run({ removal: refusedWith(BUSY) });
 
       await expect(running).rejects.toThrow(
         new SandboxContainerLeftError(
@@ -64,7 +52,10 @@ describe('DockerSandbox', () => {
       `Error: no container with name or ID "${FIRST_CONTAINER}" found: ` +
         'no such container',
     ])('should answer the run for "%s"', async (said) => {
-      const result = await run({ exitCode: 3, removal: refusedWith(said) });
+      const result = await bench.run({
+        exitCode: 3,
+        removal: refusedWith(said),
+      });
 
       expect(result).toMatchObject({ outcome: 'exited', exitCode: 3 });
     });
@@ -74,7 +65,7 @@ describe('DockerSandbox', () => {
     it('should stop waiting after thirty seconds and throw SandboxContainerLeftError', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
-      const running = run({ removal: { endless: true } });
+      const running = bench.run({ removal: { endless: true } });
       await vi.waitFor(
         () => {
           expect(bench.calls()).toHaveLength(2);
@@ -95,7 +86,7 @@ describe('DockerSandbox', () => {
     it('should throw SandboxContainerLeftError rather than answer timed_out', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
-      const running = run(
+      const running = bench.run(
         { endless: true, removal: refusedWith(BUSY) },
         { timeoutMs: 5 * MINUTE },
       );

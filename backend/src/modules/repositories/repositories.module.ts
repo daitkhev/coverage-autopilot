@@ -26,6 +26,10 @@ import { REPOSITORY_REPOSITORY } from '#repositories/domain/repositories/reposit
 import { GhCodeHost } from '#repositories/infrastructure/gh/gh-code-host.adapter';
 import { GitCli } from '#repositories/infrastructure/git/git-cli.adapter';
 import { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-copies.adapter';
+import {
+  type CopiesSweep,
+  WorkingCopyFolders,
+} from '#repositories/infrastructure/git/working-copy-folders';
 import { RepositoriesController } from '#repositories/infrastructure/http/repositories.controller';
 import { RepositoryAccessController } from '#repositories/infrastructure/http/repository-access.controller';
 import { SqliteRepositoryRepository } from '#repositories/infrastructure/persistence/sqlite-repository.repository';
@@ -94,6 +98,15 @@ export class RepositoriesModule implements OnModuleInit {
       ],
       exports: [REPOSITORIES_PUBLIC_API],
     };
+  }
+
+  /**
+   * Removes every working copy under the root, and leaves the mirrors. A
+   * start of the service calls it before any job runs, when no job holds
+   * a copy: a job taken back after a crash makes its copy anew.
+   */
+  public static async removeLeftoverCopies(root: string): Promise<CopiesSweep> {
+    return new WorkingCopyFolders(root).removeAll();
   }
 
   /** Settings that cannot work stop the start, not the first clone. */

@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type {
-  SandboxCommandRequest,
-  SandboxCommandResult,
-} from '#ports/sandbox.port';
 import {
   BENCH_INSTANCE,
   commandRequest,
@@ -17,14 +13,6 @@ const MINUTE = 60_000;
 
 const bench = useSandboxBench();
 
-function run(
-  play: EnginePlay = {},
-  overrides: Partial<SandboxCommandRequest> = {},
-): Promise<SandboxCommandResult> {
-  const sandbox = bench.sandbox(bench.settings(play));
-  return sandbox.run(commandRequest(overrides), new AbortController().signal);
-}
-
 function argumentsOfCalls(): (readonly string[])[] {
   return bench.calls().map((call) => call.arguments);
 }
@@ -36,7 +24,7 @@ afterEach(() => {
 describe('DockerSandbox', () => {
   describe('run', () => {
     it('should run the command in a closed container that sees the working copy alone', async () => {
-      await run();
+      await bench.run();
 
       expect(argumentsOfCalls()[0]).toEqual([
         'run',
@@ -80,7 +68,7 @@ describe('DockerSandbox', () => {
     });
 
     it('should give the engine its default network when the request opens it', async () => {
-      await run({}, { network: 'open' });
+      await bench.run({}, { network: 'open' });
 
       const open = argumentsOfCalls()[0] ?? [];
       expect(open).not.toContain('--network');
@@ -100,7 +88,7 @@ describe('DockerSandbox', () => {
     it('should give the command exactly its variables, and no value as an argument', async () => {
       const environment = { HOME: '/tmp', CI: 'true', MODEL_KEY: 'zz-private' };
 
-      await run({}, { environment });
+      await bench.run({}, { environment });
 
       const [call] = bench.calls();
       expect(call?.input).toBe('HOME=/tmp\nCI=true\nMODEL_KEY=zz-private\n');
@@ -121,7 +109,7 @@ describe('DockerSandbox', () => {
     });
 
     it('should answer a command that failed with its exit code and its output', async () => {
-      const running = run({
+      const running = bench.run({
         output: [
           { stream: 'stdout', text: 'FAIL src/a.test.ts\n' },
           { stream: 'stdout', text: 'Tests  1 failed (3)\n' },
@@ -140,7 +128,7 @@ describe('DockerSandbox', () => {
     });
 
     it('should keep what the command wrote to both streams', async () => {
-      const result = await run({
+      const result = await bench.run({
         output: [
           { stream: 'stdout', text: 'to the output\n' },
           { stream: 'stderr', text: 'to the errors\n' },
@@ -172,7 +160,7 @@ describe('DockerSandbox', () => {
     });
 
     it('should remove the container once the command has ended', async () => {
-      await run();
+      await bench.run();
 
       expect(argumentsOfCalls().slice(1)).toEqual([
         ['rm', '--force', FIRST_CONTAINER],
@@ -199,7 +187,7 @@ describe('DockerSandbox', () => {
       it('should stop the container and answer timed_out', async () => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
-        const running = run({ endless: true }, { timeoutMs: 5 * MINUTE });
+        const running = bench.run({ endless: true }, { timeoutMs: 5 * MINUTE });
         bench.clock.advance(5 * MINUTE);
         vi.advanceTimersByTime(5 * MINUTE);
 

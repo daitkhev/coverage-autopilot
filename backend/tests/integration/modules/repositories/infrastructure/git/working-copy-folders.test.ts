@@ -23,6 +23,7 @@ import {
 } from '#tests/support/locked-tree';
 
 const SCAN = WorkingCopyId.fromPurpose('scan:1');
+const ATTEMPT = WorkingCopyId.fromPurpose('improvement:1:attempt:2');
 
 let folder: string;
 let root: string;
@@ -83,6 +84,45 @@ describe('WorkingCopyFolders', () => {
         await expect(removing).rejects.toMatchObject({ retryable: false });
         expect(existsSync(copy.tree)).toBe(true);
         expect(existsSync(copy.gitDir)).toBe(false);
+      });
+    });
+  });
+
+  describe('removeAll', () => {
+    it('should remove every copy, locked or not, and leave the mirrors', async () => {
+      plantLockedTree(made(SCAN).tree, outside);
+      made(ATTEMPT);
+      mkdirSync(join(root, 'git-dirs', 'half-made'), { recursive: true });
+      mkdirSync(join(root, 'mirrors', 'widgets.git'), { recursive: true });
+
+      const sweep = await folders.removeAll();
+
+      expect(sweep).toEqual({ removed: 3, left: [] });
+      expect(readdirSync(join(root, 'copies'))).toEqual([]);
+      expect(readdirSync(join(root, 'git-dirs'))).toEqual([]);
+      expect(readdirSync(join(root, 'mirrors'))).toEqual(['widgets.git']);
+      expect(readdirSync(outside)).toEqual(['kept.txt']);
+    });
+
+    it('should find nothing under a root where no copy was made', async () => {
+      expect(await folders.removeAll()).toEqual({ removed: 0, left: [] });
+    });
+
+    describe('when a copy stays', () => {
+      it('should remove the others and say why that one stays', async () => {
+        const copy = made(SCAN);
+        mkdirSync(join(root, 'git-dirs', 'half-made'));
+        lockFolder(join(root, 'copies'));
+
+        const sweep = await folders.removeAll();
+
+        expect(sweep.removed).toBe(1);
+        expect(sweep.left.map((left) => left.message)).toEqual([
+          expect.stringContaining(
+            `The working copy in ${copy.tree} could not be removed: `,
+          ),
+        ]);
+        expect(readdirSync(join(root, 'git-dirs'))).toEqual([]);
       });
     });
   });

@@ -6,7 +6,10 @@ import { afterEach, beforeEach } from 'vitest';
 
 import { DockerSandbox } from '#infrastructure/sandbox/docker-sandbox.adapter';
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
-import type { SandboxCommandRequest } from '#ports/sandbox.port';
+import type {
+  SandboxCommandRequest,
+  SandboxCommandResult,
+} from '#ports/sandbox.port';
 import { FixedClock } from '#tests/support/fixed-clock';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
 import {
@@ -36,6 +39,11 @@ export interface SandboxBench {
   readonly clock: FixedClock;
   settings(play?: EnginePlay, outputBytes?: number): SandboxSettings;
   sandbox(settings: SandboxSettings): DockerSandbox;
+  /** Runs a request on a sandbox whose engine plays `play`. */
+  run(
+    play?: EnginePlay,
+    overrides?: Partial<SandboxCommandRequest>,
+  ): Promise<SandboxCommandResult>;
   calls(): EngineCall[];
 }
 
@@ -64,25 +72,35 @@ export function useSandboxBench(): SandboxBench {
   afterEach(() => {
     rmSync(state.folder, { recursive: true, force: true });
   });
+  const settings = (
+    play: EnginePlay = {},
+    outputBytes = OUTPUT_BYTES,
+  ): SandboxSettings => ({
+    engine: standInEngine(record(), play),
+    instance: BENCH_INSTANCE,
+    image: 'sandbox-image:1',
+    user: '1000:1000',
+    limits: {
+      memoryMb: 2048,
+      cpus: 1.5,
+      processes: 256,
+      scratchMb: 64,
+      outputBytes,
+    },
+  });
+  const sandbox = (of: SandboxSettings): DockerSandbox =>
+    new DockerSandbox(of, state.clock, new SequentialIdGenerator());
   return {
     get clock() {
       return state.clock;
     },
-    settings: (play = {}, outputBytes = OUTPUT_BYTES) => ({
-      engine: standInEngine(record(), play),
-      instance: BENCH_INSTANCE,
-      image: 'sandbox-image:1',
-      user: '1000:1000',
-      limits: {
-        memoryMb: 2048,
-        cpus: 1.5,
-        processes: 256,
-        scratchMb: 64,
-        outputBytes,
-      },
-    }),
-    sandbox: (settings) =>
-      new DockerSandbox(settings, state.clock, new SequentialIdGenerator()),
+    settings,
+    sandbox,
+    run: async (play = {}, overrides = {}) =>
+      sandbox(settings(play)).run(
+        commandRequest(overrides),
+        new AbortController().signal,
+      ),
     calls: () => callsIn(record()),
   };
 }

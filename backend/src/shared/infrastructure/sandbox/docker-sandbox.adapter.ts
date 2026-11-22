@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { runArguments } from '#infrastructure/sandbox/container-arguments';
+import {
+  NAME_PREFIX,
+  runArguments,
+} from '#infrastructure/sandbox/container-arguments';
 import { removeContainer } from '#infrastructure/sandbox/container-removal';
 import {
   type EngineExit,
@@ -26,9 +29,6 @@ import type {
   SandboxCommandRequest,
   SandboxCommandResult,
 } from '#ports/sandbox.port';
-
-/** Every container of the service has it, so one left by a crash is found. */
-const NAME_PREFIX = 'coverage-autopilot-';
 
 /**
  * `docker run` exits with 125 when the engine failed and the command never

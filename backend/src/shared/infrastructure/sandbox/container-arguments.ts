@@ -1,6 +1,9 @@
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
 import type { SandboxCommandRequest } from '#ports/sandbox.port';
 
+/** Every container of the service has it in its name. */
+export const NAME_PREFIX = 'coverage-autopilot-';
+
 /** The label that names the instance of the service on its containers. */
 const INSTANCE_LABEL = 'coverage-autopilot.instance';
 
@@ -58,4 +61,15 @@ export function runArguments(
 /** Stops the container if it still runs, and removes it. */
 export function removeArguments(name: string): string[] {
   return ['rm', '--force', name];
+}
+
+/**
+ * The names of the containers labelled with the instance, one a line,
+ * those that run and those that stopped.
+ */
+export function listArguments(instance: string): string[] {
+  return [
+    ...['ps', '--all', '--filter', `label=${INSTANCE_LABEL}=${instance}`],
+    ...['--format', '{{.Names}}'],
+  ];
 }

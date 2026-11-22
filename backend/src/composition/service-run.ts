@@ -6,6 +6,7 @@ import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 
 import { AppModule, type ServiceWiring } from '#composition/app.module';
+import { sweepLeftovers } from '#composition/leftover-sweep';
 import type { ServiceConfig } from '#infrastructure/config/service-config';
 import { JobWorkerScheduler } from '#infrastructure/queue/job-worker-scheduler';
 import {
@@ -16,6 +17,7 @@ import {
 import { restrictSocket } from '#infrastructure/service/service-socket';
 import { startService } from '#infrastructure/service/service-start';
 import { SystemClock } from '#infrastructure/time/system-clock.adapter';
+import { LOGGER, type Logger } from '#ports/logger.port';
 
 /** What the entry file gives a run besides the configuration. */
 export interface ServiceStartup {
@@ -42,7 +44,10 @@ const APPLICATION_OPTIONS = Object.assign(new NestApplicationContextOptions(), {
   abortOnError: false,
 });
 
-/** Listens under the held lock, keeps the socket to its owner, then works. */
+/**
+ * Removes what a stopped service of the instance left, then listens under
+ * the held lock, keeps the socket to its owner, and works.
+ */
 async function serving(
   wiring: ServiceWiring,
   held: HeldParts,
@@ -53,6 +58,7 @@ async function serving(
     APPLICATION_OPTIONS,
   );
   try {
+    await sweepLeftovers(wiring.config, application.get<Logger>(LOGGER));
     await application.listen(held.socket);
     restrictSocket(held.lock, held.socket);
   } catch (error) {
@@ -65,11 +71,11 @@ async function serving(
 
 /**
  * Starts the service of an instance in its fixed order: the lock, the
- * database, the removal of a socket a crashed service left, the
- * application on the socket, kept to its owner, and then the worker,
- * which takes back first the jobs whose lease ran out. A start that fails
- * gives back what it took and throws, so the next one begins from the
- * same place.
+ * database, the removal of a socket a crashed service left, the removal
+ * of the containers and the working copies it left, the application on
+ * the socket, kept to its owner, and then the worker, which takes back
+ * first the jobs whose lease ran out. A start that fails gives back what
+ * it took and throws, so the next one begins from the same place.
  */
 export async function runService(
   config: ServiceConfig,

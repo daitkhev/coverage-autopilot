@@ -1,6 +1,8 @@
 import { removeArguments } from '#infrastructure/sandbox/container-arguments';
-import { EngineProcess } from '#infrastructure/sandbox/engine-process';
-import { limitRun } from '#infrastructure/sandbox/run-limit';
+import {
+  askEngine,
+  type EngineAnswer,
+} from '#infrastructure/sandbox/engine-answer';
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
 
 /**
@@ -12,23 +14,6 @@ export type ContainerRemoval =
   | { readonly outcome: 'removed' }
   | { readonly outcome: 'left'; readonly detail: string };
 
-/** What the engine answered a short call, or that it did not in time. */
-type EngineAnswer =
-  | {
-      readonly outcome: 'answered';
-      readonly exitCode: number | null;
-      readonly output: string;
-    }
-  | { readonly outcome: 'silent' };
-
-/** A call that takes longer means a stuck engine, and nothing waits on it. */
-const ANSWER_TIMEOUT_MS = 30_000;
-
-const MS_PER_SECOND = 1_000;
-
-/** Nobody aborts a short call: its time limit ends it. */
-const UNSTOPPABLE = new AbortController().signal;
-
 /**
  * What docker and podman say for a name no container has. `--rm` removes
  * a container once its command ends, so this is how a removal after an
@@ -38,35 +23,9 @@ const NO_SUCH_CONTAINER = /no such container/i;
 
 const REMOVED: ContainerRemoval = { outcome: 'removed' };
 
-/** Starts the engine for a call that ends at once, and kills it after. */
-async function askEngine(
-  settings: SandboxSettings,
-  args: readonly string[],
-): Promise<EngineAnswer> {
-  const call = new EngineProcess(settings.engine, {
-    arguments: args,
-    input: '',
-    outputBytes: settings.limits.outputBytes,
-  });
-  const limit = limitRun(ANSWER_TIMEOUT_MS, UNSTOPPABLE);
-  try {
-    const first = await Promise.race([call.exit, limit.reached]);
-    return typeof first === 'string'
-      ? { outcome: 'silent' }
-      : {
-          outcome: 'answered',
-          exitCode: first.code,
-          output: call.output.text(),
-        };
-  } finally {
-    limit.release();
-    await call.stop();
-  }
-}
-
 function removalOf(answer: EngineAnswer): ContainerRemoval {
   if (answer.outcome === 'silent') {
-    const seconds = String(ANSWER_TIMEOUT_MS / MS_PER_SECOND);
+    const seconds = String(answer.waitedSeconds);
     return {
       outcome: 'left',
       detail: `The engine did not answer the removal within ${seconds} seconds.`,

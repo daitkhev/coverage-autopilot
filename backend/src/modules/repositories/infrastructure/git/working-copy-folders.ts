@@ -14,6 +14,14 @@ export interface CopyFolders {
   readonly gitDir: string;
 }
 
+/** What a removal of every copy did. */
+export interface CopiesSweep {
+  /** How many copies are gone. */
+  readonly removed: number;
+  /** Why each of the others stays. */
+  readonly left: readonly WorkingCopyNotRemovedError[];
+}
+
 /** The folder of the trees under the root of the working copies. */
 const TREES = 'copies';
 
@@ -155,6 +163,22 @@ export class WorkingCopyFolders {
     if (refusal !== null) {
       throw refusal;
     }
+  }
+
+  /**
+   * Removes every copy under the root, each one a tree and a git
+   * directory, and leaves the mirrors.
+   */
+  public async removeAll(): Promise<CopiesSweep> {
+    const names = new Set([
+      ...(await unlessGone(async () => readdir(this.trees), [])),
+      ...(await unlessGone(async () => readdir(this.gitDirs), [])),
+    ]);
+    const refusals = await Promise.all(
+      [...names].map(async (name) => removalOf(this.named(name))),
+    );
+    const left = refusals.filter((refusal) => refusal !== null);
+    return { removed: names.size - left.length, left };
   }
 
   private named(name: string): CopyFolders {
