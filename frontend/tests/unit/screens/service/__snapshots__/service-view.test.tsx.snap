@@ -1,0 +1,112 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ServiceView > should say whether everything is in order 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Service ──────────────────────────────────────────────────────╮ ╭─ Storage and actions ───────────────────╮
+ │ ● Everything is in order                                       │ │                                         │
+ │                                                                │ │ STORAGE ─────────────────────────────── │
+ │ STATUS ─────────────────────────────────────────────────────── │ │ Data         – not known yet            │
+ │ Service      running, started 3h 12m ago                       │ │ Output       – not known yet            │
+ │ Worker       alive, last sign 1s ago                           │ │ Log          – not known yet            │
+ │ Running      0 scans, 0 improvements                           │ │                                         │
+ │ Versions     service 0.1.0, contract 4                         │ │ ACTIONS ─────────────────────────────── │
+ │                                                                │ │ r restart                               │
+ │ ENVIRONMENT ────────────────────────────────────────────────── │ │                                         │
+ │ git          ✓ git 2.47.1                                      │ │                                         │
+ │ gh           – not known yet                                   │ │                                         │
+ │ Code host    ✓ signed in as example-user                       │ │                                         │
+ │ Generator    Claude Code, paid by a subscription               │ │                                         │
+ │ 5 hours      34.0% used, renews at 16:00                       │ │                                         │
+ │ 7 days       – not known yet                                   │ │                                         │
+ │ Limits seen  7m ago                                            │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ service 0.1.0 · updated 1s ago
+ tab other panel    r restart                                                                            ? help"
+`;
+
+exports[`ServiceView > when no answer came yet > should draw the panels empty and say it asks the service 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Service ──────────────────────────────────────────────────────╮ ╭─ Storage and actions ───────────────────╮
+ │                                                                │ │                                         │
+ │                                                                │ │ STORAGE ─────────────────────────────── │
+ │                                                                │ │ Data         – not known yet            │
+ │                                                                │ │ Output       – not known yet            │
+ │                                                                │ │ Log          – not known yet            │
+ │                                                                │ │                                         │
+ │                                                                │ │ ACTIONS ─────────────────────────────── │
+ │                                                                │ │ r restart  once the service answers     │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ⠋ asking the service
+ tab other panel                                                                                         ? help"
+`;
+
+exports[`ServiceView > when the last request failed > should keep the last health and say it is not fresh 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Service ──────────────────────────────────────────────────────╮ ╭─ Storage and actions ───────────────────╮
+ │ ● Everything is in order                                       │ │                                         │
+ │                                                                │ │ STORAGE ─────────────────────────────── │
+ │ STATUS ─────────────────────────────────────────────────────── │ │ Data         – not known yet            │
+ │ Service      running, started 3h 12m ago                       │ │ Output       – not known yet            │
+ │ Worker       alive, last sign 1s ago                           │ │ Log          – not known yet            │
+ │ Running      0 scans, 0 improvements                           │ │                                         │
+ │ Versions     service 0.1.0, contract 4                         │ │ ACTIONS ─────────────────────────────── │
+ │                                                                │ │ r restart                               │
+ │ ENVIRONMENT ────────────────────────────────────────────────── │ │                                         │
+ │ git          ✓ git 2.47.1                                      │ │                                         │
+ │ gh           – not known yet                                   │ │                                         │
+ │ Code host    ✓ signed in as example-user                       │ │                                         │
+ │ Generator    Claude Code, paid by a subscription               │ │                                         │
+ │ 5 hours      34.0% used, renews at 16:00                       │ │                                         │
+ │ 7 days       – not known yet                                   │ │                                         │
+ │ Limits seen  7m ago                                            │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ service 0.1.0 · ! not fresh, updated 1s ago
+ tab other panel    r restart                                                                            ? help"
+`;
