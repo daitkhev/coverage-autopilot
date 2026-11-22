@@ -2,7 +2,10 @@
 
 exports[`UnansweredBody > when the service refused > should give its sentence, its code and the way back 1`] = `
 "╭─ Improvement ────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ ! No improvement has this id.  not_found                                                                     │
+│ ! The improvement could not be read  not_found                                                               │
+│                                                                                                              │
+│ THE SERVICE ANSWERED ─────────────────────────────────────────────────────────────────────────────────────── │
+│ No improvement has this id.                                                                                  │
 │                                                                                                              │
 │ WHAT TO DO ───────────────────────────────────────────────────────────────────────────────────────────────── │
 │ Press esc to go back.                                                                                        │

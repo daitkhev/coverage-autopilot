@@ -3,13 +3,15 @@ import type { ReactNode } from 'react';
 
 import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
 
-import { ErrorDetails } from '#components/error-details';
 import { Glyph } from '#components/glyph';
 import { Panel } from '#components/panel';
-import { type Problem, problemOf } from '#components/problem-details';
+import {
+  type Problem,
+  ProblemDetails,
+  problemOf,
+} from '#components/problem-details';
 import { RoleText } from '#components/role-text';
 import type { RepeatedRequest } from '#hooks/use-repeated-request';
-import type { StatusLook } from '#theme/status';
 
 /**
  * What stands where the answer of a screen would be: nothing yet, the
@@ -47,55 +49,17 @@ export function shownOf<Value>(
 interface UnansweredBodyProps {
   /** The title of the panel the answer would have filled. */
   readonly title: string;
+  /** What did not happen, such as "The patch could not be read". */
+  readonly headline: string;
   readonly state: Unanswered;
 }
 
-/** A refusal is an expected outcome, so it warns and is not red. */
-const REFUSED: StatusLook = {
-  glyph: 'attention',
-  word: 'refused',
-  role: 'warning',
+/** What to do: a refusal holds for this screen, a fault for the client. */
+const NEXT: Readonly<Record<Problem['kind'], string>> = {
+  refused: 'Press esc to go back.',
+  fault:
+    'Check that the client and the service are of one version: coverage-autopilot doctor.',
 };
-
-/** A fault is failed work of the client, so it is red. */
-const FAULT: StatusLook = { glyph: 'failed', word: 'fault', role: 'danger' };
-
-function Fault({ fault }: { readonly fault: unknown }): ReactNode {
-  const error =
-    fault instanceof Error ? fault : new Error(String(fault), { cause: fault });
-  return (
-    <ErrorDetails
-      look={FAULT}
-      headline="The request to the service failed."
-      code={error.name}
-      explanation={error.message}
-      next="Check that the client and the service are of one version: coverage-autopilot doctor."
-    />
-  );
-}
-
-function Content({ state }: { readonly state: Unanswered }): ReactNode {
-  switch (state.kind) {
-    case 'waiting':
-      return (
-        <Text>
-          <Glyph name="spinner" role="running" />{' '}
-          <RoleText>Asking the service</RoleText>
-        </Text>
-      );
-    case 'refused':
-      return (
-        <ErrorDetails
-          look={REFUSED}
-          headline={state.error.message}
-          code={state.error.error}
-          next="Press esc to go back."
-        />
-      );
-    case 'fault':
-      return <Fault fault={state.fault} />;
-  }
-}
 
 /**
  * The body of a screen whose answer is not there: it is on its way, the
@@ -104,11 +68,23 @@ function Content({ state }: { readonly state: Unanswered }): ReactNode {
  */
 export function UnansweredBody({
   title,
+  headline,
   state,
 }: UnansweredBodyProps): ReactNode {
   return (
     <Panel title={title} focused>
-      <Content state={state} />
+      {state.kind === 'waiting' ? (
+        <Text>
+          <Glyph name="spinner" role="running" />{' '}
+          <RoleText>Asking the service</RoleText>
+        </Text>
+      ) : (
+        <ProblemDetails
+          headline={headline}
+          problem={state}
+          next={NEXT[state.kind]}
+        />
+      )}
     </Panel>
   );
 }

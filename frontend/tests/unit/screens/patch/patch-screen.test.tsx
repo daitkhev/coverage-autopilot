@@ -100,7 +100,9 @@ describe('PatchScreen', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('! No attempt was accepted.  status_conflict');
+        .toContain('! The patch could not be read  status_conflict');
+
+      expect(frameOf(terminal)).toContain('No attempt was accepted.');
       await press(terminal, KEYS.escape);
       expect(log).toEqual(['back']);
     });
@@ -116,7 +118,7 @@ describe('PatchScreen', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('✕ The request to the service failed.');
+        .toContain('✕ The patch could not be read');
     });
   });
 

@@ -58,30 +58,42 @@ interface ProblemDetailsProps {
 }
 
 interface Said {
+  readonly look: StatusLook;
   readonly code: string;
   readonly heading: string;
   readonly text: string;
 }
 
-const FAILED: StatusLook = { glyph: 'failed', word: 'failed', role: 'danger' };
+/** A refusal is an expected outcome, so it warns and is not red. */
+const REFUSED: StatusLook = {
+  glyph: 'attention',
+  word: 'refused',
+  role: 'warning',
+};
+
+/** A fault is failed work of the client, so it is red. */
+const FAULT: StatusLook = { glyph: 'failed', word: 'fault', role: 'danger' };
 
 function saidOf(problem: Problem): Said {
   if (problem.kind === 'refused') {
     return {
+      look: REFUSED,
       code: problem.error.error,
       heading: 'THE SERVICE ANSWERED',
       text: problem.error.message,
     };
   }
   const { fault } = problem;
+  const said = { look: FAULT, heading: 'THE CLIENT SAID' };
   return fault instanceof Error
-    ? { code: fault.name, heading: 'THE CLIENT SAID', text: fault.message }
-    : { code: 'fault', heading: 'THE CLIENT SAID', text: String(fault) };
+    ? { ...said, code: fault.name, text: fault.message }
+    : { ...said, code: 'fault', text: String(fault) };
 }
 
 /**
- * What went wrong with a request: what the service refused with, or the
- * fault it threw, never hidden. Nothing is drawn when neither happened.
+ * What went wrong with a request: what the service refused with, in
+ * yellow, or the fault it threw, in red, never hidden. Nothing is drawn
+ * when neither happened.
  */
 export function ProblemDetails({
   headline,
@@ -94,7 +106,7 @@ export function ProblemDetails({
   const said = saidOf(problem);
   return (
     <ErrorDetails
-      look={FAILED}
+      look={said.look}
       headline={headline}
       code={said.code}
       answer={{ heading: said.heading, text: said.text }}

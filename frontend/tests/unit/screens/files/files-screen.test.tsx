@@ -116,7 +116,7 @@ describe('FilesScreen', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('✕ The request to the service failed.');
+        .toContain('✕ The files could not be read');
       expect(frameOf(terminal)).toContain('Expected a number at items.0.');
       expect(frameOf(terminal)).not.toContain('src/billing/invoice.ts');
     });
@@ -136,7 +136,9 @@ describe('FilesScreen', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('! No repository has this id.  not_found');
+        .toContain('! The files could not be read  not_found');
+
+      expect(frameOf(terminal)).toContain('No repository has this id.');
     });
 
     it('should give the refusal of the files as well', async () => {
@@ -150,7 +152,9 @@ describe('FilesScreen', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('! No snapshot.  not_found');
+        .toContain('! The files could not be read  not_found');
+
+      expect(frameOf(terminal)).toContain('No snapshot.');
     });
   });
 

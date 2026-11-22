@@ -50,7 +50,13 @@ export function PatchScreen({
       <BareScreen
         frame={frame}
         path={PATH}
-        body={<UnansweredBody title="Patch" state={shown} />}
+        body={
+          <UnansweredBody
+            title="Patch"
+            headline="The patch could not be read"
+            state={shown}
+          />
+        }
         freshness={freshness}
         onBack={onBack}
       />

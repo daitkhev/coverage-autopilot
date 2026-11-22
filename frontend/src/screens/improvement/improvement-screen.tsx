@@ -44,7 +44,13 @@ export function ImprovementScreen(props: ImprovementScreenProps): ReactNode {
       <BareScreen
         frame={frame}
         path={PATH}
-        body={<UnansweredBody title="Improvement" state={shown} />}
+        body={
+          <UnansweredBody
+            title="Improvement"
+            headline="The improvement could not be read"
+            state={shown}
+          />
+        }
         freshness={freshness}
         onBack={onBack}
       />

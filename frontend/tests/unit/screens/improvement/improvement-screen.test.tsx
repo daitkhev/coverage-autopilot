@@ -107,7 +107,7 @@ describe('ImprovementScreen', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('✕ The request to the service failed.');
+        .toContain('✕ The improvement could not be read');
       expect(frameOf(terminal)).not.toContain('Attempt 2');
     });
   });
@@ -126,7 +126,9 @@ describe('ImprovementScreen', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('! No improvement has this id.  not_found');
+        .toContain('! The improvement could not be read  not_found');
+
+      expect(frameOf(terminal)).toContain('No improvement has this id.');
       await press(terminal, KEYS.escape);
       expect(log).toEqual(['back']);
     });
@@ -142,7 +144,9 @@ describe('ImprovementScreen', () => {
 
       await expect
         .poll(() => frameOf(terminal), PATIENT)
-        .toContain('! No repository.  not_found');
+        .toContain('! The improvement could not be read  not_found');
+
+      expect(frameOf(terminal)).toContain('No repository.');
     });
   });
 

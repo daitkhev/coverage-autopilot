@@ -59,7 +59,13 @@ export function FilesScreen(props: FilesScreenProps): ReactNode {
     return (
       <BareScreen
         {...bare}
-        body={<UnansweredBody title="Files" state={shown} />}
+        body={
+          <UnansweredBody
+            title="Files"
+            headline="The files could not be read"
+            state={shown}
+          />
+        }
       />
     );
   }

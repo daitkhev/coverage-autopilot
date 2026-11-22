@@ -29,7 +29,14 @@ const FAULT: Unanswered = {
 
 function draw(state: Unanswered, columns = USUAL_COLUMNS): string {
   return drawnAt(
-    drawnWith(STILL, <UnansweredBody title="Improvement" state={state} />),
+    drawnWith(
+      STILL,
+      <UnansweredBody
+        title="Improvement"
+        headline="The improvement could not be read"
+        state={state}
+      />,
+    ),
     columns,
   );
 }
@@ -51,7 +58,8 @@ describe('UnansweredBody', () => {
     it('should show the fault with its name and its message', () => {
       const drawn = draw(FAULT);
 
-      expect(drawn).toContain('✕ The request to the service failed.');
+      expect(drawn).toContain('✕ The improvement could not be read');
+      expect(drawn).toContain('coverage-autopilot doctor');
       expect(drawn).toContain('TypeError');
       expect(drawn).toContain('Expected a string.');
     });
