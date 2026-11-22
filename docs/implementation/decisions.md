@@ -439,3 +439,76 @@ Where this log and the plan differ, this log and the code are right.
   `backend/src/modules/improvement/application/improvement-settings.ts`,
   `backend/src/shared/application/ports/alarm.port.ts`,
   `backend/src/shared/infrastructure/time/timer-alarm.adapter.ts`.
+
+### A request for an improvement is checked before it is stored
+
+- Every value of a request is built first, so a bad value or a budget
+  above the maximum costs no call to the host of the code.
+- The snapshot, the file and the head of the default branch are asked
+  outside the transaction, and only a request that is still good is
+  registered. A file above the threshold is not refused: the fresh
+  measurement of the run decides whether there is anything to improve.
+- The fingerprint is the SHA-256 of a text with a fixed order of keys:
+  the repository, the base commit, the file, the quality policy with its
+  checks in the order of the gate, and the generator without its
+  billing. The key, the budget and the mode are no part of the work.
+- A refusal is a value with a reason. A conflict with earlier work names
+  that improvement, also when it is the key that was used again.
+- An approval adds the job that publishes in the save that approves, and
+  a cancel ends every open job of the improvement in the save that
+  cancels. Both read inside their transaction.
+- What a person sees is the stored state, what the clock adds to the
+  usage, and what the queue knows of the job. A final improvement asks
+  the queue nothing.
+- Where: `backend/src/modules/improvement/application/commands/start-improvement/`,
+  `backend/src/modules/improvement/application/dto/`.
+
+### How each step of an improvement ends
+
+- `analyzing` fails with `stale_snapshot` for a file that changed, with
+  `mutation_unsupported` when the mutation tool cannot run, with
+  `budget_exhausted` when the gate ran out of time, and with
+  `verification_error` for a commit that cannot be measured. It skips
+  with `threshold_met`, and with `no_undetected_mutants` when the policy
+  requires the mutation check and no mutant is left to detect: that
+  check could never pass.
+- `generating` asks the allowance and opens the attempt in one save.
+  A spent window ends when the generator said, else when the window it
+  last reported opens, else after the wait of the settings, and the job
+  that goes on then is stored with the wait. A call is given no more
+  time than is left of the budget.
+- `verifying` retries only when every required check that could not
+  finish may finish on another run. One error that cannot pass fails the
+  improvement at once, with the report, in one save: a retry would end
+  in it again and hide the reason behind spent retries.
+- `publishing` asks the head once more, and keeps at most 2000
+  characters of what a tool said when it refused. The commit and the
+  title are `test: cover <file>`, and the body shows what the gate
+  measured and nothing it did not. It names the tool and no model.
+- The handler fails an improvement whose job another version of the
+  service wrote, and throws on a step that went on without saving, so
+  that a fault of the code cannot spin for ever.
+- Where: `backend/src/modules/improvement/application/commands/run-improvement/`,
+  `backend/src/modules/improvement/improvement.module.ts`.
+
+### Owed after the wave that drives an improvement
+
+- The routes: `snapshot_not_found` and `target_not_measured` have no
+  code of an HTTP answer yet, the report of the contract takes no empty
+  `coverageBefore`, and the references of raw output become paths.
+- The start of the service binds the handler into the worker, the alarm
+  to its timer, the sandbox of the generator and both sets of settings.
+- Two tests of the client wait for real time and failed once each while
+  four gates ran at once, and a hook of a git test passed its ten
+  seconds. The first is fixed in the tests, the second is a limit of the
+  policy.
+- A working copy that was tampered with fails the improvement as
+  `generator_unavailable`, and the tokens of that call are not recorded.
+- A working improvement with no deadline is answered in two ways: the
+  generating step falls back to the limit of the settings, the analyzing
+  step throws.
+- The tests of the requests and of the generation each keep settings of
+  their own.
+- The wait and its job share a transaction on the real database in the
+  test of the module alone, with stand-ins below it. A run with real
+  git, a real gate and a real generator is owed to the end-to-end wave.
