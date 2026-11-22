@@ -34,8 +34,9 @@ import {
   type RepositoriesSettings,
 } from '#repositories/infrastructure/repositories-settings';
 import { checkSettings } from '#repositories/infrastructure/repositories-settings.schema';
+import { RepositoryAccessController } from '#repositories/presentation/http/repository-access.controller';
 
-/** The use cases behind the contracts of the module. */
+/** The use cases behind the contracts and the route of the module. */
 const HANDLERS = [
   ConnectRepositoryHandler,
   CheckAccessHandler,
@@ -50,7 +51,9 @@ const HANDLERS = [
 /**
  * Everything that uses `git` and `gh`. It takes the clock, the id
  * generator, the transaction manager and the SQLite connection from the
- * shared infrastructure, and its own settings from `register`.
+ * shared infrastructure, and its own settings from `register`. Its one
+ * route is the access check: every other answer about a repository holds
+ * what only the coverage module knows, so that module has those routes.
  */
 @Module({})
 export class RepositoriesModule implements OnModuleInit {
@@ -71,6 +74,7 @@ export class RepositoriesModule implements OnModuleInit {
     return {
       module: RepositoriesModule,
       global: true,
+      controllers: [RepositoryAccessController],
       providers: [
         { provide: REPOSITORIES_SETTINGS, useValue: settings },
         {

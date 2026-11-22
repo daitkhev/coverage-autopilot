@@ -16,6 +16,7 @@ import {
 } from '#repositories/contracts/repositories-public-api';
 import { InvalidRepositoriesSettingsError } from '#repositories/infrastructure/errors/invalid-repositories-settings.error';
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
+import { RepositoryAccessController } from '#repositories/presentation/http/repository-access.controller';
 import { RepositoriesModule } from '#repositories/repositories.module';
 import { SharedTestModule } from '#tests/support/shared-test-module';
 import {
@@ -144,12 +145,15 @@ describe('RepositoriesModule', () => {
       ).toMatchObject({ outcome: 'current' });
     });
 
-    it('should list what it connected', async () => {
+    it('should list what it connected and bind the route of the access check', async () => {
       const repositoryId = await connected();
 
       const listed = await connections().listRepositories();
 
       expect(listed.map((repository) => repository.id)).toEqual([repositoryId]);
+      expect(module.get(RepositoryAccessController)).toBeInstanceOf(
+        RepositoryAccessController,
+      );
     });
 
     describe('when the settings cannot work', () => {
