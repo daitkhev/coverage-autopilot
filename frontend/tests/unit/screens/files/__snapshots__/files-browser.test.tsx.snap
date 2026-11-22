@@ -1,0 +1,75 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`FilesBrowser > when another list is chosen > should explain a file that could not be measured 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ example/payments · 4f2a9c1 · scanned 2h ago                       Lines 71.4%  Branches 61.3%  threshold 80.0%
+ ╭─ Files ────────────────────────────────────────────────────────╮ ╭─ src/legacy/parser.ts ──────────────────╮
+ │ Below 2    All 7    Not measured 3    No code 1                │ │ ! Not measured  parse_failed            │
+ │                                                                │ │   The file has a syntax error. It has   │
+ │   File                    Why                                  │ │   no numbers at all, and cannot be      │
+ │ › ! src/legacy/parser.ts  N/A  has a syntax error              │ │   improved until a scan measures it.    │
+ │   ! src/api/schema.ts     N/A  is missing from the report      │ │                                         │
+ │   ! src/api/webhook.ts    N/A  was reported without numbers    │ │ THE TOOL SAID ───────────────────────── │
+ │                                                                │ │ src/legacy/parser.ts:212:14 ')'         │
+ │   These files have no percentage. They are not at 0%.          │ │ expected.                               │
+ │                                                                │ │                                         │
+ │                                                                │ │ WHAT TO DO ──────────────────────────── │
+ │                                                                │ │ Fix the file, then scan again.          │
+ │                                                                │ │                                         │
+ │                                                                │ │ NEXT ────────────────────────────────── │
+ │                                                                │ │ i improve  after a scan                 │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Repositories › example/payments · 3 files without numbers                                           row 1 of 3
+ ↑↓ move    [ ] list    / filter    tab details    esc back                                              ? help"
+`;
+
+exports[`FilesBrowser > when i is pressed > should open the dialog over the screen, which takes every key 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ example/payments · 4f2a9c1 · scanned 2h ago                       Lines 71.4%  Branches 61.3%  threshold 80.0%
+ ╭─ Files ────────────────────────────────────────────────────────╮ ╭─ src/billing/invoice.ts ────────────────╮
+ │ Below 2    All 7    Not measured 3    No code 1                │ │ 41.2% of lines                          │
+ │                                                                │ │                                         │
+ │   File                    Lines               Branch  Work     │ │ COVERAGE threshold 80.0% ────────────── │
+ │ › src/billing/inv╭─ Improve src/billing/invoice.ts ─────────────────────────────────────╮   41.2%    21/51 │
+ │   src/billing/sum│                                                                      │   25.0%      2/8 │
+ │                  │ READY ────────────────────────────────────────────────────────────── │   50.0%      3/6 │
+ │                  │ ✓ git · ✓ gh logged in · ✓ can push                                  │   40.4%    23/57 │
+ │                  │                                                                      │                  │
+ │                  │ LIMITS ───────────────────────────────────────────────────────────── │───────────────── │
+ │                  │ › Attempts    3             up to 10                                 │ 52-67            │
+ │                  │   Time        30 min        up to 120 min                            │nes 19, 44, 58    │
+ │                  │   Tokens      no limit                                               │unt,              │
+ │                  │                                                                      │ts, formatTotal   │
+ │                  │ PUBLISHING ───────────────────────────────────────────────────────── │                  │
+ │                  │   ● Wait for my approval                                             │───────────────── │
+ │                  │   ○ Open the pull request without asking                             │                  │
+ │                  │                                                                      │                  │
+ │                  │ Nothing is spent until you start.                                    │───────────────── │
+ │                  │                                                                      │                  │
+ │                  │ enter start · tab next field · - + change · esc close                │                  │
+ │                  ╰──────────────────────────────────────────────────────────────────────╯                  │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Repositories › example/payments · limits for src/billing/invoice.ts                                 row 1 of 2
+ esc close                                                                                               ? help"
+`;

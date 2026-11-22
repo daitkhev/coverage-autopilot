@@ -1,0 +1,112 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`FilesScreen > should say that it asks the service before the first answer 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Files ────────────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ⠋ Asking the service                                                                                       │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Repositories
+ esc back                                                                                                ? help"
+`;
+
+exports[`FilesScreen > should show the files below the threshold, the first one chosen 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ example/payments · 4f2a9c1 · scanned 2h ago                       Lines 71.4%  Branches 61.3%  threshold 80.0%
+ ╭─ Files ────────────────────────────────────────────────────────╮ ╭─ src/billing/invoice.ts ────────────────╮
+ │ Below 2    All 7    Not measured 3    No code 1                │ │ 41.2% of lines                          │
+ │                                                                │ │                                         │
+ │   File                    Lines               Branch  Work     │ │ COVERAGE threshold 80.0% ────────────── │
+ │ › src/billing/invoice.ts  ━━━━────┼─   41.2%   25.0%           │ │ Lines       ━━━━────┼─   41.2%    21/51 │
+ │   src/billing/sum.ts      ━━━━━━━━┼─   76.3%   75.0%  ? REVIEW │ │ Branches    ━━━─────┼─   25.0%      2/8 │
+ │                                                                │ │ Functions   ━━━━━───┼─   50.0%      3/6 │
+ │                                                                │ │ Statements  ━━━━────┼─   40.4%    23/57 │
+ │                                                                │ │                                         │
+ │                                                                │ │ NOT COVERED ─────────────────────────── │
+ │                                                                │ │ Lines       18-31, 44, 52-67            │
+ │                                                                │ │ Branches    open on lines 19, 44, 58    │
+ │                                                                │ │ Functions   applyDiscount,              │
+ │                                                                │ │             roundToCents, formatTotal   │
+ │                                                                │ │                                         │
+ │                                                                │ │ LATEST WORK ─────────────────────────── │
+ │                                                                │ │ no improvement yet                      │
+ │                                                                │ │                                         │
+ │                                                                │ │ NEXT ────────────────────────────────── │
+ │                                                                │ │ i improve this file                     │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Repositories › example/payments · 2 files below the threshold                                       row 1 of 2
+ ↑↓ move    i improve    [ ] list    / filter    tab details    esc back                                 ? help"
+`;
+
+exports[`FilesScreen > when the service stops answering > should keep the last answer and say that it is not fresh 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ example/payments · 4f2a9c1 · scanned 2h ago                       Lines 71.4%  Branches 61.3%  threshold 80.0%
+ ╭─ Files ────────────────────────────────────────────────────────╮ ╭─ src/billing/invoice.ts ────────────────╮
+ │ Below 2    All 7    Not measured 3    No code 1                │ │ 41.2% of lines                          │
+ │                                                                │ │                                         │
+ │   File                    Lines               Branch  Work     │ │ COVERAGE threshold 80.0% ────────────── │
+ │ › src/billing/invoice.ts  ━━━━────┼─   41.2%   25.0%           │ │ Lines       ━━━━────┼─   41.2%    21/51 │
+ │   src/billing/sum.ts      ━━━━━━━━┼─   76.3%   75.0%  ? REVIEW │ │ Branches    ━━━─────┼─   25.0%      2/8 │
+ │                                                                │ │ Functions   ━━━━━───┼─   50.0%      3/6 │
+ │                                                                │ │ Statements  ━━━━────┼─   40.4%    23/57 │
+ │                                                                │ │                                         │
+ │                                                                │ │ NOT COVERED ─────────────────────────── │
+ │                                                                │ │ Lines       18-31, 44, 52-67            │
+ │                                                                │ │ Branches    open on lines 19, 44, 58    │
+ │                                                                │ │ Functions   applyDiscount,              │
+ │                                                                │ │             roundToCents, formatTotal   │
+ │                                                                │ │                                         │
+ │                                                                │ │ LATEST WORK ─────────────────────────── │
+ │                                                                │ │ no improvement yet                      │
+ │                                                                │ │                                         │
+ │                                                                │ │ NEXT ────────────────────────────────── │
+ │                                                                │ │ i improve this file                     │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Repositories › example/payments · 2 files below the threshold  ! not fresh, asking again            row 1 of 2
+ ↑↓ move    i improve    [ ] list    / filter    tab details    esc back                                 ? help"
+`;

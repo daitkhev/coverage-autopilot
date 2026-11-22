@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`StartDialog > should show the limits with their maximums, waiting for approval first 1`] = `
+"╭─ Improve src/billing/invoice.ts ─────────────────────────────────────╮
+│                                                                      │
+│ READY ────────────────────────────────────────────────────────────── │
+│ ✓ git · ✓ gh logged in · ✓ can push                                  │
+│                                                                      │
+│ LIMITS ───────────────────────────────────────────────────────────── │
+│ › Attempts    3             up to 10                                 │
+│   Time        30 min        up to 120 min                            │
+│   Tokens      no limit                                               │
+│                                                                      │
+│ PUBLISHING ───────────────────────────────────────────────────────── │
+│   ● Wait for my approval                                             │
+│   ○ Open the pull request without asking                             │
+│                                                                      │
+│ Nothing is spent until you start.                                    │
+│                                                                      │
+│ enter start · tab next field · - + change · esc close                │
+╰──────────────────────────────────────────────────────────────────────╯"
+`;
+
+exports[`StartDialog > when the preflight does not pass > should give the reason and check again on enter 1`] = `
+"╭─ Improve src/billing/invoice.ts ─────────────────────────────────────╮
+│                                                                      │
+│ READY ────────────────────────────────────────────────────────────── │
+│ ✓ git · ✕ gh logged in failed · – can push not checked               │
+│                                                                      │
+│ ✕ Nothing can start until the access check passes.                   │
+│                                                                      │
+│ THE TOOL SAID ───────────────────────────────────────────            │
+│ You are not logged into any hosts. Run: gh auth login                │
+│                                                                      │
+│ WHAT TO DO ──────────────────────────────────────────────            │
+│ gh is not logged in. Run gh auth login, then check again.            │
+│                                                                      │
+│ enter check again · esc close                                        │
+╰──────────────────────────────────────────────────────────────────────╯"
+`;
