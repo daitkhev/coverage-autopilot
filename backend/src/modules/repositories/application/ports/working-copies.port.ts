@@ -49,11 +49,16 @@ export type PushResult =
 export interface WorkingCopies {
   /**
    * Makes a clean clone at the commit in the folder of the id, in place
-   * of whatever an earlier try left there, and gives its absolute path.
+   * of whatever an earlier try left there, whatever permissions it was
+   * left with, and gives its absolute path.
    */
   create(request: CreateCopyRequest, signal: AbortSignal): Promise<string>;
 
-  /** Removes the folder. A copy that is gone already is no fault. */
+  /**
+   * Removes the folders, whatever permissions the tree was left with. It
+   * never fails its caller, whose result counts for more: a copy that is
+   * gone already is no fault, and one that stays is told in the log.
+   */
   dispose(id: WorkingCopyId): Promise<void>;
 
   /** The changes against the commit of the copy, new files included. */

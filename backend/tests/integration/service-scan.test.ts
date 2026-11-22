@@ -10,6 +10,7 @@ import {
   hostedService,
   WORK_WAIT,
 } from '#tests/support/hosted-service';
+import { giveBackFolders } from '#tests/support/locked-tree';
 import { lockfileOf } from '#tests/support/project-folder';
 import { TemporaryCodeHost } from '#tests/support/temporary-code-host';
 
@@ -32,6 +33,7 @@ const SOME_SNAPSHOT = '0190a1b2-c3d4-7e5f-8a6b-9c0d1e2f3a4b';
 let hosted: HostedService;
 
 afterEach(async () => {
+  giveBackFolders(hosted.bench.config.instance.directory);
   await hosted.close();
 });
 
@@ -90,6 +92,29 @@ describe('a scan asked over the socket', () => {
         snapshotId: null,
         failure: { reason: 'coverage_report_missing' },
       });
+    });
+  });
+
+  describe('when its working copy cannot be removed after the scan', () => {
+    it('should keep the end of the scan, and say in the log which copy stays', async () => {
+      hosted = hostedService({ exitCode: 0, locksCopies: true });
+
+      const scan = await scanned();
+
+      expect(scan).toMatchObject({
+        status: 'failed',
+        failure: { reason: 'coverage_report_missing' },
+      });
+      expect(hosted.bench.logLines()).toContainEqual(
+        expect.objectContaining({
+          level: 'error',
+          message:
+            'A working copy could not be removed, so its folders stay on disk.',
+          fields: expect.objectContaining({
+            errorCode: 'working_copy_not_removed',
+          }) as unknown,
+        }),
+      );
     });
   });
 

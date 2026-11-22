@@ -16,7 +16,6 @@ import { ToolFailedError } from '#repositories/infrastructure/errors/tool-failed
 import { ToolOutputTooLargeError } from '#repositories/infrastructure/errors/tool-output-too-large.error';
 import { ToolStoppedError } from '#repositories/infrastructure/errors/tool-stopped.error';
 import { WorkingCopyMissingError } from '#repositories/infrastructure/errors/working-copy-missing.error';
-import { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-copies.adapter';
 import {
   COPY,
   WIDGETS,
@@ -118,7 +117,7 @@ describe('GitWorkingCopies', () => {
           'process.exit(run.status);',
         ].join('\n');
         const settings = fixture.host.settings;
-        const copies = new GitWorkingCopies({
+        const copies = fixture.copiesWith({
           ...settings,
           git: {
             ...settings.git,
@@ -217,7 +216,7 @@ describe('GitWorkingCopies', () => {
     describe('when the diff is longer than the limit of output of git', () => {
       it('should throw ToolOutputTooLargeError, not give a part of the patch', async () => {
         const settings = fixture.host.settings;
-        const copies = new GitWorkingCopies({
+        const copies = fixture.copiesWith({
           ...settings,
           git: { ...settings.git, outputLimitBytes: 4096 },
         });

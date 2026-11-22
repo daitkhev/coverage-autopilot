@@ -7,6 +7,8 @@ import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
 import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
 import { WorkingCopyId } from '#repositories/domain/value-objects/working-copy-id.vo';
 import { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-copies.adapter';
+import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import { TemporaryCodeHost } from '#tests/support/temporary-code-host';
 
 export const WIDGETS = 'acme/widgets';
@@ -28,7 +30,9 @@ const NEVER = new AbortController().signal;
  */
 export class WorkingCopyFixture {
   public readonly host = new TemporaryCodeHost();
-  public readonly copies = new GitWorkingCopies(this.host.settings);
+  /** Where the copies say what they could not do. */
+  public readonly logger = new RecordingLogger();
+  public readonly copies = this.copiesWith(this.host.settings);
   public readonly url = RepositoryUrl.parse(TemporaryCodeHost.urlOf(WIDGETS));
   public readonly first = this.host.createRepository(WIDGETS, {
     '.gitignore': 'coverage/\n',
@@ -44,6 +48,11 @@ export class WorkingCopyFixture {
       branch: BranchName.create('main'),
       commit: CommitSha.create(commit),
     };
+  }
+
+  /** Copies with other settings, which log to the same logger. */
+  public copiesWith(settings: RepositoriesSettings): GitWorkingCopies {
+    return new GitWorkingCopies(settings, this.logger);
   }
 
   /** A copy at the commit, the first one unless named, and its path. */

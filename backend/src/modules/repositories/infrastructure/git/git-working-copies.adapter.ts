@@ -3,7 +3,9 @@ import { mkdir } from 'node:fs/promises';
 
 import { Inject, Injectable } from '@nestjs/common';
 
+import { faultFieldsOf } from '#infrastructure/logging/fault-fields';
 import { FilePath } from '#kernel/primitives/file-path';
+import { LOGGER, type Logger } from '#ports/logger.port';
 import type {
   CopyApplyResult,
   CopyPatchResult,
@@ -91,9 +93,11 @@ export class GitWorkingCopies implements WorkingCopies {
   private readonly host: ToolRunner;
   private readonly mirror: GitMirror;
   private readonly folders: WorkingCopyFolders;
+  private readonly logger: Logger;
 
   public constructor(
     @Inject(REPOSITORIES_SETTINGS) settings: RepositoriesSettings,
+    @Inject(LOGGER) logger: Logger,
   ) {
     const secrets = secretValuesOf(settings);
     this.local = new ToolRunner({
@@ -108,6 +112,7 @@ export class GitWorkingCopies implements WorkingCopies {
     });
     this.mirror = new GitMirror(this.host, settings.workingCopiesRoot);
     this.folders = new WorkingCopyFolders(settings.workingCopiesRoot);
+    this.logger = logger.child({ component: 'working-copies' });
   }
 
   public async create(
@@ -120,14 +125,26 @@ export class GitWorkingCopies implements WorkingCopies {
     try {
       await this.clone(request, copy, signal);
     } catch (error) {
-      await this.folders.remove(copy);
+      await this.dispose(request.id);
       throw error;
     }
     return copy.tree;
   }
 
+  /**
+   * The work that used the copy is over, and its result counts for more
+   * than the folders: a copy that stays is told in the log, and the next
+   * start of the service, or the next copy of the id, removes it.
+   */
   public async dispose(id: WorkingCopyId): Promise<void> {
-    await this.folders.remove(this.folders.of(id));
+    try {
+      await this.folders.remove(this.folders.of(id));
+    } catch (error) {
+      this.logger.error(
+        'A working copy could not be removed, so its folders stay on disk.',
+        { workingCopyId: id.value, ...faultFieldsOf(error) },
+      );
+    }
   }
 
   public async extractPatch(id: WorkingCopyId): Promise<CopyPatchResult> {

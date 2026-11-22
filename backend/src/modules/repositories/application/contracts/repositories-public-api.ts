@@ -167,7 +167,12 @@ export interface RepositoriesPublicApi {
     signal: AbortSignal,
   ): Promise<WorkingCopyDto>;
 
-  /** Removes the folder. A copy that is gone already is no fault. */
+  /**
+   * Removes the folder, whatever permissions code it was lent to left in
+   * it. It fails only for an id that is not one of a copy: a copy that is
+   * gone already is no fault, and one that stays is told in the log, so
+   * a removal never takes the place of the result of the work.
+   */
   disposeWorkingCopy(request: WorkingCopyRequest): Promise<void>;
 
   /**

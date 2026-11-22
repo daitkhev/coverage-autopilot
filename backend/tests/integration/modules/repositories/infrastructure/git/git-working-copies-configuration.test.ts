@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
-import { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-copies.adapter';
+import type { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-copies.adapter';
 import { CONFIGURATION_PLACES, GitPlanter } from '#tests/support/git-planter';
 import {
   COPY,
@@ -34,7 +34,7 @@ describe('GitWorkingCopies', () => {
     'when $name defines drivers, hooks and a monitor',
     ({ place }) => {
       beforeEach(() => {
-        copies = new GitWorkingCopies(
+        copies = fixture.copiesWith(
           planter.configuredIn(place, fixture.host.settings),
         );
       });

@@ -8,8 +8,10 @@ import { SQLITE_CONNECTION } from '#infrastructure/database/sqlite-connection';
 import { SqliteTransactionRunner } from '#infrastructure/database/sqlite-transaction-runner.adapter';
 import { ID_GENERATOR } from '#kernel/id/id-generator';
 import { CLOCK } from '#kernel/time/clock';
+import { LOGGER } from '#ports/logger.port';
 import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
 import { FixedClock } from '#tests/support/fixed-clock';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import { STORED_TIME } from '#tests/support/schema-rows';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
 import {
@@ -22,8 +24,8 @@ const TEMPORARY_DATABASE = Symbol('TemporaryDatabase');
 /**
  * The shared infrastructure a module of the service takes from outside,
  * over a migrated database in a temporary folder: the connection, the
- * transactions, a fixed clock and ids in sequence. The database goes
- * when the testing module closes.
+ * transactions, a fixed clock, ids in sequence and a logger that keeps
+ * its lines. The database goes when the testing module closes.
  */
 export class SharedTestModule implements OnModuleDestroy {
   private readonly database: TemporaryDatabase;
@@ -43,8 +45,15 @@ export class SharedTestModule implements OnModuleDestroy {
         { provide: TRANSACTION_MANAGER, useClass: SqliteTransactionRunner },
         { provide: CLOCK, useValue: new FixedClock(STORED_TIME) },
         { provide: ID_GENERATOR, useValue: new SequentialIdGenerator() },
+        { provide: LOGGER, useValue: new RecordingLogger() },
       ],
-      exports: [SQLITE_CONNECTION, TRANSACTION_MANAGER, CLOCK, ID_GENERATOR],
+      exports: [
+        SQLITE_CONNECTION,
+        TRANSACTION_MANAGER,
+        CLOCK,
+        ID_GENERATOR,
+        LOGGER,
+      ],
     };
   }
 

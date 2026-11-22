@@ -1,4 +1,11 @@
-import { appendFileSync, existsSync, readFileSync, writeSync } from 'node:fs';
+import {
+  appendFileSync,
+  chmodSync,
+  existsSync,
+  readFileSync,
+  writeSync,
+} from 'node:fs';
+import { dirname } from 'node:path';
 import { argv, env, execPath, exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -24,6 +31,11 @@ export interface EnginePlay {
   readonly exitCode?: number;
   /** A run that never ends by itself, until it is killed. */
   readonly endless?: boolean;
+  /**
+   * A run takes the write permission away from the folder that holds its
+   * working copy, so the copy cannot be removed after it.
+   */
+  readonly locksCopies?: boolean;
 }
 
 const RECORD = 'STAND_IN_RECORD';
@@ -35,6 +47,9 @@ const FIRST_ARGUMENT = 2;
 const STANDARD_INPUT = 0;
 const STANDARD_OUTPUT = 1;
 const STANDARD_ERROR = 2;
+
+/** Read and enter, but not write. */
+const READ_ONLY = 0o555;
 
 /**
  * macOS adds it to every process that loads its text services, Node among
@@ -71,7 +86,11 @@ export function callsIn(record: string): EngineCall[] {
     .map((line) => JSON.parse(line) as EngineCall);
 }
 
-function playRun(play: EnginePlay): void {
+function playRun(play: EnginePlay, args: readonly string[]): void {
+  if (play.locksCopies === true) {
+    const copy = args[args.indexOf('--workdir') + 1] ?? '';
+    chmodSync(dirname(copy), READ_ONLY);
+  }
   for (const chunk of play.output ?? []) {
     const stream = chunk.stream === 'stdout' ? STANDARD_OUTPUT : STANDARD_ERROR;
     writeSync(stream, chunk.text);
@@ -94,7 +113,7 @@ function main(): void {
   };
   appendFileSync(env[RECORD] ?? '', `${JSON.stringify(call)}\n`);
   if (call.arguments[0] === 'run') {
-    playRun(JSON.parse(env[PLAY] ?? '{}') as EnginePlay);
+    playRun(JSON.parse(env[PLAY] ?? '{}') as EnginePlay, call.arguments);
   }
 }
 
