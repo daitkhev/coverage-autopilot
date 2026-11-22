@@ -1,5 +1,6 @@
 import { RepositoryId } from '#kernel/primitives/repository-id';
 import { AssessRevisionHandler } from '#repositories/application/commands/assess-revision/assess-revision.handler';
+import { ChangeThresholdHandler } from '#repositories/application/commands/change-threshold/change-threshold.handler';
 import { AccessProbe } from '#repositories/application/commands/check-access/access-probe';
 import { CheckAccessHandler } from '#repositories/application/commands/check-access/check-access.handler';
 import { ConnectRepositoryHandler } from '#repositories/application/commands/connect-repository/connect-repository.handler';
@@ -62,6 +63,11 @@ export class RepositoriesWorld {
     this.transactions,
     this.clock,
     this.ids,
+    this.views,
+  );
+  public readonly changeThreshold = new ChangeThresholdHandler(
+    this.repositories,
+    this.transactions,
     this.views,
   );
   public readonly getRepository = new GetRepositoryHandler(

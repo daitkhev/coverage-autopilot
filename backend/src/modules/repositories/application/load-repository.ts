@@ -38,11 +38,15 @@ function idOf(text: string): RepositoryId | null {
   }
 }
 
-/** The repository a text names, or `null` when none has it as its id. */
+/**
+ * The repository a text names, or `null` when none has it as its id, read
+ * in the transaction of the caller when it has one.
+ */
 export async function findRepository(
   repositories: RepositoryRepository,
   text: string,
+  transaction?: Transaction,
 ): Promise<Repository | null> {
   const id = idOf(text);
-  return id === null ? null : repositories.findById(id);
+  return id === null ? null : repositories.findById(id, transaction);
 }

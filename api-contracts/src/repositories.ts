@@ -14,6 +14,7 @@ import {
 } from '#api-contracts/values';
 
 const URL_MAX_LENGTH = 2048;
+const PERCENTAGE_MAX = 100;
 
 /** The service clones over HTTPS, so another scheme is refused early. */
 export const connectRepositoryRequestSchema = z.strictObject({
@@ -34,6 +35,21 @@ export const repositoryThresholdSchema = z.strictObject({
 });
 
 export type RepositoryThreshold = z.infer<typeof repositoryThresholdSchema>;
+
+const LEAST_THRESHOLD = 1;
+
+/**
+ * A whole percent of its own for a repository, read in the metric of the
+ * service, or `null` to give it the default back. 0 would make no file a
+ * target, so the least is 1.
+ */
+export const changeThresholdRequestSchema = z.strictObject({
+  percentage: z.int().min(LEAST_THRESHOLD).max(PERCENTAGE_MAX).nullable(),
+});
+
+export type ChangeThresholdRequest = z.infer<
+  typeof changeThresholdRequestSchema
+>;
 
 export const repositorySchema = z.strictObject({
   id: idSchema,

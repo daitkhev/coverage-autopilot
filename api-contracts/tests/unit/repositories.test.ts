@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   accessCheckSchema,
+  changeThresholdRequestSchema,
   connectRepositoryRequestSchema,
   repositoryListSchema,
   repositoryThresholdSchema,
@@ -97,6 +98,36 @@ describe('repositoryThresholdSchema', () => {
     ],
   ])('should refuse %s', (_name, value) => {
     expect(repositoryThresholdSchema.safeParse(value).success).toBe(false);
+  });
+});
+
+describe('changeThresholdRequestSchema', () => {
+  it.each([[1], [95], [100], [null]])(
+    'should accept a percentage of %s',
+    (percentage) => {
+      const value = { percentage };
+
+      expect(changeThresholdRequestSchema.safeParse(value).success).toBe(true);
+    },
+  );
+
+  it.each([[0], [101], [85.5], ['95']])(
+    'should refuse a percentage of %s',
+    (percentage) => {
+      const value = { percentage };
+
+      expect(changeThresholdRequestSchema.safeParse(value).success).toBe(false);
+    },
+  );
+
+  it('should refuse a body with no percentage or with another field', () => {
+    expect(changeThresholdRequestSchema.safeParse({}).success).toBe(false);
+    expect(
+      changeThresholdRequestSchema.safeParse({
+        percentage: 95,
+        metric: 'lines',
+      }).success,
+    ).toBe(false);
   });
 });
 

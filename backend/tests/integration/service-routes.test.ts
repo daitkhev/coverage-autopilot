@@ -59,6 +59,27 @@ async function scanThatRuns(): Promise<void> {
     .toBe(1);
 }
 
+/** Connects `acme/widgets` and gives its id. */
+async function connectedWidgets(): Promise<string> {
+  hosted.host.createRepository('acme/widgets', {
+    'package.json': '{"name":"widgets"}',
+  });
+  const connected = await hosted.send('/repositories', {
+    method: 'POST',
+    body: { url: TemporaryCodeHost.urlOf('acme/widgets') },
+  });
+  return repositorySchema.parse(connected.body).id;
+}
+
+/** The threshold a route answers a repository with. */
+async function thresholdAfter(path: string, asked?: { body: unknown }) {
+  const answer = await hosted.send(
+    path,
+    asked === undefined ? {} : { method: 'POST', ...asked },
+  );
+  return repositorySchema.parse(answer.body).threshold;
+}
+
 describe('the routes of the service', () => {
   describe('GET /health', () => {
     it('should answer what the service knows of itself in the words of the contract', async () => {
@@ -82,6 +103,33 @@ describe('the routes of the service', () => {
         worker: { alive: true, lastSeenAt: null },
         activeWork: { scans: 0, improvements: 0 },
         tools: [],
+      });
+    });
+  });
+
+  describe('POST /repositories/:id/threshold', () => {
+    it('should keep a percent of its own over the default its variable names', async () => {
+      hosted = hostedService({}, { AUTOPILOT_COVERAGE_THRESHOLD: '70' });
+      await started();
+      const path = `/repositories/${await connectedWidgets()}`;
+      const own = { body: { percentage: 95 } };
+      const none = { body: { percentage: null } };
+
+      expect(await thresholdAfter(path)).toEqual({
+        metric: 'lines',
+        percentage: 70,
+        isDefault: true,
+      });
+      expect(await thresholdAfter(`${path}/threshold`, own)).toEqual({
+        metric: 'lines',
+        percentage: 95,
+        isDefault: false,
+      });
+      expect(await thresholdAfter(path)).toMatchObject({ percentage: 95 });
+      expect(await thresholdAfter(`${path}/threshold`, none)).toEqual({
+        metric: 'lines',
+        percentage: 70,
+        isDefault: true,
       });
     });
   });

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { AssessRevisionHandler } from '#repositories/application/commands/assess-revision/assess-revision.handler';
+import { ChangeThresholdHandler } from '#repositories/application/commands/change-threshold/change-threshold.handler';
 import { AccessProbe } from '#repositories/application/commands/check-access/access-probe';
 import { CheckAccessHandler } from '#repositories/application/commands/check-access/check-access.handler';
 import { ConnectRepositoryHandler } from '#repositories/application/commands/connect-repository/connect-repository.handler';
@@ -34,6 +35,7 @@ import {
 } from '#repositories/infrastructure/git/working-copy-folders';
 import { RepositoriesController } from '#repositories/infrastructure/http/repositories.controller';
 import { RepositoryAccessController } from '#repositories/infrastructure/http/repository-access.controller';
+import { RepositoryThresholdController } from '#repositories/infrastructure/http/repository-threshold.controller';
 import { SqliteRepositoryRepository } from '#repositories/infrastructure/persistence/sqlite-repository.repository';
 import {
   REPOSITORIES_SETTINGS,
@@ -52,14 +54,15 @@ const HANDLERS = [
   GetRepositoryHandler,
   GetRepositoryViewHandler,
   ListRepositoriesHandler,
+  ChangeThresholdHandler,
 ];
 
 /**
  * Everything that uses `git` and `gh`, and the routes of a repository:
- * connecting one, the list, one repository and its access check. It takes
- * the clock, the id generator, the transaction manager and the SQLite
- * connection from the shared infrastructure, and its own settings from
- * `register`. An answer about a repository holds what only the coverage
+ * connecting one, the list, one repository, its threshold and its access
+ * check. It takes the clock, the id generator, the transaction manager
+ * and the SQLite connection from the shared infrastructure, and its own
+ * settings from `register`. An answer about a repository holds what only the coverage
  * module knows, which is above this one: it comes through the port
  * `REPOSITORY_COVERAGE` of this module, which the coverage module binds.
  */
@@ -82,7 +85,11 @@ export class RepositoriesModule implements OnModuleInit {
     return {
       module: RepositoriesModule,
       global: true,
-      controllers: [RepositoriesController, RepositoryAccessController],
+      controllers: [
+        RepositoriesController,
+        RepositoryAccessController,
+        RepositoryThresholdController,
+      ],
       providers: [
         { provide: REPOSITORIES_SETTINGS, useValue: settings },
         { provide: DEFAULT_THRESHOLD, useValue: settings.threshold },
