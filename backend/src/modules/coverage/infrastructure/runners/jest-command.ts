@@ -1,8 +1,13 @@
+import { join } from 'node:path';
+
 import type { TestRunRequest } from '#coverage/application/ports/test-runner.port';
+import {
+  JEST_REPORTER_FILE,
+  JEST_REPORTER_SOURCE,
+} from '#coverage/infrastructure/runners/jest-results-reporter';
 import {
   exactGlob,
   REPORT_FOLDER,
-  resultsPathOf,
   type RunnerCommand,
 } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
 
@@ -33,11 +38,14 @@ function coverageArguments(request: TestRunRequest): string[] {
 }
 
 /**
- * With a file, `--json` writes the results there and leaves the usual
- * output as it is, on the standard error.
+ * A reporter named on the command line replaces those of the
+ * configuration, so the usual one is named beside the one of the service.
+ * That one is named by an absolute path: Jest looks for a relative one
+ * from its root folder, which a repository may move.
  */
 function resultsArguments(request: TestRunRequest): string[] {
-  return ['--json', `--outputFile=${resultsPathOf(request)}`];
+  const reporter = join(request.workingCopyPath, JEST_REPORTER_FILE);
+  return ['--reporters=default', `--reporters=${reporter}`];
 }
 
 function testArguments(request: TestRunRequest): string[] {
@@ -52,6 +60,7 @@ function testArguments(request: TestRunRequest): string[] {
  */
 export const JEST_COMMAND: RunnerCommand = {
   testRunner: 'jest',
+  files: { [JEST_REPORTER_FILE]: JEST_REPORTER_SOURCE },
   commandFor: (request) => [
     'node',
     JEST,

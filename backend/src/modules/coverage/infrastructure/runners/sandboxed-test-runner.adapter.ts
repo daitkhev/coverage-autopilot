@@ -1,5 +1,5 @@
-import { rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import type { CoverageSettings } from '#coverage/application/coverage-settings';
 import type {
@@ -25,7 +25,8 @@ const REPORT_FILE = 'coverage-final.json';
  * working copy. Right in `node_modules`, which is there before any run:
  * Jest does not make the folder of the file, and stops when it is missing.
  */
-const RESULTS_FILE = 'node_modules/.coverage-autopilot-test-results.json';
+export const RESULTS_FILE =
+  'node_modules/.coverage-autopilot-test-results.json';
 
 /**
  * The JSON report of the tests of a run, as an absolute path: Vitest
@@ -50,14 +51,29 @@ export function exactGlob(path: FilePath): string {
 /** How one runner is started: its program and its arguments. */
 export interface RunnerCommand {
   readonly testRunner: TestRunnerName;
+  /** What the command reads from the working copy, by its path in it. */
+  readonly files: Readonly<Record<string, string>>;
   commandFor(request: TestRunRequest): string[];
+}
+
+/**
+ * Writes a file of the service into the copy. What is at its path goes
+ * first and the file is made new, so a link a package left there is never
+ * written through.
+ */
+function writeInto(copy: string, file: string, content: string): void {
+  const path = join(copy, file);
+  mkdirSync(dirname(path), { recursive: true });
+  rmSync(path, { recursive: true, force: true });
+  writeFileSync(path, content, { flag: 'wx' });
 }
 
 /**
  * Runs the tests of one runner in the sandbox: no network, the variables
  * of the settings and nothing else, and the time limit of a test run. The
  * reports of an earlier run in the same copy are removed first, so a run
- * that writes none is never read as one that did.
+ * that writes none is never read as one that did, and the files of the
+ * command are written.
  */
 export class SandboxedTestRunner implements TestRunner {
   public readonly testRunner: TestRunnerName;
@@ -84,6 +100,9 @@ export class SandboxedTestRunner implements TestRunner {
     const resultsPath = resultsPathOf(request);
     rmSync(folder, { recursive: true, force: true });
     rmSync(resultsPath, { recursive: true, force: true });
+    for (const [file, content] of Object.entries(this.command.files)) {
+      writeInto(request.workingCopyPath, file, content);
+    }
     const result = await this.sandbox.run(
       {
         workingCopyPath: request.workingCopyPath,

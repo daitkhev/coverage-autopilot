@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -29,8 +29,14 @@ import {
 const REPORT_FOLDER = 'node_modules/.cache/coverage-autopilot/coverage';
 const RESULTS_FILE = 'node_modules/.coverage-autopilot-test-results.json';
 
+const REPORTER_FILE = 'node_modules/.coverage-autopilot-test-reporter.cjs';
+
 function resultsFile(): string {
   return join(folder.root, RESULTS_FILE);
+}
+
+function reporterFile(): string {
+  return join(folder.root, REPORTER_FILE);
 }
 
 const COMMANDS: Readonly<Record<TestRunnerName, RunnerCommand>> = {
@@ -183,6 +189,23 @@ describe('SandboxedTestRunner', () => {
       expect(sandbox.requests).toHaveLength(1);
     });
 
+    it('should write the files of the command, over what is at their path', async () => {
+      folder.write(REPORTER_FILE, 'planted');
+      sandbox.onRun(() => {
+        expect(readFileSync(reporterFile(), 'utf8')).toContain('onRunComplete');
+      });
+
+      await run({ runner: 'jest' });
+
+      expect(sandbox.requests).toHaveLength(1);
+    });
+
+    it('should write no reporter for Vitest, which has its own', async () => {
+      await run({ runner: 'vitest' });
+
+      expect(existsSync(reporterFile())).toBe(false);
+    });
+
     describe('when the signal is aborted', () => {
       it('should throw what the sandbox throws', async () => {
         const controller = new AbortController();
@@ -213,8 +236,8 @@ describe('JEST_COMMAND', () => {
         `--coverageDirectory=${REPORT_FOLDER}`,
         '--collectCoverageFrom=src/used.ts',
         '--collectCoverageFrom=src/\\[id\\].ts',
-        '--json',
-        `--outputFile=${resultsFile()}`,
+        '--reporters=default',
+        `--reporters=${reporterFile()}`,
       ],
     ]);
   });
@@ -233,8 +256,8 @@ describe('JEST_COMMAND', () => {
         'node_modules/jest/bin/jest.js',
         '--ci',
         '--coverage=false',
-        '--json',
-        `--outputFile=${resultsFile()}`,
+        '--reporters=default',
+        `--reporters=${reporterFile()}`,
         '--runTestsByPath',
         'tests/used.test.ts',
       ],

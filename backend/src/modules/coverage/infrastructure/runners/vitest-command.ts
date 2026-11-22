@@ -58,6 +58,7 @@ function resultsArguments(request: TestRunRequest): string[] {
  */
 export const VITEST_COMMAND: RunnerCommand = {
   testRunner: 'vitest',
+  files: {},
   commandFor: (request) => [
     'node',
     VITEST,
