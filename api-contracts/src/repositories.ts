@@ -72,6 +72,18 @@ export const repositoryInstallSchema = z.strictObject({
 
 export type RepositoryInstall = z.infer<typeof repositoryInstallSchema>;
 
+/**
+ * A mode of its own for a repository, or `null` to give it the default
+ * of the service back.
+ */
+export const changeInstallModeRequestSchema = z.strictObject({
+  mode: installModeSchema.nullable(),
+});
+
+export type ChangeInstallModeRequest = z.infer<
+  typeof changeInstallModeRequestSchema
+>;
+
 export const repositorySchema = z.strictObject({
   id: idSchema,
   owner: textSchema,

@@ -71,13 +71,23 @@ async function connectedWidgets(): Promise<string> {
   return repositorySchema.parse(connected.body).id;
 }
 
-/** The threshold a route answers a repository with. */
-async function thresholdAfter(path: string, asked?: { body: unknown }) {
+/** The repository as a route answers it. */
+async function repositoryAfter(path: string, asked?: { body: unknown }) {
   const answer = await hosted.send(
     path,
     asked === undefined ? {} : { method: 'POST', ...asked },
   );
-  return repositorySchema.parse(answer.body).threshold;
+  return repositorySchema.parse(answer.body);
+}
+
+/** The threshold a route answers a repository with. */
+async function thresholdAfter(path: string, asked?: { body: unknown }) {
+  return (await repositoryAfter(path, asked)).threshold;
+}
+
+/** How a route answers a repository is installed. */
+async function installAfter(path: string, asked?: { body: unknown }) {
+  return (await repositoryAfter(path, asked)).install;
 }
 
 describe('the routes of the service', () => {
@@ -129,6 +139,30 @@ describe('the routes of the service', () => {
       expect(await thresholdAfter(`${path}/threshold`, none)).toEqual({
         metric: 'lines',
         percentage: 70,
+        isDefault: true,
+      });
+    });
+  });
+
+  describe('POST /repositories/:id/install-mode', () => {
+    it('should keep a mode of its own over the default its variable names', async () => {
+      hosted = hostedService({}, { AUTOPILOT_INSTALL: 'trusted' });
+      await started();
+      const path = `/repositories/${await connectedWidgets()}`;
+      const own = { body: { mode: 'sandboxed' } };
+      const none = { body: { mode: null } };
+
+      expect(await installAfter(path)).toEqual({
+        mode: 'trusted',
+        isDefault: true,
+      });
+      expect(await installAfter(`${path}/install-mode`, own)).toEqual({
+        mode: 'sandboxed',
+        isDefault: false,
+      });
+      expect(await installAfter(path)).toMatchObject({ mode: 'sandboxed' });
+      expect(await installAfter(`${path}/install-mode`, none)).toEqual({
+        mode: 'trusted',
         isDefault: true,
       });
     });

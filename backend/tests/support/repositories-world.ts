@@ -1,5 +1,6 @@
 import { RepositoryId } from '#kernel/primitives/repository-id';
 import { AssessRevisionHandler } from '#repositories/application/commands/assess-revision/assess-revision.handler';
+import { ChangeInstallModeHandler } from '#repositories/application/commands/change-install-mode/change-install-mode.handler';
 import { ChangeThresholdHandler } from '#repositories/application/commands/change-threshold/change-threshold.handler';
 import { AccessProbe } from '#repositories/application/commands/check-access/access-probe';
 import { CheckAccessHandler } from '#repositories/application/commands/check-access/check-access.handler';
@@ -14,6 +15,7 @@ import { GetRepositoryHandler } from '#repositories/application/queries/get-repo
 import { GetRepositoryViewHandler } from '#repositories/application/queries/get-repository-view/get-repository-view.handler';
 import { ListRepositoriesHandler } from '#repositories/application/queries/list-repositories/list-repositories.handler';
 import { RepositoriesFacade } from '#repositories/application/repositories-facade';
+import { RepositoryChanges } from '#repositories/application/repository-changes';
 import { Repository } from '#repositories/domain/entities/repository.entity';
 import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
 import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
@@ -78,10 +80,14 @@ export class RepositoriesWorld {
     this.ids,
     this.views,
   );
-  public readonly changeThreshold = new ChangeThresholdHandler(
+  public readonly changes = new RepositoryChanges(
     this.repositories,
     this.transactions,
     this.views,
+  );
+  public readonly changeThreshold = new ChangeThresholdHandler(this.changes);
+  public readonly changeInstallMode = new ChangeInstallModeHandler(
+    this.changes,
   );
   public readonly getRepository = new GetRepositoryHandler(
     this.repositories,

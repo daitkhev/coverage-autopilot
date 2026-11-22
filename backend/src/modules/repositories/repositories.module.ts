@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { AssessRevisionHandler } from '#repositories/application/commands/assess-revision/assess-revision.handler';
+import { ChangeInstallModeHandler } from '#repositories/application/commands/change-install-mode/change-install-mode.handler';
 import { ChangeThresholdHandler } from '#repositories/application/commands/change-threshold/change-threshold.handler';
 import { AccessProbe } from '#repositories/application/commands/check-access/access-probe';
 import { CheckAccessHandler } from '#repositories/application/commands/check-access/check-access.handler';
@@ -26,6 +27,7 @@ import { GetRepositoryHandler } from '#repositories/application/queries/get-repo
 import { GetRepositoryViewHandler } from '#repositories/application/queries/get-repository-view/get-repository-view.handler';
 import { ListRepositoriesHandler } from '#repositories/application/queries/list-repositories/list-repositories.handler';
 import { RepositoriesFacade } from '#repositories/application/repositories-facade';
+import { RepositoryChanges } from '#repositories/application/repository-changes';
 import { REPOSITORY_REPOSITORY } from '#repositories/domain/repositories/repository.repository';
 import { GhCodeHost } from '#repositories/infrastructure/gh/gh-code-host.adapter';
 import { GitCli } from '#repositories/infrastructure/git/git-cli.adapter';
@@ -37,6 +39,7 @@ import {
 } from '#repositories/infrastructure/git/working-copy-folders';
 import { RepositoriesController } from '#repositories/infrastructure/http/repositories.controller';
 import { RepositoryAccessController } from '#repositories/infrastructure/http/repository-access.controller';
+import { RepositoryInstallModeController } from '#repositories/infrastructure/http/repository-install-mode.controller';
 import { RepositoryThresholdController } from '#repositories/infrastructure/http/repository-threshold.controller';
 import { SqliteRepositoryRepository } from '#repositories/infrastructure/persistence/sqlite-repository.repository';
 import {
@@ -57,12 +60,13 @@ const HANDLERS = [
   GetRepositoryViewHandler,
   ListRepositoriesHandler,
   ChangeThresholdHandler,
+  ChangeInstallModeHandler,
 ];
 
 /**
  * Everything that uses `git` and `gh`, and the routes of a repository:
- * connecting one, the list, one repository, its threshold and its access
- * check. It takes the clock, the alarm, the id generator, the transaction
+ * connecting one, the list, one repository, its threshold, its mode of
+ * install and its access check. It takes the clock, the alarm, the id generator, the transaction
  * manager and the SQLite connection from the shared infrastructure, and
  * its own settings from `register`. An answer about a repository holds
  * what only the coverage module knows, which is above this one: it comes
@@ -92,6 +96,7 @@ export class RepositoriesModule implements OnModuleInit {
         RepositoriesController,
         RepositoryAccessController,
         RepositoryThresholdController,
+        RepositoryInstallModeController,
       ],
       providers: [
         { provide: REPOSITORIES_SETTINGS, useValue: settings },
@@ -108,6 +113,7 @@ export class RepositoriesModule implements OnModuleInit {
         { provide: REPOSITORIES_PUBLIC_API, useClass: RepositoriesFacade },
         HeadRecorder,
         RepositoryViews,
+        RepositoryChanges,
         AccessProbe,
         PublicationTargets,
         ...HANDLERS,

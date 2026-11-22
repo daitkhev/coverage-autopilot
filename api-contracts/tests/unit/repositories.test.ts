@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   accessCheckSchema,
+  changeInstallModeRequestSchema,
   changeThresholdRequestSchema,
   connectRepositoryRequestSchema,
   repositoryInstallSchema,
@@ -120,6 +121,27 @@ describe('repositoryInstallSchema', () => {
     ['an unknown key', { mode: 'trusted', isDefault: false, network: 'open' }],
   ])('should refuse %s', (_name, value) => {
     expect(repositoryInstallSchema.safeParse(value).success).toBe(false);
+  });
+});
+
+describe('changeInstallModeRequestSchema', () => {
+  it.each([['sandboxed'], ['trusted'], [null]])(
+    'should accept a mode of %s',
+    (mode) => {
+      const value = { mode };
+
+      expect(changeInstallModeRequestSchema.safeParse(value).success).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each([
+    ['no mode', {}],
+    ['a mode that is not one', { mode: 'default' }],
+    ['another field', { mode: 'trusted', network: 'open' }],
+  ])('should refuse %s', (_name, value) => {
+    expect(changeInstallModeRequestSchema.safeParse(value).success).toBe(false);
   });
 });
 
