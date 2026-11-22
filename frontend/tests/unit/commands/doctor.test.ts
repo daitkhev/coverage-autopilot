@@ -25,7 +25,7 @@ describe('doctor', () => {
     expect(io.printed).toMatchInlineSnapshot(`
       [
         "service      ● service up",
-        "versions     service 0.1.0, contract 4, the client reads contract 4",
+        "versions     service 0.1.0, contract 5, the client reads contract 5",
         "started      3h 12m ago",
         "account      example-user",
         "generator    claude_code, subscription",

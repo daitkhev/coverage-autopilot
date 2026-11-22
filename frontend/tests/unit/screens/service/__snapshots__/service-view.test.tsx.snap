@@ -10,7 +10,7 @@ exports[`ServiceView > should say whether everything is in order 1`] = `
  │ Service      running, started 3h 12m ago                       │ │ Output       – not known yet            │
  │ Worker       alive, last sign 1s ago                           │ │ Log          – not known yet            │
  │ Running      0 scans, 0 improvements                           │ │                                         │
- │ Versions     service 0.1.0, contract 4                         │ │ ACTIONS ─────────────────────────────── │
+ │ Versions     service 0.1.0, contract 5                         │ │ ACTIONS ─────────────────────────────── │
  │                                                                │ │ r restart                               │
  │ ENVIRONMENT ────────────────────────────────────────────────── │ │                                         │
  │ git          ✓ git 2.47.1                                      │ │                                         │
@@ -84,7 +84,7 @@ exports[`ServiceView > when the last request failed > should keep the last healt
  │ Service      running, started 3h 12m ago                       │ │ Output       – not known yet            │
  │ Worker       alive, last sign 1s ago                           │ │ Log          – not known yet            │
  │ Running      0 scans, 0 improvements                           │ │                                         │
- │ Versions     service 0.1.0, contract 4                         │ │ ACTIONS ─────────────────────────────── │
+ │ Versions     service 0.1.0, contract 5                         │ │ ACTIONS ─────────────────────────────── │
  │                                                                │ │ r restart                               │
  │ ENVIRONMENT ────────────────────────────────────────────────── │ │                                         │
  │ git          ✓ git 2.47.1                                      │ │                                         │
