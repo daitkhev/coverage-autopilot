@@ -10,7 +10,7 @@ import { removeStaleSocket } from '#infrastructure/service/service-socket';
  * The driver of SQLite is named only where SQL runs. The start hands the
  * connection on and runs none.
  */
-type ServiceConnection = ReturnType<typeof openSqliteConnection>;
+export type ServiceConnection = ReturnType<typeof openSqliteConnection>;
 
 /** What the entry file goes on with, or, as a value, that it should exit. */
 export type ServiceStart =
