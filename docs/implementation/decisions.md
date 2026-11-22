@@ -1812,13 +1812,14 @@ fails the improvement as an exposed credential and keeps its tokens.
   The service refuses to start with any other word. It reaches the gate
   as `gate.baselineTests`.
 - A failing test is named the same way for both runners, from the JSON
-  report they share: its file, a path as git stores it, and its full
-  name, every `describe` and then the test, as plain text without the
-  path of the copy and not cut. A file that failed with no failed test
-  failed to run, and counts as one test with no name. The baseline keeps
-  them as `failingTests`: version 2 of its stored document. A version 1
-  baseline reads as none when its tests passed and as not known when
-  they did not.
+  report they share and by the reader that finds the failure the
+  generator hears, from the same list of failures: its file, a path as
+  git stores it, and its full name, every `describe` and then the test,
+  as plain text without the path of the copy and not cut. A file that
+  failed with no failed test failed to run, and counts as one test with
+  no name. The baseline keeps them as `failingTests`: version 2 of its
+  stored document. A version 1 baseline reads as none when its tests
+  passed and as not known when they did not.
 - With `must_pass` one failing test ends the improvement at its
   analysis with `existing_tests_fail`, and a message such as `33 of 53
   tests of the repository fail in the sandbox. The first is "feed > reads
@@ -1876,5 +1877,6 @@ fails the improvement as an exposed credential and keeps its tokens.
   `backend/src/modules/verification/application/commands/verify-patch/checks/existing-tests-check.ts`,
   `backend/src/modules/verification/infrastructure/mutation/stryker-configuration.ts`,
   `backend/src/modules/verification/infrastructure/mutation/stryker-mutation-runner.adapter.ts`,
+  `backend/src/modules/coverage/infrastructure/reports/reported-failures.ts`,
   `backend/src/modules/coverage/infrastructure/reports/test-outcomes.ts`,
   `frontend/src/theme/counts.ts`.
