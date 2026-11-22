@@ -9,7 +9,7 @@ import type { ServiceConfig } from '#infrastructure/config/service-config';
 import { JobWorkerScheduler } from '#infrastructure/queue/job-worker-scheduler';
 import { restrictSocket } from '#infrastructure/service/service-socket';
 import { startService } from '#infrastructure/service/service-start';
-import { CLOCK, type Clock } from '#kernel/time/clock';
+import { SystemClock } from '#infrastructure/time/system-clock.adapter';
 import { AppModule, type ServiceWiring } from '#service/app.module';
 import {
   giveBack,
@@ -23,6 +23,8 @@ export interface ServiceStartup {
   readonly migrationsFolder: string;
   /** Where the log lines go: the standard error of the process. */
   readonly logStream: Writable;
+  /** The version of the package, which the entry file reads beside it. */
+  readonly version: string;
 }
 
 /** A service that runs, or, as a value, that another one holds the lock. */
@@ -79,13 +81,14 @@ export async function runService(
   }
   const { lock, connection } = start;
   const held = { lock, connection, socket: config.instance.socket };
+  const service = new RunningService(held, {
+    version: startup.version,
+    startedAt: new SystemClock().now(),
+  });
   try {
-    const application = await serving(
-      { config, connection, logStream: startup.logStream },
-      held,
-    );
-    const startedAt = application.get<Clock>(CLOCK).now();
-    const service = new RunningService(application, held, startedAt);
+    const { logStream } = startup;
+    const wiring = { config, connection, logStream, life: service };
+    service.serve(await serving(wiring, held));
     return { outcome: 'running', service };
   } catch (error) {
     giveBack(held);

@@ -21,6 +21,11 @@ import { SQLITE_CONNECTION } from '#infrastructure/database/sqlite-connection';
 import { SqliteJobTable } from '#infrastructure/database/sqlite-job-table';
 import { SqliteTransactionRunner } from '#infrastructure/database/sqlite-transaction-runner.adapter';
 import { API_ERROR_FILTER } from '#infrastructure/http/api-error.filter';
+import { ServiceController } from '#infrastructure/http/service.controller';
+import {
+  SERVICE_LIFE,
+  type ServiceLife,
+} from '#infrastructure/http/service-life';
 import { RandomUuidGenerator } from '#infrastructure/id/random-uuid-generator.adapter';
 import { JsonLogger } from '#infrastructure/logging/json-logger.adapter';
 import { LOG_SETTINGS } from '#infrastructure/logging/log-settings';
@@ -55,6 +60,8 @@ export interface ServiceWiring {
   readonly connection: ServiceConnection;
   /** Where the log lines go, as the entry file names it. */
   readonly logStream: Writable;
+  /** The service the routes of the service report on and stop. */
+  readonly life: ServiceLife;
 }
 
 /** What a module of the service takes from outside, the same for each. */
@@ -72,9 +79,9 @@ const SHARED = [
 
 /**
  * The service: the shared adapters every module takes from outside, the
- * modules, the worker with the handlers of the jobs, and the filter that
- * answers every request that did not succeed. It is global, so a module
- * it imports finds the shared adapters.
+ * modules, the worker with the handlers of the jobs, the routes of the
+ * service itself, and the filter that answers every request that did not
+ * succeed. It is global, so a module it imports finds the shared adapters.
  */
 @Module({})
 export class AppModule implements OnModuleInit {
@@ -102,7 +109,9 @@ export class AppModule implements OnModuleInit {
         VerificationModule.register(modules.verification),
         ImprovementModule.register(modules.improvement),
       ],
+      controllers: [ServiceController],
       providers: [
+        { provide: SERVICE_LIFE, useValue: wiring.life },
         { provide: SERVICE_CONFIG, useValue: wiring.config },
         { provide: LOG_SETTINGS, useValue: settings.log },
         { provide: LOGGER, useClass: JsonLogger },

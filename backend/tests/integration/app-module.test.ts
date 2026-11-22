@@ -11,6 +11,7 @@ import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-thres
 import { IMPROVEMENT_SETTINGS } from '#improvement/application/improvement-settings';
 import { GENERATOR_SANDBOX } from '#improvement/infrastructure/generator/generator-sandbox';
 import { DockerSandbox } from '#infrastructure/sandbox/docker-sandbox.adapter';
+import { Instant } from '#kernel/time/instant';
 import { JOB_HANDLERS, type JobHandler } from '#ports/job-handler.port';
 import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
 import { AppModule } from '#service/app.module';
@@ -36,6 +37,12 @@ async function serviceWith(
         config: loadWith(variables),
         connection: database.connection,
         logStream: new PassThrough(),
+        life: {
+          version: '0.0.0-test',
+          startedAt: Instant.parse('2026-11-22T08:00:00.000Z'),
+          stopping: false,
+          stop: async () => Promise.resolve(),
+        },
       }),
     ],
   }).compile();

@@ -1,4 +1,4 @@
-import { get, type IncomingMessage } from 'node:http';
+import { type IncomingMessage, request } from 'node:http';
 import { Writable } from 'node:stream';
 import { json } from 'node:stream/consumers';
 
@@ -12,6 +12,9 @@ import {
 import { loadWith, PLAIN_MACHINE } from '#tests/support/service-variables';
 import { MIGRATIONS_FOLDER } from '#tests/support/temporary-database';
 
+/** The version a service of the bench reports. */
+export const SERVICE_VERSION = '0.0.0-bench';
+
 /** One line of the log, as the logger of the service writes it. */
 interface LogLine {
   readonly level: string;
@@ -23,6 +26,14 @@ interface LogLine {
 interface SocketAnswer {
   readonly status: number;
   readonly body: unknown;
+}
+
+/** A request a client sends. Left out, it is a `GET` with no body. */
+interface Asked {
+  readonly method?: 'GET' | 'POST';
+  /** Sent as JSON. */
+  readonly body?: unknown;
+  readonly headers?: Readonly<Record<string, string>>;
 }
 
 /** Services of one instance in a folder of their own, as a test runs them. */
@@ -48,9 +59,19 @@ export interface ServiceBench {
 export async function askOver(
   socket: string,
   path: string,
+  asked: Asked = {},
 ): Promise<SocketAnswer> {
+  const payload =
+    asked.body === undefined ? undefined : JSON.stringify(asked.body);
+  const headers = {
+    ...(payload === undefined ? {} : { 'content-type': 'application/json' }),
+    ...asked.headers,
+  };
+  const method = asked.method ?? 'GET';
   const answer = await new Promise<IncomingMessage>((resolve, reject) => {
-    get({ socketPath: socket, path }, resolve).on('error', reject);
+    request({ socketPath: socket, path, method, headers }, resolve)
+      .on('error', reject)
+      .end(payload);
   });
   return { status: answer.statusCode ?? 0, body: await json(answer) };
 }
@@ -66,16 +87,20 @@ function collected(): { stream: Writable; text: () => string } {
   return { stream, text: () => chunks.join('') };
 }
 
-/** A bench whose configuration has these variables besides the folder. */
+/**
+ * A bench whose configuration has these variables besides the folder, and
+ * whatever `change` makes of it, such as an engine that is no container.
+ */
 export function serviceBench(
   variables: Record<string, string> = {},
+  change: (config: ServiceConfig) => ServiceConfig = (config) => config,
 ): ServiceBench {
   const instance: InstanceFolder = createInstanceFolder();
   const own = {
     AUTOPILOT_INSTANCE_DIR: instance.paths.directory,
     ...variables,
   };
-  const config = loadWith(own);
+  const config = change(loadWith(own));
   const log = collected();
   const runs: ServiceRun[] = [];
   return {
@@ -93,6 +118,7 @@ export function serviceBench(
       const run = await runService(config, {
         migrationsFolder,
         logStream: log.stream,
+        version: SERVICE_VERSION,
       });
       runs.push(run);
       return run;

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
@@ -10,6 +11,16 @@ import { serveProcess } from '#service/service-process';
 export const MIGRATIONS_FOLDER = fileURLToPath(
   new URL('../migrations/', import.meta.url),
 );
+
+/** The package of the service, which the same step up finds. */
+const PACKAGE_FILE = new URL('../package.json', import.meta.url);
+
+/** The version of the package, which `GET /health` reports. */
+function packageVersion(): string {
+  const text = readFileSync(PACKAGE_FILE, 'utf8');
+  const { version } = JSON.parse(text) as { readonly version: string };
+  return version;
+}
 
 /** A second signal finds no listener and ends the process at once. */
 const STOP_SIGNALS = ['SIGTERM', 'SIGINT'] as const;
@@ -25,6 +36,7 @@ if (import.meta.main) {
       gid: process.getgid?.() ?? NO_ID,
     },
     migrationsFolder: MIGRATIONS_FOLDER,
+    version: packageVersion(),
     errors: process.stderr,
     onStopRequest: (stop) => {
       for (const signal of STOP_SIGNALS) {

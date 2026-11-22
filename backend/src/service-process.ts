@@ -14,6 +14,8 @@ export interface ServiceProcess {
   readonly user: ProcessUser;
   /** Found from the place of the entry file, which a bundle moves. */
   readonly migrationsFolder: string;
+  /** The version of the package, read beside the entry file. */
+  readonly version: string;
   /** The standard error: the lines of the log, and that of a failure. */
   readonly errors: Writable;
   /** Calls `stop` when the process is asked to stop, such as on a signal. */
@@ -43,6 +45,7 @@ async function started(
     const run = await runService(config, {
       migrationsFolder: entry.migrationsFolder,
       logStream: entry.errors,
+      version: entry.version,
     });
     return run.outcome === 'running' ? run.service : EXIT_WELL;
   } catch (error) {

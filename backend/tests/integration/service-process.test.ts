@@ -4,7 +4,11 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { serveProcess, type ServiceProcess } from '#service/service-process';
-import { type ServiceBench, serviceBench } from '#tests/support/service-bench';
+import {
+  SERVICE_VERSION,
+  type ServiceBench,
+  serviceBench,
+} from '#tests/support/service-bench';
 import { DEVELOPER } from '#tests/support/service-variables';
 import { MIGRATIONS_FOLDER } from '#tests/support/temporary-database';
 
@@ -16,6 +20,7 @@ function processOf(change: Partial<ServiceProcess> = {}): ServiceProcess {
     environment: bench.environment,
     user: DEVELOPER,
     migrationsFolder: MIGRATIONS_FOLDER,
+    version: SERVICE_VERSION,
     errors: bench.logStream,
     onStopRequest: () => undefined,
     ...change,
