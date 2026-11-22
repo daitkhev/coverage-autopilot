@@ -145,14 +145,6 @@ describe('readStructure', () => {
     }
   });
 
-  it('should let no layer import the layer of the presentation but itself', () => {
-    const importers = [...readStructure().backend.layers.entries()]
-      .filter(([, rule]) => rule.layers.includes('presentation'))
-      .map(([name]) => name);
-
-    expect(importers).toEqual(['presentation']);
-  });
-
   it('should put every role suffix in a folder of a known layer', () => {
     const layers = [...readStructure().backend.layers.keys()];
 

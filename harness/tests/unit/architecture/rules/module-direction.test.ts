@@ -20,7 +20,7 @@ describe('moduleDirection', () => {
   it('should report a module that uses one it may not', () => {
     const project = projectOf(
       sourceFile(`${MODULES}/store/application/find.ts`, [
-        importTo(`${MODULES}/reports/contracts/report.dto.ts`, 6),
+        importTo(`${MODULES}/reports/application/contracts/report.dto.ts`, 6),
       ]),
     );
 
@@ -47,7 +47,7 @@ describe('moduleDirection', () => {
     expect(
       detailsFor(
         `${MODULES}/runs/application/start.ts`,
-        `${MODULES}/store/contracts/item.dto.ts`,
+        `${MODULES}/store/application/contracts/item.dto.ts`,
       ),
     ).toEqual([]);
   });
@@ -65,13 +65,13 @@ describe('moduleDirection', () => {
     expect(
       detailsFor(
         `${MODULES}/store/application/find.ts`,
-        `${MODULES}/billing/contracts/invoice.dto.ts`,
+        `${MODULES}/billing/application/contracts/invoice.dto.ts`,
       ),
     ).toEqual([]);
     expect(
       detailsFor(
         `${MODULES}/billing/application/find.ts`,
-        `${MODULES}/store/contracts/item.dto.ts`,
+        `${MODULES}/store/application/contracts/item.dto.ts`,
       ),
     ).toEqual([]);
   });

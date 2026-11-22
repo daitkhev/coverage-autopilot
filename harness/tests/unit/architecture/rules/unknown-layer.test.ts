@@ -20,8 +20,8 @@ function detailsFor(path: string): string[] {
 describe('unknownLayer', () => {
   it('should report a folder of a module that is not a layer', () => {
     expect(detailsFor(`${MODULES}/store/adapters/reader.ts`)).toEqual([
-      '"adapters" is not a layer. The layers are: ' +
-        'domain, application, infrastructure, contracts.',
+      '"adapters" is not a layer. The layers are: domain, application, ' +
+        'infrastructure, application/contracts, infrastructure/http.',
     ]);
   });
 
@@ -43,7 +43,7 @@ describe('unknownLayer', () => {
 
   it.each([
     `${MODULES}/store/domain/entities/item.entity.ts`,
-    `${MODULES}/store/contracts/item.dto.ts`,
+    `${MODULES}/store/application/contracts/item.dto.ts`,
     `${MODULES}/store/store.module.ts`,
     `${SHARED}/kernel/result.ts`,
     'backend/src/main.ts',

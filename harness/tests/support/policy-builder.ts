@@ -28,7 +28,7 @@ export function backendOf(): Backend {
       [
         'application',
         {
-          layers: ['application', 'contracts', 'domain'],
+          layers: ['application', 'application/contracts', 'domain'],
           shared: ['application', 'kernel'],
         },
       ],
@@ -39,10 +39,17 @@ export function backendOf(): Backend {
           shared: ['application', 'infrastructure', 'kernel'],
         },
       ],
-      ['contracts', { layers: ['contracts'], shared: ['kernel'] }],
+      [
+        'application/contracts',
+        { layers: ['application/contracts'], shared: ['kernel'] },
+      ],
+      [
+        'infrastructure/http',
+        { layers: ['application', 'infrastructure/http'], shared: ['kernel'] },
+      ],
     ]),
-    contracts: ['contracts'],
-    reachOtherModules: ['application', 'contracts'],
+    contracts: ['application/contracts'],
+    reachOtherModules: ['application', 'application/contracts'],
     shared: new Map([
       ['kernel', []],
       ['application', ['kernel']],

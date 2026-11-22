@@ -55,12 +55,25 @@ describe('layerDirection', () => {
     it.each([
       ['infrastructure/reader.ts', 'domain/item.ts'],
       ['infrastructure/reader.ts', 'application/ports/reader.port.ts'],
-      ['application/find.ts', 'contracts/item.dto.ts'],
+      ['application/find.ts', 'application/contracts/item.dto.ts'],
+      ['infrastructure/http/items.controller.ts', 'application/find.ts'],
       ['domain/item.ts', 'domain/price.ts'],
     ])('should pass %s importing %s', (from, to) => {
       expect(
         detailsFor(`${MODULES}/store/${from}`, `${MODULES}/store/${to}`),
       ).toEqual([]);
+    });
+
+    it.each([
+      ['application/contracts/item.dto.ts', 'application/find.ts'],
+      ['application/find.ts', 'infrastructure/http/items.controller.ts'],
+      ['infrastructure/reader.ts', 'infrastructure/http/items.controller.ts'],
+      ['infrastructure/http/items.controller.ts', 'infrastructure/reader.ts'],
+      ['infrastructure/http/items.controller.ts', 'domain/item.ts'],
+    ])('should report %s importing %s', (from, to) => {
+      expect(
+        detailsFor(`${MODULES}/store/${from}`, `${MODULES}/store/${to}`),
+      ).toHaveLength(1);
     });
 
     it('should report a layer that imports the module file', () => {
@@ -107,7 +120,7 @@ describe('layerDirection', () => {
       expect(
         detailsFor(
           `${SHARED}/kernel/result.ts`,
-          `${MODULES}/store/contracts/item.dto.ts`,
+          `${MODULES}/store/application/contracts/item.dto.ts`,
         ),
       ).toEqual(['shared/kernel may not import a module.']);
     });

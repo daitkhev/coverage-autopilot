@@ -25,7 +25,6 @@
       "packages": ["@nestjs/common", "@nestjs/core"],
       "in": [
         "backend/src/modules/*/infrastructure/",
-        "backend/src/modules/*/presentation/",
         "backend/src/modules/*/*.module.ts",
         "backend/src/shared/infrastructure/",
         "backend/src/*.ts"
@@ -78,7 +77,6 @@
       "packages": ["@coverage-autopilot/api-contracts"],
       "in": [
         "backend/src/modules/*/infrastructure/http/",
-        "backend/src/modules/*/presentation/",
         "backend/src/shared/infrastructure/http/",
         "frontend/src/"
       ]

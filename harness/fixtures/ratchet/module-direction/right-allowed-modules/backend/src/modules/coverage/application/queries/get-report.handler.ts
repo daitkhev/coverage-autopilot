@@ -1,3 +1,3 @@
-import { repositoryDto } from '#repositories/contracts/repository.dto';
+import { repositoryDto } from '#repositories/application/contracts/repository.dto';
 
 export const handler = repositoryDto;

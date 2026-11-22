@@ -1,3 +1,3 @@
-import { verdictDto } from '#verification/contracts/verdict.dto';
+import { verdictDto } from '#verification/application/contracts/verdict.dto';
 
 export const start = verdictDto;

@@ -22,19 +22,11 @@ describe('placeOf', () => {
     });
   });
 
-  describe('when the policy lists a part of a layer as a layer', () => {
-    const withPart = {
-      ...backend,
-      layers: new Map([
-        ...backend.layers,
-        ['application/contracts', { layers: [], shared: [] }],
-      ]),
-    };
-
+  describe('when the policy gives a part of a layer a rule of its own', () => {
     it('should place a file of the part in the part', () => {
       const path = `${MODULES}/store/application/contracts/item.dto.ts`;
 
-      expect(placeOf(path, withPart)).toMatchObject({
+      expect(placeOf(path, backend)).toMatchObject({
         layer: 'application/contracts',
         inside: 'application/contracts/item.dto.ts',
       });
@@ -43,13 +35,13 @@ describe('placeOf', () => {
     it('should leave the rest of the layer in the layer', () => {
       const path = `${MODULES}/store/application/dto/item.dto.ts`;
 
-      expect(placeOf(path, withPart)).toMatchObject({ layer: 'application' });
+      expect(placeOf(path, backend)).toMatchObject({ layer: 'application' });
     });
 
     it('should not take a file for a part of a layer', () => {
       const path = `${MODULES}/store/application/contracts.ts`;
 
-      expect(placeOf(path, withPart)).toMatchObject({ layer: 'application' });
+      expect(placeOf(path, backend)).toMatchObject({ layer: 'application' });
     });
   });
 

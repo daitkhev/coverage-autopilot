@@ -18,7 +18,8 @@ import {
 } from '#harness/tests/support/temporary-repository';
 
 const MIGRATION = 'backend/migrations/0001-first.sql';
-const CONTRACT = 'backend/src/modules/coverage/contracts/report.dto.ts';
+const CONTRACT =
+  'backend/src/modules/coverage/application/contracts/report.dto.ts';
 const NO_COMMIT = '0000000000000000000000000000000000000000';
 
 let repository: TemporaryRepository;

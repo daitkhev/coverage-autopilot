@@ -9,7 +9,8 @@ function fromLayer(edge: Edge, layer: string, backend: Backend): string {
   const intoContracts =
     edge.to.kind === 'layer' && backend.contracts.includes(edge.to.layer);
   if (!intoContracts) {
-    return 'Another module is reached through its contracts/ only.';
+    const folders = backend.contracts.map((folder) => `${folder}/`).join(', ');
+    return `Another module is reached through its ${folders} only.`;
   }
   return backend.reachOtherModules.includes(layer)
     ? ''

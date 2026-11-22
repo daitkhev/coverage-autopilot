@@ -130,12 +130,7 @@
         "shared": ["kernel"]
       },
       "application": {
-        "layers": [
-          "application",
-          "application/contracts",
-          "contracts",
-          "domain"
-        ],
+        "layers": ["application", "application/contracts", "domain"],
         "shared": ["application", "kernel"]
       },
       "application/contracts": {
@@ -149,18 +144,10 @@
       "infrastructure/http": {
         "layers": ["application", "infrastructure/http"],
         "shared": ["kernel"]
-      },
-      "presentation": {
-        "layers": ["application", "presentation"],
-        "shared": ["kernel"]
-      },
-      "contracts": {
-        "layers": ["contracts"],
-        "shared": ["kernel"]
       }
     },
-    "contracts": ["application/contracts", "contracts"],
-    "reachOtherModules": ["application", "application/contracts", "contracts"],
+    "contracts": ["application/contracts"],
+    "reachOtherModules": ["application", "application/contracts"],
     "shared": {
       "kernel": [],
       "application": ["kernel"],
@@ -181,9 +168,9 @@
       ".command.ts": ["application/commands/"],
       ".query.ts": ["application/queries/"],
       ".handler.ts": ["application/commands/", "application/queries/"],
-      ".dto.ts": ["application/dto/", "application/contracts/", "contracts/"],
+      ".dto.ts": ["application/dto/", "application/contracts/"],
       ".schema.ts": ["infrastructure/"],
-      ".controller.ts": ["infrastructure/http/", "presentation/http/"]
+      ".controller.ts": ["infrastructure/http/"]
     }
   }
 }

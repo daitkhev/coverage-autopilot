@@ -15,7 +15,8 @@ import {
 } from '#harness/tests/support/project-builder';
 
 const rule = (): Rule => moduleBoundary(backendOf());
-const BY_CONTRACTS = 'Another module is reached through its contracts/ only.';
+const BY_CONTRACTS =
+  'Another module is reached through its application/contracts/ only.';
 const BY_MODULE_FILE = 'A module is wired in through its module file only.';
 
 function detailsFor(from: string, to: string): string[] {
@@ -49,45 +50,22 @@ describe('moduleBoundary', () => {
     ).toEqual([BY_CONTRACTS]);
   });
 
-  describe('when the contracts are a part of the application layer', () => {
-    const inside = backendOf();
-    const nested = moduleBoundary({
-      ...inside,
-      layers: new Map([
-        ...inside.layers,
-        ['application/contracts', { layers: [], shared: [] }],
-      ]),
-      contracts: ['application/contracts'],
-    });
-
-    it('should pass a module that enters another through them', () => {
-      expect(
-        detailsBetween(
-          nested,
-          `${MODULES}/reports/application/build.ts`,
-          `${MODULES}/store/application/contracts/item.dto.ts`,
-        ),
-      ).toEqual([]);
-    });
-
-    it('should report a reach into the rest of the application layer', () => {
-      expect(
-        detailsBetween(
-          nested,
-          `${MODULES}/reports/application/build.ts`,
-          `${MODULES}/store/application/dto/item.dto.ts`,
-        ),
-      ).toEqual([BY_CONTRACTS]);
-    });
+  it('should report a reach into the rest of the application layer', () => {
+    expect(
+      detailsFor(
+        `${MODULES}/reports/application/build.ts`,
+        `${MODULES}/store/application/dto/item.dto.ts`,
+      ),
+    ).toEqual([BY_CONTRACTS]);
   });
 
-  it.each(['application', 'contracts'])(
+  it.each(['application', 'application/contracts'])(
     'should pass %s importing the contracts of another module',
     (layer) => {
       expect(
         detailsFor(
           `${MODULES}/reports/${layer}/build.ts`,
-          `${MODULES}/store/contracts/item.dto.ts`,
+          `${MODULES}/store/application/contracts/item.dto.ts`,
         ),
       ).toEqual([]);
     },
@@ -99,7 +77,7 @@ describe('moduleBoundary', () => {
       expect(
         detailsFor(
           `${MODULES}/reports/${layer}/build.ts`,
-          `${MODULES}/store/contracts/item.dto.ts`,
+          `${MODULES}/store/application/contracts/item.dto.ts`,
         ),
       ).toEqual([`${layer} may not reach another module.`]);
     },
@@ -119,7 +97,7 @@ describe('moduleBoundary', () => {
       expect(
         detailsFor(
           `${MODULES}/reports/reports.module.ts`,
-          `${MODULES}/store/contracts/item.dto.ts`,
+          `${MODULES}/store/application/contracts/item.dto.ts`,
         ),
       ).toEqual([BY_MODULE_FILE]);
     });
