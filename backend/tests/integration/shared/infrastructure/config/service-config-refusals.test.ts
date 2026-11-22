@@ -84,6 +84,20 @@ describe('loadServiceConfig', () => {
       ['AUTOPILOT_SANDBOX_ENGINE', '["docker", 1]', 'a JSON list'],
       ['AUTOPILOT_GENERATOR', 'codex', 'claude_code'],
       ['AUTOPILOT_GENERATOR_BILLING', 'free', 'subscription or api_key'],
+      ['AUTOPILOT_INSTALL_TIMEOUT_MS', '10m', 'a whole number above 0'],
+      ['AUTOPILOT_TEST_RUN_TIMEOUT_MS', '0', 'a whole number above 0'],
+      ['AUTOPILOT_TYPE_CHECK_TIMEOUT_MS', '-5', 'a whole number above 0'],
+      ['AUTOPILOT_MUTATION_RUN_TIMEOUT_MS', '1.5', 'a whole number above'],
+      ['AUTOPILOT_MUTATION_CONCURRENCY', 'all', 'a whole number above 0'],
+      ['AUTOPILOT_GIT_TIMEOUT_MS', '0', 'a whole number above 0'],
+      ['AUTOPILOT_GH_TIMEOUT_MS', 'soon', 'a whole number above 0'],
+      ['AUTOPILOT_GENERATOR_MODEL', '--dangerous', 'the name of a model'],
+      ['AUTOPILOT_GENERATOR_MODEL', 'claude sonnet', 'the name of a model'],
+      ['AUTOPILOT_GENERATOR_IMAGE', '--privileged', 'the name of an image'],
+      ['AUTOPILOT_GENERATOR_OUTPUT_BYTES', '16MB', 'a whole number above'],
+      ['AUTOPILOT_GENERATOR_MAX_TURNS', '0', 'a whole number above 0'],
+      ['AUTOPILOT_GENERATOR_TIMEOUT_MS', '1e5', 'a whole number above 0'],
+      ['AUTOPILOT_GENERATOR_LIMIT_WAIT_MS', '1h', 'a whole number above'],
       ['AUTOPILOT_GIT_AUTHOR_NAME', 'Ada <ada@example.com>', 'a name on one'],
       ['AUTOPILOT_GIT_AUTHOR_NAME', 'Ada\nTester', 'a name on one line'],
       ['AUTOPILOT_GIT_AUTHOR_EMAIL', 'ada', 'an address such as'],
@@ -143,6 +157,34 @@ describe('loadServiceConfig', () => {
         ),
       );
     });
+
+    it('should refuse a price of a call under a subscription', () => {
+      expect(() =>
+        loadWith({ AUTOPILOT_GENERATOR_MAX_COST_USD: '0.5' }),
+      ).toThrow(
+        refusal(
+          'AUTOPILOT_GENERATOR_MAX_COST_USD: expected no value: a call under ' +
+            'a subscription has no price, and a limit of cost needs ' +
+            'AUTOPILOT_GENERATOR_BILLING=api_key.',
+        ),
+      );
+    });
+
+    it.each(['0', 'free', '-1'])(
+      'should refuse the price %s of a call with a key',
+      (price) => {
+        expect(() =>
+          loadWith({
+            AUTOPILOT_GENERATOR_BILLING: 'api_key',
+            AUTOPILOT_GENERATOR_MAX_COST_USD: price,
+          }),
+        ).toThrow(
+          refusal(
+            'AUTOPILOT_GENERATOR_MAX_COST_USD: expected a number above 0.',
+          ),
+        );
+      },
+    );
 
     it('should refuse a default above its maximum', () => {
       expect(() => loadWith({ AUTOPILOT_BUDGET_MAX_MINUTES: '20' })).toThrow(

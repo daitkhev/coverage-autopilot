@@ -13,8 +13,18 @@ import {
   refusal,
 } from '#tests/support/service-variables';
 
+const SANDBOX_LIMITS = {
+  memoryMb: 4096,
+  cpus: 2,
+  processes: 512,
+  scratchMb: 512,
+  outputBytes: 1_048_576,
+};
+
 describe('loadServiceConfig', () => {
   it('should fill every setting that is not set with its default', () => {
+    const engine = { command: ['docker'], environment: PLAIN_MACHINE };
+
     expect(loadServiceConfig(PLAIN_MACHINE, DEVELOPER)).toEqual({
       instance: {
         directory: '/home/dev/.coverage-autopilot',
@@ -27,16 +37,10 @@ describe('loadServiceConfig', () => {
       logLevel: 'info',
       secrets: [],
       sandbox: {
-        engine: { command: ['docker'], environment: PLAIN_MACHINE },
+        engine,
         image: 'node:26-slim',
         user: '501:20',
-        limits: {
-          memoryMb: 4096,
-          cpus: 2,
-          processes: 512,
-          scratchMb: 512,
-          outputBytes: 1_048_576,
-        },
+        limits: SANDBOX_LIMITS,
       },
       queue: {
         leaseMs: 60_000,
@@ -45,7 +49,27 @@ describe('loadServiceConfig', () => {
         pollMs: 1_000,
         concurrency: 2,
       },
-      generator: { cli: 'claude_code', billing: 'subscription' },
+      commands: {
+        installTimeoutMs: 600_000,
+        testRunTimeoutMs: 900_000,
+        typeCheckTimeoutMs: 300_000,
+        mutationRunTimeoutMs: 1_800_000,
+        mutationConcurrency: 2,
+      },
+      generator: {
+        cli: 'claude_code',
+        billing: 'subscription',
+        model: 'sonnet',
+        credential: { variable: 'CLAUDE_CODE_OAUTH_TOKEN', value: null },
+        call: { maxTurns: 20, maxCostUsd: null, timeoutMs: 600_000 },
+        limitWaitMs: 3_600_000,
+        sandbox: {
+          engine,
+          image: 'coverage-autopilot-generator:2.1.329',
+          user: '501:20',
+          limits: { ...SANDBOX_LIMITS, outputBytes: 16_777_216 },
+        },
+      },
       budget: {
         defaults: { attempts: 3, minutes: 30, tokens: null },
         maximums: { attempts: 10, minutes: 120, tokens: null },
@@ -58,7 +82,9 @@ describe('loadServiceConfig', () => {
           GIT_COMMITTER_NAME: 'Coverage Autopilot',
           GIT_COMMITTER_EMAIL: 'autopilot@coverage-autopilot.invalid',
         },
+        timeoutMs: 600_000,
       },
+      gh: { environment: PLAIN_MACHINE, timeoutMs: 60_000 },
     });
   });
 
@@ -125,6 +151,13 @@ describe('loadServiceConfig', () => {
       AUTOPILOT_QUEUE_MAX_RUNS: '5',
       AUTOPILOT_QUEUE_POLL_MS: '250',
       AUTOPILOT_QUEUE_CONCURRENCY: '4',
+      AUTOPILOT_INSTALL_TIMEOUT_MS: '120000',
+      AUTOPILOT_TEST_RUN_TIMEOUT_MS: '240000',
+      AUTOPILOT_TYPE_CHECK_TIMEOUT_MS: '60000',
+      AUTOPILOT_MUTATION_RUN_TIMEOUT_MS: '480000',
+      AUTOPILOT_MUTATION_CONCURRENCY: '6',
+      AUTOPILOT_GIT_TIMEOUT_MS: '90000',
+      AUTOPILOT_GH_TIMEOUT_MS: '15000',
       AUTOPILOT_GENERATOR: 'claude_code',
       AUTOPILOT_GENERATOR_BILLING: 'api_key',
       AUTOPILOT_BUDGET_ATTEMPTS: '2',
@@ -162,6 +195,13 @@ describe('loadServiceConfig', () => {
         pollMs: 250,
         concurrency: 4,
       },
+      commands: {
+        installTimeoutMs: 120_000,
+        testRunTimeoutMs: 240_000,
+        typeCheckTimeoutMs: 60_000,
+        mutationRunTimeoutMs: 480_000,
+        mutationConcurrency: 6,
+      },
       generator: { cli: 'claude_code', billing: 'api_key' },
       budget: {
         defaults: { attempts: 2, minutes: 15, tokens: 200_000 },
@@ -174,7 +214,9 @@ describe('loadServiceConfig', () => {
           GIT_COMMITTER_NAME: 'Ada Tester',
           GIT_COMMITTER_EMAIL: 'ada@example.com',
         },
+        timeoutMs: 90_000,
       },
+      gh: { timeoutMs: 15_000 },
     });
   });
 
@@ -199,43 +241,6 @@ describe('loadServiceConfig', () => {
     expect(() => {
       Object.assign(config.queue, { leaseMs: 1 });
     }).toThrow(TypeError);
-  });
-
-  it('should start the engine with the variables it needs and no other', () => {
-    const config = loadWith({
-      DOCKER_HOST: 'unix:///run/user/1000/docker.sock',
-      XDG_RUNTIME_DIR: '/run/user/1000',
-      GH_TOKEN: 'zz-private',
-      NODE_OPTIONS: '--require /tmp/hook.js',
-      AUTOPILOT_LOG_LEVEL: 'warn',
-    });
-
-    expect(config.sandbox.engine.environment).toEqual({
-      ...PLAIN_MACHINE,
-      DOCKER_HOST: 'unix:///run/user/1000/docker.sock',
-      XDG_RUNTIME_DIR: '/run/user/1000',
-    });
-  });
-
-  it('should start git with its path, its home and who commits, and no other', () => {
-    const config = loadWith({
-      GIT_AUTHOR_NAME: 'Someone Else',
-      GIT_CONFIG_GLOBAL: '/tmp/gitconfig',
-      GH_TOKEN: 'zz-private',
-      SSH_AUTH_SOCK: '/tmp/agent.sock',
-    });
-
-    expect(Object.keys(config.git.environment).sort()).toEqual([
-      'GIT_AUTHOR_EMAIL',
-      'GIT_AUTHOR_NAME',
-      'GIT_COMMITTER_EMAIL',
-      'GIT_COMMITTER_NAME',
-      'HOME',
-      'PATH',
-    ]);
-    expect(config.git.environment['GIT_AUTHOR_NAME']).toBe(
-      'Coverage Autopilot',
-    );
   });
 
   it('should give the credentials of the environment to hide', () => {

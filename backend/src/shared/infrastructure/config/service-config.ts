@@ -1,4 +1,13 @@
+import {
+  type Environment,
+  setValue,
+  setValues,
+} from '#infrastructure/config/environment-values';
 import { InvalidServiceConfigError } from '#infrastructure/config/errors/invalid-service-config.error';
+import {
+  type GeneratorChoice,
+  generatorOf,
+} from '#infrastructure/config/generator-config';
 import {
   instanceDirectoryOf,
   type InstancePaths,
@@ -14,9 +23,6 @@ import {
 } from '#infrastructure/config/service-environment.schema';
 import type { LogLevel } from '#infrastructure/logging/log-settings';
 import type { SandboxSettings } from '#infrastructure/sandbox/sandbox-settings';
-
-/** The variables as the entry file gets them. Empty is not set. */
-type Environment = Readonly<Record<string, string | undefined>>;
 
 /** The user and the group the service runs as, from the entry file. */
 export interface ProcessUser {
@@ -42,6 +48,25 @@ interface Budget {
   readonly tokens: number | null;
 }
 
+/** The time limits of the commands of a repository, run in the sandbox. */
+interface CommandLimits {
+  /** The install is the one command with the network. */
+  readonly installTimeoutMs: number;
+  readonly testRunTimeoutMs: number;
+  readonly typeCheckTimeoutMs: number;
+  /** A whole run of the mutation tool, which limits one mutant only. */
+  readonly mutationRunTimeoutMs: number;
+  /** The test runners of one run of the mutation tool at once. */
+  readonly mutationConcurrency: number;
+}
+
+/** How the service starts a program on its own host. */
+interface HostTool {
+  /** Exactly the variables it is started with. Nothing else reaches it. */
+  readonly environment: Readonly<Record<string, string>>;
+  readonly timeoutMs: number;
+}
+
 /** Everything the service is started with, read once and frozen. */
 export interface ServiceConfig {
   readonly instance: InstancePaths;
@@ -50,18 +75,14 @@ export interface ServiceConfig {
   readonly secrets: readonly string[];
   readonly sandbox: SandboxSettings;
   readonly queue: QueueSettings;
-  readonly generator: {
-    readonly cli: ServiceEnvironment['AUTOPILOT_GENERATOR'];
-    readonly billing: ServiceEnvironment['AUTOPILOT_GENERATOR_BILLING'];
-  };
+  readonly commands: CommandLimits;
+  readonly generator: GeneratorChoice;
   readonly budget: {
     readonly defaults: Budget;
     readonly maximums: Budget;
   };
-  readonly git: {
-    /** Exactly the variables git is started with. Nothing else reaches it. */
-    readonly environment: Readonly<Record<string, string>>;
-  };
+  readonly git: HostTool;
+  readonly gh: HostTool;
 }
 
 /** The injection token of the configuration of the service. */
@@ -89,6 +110,22 @@ const ENGINE_VARIABLES = [
  */
 const GIT_VARIABLES = ['PATH', 'HOME'];
 
+/**
+ * What `gh` needs to find its login: a token of CI or of isolated mode, or
+ * its configuration under the home, and on Linux the keyring it may have
+ * put the token in, which it reaches through the session bus.
+ */
+const GH_VARIABLES = [
+  'PATH',
+  'HOME',
+  'GH_TOKEN',
+  'GITHUB_TOKEN',
+  'GH_HOST',
+  'GH_CONFIG_DIR',
+  'XDG_CONFIG_HOME',
+  'DBUS_SESSION_BUS_ADDRESS',
+];
+
 /** Where a credential is in CI and in isolated mode. */
 const SECRET_VARIABLES = [
   'GH_TOKEN',
@@ -97,23 +134,6 @@ const SECRET_VARIABLES = [
   'ANTHROPIC_AUTH_TOKEN',
   'CLAUDE_CODE_OAUTH_TOKEN',
 ];
-
-function setValue(environment: Environment, name: string): string | undefined {
-  const value = environment[name]?.trim();
-  return value === '' ? undefined : value;
-}
-
-function setValues(
-  environment: Environment,
-  names: readonly string[],
-): Record<string, string> {
-  return Object.fromEntries(
-    names.flatMap((name) => {
-      const value = setValue(environment, name);
-      return value === undefined ? [] : [[name, value]];
-    }),
-  );
-}
 
 /**
  * A command of a repository writes into a working copy the service made,
@@ -214,6 +234,17 @@ function gitOf(
       GIT_COMMITTER_NAME: name,
       GIT_COMMITTER_EMAIL: email,
     },
+    timeoutMs: values.AUTOPILOT_GIT_TIMEOUT_MS,
+  };
+}
+
+function commandsOf(values: ServiceEnvironment): CommandLimits {
+  return {
+    installTimeoutMs: values.AUTOPILOT_INSTALL_TIMEOUT_MS,
+    testRunTimeoutMs: values.AUTOPILOT_TEST_RUN_TIMEOUT_MS,
+    typeCheckTimeoutMs: values.AUTOPILOT_TYPE_CHECK_TIMEOUT_MS,
+    mutationRunTimeoutMs: values.AUTOPILOT_MUTATION_RUN_TIMEOUT_MS,
+    mutationConcurrency: values.AUTOPILOT_MUTATION_CONCURRENCY,
   };
 }
 
@@ -221,13 +252,14 @@ function configOf(
   values: ServiceEnvironment,
   environment: Environment,
 ): ServiceConfig {
+  const sandbox = sandboxOf(values, environment);
   return {
     instance: instancePaths(
       instanceDirectoryOf(values.AUTOPILOT_INSTANCE_DIR, values.HOME),
     ),
     logLevel: values.AUTOPILOT_LOG_LEVEL,
     secrets: Object.values(setValues(environment, SECRET_VARIABLES)),
-    sandbox: sandboxOf(values, environment),
+    sandbox,
     queue: {
       leaseMs: values.AUTOPILOT_QUEUE_LEASE_MS,
       heartbeatMs: values.AUTOPILOT_QUEUE_HEARTBEAT_MS,
@@ -235,12 +267,14 @@ function configOf(
       pollMs: values.AUTOPILOT_QUEUE_POLL_MS,
       concurrency: values.AUTOPILOT_QUEUE_CONCURRENCY,
     },
-    generator: {
-      cli: values.AUTOPILOT_GENERATOR,
-      billing: values.AUTOPILOT_GENERATOR_BILLING,
-    },
+    commands: commandsOf(values),
+    generator: generatorOf(values, environment, sandbox),
     budget: budgetOf(values),
     git: gitOf(values, environment),
+    gh: {
+      environment: setValues(environment, GH_VARIABLES),
+      timeoutMs: values.AUTOPILOT_GH_TIMEOUT_MS,
+    },
   };
 }
 

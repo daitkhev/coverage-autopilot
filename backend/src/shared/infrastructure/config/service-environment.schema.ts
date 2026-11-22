@@ -16,6 +16,8 @@ export interface Variable {
 }
 
 const WHOLE = 'a whole number above 0';
+const IMAGE_NAME =
+  'the name of an image, with no space and no "-" at its start';
 
 /** Every variable the service reads, besides those it passes on as they are. */
 export const VARIABLES = {
@@ -34,10 +36,7 @@ export const VARIABLES = {
       'a JSON list of the program and its arguments, such as ["docker"]',
     fallback: '["docker"]',
   },
-  AUTOPILOT_SANDBOX_IMAGE: {
-    expected: 'the name of an image, with no space and no "-" at its start',
-    fallback: 'node:26-slim',
-  },
+  AUTOPILOT_SANDBOX_IMAGE: { expected: IMAGE_NAME, fallback: 'node:26-slim' },
   AUTOPILOT_SANDBOX_UID: {
     expected:
       'a whole number above 0, so that no command runs as root. When it ' +
@@ -58,11 +57,51 @@ export const VARIABLES = {
   AUTOPILOT_QUEUE_MAX_RUNS: { expected: WHOLE, fallback: '3' },
   AUTOPILOT_QUEUE_POLL_MS: { expected: WHOLE, fallback: '1000' },
   AUTOPILOT_QUEUE_CONCURRENCY: { expected: WHOLE, fallback: '2' },
+  // The install is the one command with the network, and a large lockfile
+  // of a slow registry takes minutes.
+  AUTOPILOT_INSTALL_TIMEOUT_MS: { expected: WHOLE, fallback: '600000' },
+  AUTOPILOT_TEST_RUN_TIMEOUT_MS: { expected: WHOLE, fallback: '900000' },
+  AUTOPILOT_TYPE_CHECK_TIMEOUT_MS: { expected: WHOLE, fallback: '300000' },
+  // The tool limits one mutant and never a whole run, so this is the limit
+  // of the run. It is the default minutes of a budget, which wins anyway.
+  AUTOPILOT_MUTATION_RUN_TIMEOUT_MS: { expected: WHOLE, fallback: '1800000' },
+  // The memory of a run grows with each runner, and a sandbox has two
+  // processors by default.
+  AUTOPILOT_MUTATION_CONCURRENCY: { expected: WHOLE, fallback: '2' },
+  // A clone of a large history takes minutes, a call of the host seconds.
+  AUTOPILOT_GIT_TIMEOUT_MS: { expected: WHOLE, fallback: '600000' },
+  AUTOPILOT_GH_TIMEOUT_MS: { expected: WHOLE, fallback: '60000' },
   AUTOPILOT_GENERATOR: { expected: 'claude_code', fallback: 'claude_code' },
   AUTOPILOT_GENERATOR_BILLING: {
     expected: 'subscription or api_key',
     fallback: 'subscription',
   },
+  AUTOPILOT_GENERATOR_MODEL: {
+    expected:
+      'the name of a model the CLI takes, such as sonnet, with no space ' +
+      'and no "-" at its start',
+    // A name the CLI resolves to its current model of that family, so the
+    // default never names a model that was withdrawn.
+    fallback: 'sonnet',
+  },
+  AUTOPILOT_GENERATOR_IMAGE: {
+    expected: IMAGE_NAME,
+    // An image with the CLI installed, at the version the design was
+    // measured with. A name with no "/" is an official one on the default
+    // registry, where no one else can publish an image under it.
+    fallback: 'coverage-autopilot-generator:2.1.329',
+  },
+  // A run streams every event it has, and its report of the start comes
+  // first: a limit that cut the head of the output would lose it.
+  AUTOPILOT_GENERATOR_OUTPUT_BYTES: { expected: WHOLE, fallback: '16777216' },
+  // Reading the target, its imports and a test beside it, then writing and
+  // fixing one file.
+  AUTOPILOT_GENERATOR_MAX_TURNS: { expected: WHOLE, fallback: '20' },
+  AUTOPILOT_GENERATOR_MAX_COST_USD: { expected: 'a number above 0' },
+  AUTOPILOT_GENERATOR_TIMEOUT_MS: { expected: WHOLE, fallback: '600000' },
+  // The wait for the window of a subscription when the CLI did not say when
+  // it opens. An improvement waits twice at most.
+  AUTOPILOT_GENERATOR_LIMIT_WAIT_MS: { expected: WHOLE, fallback: '3600000' },
   AUTOPILOT_BUDGET_ATTEMPTS: { expected: WHOLE, fallback: '3' },
   AUTOPILOT_BUDGET_MAX_ATTEMPTS: { expected: WHOLE, fallback: '10' },
   AUTOPILOT_BUDGET_MINUTES: { expected: WHOLE, fallback: '30' },
@@ -87,6 +126,12 @@ export const TOKENS_WITH_A_KEY = {
   AUTOPILOT_BUDGET_MAX_TOKENS: 5_000_000,
 } as const;
 
+/**
+ * The estimated price one call of the generator may reach with a key, when
+ * no variable sets it. The limit of turns ends most calls well below it.
+ */
+export const COST_WITH_A_KEY_USD = 1;
+
 /** A wrong variable and what it expects, never its value. */
 export interface Problem {
   readonly variable: string;
@@ -95,8 +140,8 @@ export interface Problem {
 
 const WHOLE_NUMBER = /^[1-9][0-9]*$/;
 const POSITIVE_NUMBER = /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
-/** The engine would read a name that starts with `-` as an option. */
-const IMAGE = /^[^\s-]\S*$/;
+/** A program would read a name that starts with `-` as an option. */
+const NAME = /^[^\s-]\S*$/;
 /** git writes an author as `name <address>`, so neither may hold a bracket. */
 const AUTHOR_NAME = /^[^\p{Cc}<>]+$/u;
 const AUTHOR_EMAIL = /^[^\s<>@]+@[^\s<>@]+$/u;
@@ -107,6 +152,14 @@ function wholeNumber() {
     .regex(WHOLE_NUMBER)
     .transform(Number)
     .pipe(z.number().max(Number.MAX_SAFE_INTEGER));
+}
+
+function positiveNumber() {
+  return z
+    .string()
+    .regex(POSITIVE_NUMBER)
+    .transform(Number)
+    .pipe(z.number().positive());
 }
 
 function jsonOf(text: string, context: z.RefinementCtx): unknown {
@@ -129,15 +182,11 @@ const fields = z.object({
     .string()
     .transform(jsonOf)
     .pipe(z.tuple([z.string().min(1)], z.string())),
-  AUTOPILOT_SANDBOX_IMAGE: z.string().regex(IMAGE),
+  AUTOPILOT_SANDBOX_IMAGE: z.string().regex(NAME),
   AUTOPILOT_SANDBOX_UID: wholeNumber(),
   AUTOPILOT_SANDBOX_GID: wholeNumber(),
   AUTOPILOT_SANDBOX_MEMORY_MB: wholeNumber(),
-  AUTOPILOT_SANDBOX_CPUS: z
-    .string()
-    .regex(POSITIVE_NUMBER)
-    .transform(Number)
-    .pipe(z.number().positive()),
+  AUTOPILOT_SANDBOX_CPUS: positiveNumber(),
   AUTOPILOT_SANDBOX_PROCESSES: wholeNumber(),
   AUTOPILOT_SANDBOX_SCRATCH_MB: wholeNumber(),
   AUTOPILOT_SANDBOX_OUTPUT_BYTES: wholeNumber(),
@@ -146,8 +195,22 @@ const fields = z.object({
   AUTOPILOT_QUEUE_MAX_RUNS: wholeNumber(),
   AUTOPILOT_QUEUE_POLL_MS: wholeNumber(),
   AUTOPILOT_QUEUE_CONCURRENCY: wholeNumber(),
+  AUTOPILOT_INSTALL_TIMEOUT_MS: wholeNumber(),
+  AUTOPILOT_TEST_RUN_TIMEOUT_MS: wholeNumber(),
+  AUTOPILOT_TYPE_CHECK_TIMEOUT_MS: wholeNumber(),
+  AUTOPILOT_MUTATION_RUN_TIMEOUT_MS: wholeNumber(),
+  AUTOPILOT_MUTATION_CONCURRENCY: wholeNumber(),
+  AUTOPILOT_GIT_TIMEOUT_MS: wholeNumber(),
+  AUTOPILOT_GH_TIMEOUT_MS: wholeNumber(),
   AUTOPILOT_GENERATOR: z.enum(['claude_code']),
   AUTOPILOT_GENERATOR_BILLING: z.enum(['subscription', 'api_key']),
+  AUTOPILOT_GENERATOR_MODEL: z.string().regex(NAME),
+  AUTOPILOT_GENERATOR_IMAGE: z.string().regex(NAME),
+  AUTOPILOT_GENERATOR_OUTPUT_BYTES: wholeNumber(),
+  AUTOPILOT_GENERATOR_MAX_TURNS: wholeNumber(),
+  AUTOPILOT_GENERATOR_MAX_COST_USD: positiveNumber().optional(),
+  AUTOPILOT_GENERATOR_TIMEOUT_MS: wholeNumber(),
+  AUTOPILOT_GENERATOR_LIMIT_WAIT_MS: wholeNumber(),
   AUTOPILOT_BUDGET_ATTEMPTS: wholeNumber(),
   AUTOPILOT_BUDGET_MAX_ATTEMPTS: wholeNumber(),
   AUTOPILOT_BUDGET_MINUTES: wholeNumber(),
@@ -192,16 +255,24 @@ function budgetProblems(values: Values): Problem[] {
   });
 }
 
-function tokenProblems(values: Values): Problem[] {
+const TOKENS_NEED_A_KEY =
+  'no value: the windows of a subscription limit the generator, and a ' +
+  'limit of tokens needs AUTOPILOT_GENERATOR_BILLING=api_key';
+
+/** The limits a key alone may set, with what a subscription is told. */
+const WITH_A_KEY_ONLY: Readonly<Record<string, string>> = {
+  AUTOPILOT_BUDGET_TOKENS: TOKENS_NEED_A_KEY,
+  AUTOPILOT_BUDGET_MAX_TOKENS: TOKENS_NEED_A_KEY,
+  AUTOPILOT_GENERATOR_MAX_COST_USD:
+    'no value: a call under a subscription has no price, and a limit of ' +
+    'cost needs AUTOPILOT_GENERATOR_BILLING=api_key',
+};
+
+function subscriptionProblems(values: Values): Problem[] {
   return values['AUTOPILOT_GENERATOR_BILLING'] === 'subscription'
-    ? Object.keys(TOKENS_WITH_A_KEY)
-        .filter((variable) => values[variable] !== undefined)
-        .map((variable) => ({
-          variable,
-          expected:
-            'no value: the windows of a subscription limit the generator, ' +
-            'and a limit of tokens needs AUTOPILOT_GENERATOR_BILLING=api_key',
-        }))
+    ? Object.entries(WITH_A_KEY_ONLY)
+        .filter(([variable]) => values[variable] !== undefined)
+        .map(([variable, expected]) => ({ variable, expected }))
     : [];
 }
 
@@ -252,7 +323,7 @@ export const serviceEnvironmentSchema = fields.superRefine(
       ...instanceProblems(values),
       ...queueProblems(values),
       ...budgetProblems(values),
-      ...tokenProblems(values),
+      ...subscriptionProblems(values),
     ];
     for (const { variable, expected } of problems) {
       context.addIssue({ code: 'custom', path: [variable], message: expected });
