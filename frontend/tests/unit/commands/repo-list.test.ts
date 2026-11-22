@@ -1,0 +1,69 @@
+import { describe, expect, it } from 'vitest';
+
+import { repoList } from '#commands/repo-list';
+import { answered, refused } from '#tests/support/fake-service-api';
+import { expectRefusal, recordingIo } from '#tests/support/sample-command-io';
+import { REPOSITORY_LIST } from '#tests/support/sample-repositories';
+
+const LIST = { name: 'repo list' } as const;
+
+describe('repoList', () => {
+  it('should print one aligned line for each repository', async () => {
+    const io = recordingIo({
+      listRepositories: () => Promise.resolve(answered(REPOSITORY_LIST)),
+    });
+
+    await expect(repoList(LIST, io)).resolves.toBe(0);
+
+    expect(io.printed).toMatchInlineSnapshot(`
+      [
+        "example/payments     71.4%        12 below  main  4f2a9c1  scanned 2h ago",
+        "example/gateway      not scanned            main                           scanning (scan-gateway-1)",
+        "example/billing-api  71.4%        12 below  main  91be03d  scanned 1d ago  outdated",
+        "example/notifier     not scanned            main",
+      ]
+    `);
+    expect(io.said).toEqual([]);
+  });
+
+  describe('when no repository is connected', () => {
+    it('should print nothing and end with 0', async () => {
+      const io = recordingIo({
+        listRepositories: () => Promise.resolve(answered({ items: [] })),
+      });
+
+      await expect(repoList(LIST, io)).resolves.toBe(0);
+
+      expect(io.printed).toEqual([]);
+    });
+  });
+
+  describe('when the result is asked for as JSON', () => {
+    it('should print the list of the contract as one document', async () => {
+      const io = recordingIo(
+        { listRepositories: () => Promise.resolve(answered(REPOSITORY_LIST)) },
+        { json: true },
+      );
+
+      await expect(repoList(LIST, io)).resolves.toBe(0);
+
+      expect(io.printed).toEqual([JSON.stringify(REPOSITORY_LIST)]);
+    });
+  });
+
+  describe('when the service refuses', () => {
+    it('should say the refusal in its shape and end with 1', async () => {
+      const failure = {
+        error: 'internal_error',
+        message: 'The service failed.',
+      } as const;
+      const io = recordingIo({
+        listRepositories: () => Promise.resolve(refused(500, failure)),
+      });
+
+      await expect(repoList(LIST, io)).resolves.toBe(1);
+
+      expectRefusal(io, failure);
+    });
+  });
+});
