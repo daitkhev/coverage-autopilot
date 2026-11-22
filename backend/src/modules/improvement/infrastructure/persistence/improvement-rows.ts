@@ -1,6 +1,7 @@
 import type { Attempt } from '#improvement/domain/entities/attempt.entity';
 import { Improvement } from '#improvement/domain/entities/improvement.entity';
 import type { ImprovementState } from '#improvement/domain/entities/improvement-state';
+import type { LatestImprovement } from '#improvement/domain/repositories/improvement.repository';
 import { BranchName } from '#improvement/domain/value-objects/branch-name.vo';
 import { Budget } from '#improvement/domain/value-objects/budget.vo';
 import { ImprovementFailure } from '#improvement/domain/value-objects/improvement-failure.vo';
@@ -17,7 +18,10 @@ import {
   orNull,
   textOrNull,
 } from '#improvement/infrastructure/persistence/attempt-rows';
-import type { ImprovementRow } from '#improvement/infrastructure/persistence/improvement-documents.schema';
+import type {
+  ImprovementRow,
+  LatestImprovementRow,
+} from '#improvement/infrastructure/persistence/improvement-documents.schema';
 import {
   generatorConfigFrom,
   generatorConfigText,
@@ -170,4 +174,15 @@ export function improvementFrom(
     updatedAt: Instant.parse(row.updated_at),
     version: row.version,
   });
+}
+
+/** The newest improvement of a file, from the three columns that name it. */
+export function latestImprovementFrom(
+  row: LatestImprovementRow,
+): LatestImprovement {
+  return {
+    targetFile: FilePath.create(row.target_file),
+    id: ImprovementId.create(row.id),
+    status: row.status,
+  };
 }

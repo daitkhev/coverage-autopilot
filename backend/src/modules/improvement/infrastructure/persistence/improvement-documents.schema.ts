@@ -175,6 +175,15 @@ export const attemptRowSchema = z.object({
 
 export type AttemptRow = z.infer<typeof attemptRowSchema>;
 
+/** The three columns that name the newest improvement of a file. */
+export const latestImprovementRowSchema = z.object({
+  id: text,
+  target_file: text,
+  status: z.enum(IMPROVEMENT_STATUSES),
+});
+
+export type LatestImprovementRow = z.infer<typeof latestImprovementRowSchema>;
+
 /** A JSON column, by the schema of its document. */
 export function documentOf<Schema extends z.ZodType>(
   json: string,

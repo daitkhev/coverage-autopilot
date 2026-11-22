@@ -199,4 +199,41 @@ describe.each(IMPROVEMENT_STORES)('%s', (_name, open) => {
       expect(await idsOf(store.repository.list(filter))).toEqual([third]);
     });
   });
+
+  describe('latestByTarget', () => {
+    const repositoryId = RepositoryId.create(REPOSITORY_ID);
+
+    it('should give the newest improvement of each file of the repository, by path', async () => {
+      const older = createdIn(1, anotherOf(2));
+      older.cancel(minutesIn(2));
+      const tied = createdIn(2, anotherOf(3));
+      tied.cancel(minutesIn(2));
+      await insert(
+        older,
+        tied,
+        createdIn(2, anotherOf(4)),
+        createdIn(1, { ...anotherOf(5), targetFile: OTHER_FILE }),
+        createdIn(3, { ...anotherOf(6), ...IN_OTHER_REPOSITORY }),
+      );
+
+      expect(await store.repository.latestByTarget(repositoryId)).toEqual([
+        {
+          targetFile: FilePath.create(TARGET_FILE),
+          id: improvementIdOf(anotherOf(4).id),
+          status: 'created',
+        },
+        {
+          targetFile: FilePath.create(OTHER_FILE),
+          id: improvementIdOf(anotherOf(5).id),
+          status: 'created',
+        },
+      ]);
+    });
+
+    it('should give nothing for a repository with no improvement', async () => {
+      await insert(createdIn(1, { ...anotherOf(2), ...IN_OTHER_REPOSITORY }));
+
+      expect(await store.repository.latestByTarget(repositoryId)).toEqual([]);
+    });
+  });
 });

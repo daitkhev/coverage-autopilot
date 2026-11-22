@@ -5,11 +5,13 @@ import type {
   ImprovementFilter,
   ImprovementRepository,
   ImprovementTarget,
+  LatestImprovement,
 } from '#improvement/domain/repositories/improvement.repository';
 import type { ImprovementId } from '#improvement/domain/value-objects/improvement-id.vo';
 import { isFinal } from '#improvement/domain/value-objects/improvement-status.vo';
 import type { RequestFingerprint } from '#improvement/domain/value-objects/request-fingerprint.vo';
 import type { RequestKey } from '#improvement/domain/value-objects/request-key.vo';
+import type { RepositoryId } from '#kernel/primitives/repository-id';
 import type { Transaction } from '#kernel/transaction/transaction';
 
 type Match = (state: ImprovementState) => boolean;
@@ -124,6 +126,31 @@ export class InMemoryImprovementRepository implements ImprovementRepository {
       )
       .sort(newestFirst);
     return Promise.resolve(listed.map((state) => Improvement.restore(state)));
+  }
+
+  /**
+   * The oldest first, so the newest of a file is the one kept, and by
+   * path, as the table sorts them.
+   */
+  public latestByTarget(
+    repositoryId: RepositoryId,
+  ): Promise<LatestImprovement[]> {
+    const newest = new Map(
+      [...this.kept.values()]
+        .filter((state) => state.request.repositoryId.equals(repositoryId))
+        .sort(newestFirst)
+        .reverse()
+        .map((state) => [state.request.targetFile.value, state]),
+    );
+    return Promise.resolve(
+      [...newest.entries()]
+        .sort(([left], [right]) => Number(left > right) - Number(left < right))
+        .map(([, state]) => ({
+          targetFile: state.request.targetFile,
+          id: state.id,
+          status: state.status,
+        })),
+    );
   }
 
   private keep(state: ImprovementState, transaction: Transaction): Improvement {

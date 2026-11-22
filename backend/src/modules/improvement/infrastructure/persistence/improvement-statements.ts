@@ -85,6 +85,17 @@ export const IS_ACTIVE = "status NOT IN ('failed', 'cancelled')";
 export const IS_OPEN =
   "status NOT IN ('completed', 'skipped', 'failed', 'cancelled')";
 
+/**
+ * The newest improvement of each file of a repository, in the order of
+ * the list, in one statement for every file.
+ */
+export const LATEST_BY_TARGET =
+  'SELECT id, target_file, status FROM (SELECT id, target_file, status, ' +
+  'ROW_NUMBER() OVER (PARTITION BY target_file ' +
+  'ORDER BY created_at DESC, id DESC) AS place ' +
+  'FROM improvements WHERE repository_id = ?) ' +
+  'WHERE place = 1 ORDER BY target_file';
+
 /** A filter field that is left out is `NULL`, which matches every row. */
 export const LIST_IMPROVEMENTS =
   `${SELECT_IMPROVEMENTS} WHERE ` +

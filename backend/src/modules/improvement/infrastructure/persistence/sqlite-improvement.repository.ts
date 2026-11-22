@@ -9,6 +9,7 @@ import type {
   ImprovementFilter,
   ImprovementRepository,
   ImprovementTarget,
+  LatestImprovement,
 } from '#improvement/domain/repositories/improvement.repository';
 import type { ImprovementId } from '#improvement/domain/value-objects/improvement-id.vo';
 import type { RequestFingerprint } from '#improvement/domain/value-objects/request-fingerprint.vo';
@@ -20,15 +21,18 @@ import {
 import {
   attemptRowSchema,
   improvementRowSchema,
+  latestImprovementRowSchema,
 } from '#improvement/infrastructure/persistence/improvement-documents.schema';
 import {
   improvementColumns,
   improvementFrom,
+  latestImprovementFrom,
 } from '#improvement/infrastructure/persistence/improvement-rows';
 import {
   INSERT_IMPROVEMENT,
   IS_ACTIVE,
   IS_OPEN,
+  LATEST_BY_TARGET,
   LIST_IMPROVEMENTS,
   SELECT_ATTEMPTS,
   SELECT_IMPROVEMENTS,
@@ -39,6 +43,7 @@ import { DatabaseIntegrityError } from '#infrastructure/database/errors/database
 import { SQLITE_CONNECTION } from '#infrastructure/database/sqlite-connection';
 import { SqliteTransaction } from '#infrastructure/database/sqlite-transaction';
 import { DomainError } from '#kernel/errors/domain.error';
+import type { RepositoryId } from '#kernel/primitives/repository-id';
 import type { Transaction } from '#kernel/transaction/transaction';
 
 /**
@@ -52,6 +57,21 @@ function isBadRow(error: unknown): error is Error {
     error instanceof ZodError ||
     error instanceof DomainError
   );
+}
+
+/** What is read from a row, or the fault of a row this service would not write. */
+function fromRow<Value>(read: () => Value): Value {
+  try {
+    return read();
+  } catch (error) {
+    if (isBadRow(error)) {
+      throw new DatabaseIntegrityError(
+        `A stored improvement is not one this service writes: ${error.message}`,
+        { cause: error },
+      );
+    }
+    throw error;
+  }
 }
 
 /**
@@ -149,6 +169,21 @@ export class SqliteImprovementRepository implements ImprovementRepository {
     );
   }
 
+  public async latestByTarget(
+    repositoryId: RepositoryId,
+  ): Promise<LatestImprovement[]> {
+    const rows = this.connection
+      .prepare(LATEST_BY_TARGET)
+      .all(repositoryId.value);
+    return Promise.resolve(
+      rows.map((row) =>
+        fromRow(() =>
+          latestImprovementFrom(latestImprovementRowSchema.parse(row)),
+        ),
+      ),
+    );
+  }
+
   private writeAttempts(
     connection: DatabaseSync,
     improvement: Improvement,
@@ -177,21 +212,13 @@ export class SqliteImprovementRepository implements ImprovementRepository {
   }
 
   private improvementOf(connection: DatabaseSync, value: unknown): Improvement {
-    try {
+    return fromRow(() => {
       const row = improvementRowSchema.parse(value);
       const attempts = connection
         .prepare(SELECT_ATTEMPTS)
         .all(row.id)
         .map((attempt) => attemptFrom(attemptRowSchema.parse(attempt)));
       return improvementFrom(row, attempts);
-    } catch (error) {
-      if (isBadRow(error)) {
-        throw new DatabaseIntegrityError(
-          `A stored improvement is not one this service writes: ${error.message}`,
-          { cause: error },
-        );
-      }
-      throw error;
-    }
+    });
   }
 }

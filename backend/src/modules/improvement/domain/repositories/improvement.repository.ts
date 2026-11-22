@@ -20,6 +20,13 @@ export interface ImprovementFilter {
   readonly targetFile?: FilePath;
 }
 
+/** The newest improvement of one file: which one, and how far it came. */
+export interface LatestImprovement {
+  readonly targetFile: FilePath;
+  readonly id: ImprovementId;
+  readonly status: ImprovementStatus;
+}
+
 /**
  * Where improvements are kept, with their attempts. A read takes the
  * transaction of its caller when it has one, so a look before an insert
@@ -63,6 +70,12 @@ export interface ImprovementRepository {
 
   /** The improvements the filter allows, the newest first. */
   list(filter: ImprovementFilter): Promise<Improvement[]>;
+
+  /**
+   * The newest improvement of each file of a repository that has one, by
+   * the order of `list`, in one read for the whole repository.
+   */
+  latestByTarget(repositoryId: RepositoryId): Promise<LatestImprovement[]>;
 }
 
 /** The injection token of the store of improvements. */

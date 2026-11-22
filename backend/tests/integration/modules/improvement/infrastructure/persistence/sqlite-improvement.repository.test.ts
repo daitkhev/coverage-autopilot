@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DatabaseIntegrityError } from '#infrastructure/database/errors/database-integrity.error';
+import { RepositoryId } from '#kernel/primitives/repository-id';
 import {
   createdImprovement,
   improvementIn,
@@ -18,6 +19,7 @@ import {
   IMPROVEMENT_ID,
   improvementIdOf,
   minutesIn,
+  REPOSITORY_ID,
 } from '#tests/support/improvement-values';
 
 let store: ReturnType<typeof sqliteStore>;
@@ -212,6 +214,18 @@ describe('SqliteImprovementRepository', () => {
           /^A stored improvement is not one this service writes: /,
         ) as unknown,
       });
+    });
+
+    it('should throw DatabaseIntegrityError for the newest of a file with an id it never writes', async () => {
+      await store.insert(improvementIn('created'));
+      run(
+        'PRAGMA ignore_check_constraints = ON; ' +
+          "UPDATE improvements SET id = 'improvement-1'",
+      );
+
+      await expect(
+        store.repository.latestByTarget(RepositoryId.create(REPOSITORY_ID)),
+      ).rejects.toThrow(DatabaseIntegrityError);
     });
 
     it('should pass on a fault of the database itself as it came', async () => {
