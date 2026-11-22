@@ -36,6 +36,8 @@ export interface HttpService {
   /** What the routes and the filter wrote. */
   readonly logger: RecordingLogger;
   send(method: Method, path: string, sent?: Sent): Promise<HttpAnswer>;
+  /** Sends a request and hangs up without waiting for its answer. */
+  abandon(method: Method, path: string): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -73,6 +75,23 @@ function ask(
   });
 }
 
+/** Resolves once the request has reached the service and the line is cut. */
+function hangUp(
+  socketPath: string,
+  line: { readonly method: Method; readonly path: string },
+): Promise<void> {
+  return new Promise((resolve) => {
+    const outgoing = request({ socketPath, ...line });
+    outgoing.on('error', () => {
+      resolve();
+    });
+    outgoing.on('finish', () => {
+      outgoing.destroy();
+    });
+    outgoing.end();
+  });
+}
+
 /**
  * Starts the controllers and providers of a test behind the error filter
  * of the service, on a socket in a folder of its own. `close` stops the
@@ -98,6 +117,7 @@ export async function startHttpService(
   return {
     logger,
     send: (method, path, sent = {}) => ask(socketPath, { method, path }, sent),
+    abandon: (method, path) => hangUp(socketPath, { method, path }),
     close: async () => {
       await application.close();
       rmSync(folder, { recursive: true, force: true });
