@@ -66,13 +66,18 @@ export class GhCodeHost implements CodeHost {
     this.root = settings.workingCopiesRoot;
   }
 
+  /**
+   * The login of the active account alone. gh judges every account it
+   * knows of the host otherwise, and one old account with a broken login
+   * fails the status although every call works.
+   */
   public async loginStatus(
     host: string,
     signal: AbortSignal,
   ): Promise<LoginResult> {
     try {
       const run = await this.gh.run(
-        await this.call(['auth', 'status', `--hostname=${host}`]),
+        await this.call(['auth', 'status', `--hostname=${host}`, '--active']),
         signal,
       );
       return run.exitCode === 0

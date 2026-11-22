@@ -15,6 +15,7 @@ import { argv, pid, stderr, stdout } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 import { forkOf, noteRemotes } from '#tests/support/gh-stand-in-forks';
+import { loggedOut, loginStatus } from '#tests/support/gh-stand-in-login';
 import { paceOf, playAtPace } from '#tests/support/stand-in-pace';
 
 /**
@@ -35,6 +36,11 @@ interface GhScenario {
   readonly login: string;
   /** What `auth status` prints first, as gh names the account. */
   readonly statusText: string;
+  /**
+   * Another account of the host whose login broke. gh then fails a
+   * status that is not asked for the active account alone.
+   */
+  readonly brokenAccount: string | null;
   /** When set, `pr create` fails with this answer. */
   readonly createRefusal: string | null;
   /** When set, a fork is refused with this answer. */
@@ -88,10 +94,9 @@ const TAKEN = 'EEXIST';
 /** After Node and the path of this file: the folder, then gh's own. */
 const FOLDER_ARGUMENT = 2;
 
-const NOT_AUTHENTICATED = 4;
 const FAILED = 1;
 const HANG_TICK_MS = 1000;
-const FLAG = /^--(?<name>[^=]+)=(?<value>.*)$/su;
+const FLAG = /^--(?<name>[^=]+)(?:=(?<value>.*))?$/su;
 
 /** The paths of `api` the stand-in answers. */
 const FORKS_PATH = /^repos\/(?<parent>[^/]+\/[^/]+)\/forks$/u;
@@ -102,6 +107,7 @@ const DEFAULT_SCENARIO: GhScenario = {
   canPush: true,
   login: 'acme-bot',
   statusText: 'github.com\n  Logged in to github.com account acme-bot\n',
+  brokenAccount: null,
   createRefusal: null,
   forkRefusal: null,
   forkDelayMs: 0,
@@ -123,18 +129,6 @@ function flagsOf(args: readonly string[]): Map<string, string> {
     }
   }
   return flags;
-}
-
-function loggedOut(command: string, statusText: string): Answer {
-  return command === 'auth status'
-    ? {
-        exitCode: FAILED,
-        stderr: `${statusText}You are not logged into any GitHub hosts.\n`,
-      }
-    : {
-        exitCode: NOT_AUTHENTICATED,
-        stderr: 'To get started with GitHub CLI, please run: gh auth login\n',
-      };
 }
 
 function isTaken(error: unknown): boolean {
@@ -285,10 +279,8 @@ function api(request: Request): Answer {
 
 /** What each command of `gh` answers when the user is logged in. */
 const COMMANDS: Readonly<Record<string, (request: Request) => Answer>> = {
-  'auth status': ({ scenario }) => ({
-    exitCode: 0,
-    stdout: scenario.statusText,
-  }),
+  'auth status': ({ scenario, flags }) =>
+    loginStatus({ ...scenario, activeAlone: flags.has('active') }),
   api,
   'pr list': ({ folder, flags }) => listed(folder, flags),
   'pr create': created,

@@ -68,7 +68,18 @@ describe('GhCodeHost', () => {
         'auth',
         'status',
         '--hostname=github.com',
+        '--active',
       ]);
+    });
+
+    describe('when another account of the host has a broken login', () => {
+      it('should answer logged in by the active account', async () => {
+        host.gh.answer({ brokenAccount: 'old-bot' });
+
+        expect(await gh.loginStatus('github.com', NEVER)).toEqual({
+          outcome: 'logged_in',
+        });
+      });
     });
 
     describe('when gh has no login', () => {
