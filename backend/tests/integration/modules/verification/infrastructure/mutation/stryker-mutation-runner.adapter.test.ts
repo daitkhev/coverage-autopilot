@@ -167,6 +167,7 @@ describe('StrykerMutationRunner', () => {
         incremental: true,
         incrementalFile: CACHE,
         tempDirName: FOLDER,
+        ignorePatterns: ['/.yarn/cache'],
         allowConsoleColors: false,
       });
     });

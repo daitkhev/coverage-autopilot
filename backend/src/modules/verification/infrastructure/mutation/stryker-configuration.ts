@@ -121,6 +121,12 @@ const EVERY_TEST: Readonly<
 };
 
 /**
+ * The tool copies every file of the copy into its sandbox, and yarn 2 and
+ * later keep there an archive of each package they installed.
+ */
+const IGNORED = ['/.yarn/cache'];
+
+/**
  * The configuration of one run. Only the target is mutated. Every test
  * that kills a mutant is listed, the tests are tied to the mutants they
  * run, and the number of test runners is the one of the settings. The
@@ -144,6 +150,7 @@ export function strykerConfigurationOf(
     incremental: true,
     incrementalFile: CACHE_FILE,
     tempDirName: MUTATION_FOLDER,
+    ignorePatterns: IGNORED,
     allowConsoleColors: false,
   };
   return JSON.stringify(configuration);
