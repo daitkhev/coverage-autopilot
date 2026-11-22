@@ -84,6 +84,11 @@ describe('loadServiceConfig', () => {
       ['AUTOPILOT_SANDBOX_ENGINE', '["docker", 1]', 'a JSON list'],
       ['AUTOPILOT_GENERATOR', 'codex', 'claude_code'],
       ['AUTOPILOT_GENERATOR_BILLING', 'free', 'subscription or api_key'],
+      ['AUTOPILOT_GIT_AUTHOR_NAME', 'Ada <ada@example.com>', 'a name on one'],
+      ['AUTOPILOT_GIT_AUTHOR_NAME', 'Ada\nTester', 'a name on one line'],
+      ['AUTOPILOT_GIT_AUTHOR_EMAIL', 'ada', 'an address such as'],
+      ['AUTOPILOT_GIT_AUTHOR_EMAIL', '<ada@example.com>', 'an address such'],
+      ['AUTOPILOT_GIT_AUTHOR_EMAIL', 'ada @example.com', 'an address such'],
     ])('should refuse %s=%s', (variable, value, expected) => {
       const loading = (): ServiceConfig => loadWith({ [variable]: value });
 

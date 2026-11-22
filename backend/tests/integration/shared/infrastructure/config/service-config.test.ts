@@ -50,6 +50,15 @@ describe('loadServiceConfig', () => {
         defaults: { attempts: 3, minutes: 30, tokens: null },
         maximums: { attempts: 10, minutes: 120, tokens: null },
       },
+      git: {
+        environment: {
+          ...PLAIN_MACHINE,
+          GIT_AUTHOR_NAME: 'Coverage Autopilot',
+          GIT_AUTHOR_EMAIL: 'autopilot@coverage-autopilot.invalid',
+          GIT_COMMITTER_NAME: 'Coverage Autopilot',
+          GIT_COMMITTER_EMAIL: 'autopilot@coverage-autopilot.invalid',
+        },
+      },
     });
   });
 
@@ -124,6 +133,8 @@ describe('loadServiceConfig', () => {
       AUTOPILOT_BUDGET_MAX_MINUTES: '60',
       AUTOPILOT_BUDGET_TOKENS: '200000',
       AUTOPILOT_BUDGET_MAX_TOKENS: '400000',
+      AUTOPILOT_GIT_AUTHOR_NAME: 'Ada Tester',
+      AUTOPILOT_GIT_AUTHOR_EMAIL: 'ada@example.com',
     });
 
     expect(config).toMatchObject({
@@ -155,6 +166,14 @@ describe('loadServiceConfig', () => {
       budget: {
         defaults: { attempts: 2, minutes: 15, tokens: 200_000 },
         maximums: { attempts: 4, minutes: 60, tokens: 400_000 },
+      },
+      git: {
+        environment: {
+          GIT_AUTHOR_NAME: 'Ada Tester',
+          GIT_AUTHOR_EMAIL: 'ada@example.com',
+          GIT_COMMITTER_NAME: 'Ada Tester',
+          GIT_COMMITTER_EMAIL: 'ada@example.com',
+        },
       },
     });
   });
@@ -196,6 +215,27 @@ describe('loadServiceConfig', () => {
       DOCKER_HOST: 'unix:///run/user/1000/docker.sock',
       XDG_RUNTIME_DIR: '/run/user/1000',
     });
+  });
+
+  it('should start git with its path, its home and who commits, and no other', () => {
+    const config = loadWith({
+      GIT_AUTHOR_NAME: 'Someone Else',
+      GIT_CONFIG_GLOBAL: '/tmp/gitconfig',
+      GH_TOKEN: 'zz-private',
+      SSH_AUTH_SOCK: '/tmp/agent.sock',
+    });
+
+    expect(Object.keys(config.git.environment).sort()).toEqual([
+      'GIT_AUTHOR_EMAIL',
+      'GIT_AUTHOR_NAME',
+      'GIT_COMMITTER_EMAIL',
+      'GIT_COMMITTER_NAME',
+      'HOME',
+      'PATH',
+    ]);
+    expect(config.git.environment['GIT_AUTHOR_NAME']).toBe(
+      'Coverage Autopilot',
+    );
   });
 
   it('should give the credentials of the environment to hide', () => {

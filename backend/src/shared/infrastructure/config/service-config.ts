@@ -58,6 +58,10 @@ export interface ServiceConfig {
     readonly defaults: Budget;
     readonly maximums: Budget;
   };
+  readonly git: {
+    /** Exactly the variables git is started with. Nothing else reaches it. */
+    readonly environment: Readonly<Record<string, string>>;
+  };
 }
 
 /** The injection token of the configuration of the service. */
@@ -78,6 +82,12 @@ const ENGINE_VARIABLES = [
   'XDG_RUNTIME_DIR',
   'CONTAINER_HOST',
 ];
+
+/**
+ * Where git finds its programs, and the home that holds the configuration
+ * of the operator, which a push needs for its credentials.
+ */
+const GIT_VARIABLES = ['PATH', 'HOME'];
 
 /** Where a credential is in CI and in isolated mode. */
 const SECRET_VARIABLES = [
@@ -186,6 +196,27 @@ function budgetOf(values: ServiceEnvironment): ServiceConfig['budget'] {
   };
 }
 
+/**
+ * A commit on a working copy reads no configuration of git, so who commits
+ * is given here, or git would make it up from the user and the machine.
+ */
+function gitOf(
+  values: ServiceEnvironment,
+  environment: Environment,
+): ServiceConfig['git'] {
+  const name = values.AUTOPILOT_GIT_AUTHOR_NAME;
+  const email = values.AUTOPILOT_GIT_AUTHOR_EMAIL;
+  return {
+    environment: {
+      ...setValues(environment, GIT_VARIABLES),
+      GIT_AUTHOR_NAME: name,
+      GIT_AUTHOR_EMAIL: email,
+      GIT_COMMITTER_NAME: name,
+      GIT_COMMITTER_EMAIL: email,
+    },
+  };
+}
+
 function configOf(
   values: ServiceEnvironment,
   environment: Environment,
@@ -209,6 +240,7 @@ function configOf(
       billing: values.AUTOPILOT_GENERATOR_BILLING,
     },
     budget: budgetOf(values),
+    git: gitOf(values, environment),
   };
 }
 

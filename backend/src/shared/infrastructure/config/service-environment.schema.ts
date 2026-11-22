@@ -69,6 +69,16 @@ export const VARIABLES = {
   AUTOPILOT_BUDGET_MAX_MINUTES: { expected: WHOLE, fallback: '120' },
   AUTOPILOT_BUDGET_TOKENS: { expected: WHOLE },
   AUTOPILOT_BUDGET_MAX_TOKENS: { expected: WHOLE },
+  AUTOPILOT_GIT_AUTHOR_NAME: {
+    expected: 'a name on one line, with no "<" or ">"',
+    fallback: 'Coverage Autopilot',
+  },
+  AUTOPILOT_GIT_AUTHOR_EMAIL: {
+    expected: 'an address such as tests@example.com, with no space, "<" or ">"',
+    // The domain is reserved and reaches no one, so no account of a host
+    // of the code is credited with a commit it did not make.
+    fallback: 'autopilot@coverage-autopilot.invalid',
+  },
 } as const satisfies Record<string, Variable>;
 
 /** The limits of tokens with a key, when no variable sets them. */
@@ -87,6 +97,9 @@ const WHOLE_NUMBER = /^[1-9][0-9]*$/;
 const POSITIVE_NUMBER = /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
 /** The engine would read a name that starts with `-` as an option. */
 const IMAGE = /^[^\s-]\S*$/;
+/** git writes an author as `name <address>`, so neither may hold a bracket. */
+const AUTHOR_NAME = /^[^\p{Cc}<>]+$/u;
+const AUTHOR_EMAIL = /^[^\s<>@]+@[^\s<>@]+$/u;
 
 function wholeNumber() {
   return z
@@ -141,6 +154,8 @@ const fields = z.object({
   AUTOPILOT_BUDGET_MAX_MINUTES: wholeNumber(),
   AUTOPILOT_BUDGET_TOKENS: wholeNumber().optional(),
   AUTOPILOT_BUDGET_MAX_TOKENS: wholeNumber().optional(),
+  AUTOPILOT_GIT_AUTHOR_NAME: z.string().regex(AUTHOR_NAME),
+  AUTOPILOT_GIT_AUTHOR_EMAIL: z.string().regex(AUTHOR_EMAIL),
 });
 
 /**
