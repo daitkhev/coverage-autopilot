@@ -2004,3 +2004,31 @@ fails the improvement as an exposed credential and keeps its tokens.
   `backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile`,
   `frontend/src/commands/repo-trust.ts`,
   `frontend/src/screens/repositories/trust-dialog.tsx`.
+
+### The tests of Jest are reported by a reporter of the service
+
+- A real scan of a repository whose tests call the network gave coverage
+  and no count of tests. `--json` of Jest writes every thrown value whole
+  with `JSON.stringify`. The failed request of an HTTP client holds a
+  circle, so Jest ended with "Converting circular structure to JSON" and
+  wrote no report. With no report an improvement of that repository ends
+  with `existing_tests_fail`, however the failing tests are judged.
+- The service writes a reporter of its own into the copy before a run of
+  Jest, `node_modules/.coverage-autopilot-test-reporter.cjs`, and names it
+  beside the usual one. It writes the same file in the same shape with
+  only what is read: the name and the state of each file and each test,
+  and the messages, which are text already.
+- The reporter finds the report by its own folder, since a reporter named
+  on the command line takes no option. It is named by an absolute path,
+  since Jest looks for a relative one from its root folder.
+- What is at the path of the reporter is removed first and the file is
+  made new, so a link a package left there is not written through.
+- Vitest keeps its own JSON reporter: it writes messages, never the
+  thrown values.
+- Proven on the real engine: the same repository now shows 33 of 53 tests
+  failing in the sandbox. The image with git was built there too, and a
+  trusted install of a yarn 3 project with a package from git completed.
+  The two items "Owed" of the entry above are done.
+- Where: `backend/src/modules/coverage/infrastructure/runners/jest-results-reporter.ts`,
+  `backend/src/modules/coverage/infrastructure/runners/jest-command.ts`,
+  `backend/src/modules/coverage/infrastructure/runners/sandboxed-test-runner.adapter.ts`.
