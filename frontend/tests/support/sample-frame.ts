@@ -23,8 +23,20 @@ export const WIDE: TerminalSize = {
   rows: MOCK_UP_ROWS,
 };
 
-/** The smallest size, where one panel shows. */
-export const NARROW: TerminalSize = SMALLEST_SIZE;
+/** The rows of a usual terminal, which the design draws its smallest at. */
+const USUAL_ROWS = 24;
+
+/** The narrowest size, where one panel shows. */
+export const NARROW: TerminalSize = {
+  columns: SMALLEST_SIZE.columns,
+  rows: USUAL_ROWS,
+};
+
+/** The lowest window the screens work in, such as the panel of an editor. */
+export const LOW: TerminalSize = {
+  columns: USUAL_COLUMNS,
+  rows: SMALLEST_SIZE.rows,
+};
 
 /** One size of each layout, at which nothing may be wider than the terminal. */
 export const SIZES: readonly TerminalSize[] = [

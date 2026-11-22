@@ -6,13 +6,15 @@ export interface TerminalSize {
 
 /**
  * Two panels from 110 columns, two narrower ones from 90, one panel from
- * 80, and below 80 by 24 a message that asks for more room.
+ * 80, and below 80 by 16 a message that asks for more room. The panel of
+ * a terminal in an editor is low, so the screens work from 16 rows: in a
+ * low window a panel cuts its end, and nothing else gives way.
  */
 export type Layout = 'wide' | 'compact' | 'narrow' | 'too-small';
 
 const WIDE_COLUMNS = 110;
 const COMPACT_COLUMNS = 90;
-export const SMALLEST_SIZE: TerminalSize = { columns: 80, rows: 24 };
+export const SMALLEST_SIZE: TerminalSize = { columns: 80, rows: 16 };
 
 export function layoutOf(size: TerminalSize): Layout {
   if (size.columns < SMALLEST_SIZE.columns || size.rows < SMALLEST_SIZE.rows) {

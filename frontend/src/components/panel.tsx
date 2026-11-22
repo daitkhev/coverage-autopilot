@@ -56,7 +56,7 @@ export function Panel({
   const edge = edgeOf({ focused, tone });
   return (
     <Box flexDirection="column" flexGrow={1}>
-      <Box>
+      <Box flexShrink={0}>
         <Box flexShrink={0}>
           <RoleText
             role={edge.role}
@@ -80,12 +80,17 @@ export function Panel({
       <Box
         flexDirection="column"
         flexGrow={1}
+        overflow="hidden"
         borderStyle={frame.box}
         borderTop={false}
         paddingX={1}
         {...useBorder(edge.role)}
       >
-        {children}
+        {/* It keeps its height, so in a low window its end is cut and
+            its rows are not pressed into each other. */}
+        <Box flexDirection="column" flexGrow={1} flexShrink={0}>
+          {children}
+        </Box>
       </Box>
     </Box>
   );

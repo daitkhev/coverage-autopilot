@@ -13,6 +13,7 @@ import { SplitView } from '#components/split-view';
 import { TabBar } from '#components/tab-bar';
 import { useKeys } from '#hooks/use-keys';
 import { KEYS, press, screenOf } from '#tests/support/keys';
+import { LOW } from '#tests/support/sample-frame';
 import {
   drawnAt,
   USUAL_COLUMNS,
@@ -197,12 +198,40 @@ describe('AppShell', () => {
     expect(drawn.split('\n').length).toBeLessThanOrEqual(size.rows);
   });
 
-  describe('when the window is below 80 by 24', () => {
+  describe('when the window is lower than what a panel holds', () => {
+    const FACTS = Array.from(
+      { length: 30 },
+      (_, index) => `fact ${String(index + 1)}`,
+    );
+    const tall = (
+      <Panel title="Service" focused>
+        {FACTS.map((fact) => (
+          <Text key={fact}>{fact}</Text>
+        ))}
+      </Panel>
+    );
+
+    it('should cut the end of the panel and keep every zone whole', () => {
+      const drawn = drawnAt(shell(LOW, { body: tall }), LOW.columns);
+      const lines = drawn.split('\n');
+      const shown = lines.flatMap((line) => /fact \d+/u.exec(line) ?? []);
+
+      expect(lines).toHaveLength(LOW.rows);
+      expect(lines[0]).toContain('coverage-autopilot');
+      expect(lines.filter((line) => /^ ╰─+╯$/u.test(line))).toHaveLength(1);
+      // Each row that shows is whole and in its place: none is pressed
+      // into the one before it.
+      expect(shown.length).toBeGreaterThan(0);
+      expect(shown).toEqual(FACTS.slice(0, shown.length));
+    });
+  });
+
+  describe('when the window is below the smallest size', () => {
     it('should ask for more room and offer the commands', () => {
       const drawn = drawnAt(shell({ columns: 60, rows: 16 }), 60);
 
       expect(drawn).toContain('! This window is too small for the screens.');
-      expect(drawn).toContain('It is 60 x 16 and they need 80 x 24.');
+      expect(drawn).toContain('It is 60 x 16 and they need 80 x 16.');
       expect(drawn).toContain('  coverage-autopilot doctor');
       expect(drawn).toContain('q quit');
       expect(widestLine(drawn)).toBeLessThanOrEqual(60);

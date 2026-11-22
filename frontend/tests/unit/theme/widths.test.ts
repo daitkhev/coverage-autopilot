@@ -10,8 +10,10 @@ describe('layoutOf', () => {
     [{ columns: 90, rows: 24 }, 'compact'],
     [{ columns: 89, rows: 24 }, 'narrow'],
     [{ columns: 80, rows: 24 }, 'narrow'],
+    [{ columns: 252, rows: 20 }, 'wide'],
+    [{ columns: 80, rows: 16 }, 'narrow'],
     [{ columns: 79, rows: 40 }, 'too-small'],
-    [{ columns: 120, rows: 23 }, 'too-small'],
+    [{ columns: 120, rows: 15 }, 'too-small'],
   ])('should lay out %o as %s', (size, layout) => {
     expect(layoutOf(size)).toBe(layout);
   });

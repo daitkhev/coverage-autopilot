@@ -165,7 +165,8 @@ export function Overlay({
 
 /**
  * The four zones of every screen: the header, the context, the body and
- * the footer. Below 80 by 24 it asks for more room instead.
+ * the footer. Below the smallest size it asks for more room instead. In
+ * a low window only the body gives way: the other zones keep their rows.
  */
 export function AppShell(props: AppShellProps): ReactNode {
   const { size, dialog } = props;
@@ -185,13 +186,15 @@ export function AppShell(props: AppShellProps): ReactNode {
         <GlobalKeys {...props} />
         <Ruled edge="bottom">{props.header}</Ruled>
         {props.context === undefined ? null : (
-          <Box marginTop={1}>{props.context}</Box>
+          <Box marginTop={1} flexShrink={0}>
+            {props.context}
+          </Box>
         )}
         <Box flexGrow={1} flexDirection="column">
           {props.body}
         </Box>
         {props.notice === undefined ? null : (
-          <Box justifyContent="flex-end">
+          <Box justifyContent="flex-end" flexShrink={0}>
             <RoleText>{props.notice}</RoleText>
           </Box>
         )}
