@@ -1,9 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { ApproveImprovementCommand } from '#improvement/application/commands/approve-improvement/approve-improvement.command';
+import { approvalRefusalOf } from '#improvement/application/commands/approve-improvement/approval-refusals';
+import type {
+  ApprovalRefusal,
+  ApproveImprovementCommand,
+  ApproveImprovementResult,
+} from '#improvement/application/commands/approve-improvement/approve-improvement.command';
 import { publishJobOf } from '#improvement/application/commands/run-improvement/improvement-jobs';
-import type { ImprovementDto } from '#improvement/application/dto/improvement.dto';
 import { ImprovementViews } from '#improvement/application/dto/improvement-views';
+import { requestValueOrNull } from '#improvement/application/request-values';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
 import {
   IMPROVEMENT_REPOSITORY,
@@ -18,12 +23,17 @@ import {
   type TransactionManager,
 } from '#ports/transaction-manager.port';
 
+/** What one approval did, before a person sees it. */
+type Approval =
+  | { readonly outcome: 'approved'; readonly improvement: Improvement }
+  | ApprovalRefusal;
+
 /**
  * Approves the accepted patch of an improvement in review mode, and adds
  * the job that publishes it: the job before it ended when it asked, so
- * waiting for a person held no repository. `null` when no improvement has
- * the id. Another hash and an improvement that does not wait for an
- * approval are refused by the improvement itself.
+ * waiting for a person held no repository. Another hash and an
+ * improvement that does not wait for an approval are refused, and nothing
+ * changes. `null` when no improvement has the id.
  */
 @Injectable()
 export class ApproveImprovementHandler {
@@ -49,12 +59,21 @@ export class ApproveImprovementHandler {
 
   public async execute(
     command: ApproveImprovementCommand,
-  ): Promise<ImprovementDto | null> {
-    const id = ImprovementId.create(command.improvementId);
-    const approved = await this.transactions.run(async (transaction) =>
+  ): Promise<ApproveImprovementResult | null> {
+    const id = requestValueOrNull(() =>
+      ImprovementId.create(command.improvementId),
+    );
+    if (id === null) {
+      return null;
+    }
+    const approval = await this.transactions.run(async (transaction) =>
       this.approveOnce(id, command.patchHash, transaction),
     );
-    return approved === null ? null : this.views.of(approved);
+    if (approval?.outcome !== 'approved') {
+      return approval;
+    }
+    const improvement = await this.views.of(approval.improvement);
+    return { outcome: 'approved', improvement };
   }
 
   /** Reads inside the transaction, so a cancel cannot come in between. */
@@ -62,14 +81,18 @@ export class ApproveImprovementHandler {
     id: ImprovementId,
     patchHash: string,
     transaction: Transaction,
-  ): Promise<Improvement | null> {
+  ): Promise<Approval | null> {
     const improvement = await this.improvements.findById(id, transaction);
     if (improvement === null) {
       return null;
     }
+    const refusal = approvalRefusalOf(improvement, patchHash);
+    if (refusal !== null) {
+      return refusal;
+    }
     improvement.approve(patchHash, this.clock.now());
     const saved = await this.improvements.save(improvement, transaction);
     await this.queue.enqueue(publishJobOf(saved), transaction);
-    return saved;
+    return { outcome: 'approved', improvement: saved };
   }
 }

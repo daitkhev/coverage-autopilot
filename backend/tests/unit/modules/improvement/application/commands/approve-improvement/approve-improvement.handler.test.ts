@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { ApprovalMismatchError } from '#improvement/domain/errors/approval-mismatch.error';
-import { InvalidImprovementValueError } from '#improvement/domain/errors/invalid-improvement-value.error';
-import { InvalidTransitionError } from '#improvement/domain/errors/invalid-transition.error';
 import { improvementIn } from '#tests/support/improvement-journeys';
 import { ImprovementRequestWorld } from '#tests/support/improvement-request-world';
 import { hashOf, IMPROVEMENT_ID } from '#tests/support/improvement-values';
@@ -34,15 +31,16 @@ describe('ApproveImprovementHandler', () => {
         patchHash: SEEN,
       });
 
-      expect(shown).toEqual(
-        expect.objectContaining({
+      expect(shown).toEqual({
+        outcome: 'approved',
+        improvement: expect.objectContaining({
           id: IMPROVEMENT_ID,
           status: 'publishing',
           phaseStartedAt: world.clock.now(),
           branch: `coverage-autopilot/${IMPROVEMENT_ID}`,
           waitingFor: 'worker',
-        }),
-      );
+        }) as unknown,
+      });
     });
 
     it('should save the approval and queue the job that publishes in one transaction', async () => {
@@ -82,41 +80,54 @@ describe('ApproveImprovementHandler', () => {
     });
 
     describe('when the person saw another patch', () => {
-      it('should throw ApprovalMismatchError and publish nothing', async () => {
+      it('should refuse with patch_hash_mismatch and publish nothing', async () => {
         await world.stored(improvementIn('awaiting_approval'));
 
-        await expect(
-          world.approve.execute({
-            improvementId: IMPROVEMENT_ID,
-            patchHash: hashOf('b'),
-          }),
-        ).rejects.toThrow(ApprovalMismatchError);
+        const refused = await world.approve.execute({
+          improvementId: IMPROVEMENT_ID,
+          patchHash: hashOf('b'),
+        });
+
+        expect(refused).toEqual({
+          outcome: 'refused',
+          reason: 'patch_hash_mismatch',
+          message:
+            `The accepted patch of the improvement ${IMPROVEMENT_ID} is ` +
+            `${SEEN}, not ${hashOf('b')}.`,
+        });
         expectNothingChanged();
       });
     });
 
     describe('when the improvement does not wait for an approval', () => {
       it.each(['verifying', 'publishing', 'cancelled'] as const)(
-        'should throw InvalidTransitionError while it is %s',
+        'should refuse with status_conflict while it is %s',
         async (status) => {
           await world.stored(improvementIn(status));
 
-          await expect(
-            world.approve.execute({
-              improvementId: IMPROVEMENT_ID,
-              patchHash: SEEN,
-            }),
-          ).rejects.toThrow(InvalidTransitionError);
+          const refused = await world.approve.execute({
+            improvementId: IMPROVEMENT_ID,
+            patchHash: SEEN,
+          });
+
+          expect(refused).toEqual({
+            outcome: 'refused',
+            reason: 'status_conflict',
+            message:
+              `The improvement ${IMPROVEMENT_ID} is ${status}, and only one ` +
+              'that awaits approval can be approved.',
+          });
           expectNothingChanged();
         },
       );
     });
 
     describe('when the id is not one of an improvement', () => {
-      it('should throw InvalidImprovementValueError', async () => {
-        await expect(
-          world.approve.execute({ improvementId: '42', patchHash: SEEN }),
-        ).rejects.toThrow(InvalidImprovementValueError);
+      it('should answer null, as no improvement has it', async () => {
+        expect(
+          await world.approve.execute({ improvementId: '42', patchHash: SEEN }),
+        ).toBeNull();
+        expectNothingChanged();
       });
     });
   });
