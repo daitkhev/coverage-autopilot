@@ -12,6 +12,7 @@ import type { ServiceRun } from '#composition/service-run';
 import { InvalidMigrationFileError } from '#infrastructure/database/errors/invalid-migration-file.error';
 import type { RunningService } from '#infrastructure/service/running-service';
 import { SystemClock } from '#infrastructure/time/system-clock.adapter';
+import { WORK_WAIT } from '#tests/support/hosted-service';
 import {
   askOver,
   type ServiceBench,
@@ -154,7 +155,7 @@ describe('runService', () => {
       const stopping = first.stop();
       await vi.waitFor(() => {
         expect(existsSync(socket)).toBe(false);
-      });
+      }, WORK_WAIT);
       expect(bench.lockIsFree()).toBe(false);
       const waits = Promise.withResolvers<undefined>();
       const goOn = Promise.withResolvers<undefined>();
@@ -218,7 +219,7 @@ describe('runService', () => {
       const stopping = service.stop();
       await vi.waitFor(() => {
         expect(existsSync(socket)).toBe(false);
-      });
+      }, WORK_WAIT);
 
       const held = await answerHeld();
       const again = await askedOver(agent, socket);
