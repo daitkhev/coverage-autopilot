@@ -20,7 +20,14 @@ import {
   NEW_TESTS,
   patchedReport,
 } from '#tests/support/mutation-reports';
+import {
+  dropContainer,
+  holdContainer,
+  holdsContainer,
+  listedContainers,
+} from '#tests/support/played-containers';
 import { shippedImageLabel } from '#tests/support/shipped-image';
+import { paceOf } from '#tests/support/stand-in-pace';
 import {
   coverageReportOf,
   holdsNewTests,
@@ -33,7 +40,8 @@ import {
  * It never starts a container and never runs code of the project: for
  * each `run` it takes the working copy the container works in and the
  * command after the image, writes what the tool would write into the
- * copy, and prints what the tool would print.
+ * copy, and prints what the tool would print. It keeps the containers it
+ * plays as `played-containers` describes.
  */
 
 /** One container the engine was asked to run, as the stand-in read it. */
@@ -57,9 +65,6 @@ type Tool = (run: PlayedRun) => Played;
 const RUNS = 'runs.jsonl';
 const IMAGE_CALLS = 'image-calls.jsonl';
 
-/** The calls of the engine that make an image ready. */
-const IMAGE_VERBS: ReadonlySet<string> = new Set(['image', 'build', 'pull']);
-
 /** After Node and the path of this file: the folder, then the engine's own. */
 const FOLDER_ARGUMENT = 2;
 
@@ -68,6 +73,12 @@ const COMMAND_AFTER_FLAG = 3;
 
 /** What a shell answers for a program it does not find. */
 const NOT_FOUND = 127;
+
+/** How often a container whose service died looks whether it was removed. */
+const LOOK_AGAIN_MS = 20;
+
+/** Ten minutes of looks, longer than any test. */
+const LOOKS_OF_AN_ORPHAN = 30_000;
 
 /** The programs the adapters start by their paths in the copy. */
 const COMPILER = 'node_modules/typescript/bin/tsc';
@@ -227,28 +238,75 @@ function playImageCall(folder: string, args: readonly string[]): void {
 }
 
 /**
- * Records each `run` and plays its tool. Every image is there, labelled as
- * one built from the file the service ships for it, so no build or pull
- * is asked, and each call about an image is recorded so a test sees that.
- * Any other call, such as the removal of a container, succeeds: no
- * container was ever made.
+ * A container whose service died while it ran goes on, as one with a long
+ * command does under a real engine, until it is removed, or for longer
+ * than any test runs, so a test that was itself killed leaves no process
+ * for long.
  */
+function runOn(folder: string, name: string): void {
+  let looks = 0;
+  const looking = setInterval(() => {
+    looks += 1;
+    if (!holdsContainer(folder, name) || looks > LOOKS_OF_AN_ORPHAN) {
+      clearInterval(looking);
+    }
+  }, LOOK_AGAIN_MS);
+}
+
+/**
+ * Records the `run`, keeps its container, plays its tool once the pace
+ * of the stand-in passed, and drops the container once the command
+ * ended. A container whose service is gone by then plays nothing and
+ * runs on.
+ */
+function play(folder: string, args: readonly string[], input: string): void {
+  const service = process.ppid;
+  const name = holdContainer(folder, args);
+  const run = runOf(args, input);
+  appendFileSync(join(folder, RUNS), `${JSON.stringify(run)}\n`);
+  setTimeout(() => {
+    if (process.ppid !== service) {
+      runOn(folder, name);
+      return;
+    }
+    const played = toolOf(run.command)(run);
+    dropContainer(folder, name);
+    stdout.write(played.stdout ?? '');
+    stderr.write(played.stderr ?? '');
+    process.exitCode = played.exitCode;
+  }, paceOf(folder));
+}
+
+/**
+ * What the engine answers each call but a run. Every image is there,
+ * labelled as one built from the file the service ships for it, so no
+ * build or pull is asked, and each call about an image is recorded so a
+ * test sees that. A listing names the containers that were not removed,
+ * and a removal drops one. Any other call succeeds.
+ */
+const ANSWERS: Readonly<
+  Record<string, (folder: string, args: readonly string[]) => void>
+> = {
+  image: playImageCall,
+  build: playImageCall,
+  pull: playImageCall,
+  ps: (folder, args) => {
+    const names = listedContainers(folder, args).map((name) => `${name}\n`);
+    stdout.write(names.join(''));
+  },
+  rm: (folder, args) => {
+    dropContainer(folder, args.at(-1) ?? '');
+  },
+};
+
 function main(): void {
   const [folder = '', ...args] = argv.slice(FOLDER_ARGUMENT);
   const input = readFileSync(0, 'utf8');
-  if (IMAGE_VERBS.has(args[0] ?? '')) {
-    playImageCall(folder, args);
+  if (args[0] === 'run') {
+    play(folder, args, input);
     return;
   }
-  if (args[0] !== 'run') {
-    return;
-  }
-  const run = runOf(args, input);
-  appendFileSync(join(folder, RUNS), `${JSON.stringify(run)}\n`);
-  const played = toolOf(run.command)(run);
-  stdout.write(played.stdout ?? '');
-  stderr.write(played.stderr ?? '');
-  process.exitCode = played.exitCode;
+  ANSWERS[args[0] ?? '']?.(folder, args);
 }
 
 if (import.meta.main) {
