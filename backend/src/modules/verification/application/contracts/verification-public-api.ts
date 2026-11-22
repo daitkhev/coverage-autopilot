@@ -166,7 +166,7 @@ export interface VerifyPatchRequest {
  * the codes of a terminal and the path of the working copy, cut to a few
  * short lines.
  */
-export interface TestFailureDto {
+interface TestFailureDto {
   readonly file: FilePath;
   /** The names of the test that failed, `null` when the file failed to run. */
   readonly test: string | null;
