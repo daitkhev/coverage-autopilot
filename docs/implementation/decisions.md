@@ -650,3 +650,107 @@ Where this log and the plan differ, this log and the code are right.
   may reach only the contracts of the modules below it. The alternative,
   a client that joins the answers, would cost the list of repositories
   one request for each row.
+
+### What a route answers, and how it refuses
+
+- A route that starts work answers 202 with the work as it is stored, and
+  200 when the same key finds the work that is there already. A cancel
+  of work that had ended is no error and changes nothing: an improvement
+  then answers 200, and a scan 202 as for a cancel that took effect.
+- A refusal is an outcome of a use case, a value with a reason, and the
+  presentation layer maps each reason to a status and a body of the
+  contract. No route catches a domain error: a value of a request that
+  breaks a rule of the domain is made into a refusal in the application
+  layer (`request-values.ts`).
+- Connecting a repository answers 201, and 200 when it is connected
+  already. It has two refusals of its own: an address that is not one of
+  a repository on the code host is 400, and a repository the login cannot
+  see is 404, which does not say whether it exists.
+- A repository in an answer carries its newest snapshot, the scan that
+  has not ended, and `outdated`: the head the repository keeps is not the
+  commit of that snapshot. No host is asked to answer a list. The newest
+  snapshot is read alone, and the open job of a subject through an index
+  (`0008`), so a row of the list costs two small reads.
+- The defaults and the maximums of a budget are read at
+  `GET /settings/budget`, so the client shows the limits before a request
+  is refused for them.
+- A request may name a quality policy, and one without the check that a
+  patch only adds test files is refused: that check is what keeps a
+  generator out of the source.
+
+### The root binds the modules, and each module makes its own values
+
+- Every module has `register(values)`, which takes plain values and makes
+  the value objects of its domain itself. The root file knows no layer of
+  a module: it imports the module files and nothing else, and takes the
+  handler of a job from a static field of the module file.
+- The worker gets exactly one handler for each kind of job. A kind with
+  none or with two stops the start.
+- What the environment does not hold is a constant in
+  `backend/src/module-settings.ts`: the threshold (lines, 80), the checks
+  of the gate (all seven, three repeated runs), the version of the
+  mutation tool and the tools the generator may use. A kill rate of 50
+  and a limit of 10 surviving mutants are placeholders until a real run
+  calibrates them.
+- A service with no credential of the generator starts and scans. It
+  warns once at the start and names the variable, never a value. A
+  request for an improvement is then refused at once with 409
+  `generator_unavailable` and nothing is stored, also for a key that was
+  used before. A job that was queued while the credential was set fails
+  with the same reason, before any container starts.
+- A command of a repository gets exactly three variables in its sandbox:
+  the `PATH` of the image, a home in the scratch folder and `CI`.
+- Where: `backend/src/app.module.ts`, `backend/src/module-settings.ts`,
+  `backend/src/job-handlers.ts`, the `*.module.ts` of each module.
+
+### The service reports on itself and stops when it is idle
+
+- `GET /health` and `POST /service/stop` are routes of the shared HTTP
+  code, not of a module. They reach the running service through a port
+  the root binds, because shared code may not import a root file.
+- A stop is refused with 409 while a job runs: the job would go back to
+  the queue half done. A queued job does not block a stop; it waits for
+  the next start. The stop begins once the answer is written.
+- The version is read from the manifest beside the entry file, by the
+  same step up that finds the migrations, built or not.
+- A folder of migrations that holds none is refused: a build that lost
+  the folder would otherwise start on an empty database.
+- Health does not know yet what only a module knows: the account of the
+  code host, the limits a subscription last reported and the versions of
+  the tools. The contract allows the empty answer for each.
+
+### The build and the end-to-end tests are steps of the gate
+
+- `build` writes `backend/dist/main.js` with the bundler the test runner
+  already brings, and a warning fails it. The file is beside the
+  migrations, as the entry file is.
+- `e2e` builds for itself and then runs the tests of `tests/e2e/`, which
+  start the built file as a process of its own with an explicit list of
+  variables and reach it only through its socket. Coverage does not count
+  them: the code runs in another process.
+- Why a step of its own: a unit or an integration test loads the source
+  through the test runner. Only this step proves that the file a person
+  installs starts, migrates, answers, stops and exits with a code.
+- The audit of the dependencies has no finding in what the package
+  installs. What is left is in tools of the harness and needs an older
+  major version of a direct dependency, so it stays until those tools
+  move.
+
+### Owed after the wave that starts the service
+
+- The worker should record its last poll, so health can say when it was
+  last seen, and should itself refuse two handlers of one kind.
+- A test run that exits with 0 and writes no report gives a completed
+  snapshot in which every file is unmeasured with `missing_from_report`.
+  Whether that is a failed scan instead is not decided.
+- The end-to-end tests cover the start and the stop of the built file.
+  The journey from a repository to a pull request, with stand-ins for the
+  engine, the code host and the generator, is the next step.
+- git gets `PATH` and `HOME` only. A push that goes through the
+  credential helper of `gh` may need the token of the environment: to be
+  proven on the first real publication.
+- The image of the generator is named in the settings and built by
+  nothing in the repository.
+- The status of an answer is set in two ways: the improvement module has
+  a helper for it and the coverage module sets it in the route. The two
+  cancels should also answer an ended one with the same status.
