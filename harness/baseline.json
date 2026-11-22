@@ -29,7 +29,6 @@
         "RunTestsResult",
         "ScanParametersDto",
         "SnapshotRequest",
-        "TestCountsDto",
         "TestFailureDto",
         "TestOutcomesDto",
         "TestRunDto",

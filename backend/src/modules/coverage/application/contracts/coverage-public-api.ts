@@ -118,7 +118,7 @@ export interface FileSplitDto {
  * How many tests of the repository ran in the run of a snapshot, and how
  * many of them failed. A file that failed to run counts as one of each.
  */
-export interface TestCountsDto {
+interface TestCountsDto {
   readonly ran: number;
   readonly failed: number;
 }
