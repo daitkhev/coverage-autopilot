@@ -19,12 +19,14 @@ describe('useSpinner', () => {
   it('should turn every spinner together on one timer', async () => {
     const terminal = render(<Spinners />);
 
+    // Between two ticks the screen may show one spinner a frame ahead, so
+    // the test waits for a frame where both have moved to the same place.
     await expect
-      .poll(() => screenOf(terminal).split(' ')[0], PATIENT)
-      .not.toBe(SPINNER_FRAMES.unicode[0]);
-
-    const [left, right] = screenOf(terminal).split(' ');
-    expect(left).toBe(right);
+      .poll(() => {
+        const [left, right] = screenOf(terminal).split(' ');
+        return left === right && left !== SPINNER_FRAMES.unicode[0];
+      }, PATIENT)
+      .toBe(true);
   });
 
   describe('when animation is turned off', () => {
