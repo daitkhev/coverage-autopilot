@@ -1,6 +1,7 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 
 import type { ToolEnd, ToolLog } from '#infrastructure/logging/tool-log';
+import { killGroup } from '#infrastructure/processes/kill-group';
 import { SandboxEngineMissingError } from '#infrastructure/sandbox/errors/sandbox-engine-missing.error';
 import { OutputTail } from '#infrastructure/sandbox/output-tail';
 import type { SandboxEngine } from '#infrastructure/sandbox/sandbox-settings';
@@ -46,6 +47,7 @@ export class EngineProcess {
     this.child = spawn(program, [...first, ...call.arguments], {
       env: engine.environment,
       stdio: 'pipe',
+      detached: true,
     });
     this.child.on('error', (error) => {
       reject(
@@ -63,9 +65,14 @@ export class EngineProcess {
     this.child.stdin.end(call.input);
   }
 
-  /** Kills the program and waits until it is gone, however it ended. */
+  /**
+   * Kills the program with the helpers it started, such as the one that
+   * reads the passwords of a registry, and waits until its streams end.
+   * The program leads a group of its own for that: a helper that outlived
+   * it kept the streams, and a stop waited for the helper.
+   */
   public async stop(): Promise<void> {
-    this.child.kill('SIGKILL');
+    killGroup(this.child);
     try {
       await this.exit;
     } catch {

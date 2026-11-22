@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import {
   appendFileSync,
   chmodSync,
@@ -35,6 +36,12 @@ interface Ending {
   readonly exitCode?: number;
   /** A call that never ends by itself, until it is killed. */
   readonly endless?: boolean;
+  /**
+   * A call that starts a helper first, as an engine starts the program
+   * that reads its passwords. The helper has the streams of the call and
+   * never ends by itself.
+   */
+  readonly helper?: boolean;
   /** A file the call waits for before it writes and ends, as a test says. */
   readonly until?: string;
 }
@@ -92,6 +99,8 @@ const ADDED_BY_THE_SYSTEM = '__CF_USER_TEXT_ENCODING';
 /** The longest wait a timer holds: the call waits to be killed. */
 const FOREVER_MS = 2_147_483_647;
 
+const FOREVER = String(FOREVER_MS);
+
 /** How often a call that waits for a file looks for it. */
 const LOOK_AGAIN_MS = 10;
 
@@ -121,6 +130,15 @@ export function callsIn(record: string): EngineCall[] {
     .map((line) => JSON.parse(line) as EngineCall);
 }
 
+/** The helper waits to be killed, with the streams of the call. */
+function startHelper(ending: Ending): void {
+  if (ending.helper === true) {
+    spawn(execPath, ['--eval', `setInterval(() => undefined, ${FOREVER})`], {
+      stdio: 'inherit',
+    });
+  }
+}
+
 function end(ending: Ending): void {
   if (ending.until !== undefined && !existsSync(ending.until)) {
     setTimeout(() => {
@@ -132,6 +150,7 @@ function end(ending: Ending): void {
     const stream = chunk.stream === 'stdout' ? STANDARD_OUTPUT : STANDARD_ERROR;
     writeSync(stream, chunk.text);
   }
+  startHelper(ending);
   if (ending.endless === true) {
     setInterval(() => undefined, FOREVER_MS);
     return;

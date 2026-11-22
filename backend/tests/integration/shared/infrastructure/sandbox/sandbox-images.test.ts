@@ -235,6 +235,20 @@ describe('SandboxImages', () => {
     });
   });
 
+  describe('when a helper of the engine outlives a stuck question', () => {
+    it('should stop waiting all the same', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+      const running = bench.runOn(
+        bench.settings({ inspection: { endless: true, helper: true } }),
+      );
+      await bench.recorded('image');
+      vi.advanceTimersByTime(QUESTION_WAIT);
+
+      await expect(running).rejects.toThrow(SandboxEngineNotRunningError);
+    });
+  });
+
   describe('when the service stops while an image is built', () => {
     it('should cut the build short and fail the command that waits for it', async () => {
       const images = new SandboxImages(bench.logger, bench.clock);

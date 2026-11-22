@@ -1,7 +1,7 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
-import { kill } from 'node:process';
 
 import type { ToolLog, ToolStart } from '#infrastructure/logging/tool-log';
+import { killGroup } from '#infrastructure/processes/kill-group';
 import { ToolFailedError } from '#repositories/infrastructure/errors/tool-failed.error';
 import { ToolMissingError } from '#repositories/infrastructure/errors/tool-missing.error';
 import { ToolOutputTooLargeError } from '#repositories/infrastructure/errors/tool-output-too-large.error';
@@ -93,18 +93,6 @@ function collect(
     take(chunk, null);
   });
   return streams;
-}
-
-/** The whole group, so a helper the tool started does not outlive it. */
-function killGroup(child: ChildProcessWithoutNullStreams): void {
-  if (child.pid === undefined) {
-    return;
-  }
-  try {
-    kill(-child.pid, 'SIGKILL');
-  } catch {
-    // The group ended on its own between its last event and the kill.
-  }
 }
 
 function watch(
