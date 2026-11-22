@@ -12,7 +12,7 @@ import { playingEngine } from '#tests/support/playing-engine';
 import { askOver } from '#tests/support/service-bench';
 
 /** The service of the package the gate builds, at the root of the tree. */
-const BUILT_FILE = fileURLToPath(
+export const BUILT_FILE = fileURLToPath(
   new URL('../../../dist/bin/service.js', import.meta.url),
 );
 
@@ -66,11 +66,27 @@ function writtenTo(stream: Readable): Written {
 }
 
 /**
- * Starts the built file under plain Node. The process gets exactly these
- * variables and nothing of the test process: a path to find git, a home
- * of its own, its instance folder, the stand-in of the engine that plays
- * the tools, so it reaches no container engine of the machine, and what
- * a test adds. A test that names the instance of another service shares
+ * The variables of a service of the instance in `directory`: a path to
+ * find git, a home beside the instance, the instance, and the stand-in of
+ * the engine that plays the tools, so it reaches no container engine of
+ * the machine. A client run with them hands them on to the service it
+ * starts.
+ */
+export function builtServiceVariables(
+  directory: string,
+): Record<string, string> {
+  return {
+    PATH: SEARCH_PATH,
+    HOME: dirname(directory),
+    AUTOPILOT_INSTANCE_DIR: directory,
+    AUTOPILOT_SANDBOX_ENGINE: JSON.stringify(playingEngine(dirname(directory))),
+  };
+}
+
+/**
+ * Starts the built file under plain Node. The process gets exactly the
+ * variables of its own instance and what a test adds, and nothing of the
+ * test process. A test that names the instance of another service shares
  * that instance.
  */
 export function startBuiltService(
@@ -78,12 +94,7 @@ export function startBuiltService(
 ): BuiltService {
   const folder = createInstanceFolder();
   const own = {
-    PATH: SEARCH_PATH,
-    HOME: dirname(folder.paths.directory),
-    AUTOPILOT_INSTANCE_DIR: folder.paths.directory,
-    AUTOPILOT_SANDBOX_ENGINE: JSON.stringify(
-      playingEngine(dirname(folder.paths.directory)),
-    ),
+    ...builtServiceVariables(folder.paths.directory),
     ...variables,
   };
   const child = spawn(execPath, [BUILT_FILE], {
