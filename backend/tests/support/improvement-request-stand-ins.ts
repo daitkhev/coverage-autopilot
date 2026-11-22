@@ -81,6 +81,7 @@ export function sourceCoverage(): SourceCoverage {
     captureSnapshot: refuse,
     prepareProject: refuse,
     runTests: refuse,
+    listSnapshotFiles: refuse,
   };
   return stand;
 }

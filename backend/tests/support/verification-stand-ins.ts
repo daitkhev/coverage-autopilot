@@ -113,6 +113,8 @@ export function standInCoverage(): StandInCoverage {
     },
     captureSnapshot: async () =>
       Promise.reject(new Error('The gate never captures a snapshot.')),
+    listSnapshotFiles: async () =>
+      Promise.reject(new Error('The gate never lists the files.')),
     getSnapshot: async () => Promise.resolve(stand.snapshot),
     getFileCoverage: async () => Promise.resolve(stand.baselineFile),
   };

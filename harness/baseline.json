@@ -21,6 +21,8 @@
         "RunTestsRequest",
         "RunTestsResult",
         "ScanParametersDto",
+        "SnapshotFilesDto",
+        "SnapshotFilesRequest",
         "SnapshotRequest",
         "TestRunDto",
         "UnmeasuredFileDto",

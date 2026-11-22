@@ -10,8 +10,8 @@ import {
 } from '#coverage/application/dto/coverage-dto-mapping';
 import type { ListSnapshotFilesQuery } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.query';
 import type {
-  CoverageThresholdDto,
   FileCoverageDto,
+  SnapshotFilesDto,
 } from '#coverage/contracts/coverage-public-api';
 import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapshot.entity';
 import {
@@ -23,18 +23,6 @@ import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-thres
 import { FileCoverage } from '#coverage/domain/value-objects/file-coverage.vo';
 import { SnapshotId } from '#coverage/domain/value-objects/snapshot-id.vo';
 import type { UnmeasuredFile } from '#coverage/domain/value-objects/unmeasured-file.vo';
-
-/** The files of a snapshot as a query narrowed them. */
-export interface SnapshotFiles {
-  readonly snapshotId: string;
-  /** What `belowThreshold` of each measured file was judged by. */
-  readonly threshold: CoverageThresholdDto;
-  /**
-   * The least covered in the metric of the threshold first. A file with
-   * nothing of that metric to count, of any state, comes after, by path.
-   */
-  readonly files: readonly FileCoverageDto[];
-}
 
 type SnapshotFile = FileCoverage | UnmeasuredFile;
 
@@ -112,7 +100,7 @@ export class ListSnapshotFilesHandler {
 
   public async execute(
     query: ListSnapshotFilesQuery,
-  ): Promise<SnapshotFiles | null> {
+  ): Promise<SnapshotFilesDto | null> {
     const snapshot = await this.snapshots.findById(
       SnapshotId.create(query.snapshotId),
     );
