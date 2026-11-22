@@ -7,6 +7,8 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 
+import { CoverageModule } from '#coverage/coverage.module';
+import { ImprovementModule } from '#improvement/improvement.module';
 import {
   ARTIFACT_DIRECTORY,
   FileArtifactStore,
@@ -35,13 +37,16 @@ import { ID_GENERATOR } from '#kernel/id/id-generator';
 import { CLOCK } from '#kernel/time/clock';
 import { ALARM } from '#ports/alarm.port';
 import { ARTIFACT_STORE } from '#ports/artifact-store.port';
-import { JOB_HANDLERS, type JobHandler } from '#ports/job-handler.port';
+import { JOB_HANDLERS } from '#ports/job-handler.port';
 import { JOB_QUEUE } from '#ports/job-queue.port';
 import { LOGGER, type Logger } from '#ports/logger.port';
 import { SANDBOX } from '#ports/sandbox.port';
 import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
 import { RepositoriesModule } from '#repositories/repositories.module';
+import { jobHandlersOf } from '#service/job-handlers';
+import { moduleSettingsOf } from '#service/module-settings';
 import { serviceSettingsOf } from '#service/service-settings';
+import { VerificationModule } from '#verification/verification.module';
 
 /** What the run of the service has taken before the application exists. */
 export interface ServiceWiring {
@@ -66,14 +71,6 @@ const SHARED = [
 ];
 
 /**
- * The handlers of scans and of improvements are bound here once the root
- * can reach them: a root file may import a module file alone, and those
- * of `coverage` and `improvement` export neither a handler nor a way to
- * give the module its settings.
- */
-const HANDLERS: readonly JobHandler[] = [];
-
-/**
  * The service: the shared adapters every module takes from outside, the
  * modules, the worker with the handlers of the jobs, and the filter that
  * answers every request that did not succeed. It is global, so a module
@@ -95,10 +92,16 @@ export class AppModule implements OnModuleInit {
   /** The service over what its run has taken. */
   public static register(wiring: ServiceWiring): DynamicModule {
     const settings = serviceSettingsOf(wiring.config, wiring.logStream);
+    const modules = moduleSettingsOf(wiring.config);
     return {
       module: AppModule,
       global: true,
-      imports: [RepositoriesModule.register(settings.repositories)],
+      imports: [
+        RepositoriesModule.register(settings.repositories),
+        CoverageModule.register(modules.coverage),
+        VerificationModule.register(modules.verification),
+        ImprovementModule.register(modules.improvement),
+      ],
       providers: [
         { provide: SERVICE_CONFIG, useValue: wiring.config },
         { provide: LOG_SETTINGS, useValue: settings.log },
@@ -115,7 +118,11 @@ export class AppModule implements OnModuleInit {
         { provide: ARTIFACT_DIRECTORY, useValue: settings.artifacts },
         { provide: ARTIFACT_STORE, useClass: FileArtifactStore },
         { provide: JOB_WORKER_SETTINGS, useValue: settings.worker },
-        { provide: JOB_HANDLERS, useValue: HANDLERS },
+        {
+          provide: JOB_HANDLERS,
+          useFactory: jobHandlersOf,
+          inject: [CoverageModule.jobHandler, ImprovementModule.jobHandler],
+        },
         JobWorker,
         JobWorkerScheduler,
         API_ERROR_FILTER,

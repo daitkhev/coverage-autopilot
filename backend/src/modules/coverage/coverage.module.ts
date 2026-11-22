@@ -1,4 +1,10 @@
-import { Inject, Module, type OnModuleInit } from '@nestjs/common';
+import {
+  type DynamicModule,
+  Inject,
+  Module,
+  type OnModuleInit,
+  type Type,
+} from '@nestjs/common';
 
 import { CancelScanHandler } from '#coverage/application/commands/cancel-scan/cancel-scan.handler';
 import { CaptureSnapshotHandler } from '#coverage/application/commands/capture-snapshot/capture-snapshot.handler';
@@ -33,6 +39,8 @@ import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-sna
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
 import { COVERAGE_PUBLIC_API } from '#coverage/contracts/coverage-public-api';
 import { COVERAGE_SNAPSHOT_REPOSITORY } from '#coverage/domain/repositories/coverage-snapshot.repository';
+import type { CoverageMetric } from '#coverage/domain/value-objects/coverage-counters.vo';
+import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-threshold.vo';
 import { TEST_RUNNER_NAMES } from '#coverage/domain/value-objects/detected-project.vo';
 import { TypescriptSourceClassifier } from '#coverage/infrastructure/classification/typescript-source-classifier.adapter';
 import { NodeProjectDetector } from '#coverage/infrastructure/detection/node-project-detector.adapter';
@@ -43,7 +51,16 @@ import { SandboxedTestRunner } from '#coverage/infrastructure/runners/sandboxed-
 import { VITEST_COMMAND } from '#coverage/infrastructure/runners/vitest-command';
 import { RepositoriesController } from '#coverage/presentation/http/repositories.controller';
 import { ScansController } from '#coverage/presentation/http/scans.controller';
+import type { JobHandler } from '#ports/job-handler.port';
 import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
+
+/** The settings of the module as plain values, as the root gives them. */
+interface CoverageValues extends Omit<CoverageSettings, 'threshold'> {
+  readonly threshold: {
+    readonly metric: CoverageMetric;
+    readonly percentage: number;
+  };
+}
 
 /**
  * Project detection, test runs with coverage, the reading of reports,
@@ -53,7 +70,8 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
  * It takes from the modules around it: both contracts of `repositories`,
  * the sandbox, the store of tool output, the queue, the transaction
  * manager, the SQLite connection, the clock, the id generator and the
- * settings of this module. It gives the queue its handler of scans.
+ * settings of this module, which `register` binds. It gives the queue its
+ * handler of scans.
  */
 @Module({
   controllers: [RepositoriesController, ScansController],
@@ -99,10 +117,32 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
   exports: [COVERAGE_PUBLIC_API, RunScanHandler],
 })
 export class CoverageModule implements OnModuleInit {
+  /**
+   * The handler of scans, which the module exports. The root gives it to
+   * the worker by this class, without reaching into a layer of the module.
+   */
+  public static readonly jobHandler: Type<JobHandler> = RunScanHandler;
+
   private readonly runners: readonly TestRunner[];
 
   public constructor(@Inject(TEST_RUNNERS) runners: readonly TestRunner[]) {
     this.runners = runners;
+  }
+
+  /**
+   * The module with its settings. It is global, so the modules above it
+   * find its contract, and the root its handler of scans.
+   */
+  public static register(values: CoverageValues): DynamicModule {
+    const settings: CoverageSettings = {
+      ...values,
+      threshold: CoverageThreshold.create(values.threshold),
+    };
+    return {
+      module: CoverageModule,
+      global: true,
+      providers: [{ provide: COVERAGE_SETTINGS, useValue: settings }],
+    };
   }
 
   /**

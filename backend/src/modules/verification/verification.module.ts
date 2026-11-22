@@ -1,4 +1,9 @@
-import { Inject, Module, type OnModuleInit } from '@nestjs/common';
+import {
+  type DynamicModule,
+  Inject,
+  Module,
+  type OnModuleInit,
+} from '@nestjs/common';
 
 import { BaselineMeasurement } from '#verification/application/commands/measure-baseline/baseline-measurement';
 import { MeasureBaselineHandler } from '#verification/application/commands/measure-baseline/measure-baseline.handler';
@@ -28,13 +33,20 @@ import {
 import { StrykerMutationRunner } from '#verification/infrastructure/mutation/stryker-mutation-runner.adapter';
 import { checkVerificationSettings } from '#verification/infrastructure/verification-settings.schema';
 
+/** The settings of the gate and of the mutation tool, as plain values. */
+interface VerificationValues {
+  readonly gate: VerificationSettings;
+  readonly mutation: MutationSettings;
+}
+
 /**
  * The quality gate: the seven checks of a test patch, and the measure of
  * a commit they are compared with. The module stores nothing.
  *
  * It takes from the modules around it: the contracts of `coverage` and
  * `repositories`, the sandbox, the store of tool output, the clock, and
- * the settings of the gate and of the mutation tool.
+ * the settings of the gate and of the mutation tool, which `register`
+ * binds.
  */
 @Module({
   providers: [
@@ -66,6 +78,21 @@ export class VerificationModule implements OnModuleInit {
   ) {
     this.gate = gate;
     this.mutation = mutation;
+  }
+
+  /**
+   * The module with its settings. It is global, so the module of an
+   * improvement finds the contract of the gate.
+   */
+  public static register(values: VerificationValues): DynamicModule {
+    return {
+      module: VerificationModule,
+      global: true,
+      providers: [
+        { provide: VERIFICATION_SETTINGS, useValue: values.gate },
+        { provide: MUTATION_SETTINGS, useValue: values.mutation },
+      ],
+    };
   }
 
   /** Settings that cannot work stop the start, not the first patch. */
