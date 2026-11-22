@@ -52,7 +52,7 @@ describe('usePullRequestLink', () => {
   it('should open the pull request in the browser on o and say so', async () => {
     const session = fakeSession({});
     const terminal = viewing(completed, session);
-    expect(frameOf(terminal)).toContain('o open the pull request');
+    expect(frameOf(terminal)).toContain('o pull request');
 
     await press(terminal, 'o');
 
@@ -112,7 +112,7 @@ describe('usePullRequestLink', () => {
 
     await press(terminal, 'o');
 
-    expect(frameOf(terminal)).not.toContain('open the pull request');
+    expect(frameOf(terminal)).not.toContain('o pull request');
     expect(session.pages).toEqual([]);
   });
 
@@ -122,7 +122,7 @@ describe('usePullRequestLink', () => {
 
     await press(terminal, 'o');
 
-    expect(frameOf(terminal)).not.toContain('open the pull request');
+    expect(frameOf(terminal)).not.toContain('o pull request');
     expect(frameOf(terminal)).not.toContain('browser');
   });
 });

@@ -33,6 +33,8 @@ export interface ImprovementActions {
   readonly ask: () => void;
   readonly openPatch: (improvementId: string) => void;
   readonly openPullRequest: (pullRequest: PullRequest) => void;
+  /** Looks for the next file below the threshold, to start work on it. */
+  readonly nextFile: (improvement: Improvement) => void;
   readonly back: () => void;
 }
 
@@ -60,15 +62,31 @@ function choiceKeys(
 }
 
 /**
- * `c` cancels work that still runs; `p` opens a patch the gate accepted;
- * `o` shows its pull request in the browser.
+ * After an ending `n` goes on to the next file below the threshold, and
+ * before it `c` cancels the work.
  */
+function endedKeys(
+  state: ImprovementKeysState,
+  actions: ImprovementActions,
+): KeyHandlers {
+  const { improvement } = state;
+  return hasEnded(improvement)
+    ? {
+        n: () => {
+          actions.nextFile(improvement);
+        },
+      }
+    : { c: actions.ask };
+}
+
+/** `p` opens a patch the gate accepted; `o` shows its pull request. */
 function letterKeys(
   state: ImprovementKeysState,
   actions: ImprovementActions,
 ): KeyHandlers {
   const { improvement, pullRequest } = state;
   return {
+    ...endedKeys(state, actions),
     ...(pullRequest === undefined
       ? {}
       : {
@@ -76,7 +94,6 @@ function letterKeys(
             actions.openPullRequest(pullRequest);
           },
         }),
-    ...(hasEnded(improvement) ? {} : { c: actions.ask }),
     ...(acceptedOf(improvement) === undefined
       ? {}
       : {
@@ -116,24 +133,47 @@ function panelHint(state: ImprovementKeysState): KeyHint {
     : { key: 'tab', label: 'details' };
 }
 
+/** At 80 columns the address of the pull request is named in short. */
+function pullRequestHints(state: ImprovementKeysState): KeyHint[] {
+  if (state.pullRequest === undefined) {
+    return [];
+  }
+  const label =
+    state.layout === 'narrow' ? 'pull request' : 'open the pull request';
+  return [{ key: 'o', label }];
+}
+
+/** Whether the next steps of a failed improvement take the arrows. */
+function isChoosing(state: ImprovementKeysState): boolean {
+  return state.choices.length > 0 && state.focused === 'work';
+}
+
+/**
+ * The letters the footer lists. While the next steps are chosen, the
+ * patch is one of them, so `p` is not named twice.
+ */
+function letterHints(state: ImprovementKeysState): KeyHint[] {
+  const { improvement } = state;
+  const patch = acceptedOf(improvement) !== undefined && !isChoosing(state);
+  return [
+    ...pullRequestHints(state),
+    ...(patch ? [{ key: 'p', label: 'patch' }] : []),
+    hasEnded(improvement)
+      ? { key: 'n', label: 'next file' }
+      : { key: 'c', label: 'cancel' },
+  ];
+}
+
 /** The keys the footer lists: only those that work now. */
 export function improvementHints(state: ImprovementKeysState): KeyHint[] {
-  const { improvement } = state;
-  const choosing = state.choices.length > 0 && state.focused === 'work';
   return [
-    ...(choosing
+    ...(isChoosing(state)
       ? [
           { key: 'up-down', label: 'choose' },
           { key: 'enter', label: 'confirm' },
         ]
       : []),
-    ...(state.pullRequest === undefined
-      ? []
-      : [{ key: 'o', label: 'open the pull request' }]),
-    ...(acceptedOf(improvement) === undefined
-      ? []
-      : [{ key: 'p', label: 'patch' }]),
-    ...(hasEnded(improvement) ? [] : [{ key: 'c', label: 'cancel' }]),
+    ...letterHints(state),
     panelHint(state),
     { key: 'esc', label: 'back' },
   ];

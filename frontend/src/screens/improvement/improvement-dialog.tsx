@@ -10,7 +10,7 @@ import { StartDialog } from '#components/start-dialog';
 import type { Limits } from '#components/start-limits';
 
 /** A file of a snapshot that a start from this screen is for. */
-interface StartTarget {
+export interface StartTarget {
   readonly snapshotId: string;
   readonly filePath: string;
   /** The limits of the work asked for again, which the form raises. */

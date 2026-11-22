@@ -108,7 +108,7 @@ exports[`ImprovementView > when the improvement cancelled > should show how it e
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  Improvements › example/payments › src/core/retry.ts · cancelled 4m ago · updated 1s ago
- tab details    esc back                                                                                 ? help"
+ n next file    tab details    esc back                                                                  ? help"
 `;
 
 exports[`ImprovementView > when the improvement completed > should show how it ended 1`] = `
@@ -145,7 +145,7 @@ exports[`ImprovementView > when the improvement completed > should show how it e
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  Improvements › example/payments › src/billing/currency.ts · completed 45m ago · updated 1s ago
- o open the pull request    p patch    tab details    esc back                                           ? help"
+ o open the pull request    p patch    n next file    tab details    esc back                            ? help"
 `;
 
 exports[`ImprovementView > when the improvement failed > should show how it ended 1`] = `
@@ -182,7 +182,7 @@ exports[`ImprovementView > when the improvement failed > should show how it ende
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  Improvements › example/payments › src/api/webhook.ts · failed 1s ago · updated 1s ago
- ↑↓ choose    enter confirm    tab details    esc back                                                   ? help"
+ ↑↓ choose    enter confirm    n next file    tab details    esc back                                    ? help"
 `;
 
 exports[`ImprovementView > when the improvement skipped > should show how it ended 1`] = `
@@ -219,5 +219,5 @@ exports[`ImprovementView > when the improvement skipped > should show how it end
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  Improvements › example/payments › src/ids.ts · skipped 30s ago · updated 1s ago
- tab details    esc back                                                                                 ? help"
+ n next file    tab details    esc back                                                                  ? help"
 `;

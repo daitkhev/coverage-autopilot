@@ -1,9 +1,6 @@
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
 
-import type {
-  Improvement,
-  PullRequest,
-} from '@coverage-autopilot/api-contracts/improvements';
+import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
 
 import type { ClientSession } from '#api/client-session';
@@ -11,34 +8,20 @@ import { AppShell, type ShellFrame } from '#components/app-shell';
 import { KeyHints } from '#components/key-hints';
 import { SplitView } from '#components/split-view';
 import { type Freshness, StatusLine } from '#components/status-line';
-import { useFocusRing } from '#hooks/use-focus-ring';
-import { useKeys } from '#hooks/use-keys';
-import { type Selection, useSelection } from '#hooks/use-selection';
 import { endOf, hasEnded } from '#screens/improvement/improvement-answer';
-import { choicesOf } from '#screens/improvement/improvement-choices';
 import {
   dialogFacts,
   dialogHints,
   ImprovementDialog,
-  type OpenDialog,
 } from '#screens/improvement/improvement-dialog';
 import { Ending } from '#screens/improvement/improvement-ending';
 import { Facts } from '#screens/improvement/improvement-facts';
 import { History } from '#screens/improvement/improvement-history';
-import {
-  improvementHints,
-  improvementKeys,
-  type ImprovementKeysState,
-  type ImprovementPanel,
-} from '#screens/improvement/improvement-keys';
-import {
-  type PullRequestLink,
-  usePullRequestLink,
-} from '#screens/improvement/pull-request-link';
+import { improvementHints } from '#screens/improvement/improvement-keys';
+import { type Place, usePlace } from '#screens/improvement/improvement-place';
 import { StepLine } from '#screens/improvement/step-line';
 import { ageWords } from '#theme/moments';
 import { repositoryName } from '#theme/names';
-import { layoutOf } from '#theme/widths';
 
 interface ImprovementViewProps {
   readonly session: ClientSession;
@@ -50,58 +33,6 @@ interface ImprovementViewProps {
   /** Shows other work in place of this one, such as work started here. */
   readonly onOpenImprovement: (improvementId: string) => void;
   readonly onBack: () => void;
-}
-
-const PANELS: readonly [ImprovementPanel, ImprovementPanel] = ['work', 'facts'];
-
-/** Where the person is: the panel, the chosen next step, the dialog. */
-interface Place {
-  readonly state: ImprovementKeysState;
-  readonly choice: Selection;
-  readonly dialog: OpenDialog | undefined;
-  readonly close: () => void;
-  readonly link: PullRequestLink;
-}
-
-function usePlace(props: ImprovementViewProps): Place {
-  const [dialog, setDialog] = useState<OpenDialog>();
-  const ring = useFocusRing(PANELS);
-  const choices = choicesOf({ ...props, open: setDialog });
-  const link = usePullRequestLink(props.session);
-  const choice = useSelection({
-    count: choices.length,
-    visible: choices.length,
-  });
-  const state = {
-    focused: ring.focused,
-    layout: layoutOf(props.frame.size),
-    improvement: props.improvement,
-    choices,
-    pullRequest:
-      link.open === undefined
-        ? undefined
-        : (props.improvement.pullRequest ?? undefined),
-  };
-  const actions = {
-    choice,
-    focus: ring.focus,
-    next: ring.next,
-    ask: () => {
-      setDialog({ kind: 'cancel' });
-    },
-    openPatch: props.onOpenPatch,
-    openPullRequest: (pullRequest: PullRequest) => {
-      link.open?.(pullRequest);
-    },
-    back: props.onBack,
-  };
-  // The screen is not behind the backdrop of its own shell, so it says
-  // itself that the dialog takes every key.
-  useKeys(improvementKeys(state, actions), { active: dialog === undefined });
-  const close = (): void => {
-    setDialog(undefined);
-  };
-  return { state, choice, dialog, close, link };
 }
 
 function Body({
@@ -180,7 +111,7 @@ function dialogOf(
             session={props.session}
             improvement={props.improvement}
             onStarted={(improvementId) => {
-              place.close();
+              place.leave();
               props.onOpenImprovement(improvementId);
             }}
             onClose={place.close}
@@ -192,12 +123,12 @@ function dialogOf(
 /**
  * One improvement: the step line, the history of the work or how it
  * ended, the facts beside it, and the dialog over them: the question
- * before a cancel, or a start of more work.
+ * before a cancel, or a start of more work, which then shows in place.
  */
 export function ImprovementView(props: ImprovementViewProps): ReactNode {
   const place = usePlace(props);
   const { improvement, repository } = props;
-  const notice = props.frame.notice ?? place.link.notice;
+  const notice = props.frame.notice ?? place.notice;
   return (
     <AppShell
       {...props.frame}
