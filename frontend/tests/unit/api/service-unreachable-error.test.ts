@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { ServiceUnreachableError } from '#api/service-unreachable-error';
+import {
+  isServiceUnreachable,
+  ServiceUnreachableError,
+} from '#api/service-unreachable-error';
 
 const SOCKET = '/tmp/coverage-autopilot/service.sock';
 
@@ -21,5 +24,17 @@ describe('ServiceUnreachableError', () => {
     expect(new ServiceUnreachableError(SOCKET, { cause: refused }).cause).toBe(
       refused,
     );
+  });
+});
+
+describe('isServiceUnreachable', () => {
+  it('should tell a service that does not answer from any other fault', () => {
+    expect(isServiceUnreachable(new ServiceUnreachableError(SOCKET))).toBe(
+      true,
+    );
+    expect(isServiceUnreachable(new TypeError('Expected a string.'))).toBe(
+      false,
+    );
+    expect(isServiceUnreachable(undefined)).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback } from 'react';
 
 import type { ClientSession } from '#api/client-session';
-import { ServiceUnreachableError } from '#api/service-unreachable-error';
+import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
 import { BareScreen } from '#components/bare-screen';
 import { EmptyState } from '#components/empty-state';
@@ -22,10 +22,6 @@ interface FilesScreenProps {
   readonly repositoryId: string;
   readonly onOpenImprovement: (improvementId: string) => void;
   readonly onBack: () => void;
-}
-
-function isUnreachable(failure: unknown): boolean {
-  return failure instanceof ServiceUnreachableError;
 }
 
 function NeverScanned({ view }: { readonly view: FilesView }): ReactNode {
@@ -56,7 +52,7 @@ export function FilesScreen(props: FilesScreenProps): ReactNode {
     now: session.now,
     everyMs: EVERY_MS,
   });
-  const shown = shownOf(request, isUnreachable);
+  const shown = shownOf(request, isServiceUnreachable);
   const freshness = { ...request, now: session.now() };
   const bare = { frame, path: PATH, freshness, onBack };
   if (shown.kind !== 'answered') {

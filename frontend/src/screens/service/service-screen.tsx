@@ -4,7 +4,7 @@ import type { StopServiceResult } from '@coverage-autopilot/api-contracts/health
 
 import type { ClientSession } from '#api/client-session';
 import type { ServiceAnswer } from '#api/service-api';
-import { ServiceUnreachableError } from '#api/service-unreachable-error';
+import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
 import { useAction } from '#hooks/use-action';
 import { useDatedRequest } from '#hooks/use-dated-request';
@@ -54,11 +54,7 @@ export function ServiceScreen({
     <ServiceView
       frame={frame}
       health={health}
-      fault={
-        health.failure instanceof ServiceUnreachableError
-          ? undefined
-          : health.failure
-      }
+      fault={isServiceUnreachable(health.failure) ? undefined : health.failure}
       moment={{ now: session.now(), timeZone: session.timeZone }}
       focused={focus.focused}
       restart={restart.state}

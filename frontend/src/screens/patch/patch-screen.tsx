@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback, useState } from 'react';
 
 import type { ClientSession } from '#api/client-session';
-import { ServiceUnreachableError } from '#api/service-unreachable-error';
+import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
 import { BareScreen } from '#components/bare-screen';
 import { shownOf, UnansweredBody } from '#components/unanswered-body';
@@ -19,10 +19,6 @@ interface PatchScreenProps {
   readonly frame: ShellFrame;
   readonly improvementId: string;
   readonly onBack: () => void;
-}
-
-function isUnreachable(failure: unknown): boolean {
-  return failure instanceof ServiceUnreachableError;
 }
 
 /**
@@ -47,7 +43,7 @@ export function PatchScreen({
     now: session.now,
     everyMs: EVERY_MS,
   });
-  const shown = shownOf(request, isUnreachable);
+  const shown = shownOf(request, isServiceUnreachable);
   const freshness = { ...request, now: session.now() };
   if (shown.kind !== 'answered') {
     return (

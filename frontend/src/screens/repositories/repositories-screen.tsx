@@ -7,7 +7,7 @@ import {
 } from 'react';
 
 import type { ClientSession } from '#api/client-session';
-import { ServiceUnreachableError } from '#api/service-unreachable-error';
+import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
 import { browseKeysOf } from '#hooks/list-keys';
 import { type DatedRequest, useDatedRequest } from '#hooks/use-dated-request';
@@ -176,9 +176,7 @@ export function RepositoriesScreen({
       listing={listing}
       work={work.answer}
       fault={
-        listing.failure instanceof ServiceUnreachableError
-          ? undefined
-          : listing.failure
+        isServiceUnreachable(listing.failure) ? undefined : listing.failure
       }
       now={session.now()}
       position={selection}

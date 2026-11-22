@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback } from 'react';
 
 import type { ClientSession } from '#api/client-session';
-import { ServiceUnreachableError } from '#api/service-unreachable-error';
+import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
 import { BareScreen } from '#components/bare-screen';
 import { shownOf, UnansweredBody } from '#components/unanswered-body';
@@ -22,10 +22,6 @@ interface ImprovementScreenProps {
   readonly onBack: () => void;
 }
 
-function isUnreachable(failure: unknown): boolean {
-  return failure instanceof ServiceUnreachableError;
-}
-
 /**
  * How far the work on one file has come and why: the screen a person
  * keeps open. It asks the service again about once a second, and closing
@@ -41,7 +37,7 @@ export function ImprovementScreen(props: ImprovementScreenProps): ReactNode {
     now: session.now,
     everyMs: EVERY_MS,
   });
-  const shown = shownOf(request, isUnreachable);
+  const shown = shownOf(request, isServiceUnreachable);
   const freshness = { ...request, now: session.now() };
   if (shown.kind !== 'answered') {
     return (

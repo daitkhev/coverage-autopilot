@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback } from 'react';
 
 import type { ClientSession } from '#api/client-session';
-import { ServiceUnreachableError } from '#api/service-unreachable-error';
+import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
 import { browseKeysOf } from '#hooks/list-keys';
 import { useDatedRequest } from '#hooks/use-dated-request';
@@ -63,9 +63,7 @@ export function ImprovementsScreen({
       frame={frame}
       listing={listing}
       fault={
-        listing.failure instanceof ServiceUnreachableError
-          ? undefined
-          : listing.failure
+        isServiceUnreachable(listing.failure) ? undefined : listing.failure
       }
       moment={{ now: session.now(), timeZone: session.timeZone }}
       position={selection}

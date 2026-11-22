@@ -11,3 +11,13 @@ export class ServiceUnreachableError extends Error {
     this.socketPath = socketPath;
   }
 }
+
+/**
+ * Whether a request failed because nothing answers on the socket. A
+ * screen keeps its last answer then, and says only that it is not fresh.
+ */
+export function isServiceUnreachable(
+  failure: unknown,
+): failure is ServiceUnreachableError {
+  return failure instanceof ServiceUnreachableError;
+}
