@@ -6,7 +6,9 @@ import { ToolLog } from '#infrastructure/logging/tool-log';
 import { CLOCK, type Clock } from '#kernel/time/clock';
 import { LOGGER, type Logger } from '#ports/logger.port';
 import type {
+  AccountResult,
   CodeHost,
+  ForkResult,
   LoginResult,
   OpenPullRequestRequest,
   OpenPullRequestResult,
@@ -19,7 +21,9 @@ import { GhNotAuthenticatedError } from '#repositories/infrastructure/errors/gh-
 import { ToolFailedError } from '#repositories/infrastructure/errors/tool-failed.error';
 import { ToolMissingError } from '#repositories/infrastructure/errors/tool-missing.error';
 import {
+  accountSchema,
   createdPullRequestSchema,
+  forkSchema,
   pullRequestListSchema,
   repositoryPermissionsSchema,
 } from '#repositories/infrastructure/gh/gh-output.schema';
@@ -101,6 +105,39 @@ export class GhCodeHost implements CodeHost {
     return answer.permissions.push
       ? { outcome: 'allowed' }
       : { outcome: 'denied' };
+  }
+
+  public async account(
+    host: string,
+    signal: AbortSignal,
+  ): Promise<AccountResult> {
+    const run = await this.gh.run(
+      await this.call(['api', `--hostname=${host}`, 'user']),
+      signal,
+    );
+    if (run.exitCode !== 0) {
+      return { outcome: 'refused', output: run.output };
+    }
+    const { login } = parseToolOutput(accountSchema, run.stdout, 'gh api');
+    return { outcome: 'read', login };
+  }
+
+  /** The fork is the one the answer names, never a name made up here. */
+  public async ensureFork(
+    url: RepositoryUrl,
+    signal: AbortSignal,
+  ): Promise<ForkResult> {
+    const call = await this.call([
+      'api',
+      '--method=POST',
+      `repos/${url.fullName}/forks`,
+    ]);
+    const run = this.loggedIn(await this.gh.run(call, signal), url);
+    if (run.exitCode !== 0) {
+      return { outcome: 'refused', output: run.output };
+    }
+    const answer = parseToolOutput(forkSchema, run.stdout, 'gh api');
+    return { outcome: 'forked', fork: answer.clone_url };
   }
 
   public async findPullRequest(

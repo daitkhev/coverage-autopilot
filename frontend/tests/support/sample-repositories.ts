@@ -138,6 +138,7 @@ export const ACCESS_PASSED: AccessCheck = {
   checkedAt: '2026-11-21T14:04:58.000Z',
   passed: true,
   headCommit: PAYMENTS_COMMIT,
+  destination: { route: 'repository' },
   steps: [
     { name: 'git_present', status: 'passed', message: null, toolOutput: null },
     {
@@ -150,12 +151,19 @@ export const ACCESS_PASSED: AccessCheck = {
   ],
 };
 
+/** Passed for an account that may not push: a result goes to its fork. */
+export const ACCESS_PASSED_TO_FORK: AccessCheck = {
+  ...ACCESS_PASSED,
+  destination: { route: 'fork', account: 'payments-bot' },
+};
+
 /** Refused at the login of gh, so the step after it never ran. */
 export const ACCESS_REFUSED: AccessCheck = {
   repositoryId: NEVER_SCANNED_REPOSITORY.id,
   checkedAt: '2026-11-21T14:04:58.000Z',
   passed: false,
   headCommit: null,
+  destination: null,
   steps: [
     { name: 'git_present', status: 'passed', message: null, toolOutput: null },
     {

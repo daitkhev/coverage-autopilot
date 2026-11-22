@@ -13,6 +13,19 @@ export type PushPermissionResult =
   | { readonly outcome: 'denied' }
   | { readonly outcome: 'refused'; readonly output: string };
 
+/** `refused`: the host did not name the account, for a reason in its answer. */
+export type AccountResult =
+  | { readonly outcome: 'read'; readonly login: string }
+  | { readonly outcome: 'refused'; readonly output: string };
+
+/**
+ * The fork as the host named it, which may not be `<account>/<name>`.
+ * `refused`: the host would not fork, such as for an owner who forbids it.
+ */
+export type ForkResult =
+  | { readonly outcome: 'forked'; readonly fork: RepositoryUrl }
+  | { readonly outcome: 'refused'; readonly output: string };
+
 export interface PullRequest {
   readonly number: number;
   readonly url: string;
@@ -45,6 +58,16 @@ export interface CodeHost {
     url: RepositoryUrl,
     signal: AbortSignal,
   ): Promise<PushPermissionResult>;
+
+  /** The login of the account `gh` uses on the host. */
+  account(host: string, signal: AbortSignal): Promise<AccountResult>;
+
+  /**
+   * Makes sure the account has a fork of the repository. The host answers
+   * with the fork the account has, so a call made again makes none. A new
+   * fork is made in the background, and git reaches it a while later.
+   */
+  ensureFork(url: RepositoryUrl, signal: AbortSignal): Promise<ForkResult>;
 
   /** The latest pull request from the branch, in any state, or `null`. */
   findPullRequest(

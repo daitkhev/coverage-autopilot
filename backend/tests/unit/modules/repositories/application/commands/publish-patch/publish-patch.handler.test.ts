@@ -12,7 +12,9 @@ import { SCRIPTED_HEAD } from '#tests/support/scripted-git';
 const NEVER = new AbortController().signal;
 const BASE = CommitSha.create('a'.repeat(40));
 const BRANCH = 'coverage/src-a-ts';
+const BASE_BRANCH = `coverage-autopilot/base-${BASE.value}`;
 const COPY = `publish_3a${WIDGETS_ID.value}_3acoverage_2fsrc-a-ts`;
+const FORK_PULL_REQUEST = 'https://github.com/acme-bot/widgets/pull/1';
 
 const COMMAND: PublishPatchCommand = {
   repositoryId: WIDGETS_ID,
@@ -45,12 +47,13 @@ describe('PublishPatchHandler', () => {
       expect(world.copies.calls).toEqual([
         `create ${COPY} of acme/widgets at ${BASE.value}`,
         `applyPatch ${COPY}: the patch`,
-        `commitAndPush ${COPY} to ${BRANCH}: test: cover src/a.ts`,
+        `commitAndPush ${COPY} to acme/widgets ${BRANCH}: test: cover src/a.ts`,
         `dispose ${COPY}`,
       ]);
       expect(world.host.calls).toEqual([
-        `findPullRequest ${BRANCH}`,
-        `openPullRequest ${BRANCH} into main: Cover src/a.ts`,
+        'pushPermission',
+        `findPullRequest acme/widgets ${BRANCH}`,
+        `openPullRequest acme/widgets ${BRANCH} into main: Cover src/a.ts`,
       ]);
     });
 
@@ -110,7 +113,10 @@ describe('PublishPatchHandler', () => {
           reason: 'patch does not apply',
         });
         expect(world.copies.calls.at(-1)).toBe(`dispose ${COPY}`);
-        expect(world.host.calls).toEqual([`findPullRequest ${BRANCH}`]);
+        expect(world.host.calls).toEqual([
+          'pushPermission',
+          `findPullRequest acme/widgets ${BRANCH}`,
+        ]);
       });
     });
 
@@ -149,6 +155,83 @@ describe('PublishPatchHandler', () => {
           ),
         ).rejects.toThrow(InvalidBranchNameError);
         expect(world.host.calls).toEqual([]);
+      });
+    });
+
+    describe('when the account may not push', () => {
+      beforeEach(() => {
+        world.host.permissionAnswer = { outcome: 'denied' };
+      });
+
+      it('should push the tests with their base to the fork and open the pull request there', async () => {
+        const result = await world.publishPatch.execute(COMMAND, NEVER);
+
+        expect(result).toEqual({
+          outcome: 'published',
+          branchName: BRANCH,
+          pullRequestUrl: FORK_PULL_REQUEST,
+          pullRequestNumber: 1,
+        });
+        expect(world.copies.calls).toEqual([
+          `create ${COPY} of acme/widgets at ${BASE.value}`,
+          `applyPatch ${COPY}: the patch`,
+          `commitAndPush ${COPY} to acme-bot/widgets ${BRANCH} with ${BASE_BRANCH} at ${BASE.value}: test: cover src/a.ts`,
+          `dispose ${COPY}`,
+        ]);
+        expect(world.host.calls).toEqual([
+          'pushPermission',
+          'ensureFork acme/widgets',
+          `findPullRequest acme-bot/widgets ${BRANCH}`,
+          `openPullRequest acme-bot/widgets ${BRANCH} into ${BASE_BRANCH}: Cover src/a.ts`,
+        ]);
+      });
+
+      describe('when an earlier call opened the pull request in the fork', () => {
+        it('should give it, and push, fork or open nothing new', async () => {
+          await world.publishPatch.execute(COMMAND, NEVER);
+          world.copies.calls.length = 0;
+
+          const again = await world.publishPatch.execute(COMMAND, NEVER);
+
+          expect(again).toMatchObject({ pullRequestUrl: FORK_PULL_REQUEST });
+          expect(world.copies.calls).toEqual([]);
+          expect([...world.host.pullRequests.keys()]).toEqual([
+            `acme-bot/widgets ${BRANCH}`,
+          ]);
+        });
+      });
+
+      describe('when an earlier call pushed to the fork and stopped', () => {
+        it('should open the pull request in the fork and push nothing', async () => {
+          world.git.branchHeads.set(BRANCH, {
+            outcome: 'read',
+            commit: SCRIPTED_HEAD,
+          });
+
+          const result = await world.publishPatch.execute(COMMAND, NEVER);
+
+          expect(result).toMatchObject({ pullRequestUrl: FORK_PULL_REQUEST });
+          expect(world.copies.calls).toEqual([]);
+        });
+      });
+
+      describe('when the host will not fork the repository', () => {
+        it('should answer refused in the words of the host and push nothing', async () => {
+          world.host.forkAnswer = {
+            outcome: 'refused',
+            output: 'Forking is disabled for this repository. (HTTP 403)',
+          };
+
+          expect(await world.publishPatch.execute(COMMAND, NEVER)).toEqual({
+            outcome: 'refused',
+            reason: 'Forking is disabled for this repository. (HTTP 403)',
+          });
+          expect(world.host.calls).toEqual([
+            'pushPermission',
+            'ensureFork acme/widgets',
+          ]);
+          expect(world.copies.calls).toEqual([]);
+        });
       });
     });
   });

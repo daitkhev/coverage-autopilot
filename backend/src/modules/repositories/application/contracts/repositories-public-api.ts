@@ -44,12 +44,22 @@ interface AccessStepDto {
   readonly toolOutput: string | null;
 }
 
+/**
+ * Where the branch and the pull request of a result go: the repository
+ * when the account may push to it, and otherwise a fork in the account.
+ */
+type DestinationDto =
+  | { readonly route: 'repository' }
+  | { readonly route: 'fork'; readonly account: string };
+
 export interface AccessCheckDto {
   readonly repositoryId: RepositoryId;
   readonly checkedAt: Instant;
   readonly passed: boolean;
   /** Read with the last step, so a check that stopped early has none. */
   readonly headCommit: CommitSha | null;
+  /** Known with the last step, as the head is. */
+  readonly destination: DestinationDto | null;
   readonly steps: readonly AccessStepDto[];
 }
 
@@ -154,7 +164,10 @@ export type PublishPatchResult =
 export interface RepositoriesPublicApi {
   getRepository(request: RepositoryRequest): Promise<RepositoryDto | null>;
 
-  /** The preflight: `git` is there, `gh` is logged in, a push is allowed. */
+  /**
+   * The preflight: `git` is there, `gh` is logged in, and where a result
+   * goes, which is a fork in the account when it may not push.
+   */
   checkAccess(
     request: RepositoryRequest,
     signal: AbortSignal,
@@ -198,8 +211,9 @@ export interface RepositoriesPublicApi {
 
   /**
    * Makes a clean clone at the base commit, applies the patch, commits,
-   * pushes and opens the pull request. It never takes a diff from a folder
-   * the generator or a test run has touched.
+   * pushes and opens the pull request: in the repository when the account
+   * may push to it, and otherwise in its fork in the account. It never
+   * takes a diff from a folder the generator or a test run has touched.
    */
   publishPatch(
     request: PublishPatchRequest,

@@ -11,6 +11,7 @@ import { AccessProbe } from '#repositories/application/commands/check-access/acc
 import { CheckAccessHandler } from '#repositories/application/commands/check-access/check-access.handler';
 import { ConnectRepositoryHandler } from '#repositories/application/commands/connect-repository/connect-repository.handler';
 import { CreateWorkingCopyHandler } from '#repositories/application/commands/create-working-copy/create-working-copy.handler';
+import { PublicationTargets } from '#repositories/application/commands/publish-patch/publication-targets';
 import { PublishPatchHandler } from '#repositories/application/commands/publish-patch/publish-patch.handler';
 import { ResolveHeadHandler } from '#repositories/application/commands/resolve-head/resolve-head.handler';
 import { REPOSITORIES_PUBLIC_API } from '#repositories/application/contracts/repositories-public-api';
@@ -60,11 +61,12 @@ const HANDLERS = [
 /**
  * Everything that uses `git` and `gh`, and the routes of a repository:
  * connecting one, the list, one repository, its threshold and its access
- * check. It takes the clock, the id generator, the transaction manager
- * and the SQLite connection from the shared infrastructure, and its own
- * settings from `register`. An answer about a repository holds what only the coverage
- * module knows, which is above this one: it comes through the port
- * `REPOSITORY_COVERAGE` of this module, which the coverage module binds.
+ * check. It takes the clock, the alarm, the id generator, the transaction
+ * manager and the SQLite connection from the shared infrastructure, and
+ * its own settings from `register`. An answer about a repository holds
+ * what only the coverage module knows, which is above this one: it comes
+ * through the port `REPOSITORY_COVERAGE` of this module, which the
+ * coverage module binds.
  */
 @Module({})
 export class RepositoriesModule implements OnModuleInit {
@@ -105,6 +107,7 @@ export class RepositoriesModule implements OnModuleInit {
         HeadRecorder,
         RepositoryViews,
         AccessProbe,
+        PublicationTargets,
         ...HANDLERS,
       ],
       exports: [REPOSITORIES_PUBLIC_API],

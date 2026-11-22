@@ -21,6 +21,7 @@ const LAST_PASSED: AccessStepOutcome = {
   status: 'passed',
   message: 'Allowed.',
   headCommit: HEAD,
+  destination: { route: 'fork', account: 'acme-bot' },
 };
 
 function checkOf(...outcomes: AccessStepOutcome[]): AccessCheck {
@@ -39,6 +40,7 @@ describe('AccessCheck', () => {
       expect(check.nextStep()).toBe('git_present');
       expect(check.passed).toBe(false);
       expect(check.headCommit).toBeNull();
+      expect(check.destination).toBeNull();
       expect(check.steps.map((step) => step.status)).toEqual([
         'not_run',
         'not_run',
@@ -55,11 +57,12 @@ describe('AccessCheck', () => {
       expect(checkOf(PASSED, PASSED).nextStep()).toBe('push_allowed');
     });
 
-    it('should pass with the head of the last step when every step passed', () => {
+    it('should pass with the head and the destination of the last step when every step passed', () => {
       const check = checkOf(PASSED, PASSED, LAST_PASSED);
 
       expect(check.passed).toBe(true);
       expect(check.headCommit).toBe(HEAD);
+      expect(check.destination).toEqual({ route: 'fork', account: 'acme-bot' });
       expect(check.nextStep()).toBeNull();
       expect(check.steps).toEqual([
         {
@@ -98,6 +101,7 @@ describe('AccessCheck', () => {
         expect(check.nextStep()).toBeNull();
         expect(check.passed).toBe(false);
         expect(check.headCommit).toBeNull();
+        expect(check.destination).toBeNull();
         expect(check.steps).toEqual([
           {
             name: 'git_present',
@@ -145,6 +149,24 @@ describe('AccessCheck', () => {
           InvalidAccessCheckError,
         );
       });
+
+      it('should throw InvalidAccessCheckError for a destination before the last step', () => {
+        expect(() =>
+          checkOf({ ...PASSED, destination: { route: 'repository' } }),
+        ).toThrow(InvalidAccessCheckError);
+      });
+
+      it.each([
+        ['no destination', { ...PASSED, headCommit: HEAD }],
+        ['no head', { ...PASSED, destination: { route: 'repository' } }],
+      ] as const)(
+        'should throw InvalidAccessCheckError for a last step with %s',
+        (_name, last) => {
+          expect(() => checkOf(PASSED, PASSED, last)).toThrow(
+            InvalidAccessCheckError,
+          );
+        },
+      );
     });
   });
 

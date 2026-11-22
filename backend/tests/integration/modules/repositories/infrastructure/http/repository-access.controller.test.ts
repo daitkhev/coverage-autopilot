@@ -68,6 +68,7 @@ describe('RepositoryAccessController', () => {
         checkedAt: STORED_TIME,
         passed: true,
         headCommit: SCRIPTED_HEAD.value,
+        destination: { route: 'repository' },
         steps: [
           {
             name: 'git_present',
@@ -91,6 +92,19 @@ describe('RepositoryAccessController', () => {
       });
     });
 
+    describe('when the account may not push', () => {
+      it('should answer 200 with a fork in the account as the destination', async () => {
+        world.host.permissionAnswer = { outcome: 'denied' };
+
+        const answer = await service.send('GET', PATH);
+
+        expect(accessCheckSchema.parse(answer.body)).toMatchObject({
+          passed: true,
+          destination: { route: 'fork', account: 'acme-bot' },
+        });
+      });
+    });
+
     describe('when a step fails', () => {
       it('should answer 200 with what the tool said and the steps never run', async () => {
         world.host.loginAnswer = {
@@ -102,7 +116,11 @@ describe('RepositoryAccessController', () => {
 
         expect(answer.status).toBe(200);
         const check = accessCheckSchema.parse(answer.body);
-        expect(check).toMatchObject({ passed: false, headCommit: null });
+        expect(check).toMatchObject({
+          passed: false,
+          headCommit: null,
+          destination: null,
+        });
         expect(check.steps.slice(1)).toEqual([
           {
             name: 'gh_authenticated',

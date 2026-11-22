@@ -14,6 +14,7 @@ export function accessCheckAnswerOf(check: CheckedAccess): AccessCheck {
     checkedAt: check.checkedAt.toString(),
     passed: check.passed,
     headCommit: check.headCommit?.value ?? null,
+    destination: check.destination,
     steps: check.steps.map((step) => ({
       name: step.name,
       status: step.status,

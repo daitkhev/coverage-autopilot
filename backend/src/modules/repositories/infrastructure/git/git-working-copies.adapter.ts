@@ -72,6 +72,19 @@ const MOVE_REFUSED =
   'The patch renames or copies a file. Only a patch that names every ' +
   'file it changes, as one without renames does, is applied.';
 
+/**
+ * What a push names after its options: the address and the branch of the
+ * tests, and the base of their pull request when there is one, in one
+ * atomic push, so neither branch is ever there alone.
+ */
+function pushedRefs(request: PushRequest): string[] {
+  const tests = `HEAD:${request.branch.ref}`;
+  const { base, url } = request;
+  return base === undefined
+    ? [url.value, tests]
+    : ['--atomic', url.value, `${base.commit.value}:${base.branch.ref}`, tests];
+}
+
 /** git on a copy, with both of its folders named, so git looks for neither. */
 function inCopy(copy: CopyFolders, args: readonly string[]): ToolCall {
   return {
@@ -223,8 +236,7 @@ export class GitWorkingCopies implements WorkingCopies {
           `--git-dir=${copy.gitDir}`,
           'push',
           '--quiet',
-          request.url.value,
-          `HEAD:${request.branch.ref}`,
+          ...pushedRefs(request),
         ],
         directory: copy.gitDir,
       },

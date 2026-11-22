@@ -17,14 +17,27 @@ import {
   AccessCheck,
   type AccessStepName,
   type AccessStepOutcome,
+  type Destination,
 } from '#repositories/domain/value-objects/access-check.vo';
 import type { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
 
-function failed(
-  message: string,
-  toolOutput: string | null = null,
-): AccessStepOutcome {
+type FailedStep = Extract<AccessStepOutcome, { readonly status: 'failed' }>;
+
+/** Where a result goes, and the words the last step passes with. */
+interface Route {
+  readonly status: 'routed';
+  readonly message: string;
+  readonly destination: Destination;
+}
+
+const TO_REPOSITORY: Destination = { route: 'repository' };
+
+function failed(message: string, toolOutput: string | null = null): FailedStep {
   return { status: 'failed', message, toolOutput };
+}
+
+function routed(message: string, destination: Destination): Route {
+  return { status: 'routed', message, destination };
 }
 
 function notInstalled(tool: string): AccessStepOutcome {
@@ -121,25 +134,54 @@ export class AccessProbe {
         );
   }
 
-  /** Asks the host, then reads the head with git, which also pushes. */
+  /**
+   * Asks the host where a result goes, then reads the head with git, which
+   * also pushes.
+   */
   private async pushAllowed(
     repository: Repository,
     signal: AbortSignal,
   ): Promise<AccessStepOutcome> {
-    const name = repository.url.fullName;
-    const permission = await this.host.pushPermission(repository.url, signal);
-    if (permission.outcome === 'denied') {
+    const route = await this.routeOf(repository.url, signal);
+    return route.status === 'failed'
+      ? route
+      : this.headOf(repository, route, signal);
+  }
+
+  /**
+   * The repository, when the account may push to it. Otherwise a result
+   * goes to a fork in the account, which publishing makes when it needs it.
+   */
+  private async routeOf(
+    url: RepositoryUrl,
+    signal: AbortSignal,
+  ): Promise<Route | FailedStep> {
+    const name = url.fullName;
+    const permission = await this.host.pushPermission(url, signal);
+    if (permission.outcome === 'refused') {
       return failed(
-        `The account of gh may not push to ${name}. Ask for write access and check again.`,
+        `gh could not ask the host about ${name}.`,
+        permission.output,
       );
     }
-    return permission.outcome === 'refused'
-      ? failed(`gh could not ask the host about ${name}.`, permission.output)
-      : this.headOf(repository, signal);
+    if (permission.outcome === 'allowed') {
+      return routed(`The account may push to ${name}.`, TO_REPOSITORY);
+    }
+    const account = await this.host.account(url.host, signal);
+    return account.outcome === 'read'
+      ? routed(
+          `The account may not push to ${name}. A result goes to a fork in the account ${account.login}.`,
+          { route: 'fork', account: account.login },
+        )
+      : failed(
+          `The account may not push to ${name}, and gh could not name the account a fork would be in.`,
+          account.output,
+        );
   }
 
   private async headOf(
     repository: Repository,
+    route: Route,
     signal: AbortSignal,
   ): Promise<AccessStepOutcome> {
     const name = repository.url.fullName;
@@ -154,8 +196,9 @@ export class AccessProbe {
     return read.outcome === 'read'
       ? {
           status: 'passed',
-          message: `The account may push to ${name}.`,
+          message: route.message,
           headCommit: read.commit,
+          destination: route.destination,
         }
       : failed(`git could not read ${name}.`, read.output);
   }

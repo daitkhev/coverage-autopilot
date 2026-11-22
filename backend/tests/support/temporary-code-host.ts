@@ -56,7 +56,7 @@ export class TemporaryCodeHost {
     const ghFolder = join(this.folder, 'gh');
     mkdirSync(ghFolder);
     writeFileSync(join(this.folder, 'gitconfig'), '');
-    this.gh = new GhStandIn(ghFolder);
+    this.gh = new GhStandIn(ghFolder, this.remotes);
     this.settings = {
       threshold: DEFAULT_TEST_THRESHOLD,
       workingCopiesRoot: join(this.folder, 'service'),

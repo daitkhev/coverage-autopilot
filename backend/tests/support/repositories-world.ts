@@ -5,6 +5,7 @@ import { AccessProbe } from '#repositories/application/commands/check-access/acc
 import { CheckAccessHandler } from '#repositories/application/commands/check-access/check-access.handler';
 import { ConnectRepositoryHandler } from '#repositories/application/commands/connect-repository/connect-repository.handler';
 import { CreateWorkingCopyHandler } from '#repositories/application/commands/create-working-copy/create-working-copy.handler';
+import { PublicationTargets } from '#repositories/application/commands/publish-patch/publication-targets';
 import { PublishPatchHandler } from '#repositories/application/commands/publish-patch/publish-patch.handler';
 import { ResolveHeadHandler } from '#repositories/application/commands/resolve-head/resolve-head.handler';
 import { RepositoryViews } from '#repositories/application/dto/repository-views';
@@ -26,6 +27,7 @@ import { ScriptedGit } from '#tests/support/scripted-git';
 import { ScriptedWorkingCopies } from '#tests/support/scripted-working-copies';
 import { SequentialIdGenerator } from '#tests/support/sequential-id-generator';
 import { standInRepositoryCoverage } from '#tests/support/stand-in-repository-coverage';
+import { SteppingAlarm } from '#tests/support/stepping-alarm';
 
 /** The id `connected` gives `acme/widgets`, apart from the generated ones. */
 export const WIDGETS_ID = RepositoryId.create(
@@ -55,7 +57,14 @@ export class RepositoriesWorld {
     this.repositories,
     this.transactions,
   );
+  public readonly alarm = new SteppingAlarm(this.clock);
   public readonly probe = new AccessProbe(this.git, this.host, this.clock);
+  public readonly targets = new PublicationTargets(
+    this.host,
+    this.git,
+    this.clock,
+    this.alarm,
+  );
 
   public readonly connect = new ConnectRepositoryHandler(
     this.repositories,
@@ -108,6 +117,7 @@ export class RepositoriesWorld {
     this.git,
     this.host,
     this.copies,
+    this.targets,
   );
   public readonly facade = new RepositoriesFacade(
     this.getRepository,

@@ -31,6 +31,7 @@ describe('AccessProbe', () => {
 
       expect(check.passed).toBe(true);
       expect(check.headCommit).toBe(SCRIPTED_HEAD);
+      expect(check.destination).toEqual({ route: 'repository' });
       expect(check.checkedAt.toString()).toBe(world.clock.now().toString());
       expect(check.steps.map((step) => step.message)).toEqual([
         'Found git version 2.50.1.',
@@ -122,16 +123,51 @@ describe('AccessProbe', () => {
     });
 
     describe('when the account may not push', () => {
-      it('should fail the last step and read no head', async () => {
+      beforeEach(() => {
         world.host.permissionAnswer = { outcome: 'denied' };
+      });
 
+      it('should pass and send a result to a fork in the account gh names', async () => {
         const check = await world.probe.run(repository, NEVER);
 
-        expect(check.headCommit).toBeNull();
+        expect(check.passed).toBe(true);
+        expect(check.headCommit).toBe(SCRIPTED_HEAD);
+        expect(check.destination).toEqual({
+          route: 'fork',
+          account: 'acme-bot',
+        });
         expect(check.steps[2]?.message).toBe(
-          'The account of gh may not push to acme/widgets. Ask for write access and check again.',
+          'The account may not push to acme/widgets. A result goes to a fork in the account acme-bot.',
         );
-        expect(world.git.calls).toEqual(['version']);
+        expect(world.host.calls).toEqual([
+          'loginStatus github.com',
+          'pushPermission',
+          'account github.com',
+        ]);
+      });
+
+      it('should make no fork while it checks', async () => {
+        await world.probe.run(repository, NEVER);
+
+        expect(world.host.calls).not.toContain('ensureFork acme/widgets');
+      });
+
+      describe('when gh cannot name the account', () => {
+        it('should fail the last step with the answer of gh and read no head', async () => {
+          world.host.accountAnswer = { outcome: 'refused', output: 'HTTP 401' };
+
+          const check = await world.probe.run(repository, NEVER);
+
+          expect(check.steps[2]).toEqual({
+            name: 'push_allowed',
+            status: 'failed',
+            message:
+              'The account may not push to acme/widgets, and gh could not name the account a fork would be in.',
+            toolOutput: 'HTTP 401',
+          });
+          expect(check.destination).toBeNull();
+          expect(world.git.calls).toEqual(['version']);
+        });
       });
     });
 

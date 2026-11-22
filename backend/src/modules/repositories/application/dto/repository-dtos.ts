@@ -50,6 +50,7 @@ export function toAccessCheckDto(
     checkedAt: check.checkedAt,
     passed: check.passed,
     headCommit: check.headCommit,
+    destination: check.destination,
     steps: check.steps,
   };
 }

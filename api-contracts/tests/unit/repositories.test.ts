@@ -137,6 +137,7 @@ describe('accessCheckSchema', () => {
     checkedAt: '2026-11-21T10:00:00.000Z',
     passed: false,
     headCommit: null,
+    destination: null,
     steps: [
       {
         name: 'git_present',
@@ -161,6 +162,26 @@ describe('accessCheckSchema', () => {
 
   it('should accept a check that stopped at a failed step', () => {
     expect(accessCheckSchema.safeParse(check).success).toBe(true);
+  });
+
+  it.each([
+    ['the repository', { route: 'repository' }],
+    ['a fork in an account', { route: 'fork', account: 'acme-bot' }],
+  ])('should accept a passed check that sends a result to %s', (_name, to) => {
+    const passed = { ...check, passed: true, destination: to };
+
+    expect(accessCheckSchema.safeParse(passed).success).toBe(true);
+  });
+
+  it.each([
+    ['a fork with no account', { route: 'fork' }],
+    ['a fork with an empty account', { route: 'fork', account: '' }],
+    ['an account of the repository', { route: 'repository', account: 'a' }],
+    ['an unknown route', { route: 'mirror' }],
+  ])('should refuse %s as a destination', (_name, to) => {
+    const value = { ...check, destination: to };
+
+    expect(accessCheckSchema.safeParse(value).success).toBe(false);
   });
 
   it.each([

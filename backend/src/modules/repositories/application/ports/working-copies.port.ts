@@ -29,11 +29,23 @@ export type CopyApplyResult =
   | { readonly outcome: 'applied'; readonly files: readonly FilePath[] }
   | { readonly outcome: 'refused'; readonly reason: string };
 
+/** A branch that points at a commit the copy holds. */
+export interface BranchAt {
+  readonly branch: BranchName;
+  readonly commit: CommitSha;
+}
+
 export interface PushRequest {
   readonly id: WorkingCopyId;
   readonly url: RepositoryUrl;
   readonly branch: BranchName;
   readonly commitMessage: string;
+  /**
+   * A branch for the base of the pull request, pushed in the same push:
+   * both branches are taken, or neither. A branch there at the commit
+   * already is left as it is.
+   */
+  readonly base?: BranchAt;
 }
 
 /** `refused`: the host would not take the branch, and git said why. */
@@ -67,7 +79,10 @@ export interface WorkingCopies {
   /** Applies all of the patch or nothing of it. */
   applyPatch(id: WorkingCopyId, patchText: string): Promise<CopyApplyResult>;
 
-  /** Commits every change of the copy and pushes it as a new branch. */
+  /**
+   * Commits every change of the copy and pushes it as a new branch, with
+   * the branch of the base when the request names one.
+   */
   commitAndPush(request: PushRequest, signal: AbortSignal): Promise<PushResult>;
 }
 

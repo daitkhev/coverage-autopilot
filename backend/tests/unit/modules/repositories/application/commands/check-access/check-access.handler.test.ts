@@ -29,6 +29,7 @@ describe('CheckAccessHandler', () => {
         repositoryId: WIDGETS_ID,
         passed: true,
         headCommit: SCRIPTED_HEAD,
+        destination: { route: 'repository' },
       });
       expect(check?.checkedAt.toString()).toBe(STORED_TIME);
       expect(check?.steps).toHaveLength(3);

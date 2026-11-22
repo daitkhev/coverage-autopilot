@@ -85,12 +85,26 @@ export const accessStepSchema = z.strictObject({
 
 export type AccessStep = z.infer<typeof accessStepSchema>;
 
+/**
+ * Where the branch and the pull request of a result go: the repository
+ * when the account may push to it, and otherwise a fork in the account
+ * that `gh` is logged in with.
+ */
+export const destinationSchema = z.discriminatedUnion('route', [
+  z.strictObject({ route: z.literal('repository') }),
+  z.strictObject({ route: z.literal('fork'), account: textSchema }),
+]);
+
+export type Destination = z.infer<typeof destinationSchema>;
+
 export const accessCheckSchema = z.strictObject({
   repositoryId: idSchema,
   checkedAt: timestampSchema,
   passed: z.boolean(),
   /** Read with the last step, so a check that stopped early has none. */
   headCommit: commitShaSchema.nullable(),
+  /** Known with the last step, as the head is. */
+  destination: destinationSchema.nullable(),
   steps: z.array(accessStepSchema),
 });
 

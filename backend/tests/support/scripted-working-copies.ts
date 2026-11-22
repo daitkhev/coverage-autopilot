@@ -41,8 +41,13 @@ export class ScriptedWorkingCopies implements WorkingCopies {
   }
 
   public commitAndPush(request: PushRequest): Promise<PushResult> {
+    const { base } = request;
+    const withBase =
+      base === undefined
+        ? ''
+        : ` with ${base.branch.value} at ${base.commit.value}`;
     this.calls.push(
-      `commitAndPush ${request.id.value} to ${request.branch.value}: ${request.commitMessage}`,
+      `commitAndPush ${request.id.value} to ${request.url.fullName} ${request.branch.value}${withBase}: ${request.commitMessage}`,
     );
     return Promise.resolve(this.pushAnswer);
   }

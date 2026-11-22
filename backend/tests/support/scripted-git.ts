@@ -27,6 +27,8 @@ export class ScriptedGit implements Git {
     outcome: 'read',
     branch: BranchName.create('main'),
   };
+  /** Given first, one a call, before `defaultBranchAnswer`. */
+  public readonly earlierDefaultBranchAnswers: DefaultBranchResult[] = [];
   /** By the name of the branch. A branch with no answer is absent. */
   public readonly branchHeads = new Map<string, BranchHeadResult>([
     ['main', { outcome: 'read', commit: SCRIPTED_HEAD }],
@@ -44,7 +46,9 @@ export class ScriptedGit implements Git {
 
   public readDefaultBranch(url: RepositoryUrl): Promise<DefaultBranchResult> {
     this.calls.push(`readDefaultBranch ${url.fullName}`);
-    return Promise.resolve(this.defaultBranchAnswer);
+    return Promise.resolve(
+      this.earlierDefaultBranchAnswers.shift() ?? this.defaultBranchAnswer,
+    );
   }
 
   public readBranchHead(request: BranchRequest): Promise<BranchHeadResult> {
