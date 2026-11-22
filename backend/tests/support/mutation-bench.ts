@@ -59,6 +59,7 @@ export class MutationBench {
       workingCopyPath: this.root,
       owner: OWNER,
       targetFile: FilePath.create(TARGET),
+      leftOutTestFiles: [],
       testRunner,
       timeoutMs: RUN_TIMEOUT_MS,
     };

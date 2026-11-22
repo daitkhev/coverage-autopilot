@@ -44,6 +44,12 @@ export type MutationToolResult =
 export interface MutationRunRequest extends MutationToolRequest {
   /** Only this file is mutated. */
   readonly targetFile: FilePath;
+  /**
+   * Test files the tool must neither run nor see, since a test of theirs
+   * failed before any patch. A baseline and a run with a patch of it leave
+   * out the same ones. A run left with no test still lists every mutant.
+   */
+  readonly leftOutTestFiles: readonly FilePath[];
   /** The whole run is stopped from outside when it takes longer. */
   readonly timeoutMs: number;
 }

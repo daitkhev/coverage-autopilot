@@ -88,6 +88,15 @@ export class CheckResult extends ValueObject<CheckResultProps> {
     return CheckResult.of({ name, status: 'passed', message: null }, evidence);
   }
 
+  /** A check that passed and says what it did not judge. */
+  public static passedWith(
+    name: CheckName,
+    message: string,
+    evidence: Evidence = {},
+  ): CheckResult {
+    return CheckResult.of({ name, status: 'passed', message }, evidence);
+  }
+
   public static failed(
     name: CheckName,
     message: string,

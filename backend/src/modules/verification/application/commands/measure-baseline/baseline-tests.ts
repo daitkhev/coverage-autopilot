@@ -6,10 +6,8 @@ import type {
   FailingTestDto,
   VerificationBaselineDto,
 } from '#verification/application/contracts/verification-public-api';
+import { firstOf, firstWords } from '#verification/application/failing-tests';
 import type { VerificationSettings } from '#verification/application/verification-settings';
-
-/** Enough of the name of a test for a person to find it. */
-const NAME_CHARACTERS = 200;
 
 /** How the tests of the commit ran, as the baseline keeps it. */
 export interface BaselineTests {
@@ -25,35 +23,6 @@ export type BaselineTestsReading =
       readonly detail: string;
       readonly outputReference: string | null;
     };
-
-/** By code unit, so the order is the same under every locale. */
-function compareTexts(first: string, second: string): number {
-  return Number(first > second) - Number(first < second);
-}
-
-/** The first by its file, then by its name, a whole file before its tests. */
-function firstOf(
-  failing: readonly FailingTestDto[],
-): FailingTestDto | undefined {
-  return [...failing].sort(
-    (left, right) =>
-      compareTexts(left.file.value, right.file.value) ||
-      compareTexts(left.test ?? '', right.test ?? ''),
-  )[0];
-}
-
-function quoted(name: string): string {
-  const characters = Array.from(name);
-  return characters.length <= NAME_CHARACTERS
-    ? `"${name}"`
-    : `"${characters.slice(0, NAME_CHARACTERS).join('')}…"`;
-}
-
-function firstWords(first: FailingTestDto): string {
-  return first.test === null
-    ? `The first is ${first.file.value}, which failed to run.`
-    : `The first is ${quoted(first.test)} in ${first.file.value}.`;
-}
 
 function refused(run: TestRunDto, detail: string): BaselineTestsReading {
   return { outcome: 'refused', detail, outputReference: run.outputReference };

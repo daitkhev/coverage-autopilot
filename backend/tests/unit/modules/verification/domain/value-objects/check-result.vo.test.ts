@@ -44,6 +44,20 @@ describe('CheckResult', () => {
     });
   });
 
+  describe('passedWith', () => {
+    it('should keep its evidence and say what it did not judge', () => {
+      const result = CheckResult.passedWith(
+        'existing_tests_pass',
+        'Left out: 2 that failed before the patch.',
+        { outputReference: 'test-run' },
+      );
+
+      expect(result.status).toBe('passed');
+      expect(result.message).toBe('Left out: 2 that failed before the patch.');
+      expect(result.outputReference).toBe('test-run');
+    });
+  });
+
   describe('failed', () => {
     it('should keep the sentence for the generator', () => {
       const result = CheckResult.failed(

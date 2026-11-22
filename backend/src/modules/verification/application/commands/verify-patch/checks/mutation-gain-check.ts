@@ -1,12 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { PatchCheck } from '#verification/application/commands/verify-patch/checks/patch-check';
-import { hasPassed } from '#verification/application/commands/verify-patch/checks/test-run-result';
 import type { PatchedCopy } from '#verification/application/commands/verify-patch/patched-copy';
 import {
   mutantOf,
   survivingMutantDtoOf,
 } from '#verification/application/dto/verification-dto-mapping';
+import {
+  leftOutTestFilesOf,
+  passesAsBefore,
+} from '#verification/application/failing-tests';
 import {
   type CompletedMutationRun,
   MUTATION_RUNNER,
@@ -95,7 +98,8 @@ export class MutationGainCheck implements PatchCheck {
   /**
    * The tool runs every test before it mutates anything and stops when one
    * fails, so a patch whose tests fail would end as an error of the tool
-   * and hide the failure that rejects it.
+   * and hide the failure that rejects it. Tests that failed before the
+   * patch are left out of the tool, so they stop nothing.
    */
   public inapplicability(copy: PatchedCopy): string | null {
     const failing = TEST_CHECKS.some((name) => {
@@ -103,7 +107,8 @@ export class MutationGainCheck implements PatchCheck {
       return status === 'failed' || status === 'error';
     });
     const fullRun = copy.fullRun.finished;
-    return failing || (fullRun !== null && !hasPassed(fullRun))
+    const before = copy.command.baseline.failingTests;
+    return failing || (fullRun !== null && !passesAsBefore(fullRun, before))
       ? 'Some tests fail with the patch, so the mutation tool cannot run.'
       : null;
   }
@@ -127,6 +132,9 @@ export class MutationGainCheck implements PatchCheck {
       {
         ...copy.loan,
         targetFile: copy.command.targetFile,
+        leftOutTestFiles: leftOutTestFilesOf(
+          copy.command.baseline.failingTests,
+        ),
         testRunner: copy.testRunner,
         timeoutMs: copy.deadline.limit(this.settings.mutationRunTimeoutMs),
         baselineCacheReference: baseline.cacheReference,

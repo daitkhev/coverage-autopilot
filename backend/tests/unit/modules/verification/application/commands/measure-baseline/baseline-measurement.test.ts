@@ -94,6 +94,7 @@ describe('BaselineMeasurement', () => {
         {
           ...loan,
           targetFile: measureRequestOf().targetFile,
+          leftOutTestFiles: [],
           testRunner: 'vitest',
           timeoutMs: VERIFICATION_TEST_SETTINGS.mutationRunTimeoutMs,
         },
@@ -152,7 +153,7 @@ describe('BaselineMeasurement', () => {
         });
       });
 
-      it('should keep the tests that failed, when the settings let them', async () => {
+      it('should keep the tests that failed, and leave their files out of the tool, when the settings let them', async () => {
         const application = verificationApplication();
         application.coverage.answers.push(failingRunOf());
 
@@ -161,6 +162,9 @@ describe('BaselineMeasurement', () => {
         expect(result).toMatchObject({
           baseline: { existingTests: 'failed', failingTests: FAILING_TESTS },
         });
+        expect(
+          application.mutationRunner.requests[0]?.leftOutTestFiles.length,
+        ).toBe(2);
       });
     });
 

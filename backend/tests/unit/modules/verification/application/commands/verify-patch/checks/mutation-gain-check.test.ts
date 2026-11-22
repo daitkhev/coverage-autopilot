@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
+import { FilePath } from '#kernel/primitives/file-path';
 import {
   patchedCopyOf,
   verificationApplication,
 } from '#tests/support/verification-application';
-import { testRunOf } from '#tests/support/verification-coverage';
+import {
+  FAILING_TESTS,
+  failingRunOf,
+  testRunOf,
+} from '#tests/support/verification-coverage';
 import {
   completedRunOf,
   killedByNewTest,
@@ -12,8 +17,10 @@ import {
   mutantResultOf,
 } from '#tests/support/verification-mutants';
 import {
+  baselineOf,
   NEW_TEST_FILE,
   TARGET_FILE,
+  verifyRequestOf,
 } from '#tests/support/verification-requests';
 import { VERIFICATION_TEST_SETTINGS } from '#tests/support/verification-stand-ins';
 import { MutationGainCheck } from '#verification/application/commands/verify-patch/checks/mutation-gain-check';
@@ -34,6 +41,21 @@ function benchOf(patched?: MutationRunResult) {
   return { application, check, ...patchedCopyOf(application) };
 }
 
+/** A bench whose commit had a test that failed and a file that did not run. */
+function failingBench() {
+  const application = verificationApplication();
+  const check = new MutationGainCheck(
+    application.mutationRunner,
+    VERIFICATION_TEST_SETTINGS,
+  );
+  const baseline = baselineOf({
+    existingTests: 'failed',
+    failingTests: FAILING_TESTS,
+  });
+  const command = verifyRequestOf({ baseline });
+  return { application, check, ...patchedCopyOf(application, { command }) };
+}
+
 describe('MutationGainCheck', () => {
   describe('inapplicability', () => {
     it('should run the tool only when every test passes with the patch', async () => {
@@ -52,6 +74,27 @@ describe('MutationGainCheck', () => {
       );
       expect(failingRun.check.inapplicability(failingRun.copy)).not.toBeNull();
     });
+
+    describe('when tests failed before the patch', () => {
+      it('should run the tool when no other test fails with it', async () => {
+        const bench = failingBench();
+        bench.application.coverage.answers.push(failingRunOf());
+        await bench.copy.fullRun.result(RUNNING);
+
+        expect(bench.check.inapplicability(bench.copy)).toBeNull();
+      });
+
+      it('should not run it when another test fails with the patch', async () => {
+        const bench = failingBench();
+        const broken = { file: FilePath.create('tests/a.test.ts'), test: 'a' };
+        bench.application.coverage.answers.push(
+          failingRunOf([...FAILING_TESTS, broken]),
+        );
+        await bench.copy.fullRun.result(RUNNING);
+
+        expect(bench.check.inapplicability(bench.copy)).not.toBeNull();
+      });
+    });
   });
 
   describe('run', () => {
@@ -66,6 +109,7 @@ describe('MutationGainCheck', () => {
         {
           ...copy.loan,
           targetFile: copy.command.targetFile,
+          leftOutTestFiles: [],
           testRunner: 'vitest',
           timeoutMs: VERIFICATION_TEST_SETTINGS.mutationRunTimeoutMs,
           baselineCacheReference: 'mutation-cache',
@@ -75,6 +119,17 @@ describe('MutationGainCheck', () => {
         counts: { undetectedBefore: 3, killed: 3, reached: 3, timedOut: 0 },
         surviving: [],
       });
+    });
+
+    it('should leave out the files of the tests that failed before, as the baseline did', async () => {
+      const { application, check, copy } = failingBench();
+
+      await check.run(copy, RUNNING);
+
+      expect(application.mutationRunner.requests[0]?.leftOutTestFiles).toEqual([
+        FilePath.create('tests/clock.test.ts'),
+        FilePath.create('tests/feed.test.ts'),
+      ]);
     });
 
     describe('when the new tests kill too few of the mutants', () => {

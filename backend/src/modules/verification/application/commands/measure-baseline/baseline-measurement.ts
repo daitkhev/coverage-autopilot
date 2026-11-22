@@ -36,6 +36,7 @@ import {
   mutantOf,
   mutationBaselineDtoOf,
 } from '#verification/application/dto/verification-dto-mapping';
+import { leftOutTestFilesOf } from '#verification/application/failing-tests';
 import {
   type CompletedMutationRun,
   MUTATION_RUNNER,
@@ -61,6 +62,12 @@ export interface Measurement {
 
 interface InCopy extends Measurement {
   readonly loan: WorkingCopyLoan;
+}
+
+/** What the steps before the mutants found, which their run depends on. */
+interface FoundSoFar {
+  readonly testRunner: DetectedProjectDto['testRunner'];
+  readonly tests: BaselineTests;
 }
 
 function baselineOfRun(run: CompletedMutationRun): MutationBaselineDto {
@@ -141,7 +148,11 @@ export class BaselineMeasurement {
     if (tests.outcome === 'stopped') {
       return tests.result;
     }
-    const mutation = await this.mutation(measurement, runner.value, signal);
+    const mutation = await this.mutation(
+      measurement,
+      { testRunner: runner.value, tests: tests.value },
+      signal,
+    );
     if (mutation.outcome === 'stopped') {
       return mutation.result;
     }
@@ -243,7 +254,7 @@ export class BaselineMeasurement {
 
   private async mutation(
     measurement: InCopy,
-    testRunner: DetectedProjectDto['testRunner'],
+    found: FoundSoFar,
     signal: AbortSignal,
   ): Promise<Step<MutationBaselineDto | null>> {
     const { command, deadline, loan } = measurement;
@@ -258,7 +269,8 @@ export class BaselineMeasurement {
           {
             ...loan,
             targetFile: command.targetFile,
-            testRunner,
+            leftOutTestFiles: leftOutTestFilesOf(found.tests.failingTests),
+            testRunner: found.testRunner,
             timeoutMs: deadline.limit(this.settings.mutationRunTimeoutMs),
           },
           signal,
