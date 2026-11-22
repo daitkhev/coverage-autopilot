@@ -51,6 +51,7 @@ export const VERIFICATION_TEST_SETTINGS: VerificationSettings = {
   mutationRunTimeoutMs: 1_800_000,
   survivingMutantLimit: 2,
   commandEnvironment: { PATH: '/usr/local/bin:/usr/bin:/bin', CI: 'true' },
+  baselineTests: 'may_fail',
 };
 
 export interface StandInCoverage extends CoveragePublicApi {

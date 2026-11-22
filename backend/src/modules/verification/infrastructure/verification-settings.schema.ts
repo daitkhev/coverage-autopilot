@@ -15,6 +15,7 @@ const settingsSchema = z.object({
     mutationRunTimeoutMs: z.int().positive(),
     survivingMutantLimit: z.int().positive(),
     commandEnvironment: environmentSchema,
+    baselineTests: z.enum(['may_fail', 'must_pass']),
   }),
   mutation: z.object({
     toolVersion: z.string().regex(VERSION),

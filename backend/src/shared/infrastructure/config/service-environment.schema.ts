@@ -69,6 +69,13 @@ export const VARIABLES = {
     expected: 'a whole number from 1 to 100, the percent of lines',
     fallback: '80',
   },
+  // Tests that call the network or need a credential fail in the sandbox
+  // before anything is changed. What failed before a patch is no concern
+  // of the patch, so they are left out unless the variable says otherwise.
+  AUTOPILOT_BASELINE_TESTS: {
+    expected: 'may_fail or must_pass',
+    fallback: 'may_fail',
+  },
   // The install is the one command with the network, and a large lockfile
   // of a slow registry takes minutes.
   AUTOPILOT_INSTALL_TIMEOUT_MS: { expected: WHOLE, fallback: '600000' },
@@ -217,6 +224,7 @@ const fields = z.object({
   AUTOPILOT_QUEUE_POLL_MS: wholeNumber(),
   AUTOPILOT_QUEUE_CONCURRENCY: wholeNumber(),
   AUTOPILOT_COVERAGE_THRESHOLD: wholePercent(),
+  AUTOPILOT_BASELINE_TESTS: z.enum(['may_fail', 'must_pass']),
   AUTOPILOT_INSTALL_TIMEOUT_MS: wholeNumber(),
   AUTOPILOT_TEST_RUN_TIMEOUT_MS: wholeNumber(),
   AUTOPILOT_TYPE_CHECK_TIMEOUT_MS: wholeNumber(),

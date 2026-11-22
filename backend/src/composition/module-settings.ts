@@ -74,6 +74,7 @@ function verificationOf(config: ServiceConfig): VerificationValues {
       mutationRunTimeoutMs: commands.mutationRunTimeoutMs,
       survivingMutantLimit: SURVIVING_MUTANT_LIMIT,
       commandEnvironment: COMMAND_ENVIRONMENT,
+      baselineTests: config.baselineTests,
     },
     mutation: {
       toolVersion: MUTATION_TOOL_VERSION,

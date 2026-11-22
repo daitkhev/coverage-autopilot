@@ -58,6 +58,7 @@ describe('loadServiceConfig', () => {
         concurrency: 2,
       },
       coverageThreshold: 80,
+      baselineTests: 'may_fail',
       commands: {
         installTimeoutMs: 600_000,
         testRunTimeoutMs: 900_000,
@@ -162,6 +163,7 @@ describe('loadServiceConfig', () => {
       AUTOPILOT_QUEUE_POLL_MS: '250',
       AUTOPILOT_QUEUE_CONCURRENCY: '4',
       AUTOPILOT_COVERAGE_THRESHOLD: '95',
+      AUTOPILOT_BASELINE_TESTS: 'must_pass',
       AUTOPILOT_INSTALL_TIMEOUT_MS: '120000',
       AUTOPILOT_TEST_RUN_TIMEOUT_MS: '240000',
       AUTOPILOT_TYPE_CHECK_TIMEOUT_MS: '60000',
@@ -207,6 +209,7 @@ describe('loadServiceConfig', () => {
         concurrency: 4,
       },
       coverageThreshold: 95,
+      baselineTests: 'must_pass',
       commands: {
         installTimeoutMs: 120_000,
         testRunTimeoutMs: 240_000,

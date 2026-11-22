@@ -149,4 +149,20 @@ describe('VerificationModule', () => {
       ),
     );
   });
+
+  it('should not start with a way of judging the tests it does not know', async () => {
+    const gate = { ...VERIFICATION_TEST_SETTINGS, baselineTests: 'ignore' };
+    const providers = services().map((provider) =>
+      'provide' in provider && provider.provide === VERIFICATION_SETTINGS
+        ? { provide: VERIFICATION_SETTINGS, useValue: gate }
+        : provider,
+    );
+
+    await expect(compile(providers)).rejects.toThrow(
+      new InvalidVerificationSettingsError(
+        'The settings of the quality gate cannot work. ' +
+          'gate.baselineTests: invalid_value.',
+      ),
+    );
+  });
 });

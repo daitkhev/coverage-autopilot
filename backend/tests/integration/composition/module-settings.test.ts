@@ -32,6 +32,7 @@ describe('moduleSettingsOf', () => {
         mutationRunTimeoutMs: 900_000,
         survivingMutantLimit: 10,
         commandEnvironment: IN_THE_IMAGE,
+        baselineTests: 'may_fail',
       },
       mutation: {
         toolVersion: '10.1.1',
@@ -42,6 +43,14 @@ describe('moduleSettingsOf', () => {
         commandEnvironment: IN_THE_IMAGE,
       },
     });
+  });
+
+  it('should give the gate the way the tests of a commit are judged', () => {
+    const settings = moduleSettingsOf(
+      loadWith({ AUTOPILOT_BASELINE_TESTS: 'must_pass' }),
+    );
+
+    expect(settings.verification.gate.baselineTests).toBe('must_pass');
   });
 
   it('should fill a request that names nothing from the configuration', () => {

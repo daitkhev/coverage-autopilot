@@ -14,6 +14,12 @@ export interface VerificationSettings {
    * `PATH` of the sandbox. Nothing of the service is inherited.
    */
   readonly commandEnvironment: Readonly<Record<string, string>>;
+  /**
+   * `must_pass`: a commit with a failing test is not measured, and the
+   * improvement ends at its analysis. `may_fail`: the tests that failed
+   * before the patch are left out of the checks and of the mutation runs.
+   */
+  readonly baselineTests: 'may_fail' | 'must_pass';
 }
 
 /** The injection token of the settings of the verification module. */

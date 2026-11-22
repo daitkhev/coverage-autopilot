@@ -81,6 +81,12 @@ export interface ServiceConfig {
    * repository has no threshold of its own.
    */
   readonly coverageThreshold: number;
+  /**
+   * `must_pass`: an improvement starts only when every test of the commit
+   * passes in the sandbox. `may_fail`: the tests that fail there are left
+   * out of the gate, which then judges only what passed.
+   */
+  readonly baselineTests: 'may_fail' | 'must_pass';
   readonly commands: CommandLimits;
   readonly generator: GeneratorChoice;
   readonly budget: {
@@ -277,6 +283,7 @@ function configOf(
       concurrency: values.AUTOPILOT_QUEUE_CONCURRENCY,
     },
     coverageThreshold: values.AUTOPILOT_COVERAGE_THRESHOLD,
+    baselineTests: values.AUTOPILOT_BASELINE_TESTS,
     commands: commandsOf(values),
     generator: generatorOf(values, environment, sandbox),
     budget: budgetOf(values),
