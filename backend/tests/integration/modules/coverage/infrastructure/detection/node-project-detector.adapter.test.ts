@@ -89,6 +89,8 @@ describe('NodeProjectDetector', () => {
             '--ignore-scripts',
             '--no-audit',
             '--no-fund',
+            '--cache',
+            'node_modules/.cache/coverage-autopilot/install',
           ],
           eligibleFiles: [
             'src/broken.ts',

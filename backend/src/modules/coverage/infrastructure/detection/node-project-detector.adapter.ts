@@ -51,6 +51,14 @@ const OTHER_LOCKFILES = [
 ];
 
 /**
+ * The cache of an install, inside the copy and so on the disk of the host
+ * and gone with the copy. The home of a command is the folder in memory,
+ * which the cache of a large project filled. Under `node_modules` no
+ * runner, no compiler and no mutation tool looks into it.
+ */
+const INSTALL_CACHE = 'node_modules/.cache/coverage-autopilot/install';
+
+/**
  * The lockfile decides every version, and no script of a package runs
  * while the network is open: the code of the repository runs only later,
  * in a sandbox with no network.
@@ -61,6 +69,8 @@ const INSTALL_COMMAND = [
   '--ignore-scripts',
   '--no-audit',
   '--no-fund',
+  '--cache',
+  INSTALL_CACHE,
 ];
 
 const CONFIG_EXTENSIONS = ['ts', 'mts', 'cts', 'js', 'mjs', 'cjs'];
