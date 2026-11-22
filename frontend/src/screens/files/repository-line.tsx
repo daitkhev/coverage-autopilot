@@ -4,9 +4,9 @@ import type { ReactNode } from 'react';
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
 import type { SnapshotSummary } from '@coverage-autopilot/api-contracts/snapshots';
 
+import { CounterPercent } from '#components/coverage-change';
 import { Glyph } from '#components/glyph';
 import { RoleText } from '#components/role-text';
-import { CounterPercent } from '#screens/files/file-row';
 import { percentWords } from '#theme/counts';
 import { ageWords } from '#theme/moments';
 import { GAP, type Layout } from '#theme/widths';

@@ -1,19 +1,17 @@
 import { Box, Text } from 'ink';
 import type { ReactNode } from 'react';
 
-import type { CoverageCounter } from '@coverage-autopilot/api-contracts/coverage';
 import type {
   FileCoverage,
   MeasuredFile,
 } from '@coverage-autopilot/api-contracts/snapshots';
 
 import { type Coverage, CoverageBar } from '#components/coverage-bar';
+import { counterCoverage, CounterPercent } from '#components/coverage-change';
 import type { RowState } from '#components/data-list';
 import { Glyph } from '#components/glyph';
 import { RoleText } from '#components/role-text';
 import { StatusIndicator } from '#components/status-indicator';
-import { coverageRoleOf } from '#theme/bars';
-import { percentWords, ratioWords } from '#theme/counts';
 import {
   FILE_STATE,
   IMPROVEMENT_STATUS,
@@ -36,13 +34,6 @@ export interface RowShape {
   readonly threshold: number;
 }
 
-/** A counter with nothing to count has no percentage, so it is no code. */
-export function counterCoverage(counter: CoverageCounter): Coverage {
-  return counter.percentage === null
-    ? { state: 'no_executable_code' }
-    : { state: 'measured', percent: counter.percentage };
-}
-
 /** What the coverage bar draws for a file: numbers, or why there are none. */
 function coverageOf(file: FileCoverage): Coverage {
   switch (file.state) {
@@ -56,25 +47,6 @@ function coverageOf(file: FileCoverage): Coverage {
     case 'no_executable_code':
       return { state: 'no_executable_code' };
   }
-}
-
-/** A counter as its percentage, or as `0/0` when it has nothing to count. */
-export function CounterPercent({
-  counter,
-  threshold,
-}: {
-  readonly counter: CoverageCounter;
-  readonly threshold: number;
-}): ReactNode {
-  return counter.percentage === null ? (
-    <RoleText role="secondary">
-      {ratioWords(counter.covered, counter.total)}
-    </RoleText>
-  ) : (
-    <RoleText role={coverageRoleOf(counter.percentage, threshold)}>
-      {percentWords(counter.percentage)}
-    </RoleText>
-  );
 }
 
 function Path({

@@ -12,13 +12,13 @@ import type {
 import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses';
 
 import { CoverageBar } from '#components/coverage-bar';
+import { counterCoverage, CounterPercent } from '#components/coverage-change';
 import { ErrorDetails } from '#components/error-details';
 import { type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
 import { StatusIndicator } from '#components/status-indicator';
-import { counterCoverage, CounterPercent } from '#screens/files/file-row';
 import { percentWords, ratioWords } from '#theme/counts';
 import {
   FILE_STATE,
