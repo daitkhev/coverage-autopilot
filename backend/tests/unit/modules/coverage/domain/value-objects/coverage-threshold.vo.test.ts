@@ -5,16 +5,17 @@ import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-thres
 import { countersOf } from '#tests/support/coverage-snapshots';
 
 describe('CoverageThreshold', () => {
-  describe('byDefault', () => {
-    it('should be 80% of lines', () => {
-      const threshold = CoverageThreshold.byDefault();
+  describe('create', () => {
+    it('should keep its metric and its percentage', () => {
+      const threshold = CoverageThreshold.create({
+        metric: 'lines',
+        percentage: 95,
+      });
 
       expect(threshold.metric).toBe('lines');
-      expect(threshold.percentage.value).toBe(80);
+      expect(threshold.percentage.value).toBe(95);
     });
-  });
 
-  describe('create', () => {
     describe('when the percentage is out of range', () => {
       it('should throw InvalidCoveragePercentageError', () => {
         expect(() =>

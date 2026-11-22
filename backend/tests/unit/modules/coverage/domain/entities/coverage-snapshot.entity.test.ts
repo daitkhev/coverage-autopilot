@@ -14,6 +14,7 @@ import {
   SNAPSHOT_COMMIT,
   SNAPSHOT_ID,
   snapshotOf,
+  TEST_THRESHOLD,
 } from '#tests/support/coverage-snapshots';
 
 const { used, unused, types, broken } = fixtureFiles();
@@ -108,10 +109,7 @@ describe('CoverageSnapshot', () => {
 
   describe('targets', () => {
     it('should give the measured files below the threshold', () => {
-      expect(snapshot.targets(CoverageThreshold.byDefault())).toEqual([
-        unused,
-        used,
-      ]);
+      expect(snapshot.targets(TEST_THRESHOLD)).toEqual([unused, used]);
     });
 
     it('should never give a file without numbers or without code', () => {

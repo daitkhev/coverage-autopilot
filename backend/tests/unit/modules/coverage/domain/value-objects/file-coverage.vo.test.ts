@@ -6,9 +6,11 @@ import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-thres
 import { FileCoverage } from '#coverage/domain/value-objects/file-coverage.vo';
 import { UncoveredCode } from '#coverage/domain/value-objects/uncovered-code.vo';
 import { FilePath } from '#kernel/primitives/file-path';
-import { countersOf, measuredFile } from '#tests/support/coverage-snapshots';
-
-const threshold = CoverageThreshold.byDefault();
+import {
+  countersOf,
+  measuredFile,
+  TEST_THRESHOLD as threshold,
+} from '#tests/support/coverage-snapshots';
 
 describe('FileCoverage', () => {
   describe('measured', () => {

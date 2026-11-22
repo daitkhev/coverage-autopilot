@@ -76,6 +76,11 @@ export interface ServiceConfig {
   readonly secrets: readonly string[];
   readonly sandbox: SandboxSettings;
   readonly queue: QueueSettings;
+  /**
+   * The percent of lines a file of a repository is judged by when the
+   * repository has no threshold of its own.
+   */
+  readonly coverageThreshold: number;
   readonly commands: CommandLimits;
   readonly generator: GeneratorChoice;
   readonly budget: {
@@ -271,6 +276,7 @@ function configOf(
       pollMs: values.AUTOPILOT_QUEUE_POLL_MS,
       concurrency: values.AUTOPILOT_QUEUE_CONCURRENCY,
     },
+    coverageThreshold: values.AUTOPILOT_COVERAGE_THRESHOLD,
     commands: commandsOf(values),
     generator: generatorOf(values, environment, sandbox),
     budget: budgetOf(values),

@@ -18,11 +18,12 @@ describe('moduleSettingsOf', () => {
         AUTOPILOT_TYPE_CHECK_TIMEOUT_MS: '60000',
         AUTOPILOT_MUTATION_RUN_TIMEOUT_MS: '900000',
         AUTOPILOT_MUTATION_CONCURRENCY: '4',
+        AUTOPILOT_COVERAGE_THRESHOLD: '95',
       }),
     );
 
     expect(settings.coverage).toEqual({
-      threshold: { metric: 'lines', percentage: 80 },
+      threshold: { metric: 'lines', percentage: 95 },
       installTimeoutMs: 120_000,
       testRunTimeoutMs: 240_000,
       commandEnvironment: IN_THE_IMAGE,

@@ -1,14 +1,14 @@
 import type { CoverageSettings } from '#coverage/application/coverage-settings';
-import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-threshold.vo';
 import type {
   Sandbox,
   SandboxCommandRequest,
   SandboxCommandResult,
 } from '#ports/sandbox.port';
+import { TEST_THRESHOLD } from '#tests/support/coverage-snapshots';
 
 /** The settings of the coverage module in a test. */
 export const COVERAGE_TEST_SETTINGS: CoverageSettings = {
-  threshold: CoverageThreshold.byDefault(),
+  threshold: TEST_THRESHOLD,
   installTimeoutMs: 600_000,
   testRunTimeoutMs: 300_000,
   commandEnvironment: { PATH: '/usr/local/bin:/usr/bin:/bin', CI: 'true' },

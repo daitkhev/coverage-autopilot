@@ -5,10 +5,6 @@ import type {
 import { CoveragePercentage } from '#coverage/domain/value-objects/coverage-percentage.vo';
 import { ValueObject } from '#kernel/primitives/value-object';
 
-/** Lines, because they match what people expect to read. */
-const DEFAULT_METRIC: CoverageMetric = 'lines';
-const DEFAULT_PERCENTAGE = 80;
-
 interface CoverageThresholdProps {
   readonly metric: CoverageMetric;
   readonly percentage: CoveragePercentage;
@@ -27,14 +23,6 @@ export class CoverageThreshold extends ValueObject<CoverageThresholdProps> {
     return new CoverageThreshold({
       metric: props.metric,
       percentage: CoveragePercentage.create(props.percentage),
-    });
-  }
-
-  /** 80% of lines, unless the settings say otherwise. */
-  public static byDefault(): CoverageThreshold {
-    return CoverageThreshold.create({
-      metric: DEFAULT_METRIC,
-      percentage: DEFAULT_PERCENTAGE,
     });
   }
 

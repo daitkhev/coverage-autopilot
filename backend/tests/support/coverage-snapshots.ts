@@ -4,6 +4,7 @@ import {
   CoverageCounters,
   type CoverageMetric,
 } from '#coverage/domain/value-objects/coverage-counters.vo';
+import { CoverageThreshold } from '#coverage/domain/value-objects/coverage-threshold.vo';
 import { DetectedProject } from '#coverage/domain/value-objects/detected-project.vo';
 import { FileCoverage } from '#coverage/domain/value-objects/file-coverage.vo';
 import { ScanParameters } from '#coverage/domain/value-objects/scan-parameters.vo';
@@ -25,6 +26,12 @@ export const SNAPSHOT_ID = '00000000-0000-4000-8000-0000000000aa';
 export const REPOSITORY_ID = '00000000-0000-4000-8000-0000000000bb';
 
 export const CAPTURED_AT = '2026-03-04T05:06:07.008Z';
+
+/** What a test judges files by: 80% of lines, as a plain service does. */
+export const TEST_THRESHOLD = CoverageThreshold.create({
+  metric: 'lines',
+  percentage: 80,
+});
 
 /** Covered and total of each metric a test names. The others are 0 of 0. */
 export type CounterSpec = Partial<

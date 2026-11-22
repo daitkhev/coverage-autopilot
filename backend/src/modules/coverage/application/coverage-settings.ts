@@ -2,7 +2,7 @@ import type { CoverageThreshold } from '#coverage/domain/value-objects/coverage-
 
 /** What the coverage module takes from the settings of the service. */
 export interface CoverageSettings {
-  /** A measured file below it can be improved. 80% of lines by default. */
+  /** A measured file below it can be improved. */
   readonly threshold: CoverageThreshold;
   /** The install is the one step with the network, so it has its own limit. */
   readonly installTimeoutMs: number;

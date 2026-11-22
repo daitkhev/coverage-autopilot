@@ -20,8 +20,8 @@ const IMAGE_PATH =
  */
 const COMMAND_ENVIRONMENT = { PATH: IMAGE_PATH, HOME: '/tmp', CI: 'true' };
 
-/** What a person means by "80% coverage". */
-const THRESHOLD_PERCENTAGE = 80;
+/** Lines, because they match what people expect to read. */
+const THRESHOLD_METRIC = 'lines';
 
 /**
  * StrykerJS as the design measured it, with its own defaults of the time
@@ -60,7 +60,10 @@ const CREDENTIAL_SCAN = { maxFiles: 100, maxFileBytes: 1_048_576 };
 
 function coverageOf(config: ServiceConfig): CoverageValues {
   return {
-    threshold: { metric: 'lines', percentage: THRESHOLD_PERCENTAGE },
+    threshold: {
+      metric: THRESHOLD_METRIC,
+      percentage: config.coverageThreshold,
+    },
     installTimeoutMs: config.commands.installTimeoutMs,
     testRunTimeoutMs: config.commands.testRunTimeoutMs,
     commandEnvironment: COMMAND_ENVIRONMENT,

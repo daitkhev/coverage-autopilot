@@ -63,6 +63,12 @@ export const VARIABLES = {
   AUTOPILOT_QUEUE_MAX_RUNS: { expected: WHOLE, fallback: '3' },
   AUTOPILOT_QUEUE_POLL_MS: { expected: WHOLE, fallback: '1000' },
   AUTOPILOT_QUEUE_CONCURRENCY: { expected: WHOLE, fallback: '2' },
+  // What a person means by "well covered" when a repository says nothing
+  // of its own. 0 would make no file a target, so the least is 1.
+  AUTOPILOT_COVERAGE_THRESHOLD: {
+    expected: 'a whole number from 1 to 100, the percent of lines',
+    fallback: '80',
+  },
   // The install is the one command with the network, and a large lockfile
   // of a slow registry takes minutes.
   AUTOPILOT_INSTALL_TIMEOUT_MS: { expected: WHOLE, fallback: '600000' },
@@ -146,6 +152,7 @@ export interface Problem {
 
 const WHOLE_NUMBER = /^[1-9][0-9]*$/;
 const POSITIVE_NUMBER = /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
+const MOST_PERCENT = 100;
 /** A program would read a name that starts with `-` as an option. */
 const NAME = /^[^\s-]\S*$/;
 /** git writes an author as `name <address>`, so neither may hold a bracket. */
@@ -158,6 +165,14 @@ function wholeNumber() {
     .regex(WHOLE_NUMBER)
     .transform(Number)
     .pipe(z.number().max(Number.MAX_SAFE_INTEGER));
+}
+
+function wholePercent() {
+  return z
+    .string()
+    .regex(WHOLE_NUMBER)
+    .transform(Number)
+    .pipe(z.number().max(MOST_PERCENT));
 }
 
 function positiveNumber() {
@@ -201,6 +216,7 @@ const fields = z.object({
   AUTOPILOT_QUEUE_MAX_RUNS: wholeNumber(),
   AUTOPILOT_QUEUE_POLL_MS: wholeNumber(),
   AUTOPILOT_QUEUE_CONCURRENCY: wholeNumber(),
+  AUTOPILOT_COVERAGE_THRESHOLD: wholePercent(),
   AUTOPILOT_INSTALL_TIMEOUT_MS: wholeNumber(),
   AUTOPILOT_TEST_RUN_TIMEOUT_MS: wholeNumber(),
   AUTOPILOT_TYPE_CHECK_TIMEOUT_MS: wholeNumber(),

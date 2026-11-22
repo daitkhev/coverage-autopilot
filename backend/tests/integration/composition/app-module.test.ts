@@ -83,7 +83,22 @@ describe('AppModule', () => {
       ANYWHERE,
     );
 
-    expect(threshold).toEqual(CoverageThreshold.byDefault());
+    expect(threshold).toEqual(
+      CoverageThreshold.create({ metric: 'lines', percentage: 80 }),
+    );
+  });
+
+  it('should judge files by the percent of lines its variable names', async () => {
+    const service = await serviceWith({ AUTOPILOT_COVERAGE_THRESHOLD: '95' });
+
+    const { threshold } = service.get<CoverageSettings>(
+      COVERAGE_SETTINGS,
+      ANYWHERE,
+    );
+
+    expect(threshold).toEqual(
+      CoverageThreshold.create({ metric: 'lines', percentage: 95 }),
+    );
   });
 
   describe('when the generator has no credential', () => {
