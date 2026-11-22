@@ -9,6 +9,10 @@ export interface SeededRandom {
   readonly seed: number;
   /** A whole number from 0 up to `bound`, without `bound`. */
   below(bound: number): number;
+  /** Whether a thing of this probability, from 0 to 1, happens. */
+  chance(probability: number): boolean;
+  /** One of the items, which may not be none. */
+  pick<Item>(items: readonly Item[]): Item;
   /** The items in an order of its choice. */
   shuffled<Item>(items: readonly Item[]): Item[];
 }
@@ -59,6 +63,17 @@ function shuffledWith<Item>(
   return order;
 }
 
+function pickedWith<Item>(
+  below: (bound: number) => number,
+  items: readonly Item[],
+): Item {
+  const item = items[below(items.length)];
+  if (item === undefined) {
+    throw new RangeError('There is nothing to pick from.');
+  }
+  return item;
+}
+
 /** The choices that `seed` gives. */
 export function seededRandom(seed: number): SeededRandom {
   const next = mulberry32(seed);
@@ -66,6 +81,8 @@ export function seededRandom(seed: number): SeededRandom {
   return {
     seed,
     below,
+    chance: (probability) => next() < probability,
+    pick: (items) => pickedWith(below, items),
     shuffled: (items) => shuffledWith(below, items),
   };
 }
