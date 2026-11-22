@@ -5,7 +5,12 @@ import { defineConfig } from 'eslint/config';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import tseslint from 'typescript-eslint';
 
-import { ENVIRONMENT_BAN, syntaxBans } from '#harness/eslint/restricted-syntax';
+import {
+  CLOCK_BAN,
+  ENVIRONMENT_BAN,
+  type SyntaxBan,
+  syntaxBans,
+} from '#harness/eslint/restricted-syntax';
 import { readLimits, REPOSITORY_ROOT } from '#harness/shared/policy';
 
 const limits = readLimits();
@@ -127,10 +132,26 @@ const ENVIRONMENT_READERS = [
   'backend/tests/support/stand-in-engine.ts',
 ];
 
-/** Every banned shape of code but the read of the environment. */
-const bansOfAReader = syntaxBans(limits.functionParameters).filter(
-  (ban) => ban !== ENVIRONMENT_BAN,
-);
+/**
+ * The only files that read the time: the clock of the service and the
+ * clock of the client. Every other file is given a moment, so a test
+ * decides what the time is.
+ */
+const CLOCK_READERS = [
+  'backend/src/shared/infrastructure/time/system-clock.adapter.ts',
+  'frontend/src/api/clock.ts',
+];
+
+/** The files that are there for one banned read, and the ban they are spared. */
+const READERS = [
+  { files: ENVIRONMENT_READERS, spared: ENVIRONMENT_BAN },
+  { files: CLOCK_READERS, spared: CLOCK_BAN },
+];
+
+/** Every banned shape of code but the one a reader is there for. */
+function bansOfAReader(spared: SyntaxBan): SyntaxBan[] {
+  return syntaxBans(limits.functionParameters).filter((ban) => ban !== spared);
+}
 
 /** What the gate runs: the policy, with generated and fixture files left out. */
 export const eslintConfig: Linter.Config[] = defineConfig(
@@ -149,8 +170,8 @@ export const eslintConfig: Linter.Config[] = defineConfig(
     ],
   },
   ...lintPolicy,
-  {
-    files: ENVIRONMENT_READERS,
-    rules: { 'no-restricted-syntax': ['error', ...bansOfAReader] },
-  },
+  ...READERS.map(({ files, spared }): Linter.Config => ({
+    files,
+    rules: { 'no-restricted-syntax': ['error', ...bansOfAReader(spared)] },
+  })),
 );

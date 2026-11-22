@@ -2,7 +2,7 @@ import { ESLint } from 'eslint';
 import { describe, expect, it } from 'vitest';
 
 import { eslintConfig } from '#harness/eslint/config';
-import { ENVIRONMENT_BAN } from '#harness/eslint/restricted-syntax';
+import { CLOCK_BAN, ENVIRONMENT_BAN } from '#harness/eslint/restricted-syntax';
 import { isRecord } from '#harness/shared/json';
 import { REPOSITORY_ROOT } from '#harness/shared/policy';
 
@@ -54,5 +54,28 @@ describe('the files that read the environment', () => {
     const other = await bansIn('backend/src/main-of-another-name.ts');
 
     expect(other).toEqual([...reader, ENVIRONMENT_BAN]);
+  });
+});
+
+describe('the files that read the time', () => {
+  it.each([
+    'backend/src/shared/infrastructure/time/system-clock.adapter.ts',
+    'frontend/src/api/clock.ts',
+  ])('should let %s read it, and ban every other shape', async (filePath) => {
+    const bans = await bansIn(filePath);
+
+    expect(bans).not.toContainEqual(CLOCK_BAN);
+    expect(bans).toContainEqual(ENVIRONMENT_BAN);
+  });
+
+  it.each([
+    'backend/src/shared/kernel/time/instant.ts',
+    'backend/src/main.ts',
+    'backend/tests/support/fixed-clock.ts',
+    'frontend/src/theme/moments.ts',
+    'frontend/src/main.tsx',
+    'harness/gate/host.ts',
+  ])('should refuse it in %s', async (filePath) => {
+    expect(await bansIn(filePath)).toContainEqual(CLOCK_BAN);
   });
 });

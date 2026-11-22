@@ -25,6 +25,10 @@
     {
       "rule": "no-restricted-syntax",
       "says": "clock"
+    },
+    {
+      "rule": "no-restricted-syntax",
+      "says": "clock"
     }
   ],
   "parameter-count": [

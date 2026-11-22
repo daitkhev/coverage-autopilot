@@ -31,6 +31,27 @@ export const ENVIRONMENT_BAN: SyntaxBan = {
     'Only an entry file reads the environment. Take a value as an argument.',
 };
 
+/**
+ * Every way to reach the clock of `Temporal`: as a property, with a name
+ * or with a text, on the global or through `globalThis`, and by taking
+ * the object apart. The rest of `Temporal` is arithmetic over a moment it
+ * is given, and is free.
+ */
+const CLOCK_READS = [
+  "MemberExpression[object.name='Temporal'][property.name='Now']",
+  "MemberExpression[object.name='Temporal'][property.value='Now']",
+  "MemberExpression[object.property.name='Temporal'][property.name='Now']",
+  "MemberExpression[object.property.name='Temporal'][property.value='Now']",
+  "VariableDeclarator[init.name='Temporal'] > ObjectPattern > Property[key.name='Now']",
+];
+
+/** Left out for the one file of the service and of the client that reads the time. */
+export const CLOCK_BAN: SyntaxBan = {
+  selector: CLOCK_READS.join(', '),
+  message:
+    'The real clock is read in one file of the service and one of the client. Take the moment as a value.',
+};
+
 /** Shapes of code the policy refuses, as selectors over the syntax tree. */
 export function syntaxBans(maxParameters: number): SyntaxBan[] {
   const count = String(maxParameters);
@@ -64,6 +85,7 @@ export function syntaxBans(maxParameters: number): SyntaxBan[] {
         "CallExpression[callee.object.name='Date'][callee.property.name='now']",
       message: 'The real clock is read in one adapter only. Take a Clock.',
     },
+    CLOCK_BAN,
     ENVIRONMENT_BAN,
   ];
 }
