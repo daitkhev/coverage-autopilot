@@ -145,7 +145,7 @@ exports[`ImprovementView > when the improvement completed > should show how it e
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
  Improvements › example/payments › src/billing/currency.ts · completed 45m ago · updated 1s ago
- p patch    tab details    esc back                                                                      ? help"
+ o open the pull request    p patch    tab details    esc back                                           ? help"
 `;
 
 exports[`ImprovementView > when the improvement failed > should show how it ended 1`] = `

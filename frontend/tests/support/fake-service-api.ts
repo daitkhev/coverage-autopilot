@@ -1,5 +1,6 @@
 import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
 
+import type { BrowserOpening } from '#api/browser';
 import type { ClientSession } from '#api/client-session';
 import type { ServiceAnswer, ServiceApi } from '#api/service-api';
 
@@ -18,6 +19,10 @@ export interface FakeServiceApi extends ServiceApi {
 /** A session over the fake, whose moment a test moves. */
 export interface FakeSession extends ClientSession {
   readonly api: FakeServiceApi;
+  /** Notes the address and says the browser started. No browser starts. */
+  readonly openInBrowser: (address: string) => Promise<BrowserOpening>;
+  /** Every address the session was asked to show, in order. */
+  readonly pages: readonly string[];
   /** `now` answers with this moment from here on. */
   readonly moveTo: (moment: string) => void;
 }
@@ -103,10 +108,16 @@ export function fakeSession(
   moment = SAMPLE_NOW,
 ): FakeSession {
   let current = moment;
+  const pages: string[] = [];
   return {
     api: fakeServiceApi(scripted),
     now: () => current,
     timeZone: 'UTC',
+    openInBrowser: async (address) => {
+      pages.push(address);
+      return Promise.resolve({ outcome: 'started' });
+    },
+    pages,
     moveTo: (next) => {
       current = next;
     },

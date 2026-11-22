@@ -1,4 +1,7 @@
-import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
+import type {
+  Improvement,
+  PullRequest,
+} from '@coverage-autopilot/api-contracts/improvements';
 
 import type { KeyHint } from '#components/key-hints';
 import type { KeyHandlers } from '#hooks/use-keys';
@@ -17,6 +20,8 @@ export interface ImprovementKeysState {
   readonly improvement: Improvement;
   /** The next steps of a failed improvement, empty for any other. */
   readonly choices: readonly Choice[];
+  /** The pull request `o` opens, when there is one and a browser to show it. */
+  readonly pullRequest: PullRequest | undefined;
 }
 
 /** What the keys of the screen do. */
@@ -27,6 +32,7 @@ export interface ImprovementActions {
   /** Opens the question before a cancel. */
   readonly ask: () => void;
   readonly openPatch: (improvementId: string) => void;
+  readonly openPullRequest: (pullRequest: PullRequest) => void;
   readonly back: () => void;
 }
 
@@ -53,13 +59,23 @@ function choiceKeys(
   };
 }
 
-/** `c` cancels work that still runs; `p` opens a patch the gate accepted. */
+/**
+ * `c` cancels work that still runs; `p` opens a patch the gate accepted;
+ * `o` shows its pull request in the browser.
+ */
 function letterKeys(
   state: ImprovementKeysState,
   actions: ImprovementActions,
 ): KeyHandlers {
-  const { improvement } = state;
+  const { improvement, pullRequest } = state;
   return {
+    ...(pullRequest === undefined
+      ? {}
+      : {
+          o: () => {
+            actions.openPullRequest(pullRequest);
+          },
+        }),
     ...(hasEnded(improvement) ? {} : { c: actions.ask }),
     ...(acceptedOf(improvement) === undefined
       ? {}
@@ -111,6 +127,9 @@ export function improvementHints(state: ImprovementKeysState): KeyHint[] {
           { key: 'enter', label: 'confirm' },
         ]
       : []),
+    ...(state.pullRequest === undefined
+      ? []
+      : [{ key: 'o', label: 'open the pull request' }]),
     ...(acceptedOf(improvement) === undefined
       ? []
       : [{ key: 'p', label: 'patch' }]),

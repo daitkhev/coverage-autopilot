@@ -1,6 +1,9 @@
 import { type ReactNode, useState } from 'react';
 
-import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
+import type {
+  Improvement,
+  PullRequest,
+} from '@coverage-autopilot/api-contracts/improvements';
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
 
 import type { ClientSession } from '#api/client-session';
@@ -28,6 +31,10 @@ import {
   type ImprovementKeysState,
   type ImprovementPanel,
 } from '#screens/improvement/improvement-keys';
+import {
+  type PullRequestLink,
+  usePullRequestLink,
+} from '#screens/improvement/pull-request-link';
 import { StepLine } from '#screens/improvement/step-line';
 import { ageWords } from '#theme/moments';
 import { repositoryName } from '#theme/names';
@@ -53,12 +60,14 @@ interface Place {
   readonly choice: Selection;
   readonly dialog: OpenDialog | undefined;
   readonly close: () => void;
+  readonly link: PullRequestLink;
 }
 
 function usePlace(props: ImprovementViewProps): Place {
   const [dialog, setDialog] = useState<OpenDialog>();
   const ring = useFocusRing(PANELS);
   const choices = choicesOf({ ...props, open: setDialog });
+  const link = usePullRequestLink(props.session);
   const choice = useSelection({
     count: choices.length,
     visible: choices.length,
@@ -68,6 +77,10 @@ function usePlace(props: ImprovementViewProps): Place {
     layout: layoutOf(props.frame.size),
     improvement: props.improvement,
     choices,
+    pullRequest:
+      link.open === undefined
+        ? undefined
+        : (props.improvement.pullRequest ?? undefined),
   };
   const actions = {
     choice,
@@ -77,6 +90,9 @@ function usePlace(props: ImprovementViewProps): Place {
       setDialog({ kind: 'cancel' });
     },
     openPatch: props.onOpenPatch,
+    openPullRequest: (pullRequest: PullRequest) => {
+      link.open?.(pullRequest);
+    },
     back: props.onBack,
   };
   // The screen is not behind the backdrop of its own shell, so it says
@@ -85,7 +101,7 @@ function usePlace(props: ImprovementViewProps): Place {
   const close = (): void => {
     setDialog(undefined);
   };
-  return { state, choice, dialog, close };
+  return { state, choice, dialog, close, link };
 }
 
 function Body({
@@ -181,9 +197,11 @@ function dialogOf(
 export function ImprovementView(props: ImprovementViewProps): ReactNode {
   const place = usePlace(props);
   const { improvement, repository } = props;
+  const notice = props.frame.notice ?? place.link.notice;
   return (
     <AppShell
       {...props.frame}
+      {...(notice === undefined ? {} : { notice })}
       context={<StepLine improvement={improvement} now={props.session.now()} />}
       body={<Body props={props} place={place} />}
       status={
