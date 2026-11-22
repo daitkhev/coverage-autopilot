@@ -69,6 +69,7 @@ export function repositoryActionsAt(
       scan: nothing,
       openFiles: nothing,
       changeThreshold: nothing,
+      changeInstallMode: nothing,
     },
   );
 }

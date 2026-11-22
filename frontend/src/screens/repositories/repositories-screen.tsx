@@ -1,10 +1,4 @@
-import {
-  type ReactNode,
-  type RefObject,
-  useCallback,
-  useRef,
-  useState,
-} from 'react';
+import { type ReactNode, type RefObject, useCallback, useRef } from 'react';
 
 import type { ClientSession } from '#api/client-session';
 import { isServiceUnreachable } from '#api/service-unreachable-error';
@@ -28,22 +22,15 @@ import {
   rowsOf,
   workOf,
 } from '#screens/repositories/repository-listing';
-import { thresholdWords } from '#screens/repositories/threshold-dialog';
+import type { ConnectDialog } from '#screens/repositories/use-connect-dialog';
 import {
-  type ConnectDialog,
-  useConnectDialog,
-} from '#screens/repositories/use-connect-dialog';
-import {
-  type ScanStarts,
-  useScanStarts,
-} from '#screens/repositories/use-scan-starts';
+  noDialog,
+  startWaysOf,
+  useRepositoryStarts,
+} from '#screens/repositories/use-repository-starts';
+import type { ScanStarts } from '#screens/repositories/use-scan-starts';
 import { useSnapshotParameters } from '#screens/repositories/use-snapshot-parameters';
-import {
-  type ThresholdDialog,
-  useThresholdDialog,
-} from '#screens/repositories/use-threshold-dialog';
 import { ASK_EVERY_MS } from '#theme/moments';
-import { repositoryName } from '#theme/names';
 import { layoutOf } from '#theme/widths';
 
 interface RepositoriesScreenProps {
@@ -112,49 +99,11 @@ function dialogPartsOf(connect: ConnectDialog): ConnectDialogParts | undefined {
       };
 }
 
-/** The keys of the screen work only while no dialog takes them. */
-function noDialog(connect: ConnectDialog, threshold: ThresholdDialog): boolean {
-  return connect.state === undefined && threshold.parts === undefined;
-}
-
-/**
- * The scans, the dialog that connects a repository and the one of a
- * threshold, and their notice.
- */
-function useStarts(
-  session: ClientSession,
-  asked: RefObject<number>,
-): {
-  readonly notice: string | undefined;
-  readonly scans: ScanStarts;
-  readonly connect: ConnectDialog;
-  readonly threshold: ThresholdDialog;
-} {
-  const [notice, setNotice] = useState<string | undefined>(undefined);
-  const scans = useScanStarts({ session, asked, onNotice: setNotice });
-  const connect = useConnectDialog({
-    session,
-    onConnected: (repository) => {
-      setNotice(`${repositoryName(repository)} is connected.`);
-    },
-  });
-  const threshold = useThresholdDialog({
-    session,
-    onChanged: (repository) => {
-      setNotice(
-        `${repositoryName(repository)} is judged by ` +
-          `${thresholdWords(repository.threshold)}.`,
-      );
-    },
-  });
-  return { notice, scans, connect, threshold };
-}
-
 /**
  * The first screen: which repositories are connected and what is known
  * of each. The list is asked for again every second, `s` scans the
- * selected repository, `t` changes its threshold and `a` connects one
- * more.
+ * selected repository, `t` changes its threshold, `i` how it is installed
+ * and `a` connects one more.
  */
 export function RepositoriesScreen({
   session,
@@ -173,20 +122,18 @@ export function RepositoriesScreen({
   const chosen = rows[selection.index];
   const work = useWork(session, chosen?.repository.id);
   const parameters = useSnapshotParameters(session.api, chosen?.repository);
-  const { notice, scans, connect, threshold } = useStarts(session, asked);
-  const starting = startingOf(listing.answer, scans);
+  const starts = useRepositoryStarts(session, asked);
+  const starting = startingOf(listing.answer, starts.scans);
   const actions = repositoryActions(
     { chosen, starting, layout: layoutOf(frame.size) },
     {
       selection,
       panels: { ring: focus, names: REPOSITORIES_PANELS, words: PANEL_WORDS },
-      connect: connect.open,
-      scan: scans.start,
       openFiles: onOpenFiles,
-      changeThreshold: threshold.open,
+      ...startWaysOf(starts),
     },
   );
-  useScreenActions(actions, { active: noDialog(connect, threshold) });
+  useScreenActions(actions, { active: noDialog(starts) });
   return (
     <RepositoriesView
       frame={frame}
@@ -199,9 +146,10 @@ export function RepositoriesScreen({
       visible={visible}
       focused={focus.focused}
       starting={starting}
-      notice={notice}
-      connect={dialogPartsOf(connect)}
-      threshold={threshold.parts}
+      notice={starts.notice}
+      connect={dialogPartsOf(starts.connect)}
+      threshold={starts.threshold.parts}
+      trust={starts.trust.parts}
       actions={actions}
     />
   );

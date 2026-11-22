@@ -32,11 +32,14 @@ export interface RepositoriesWays {
   readonly openFiles: (repositoryId: string) => void;
   /** Opens the dialog of the threshold of a repository. */
   readonly changeThreshold: (repository: Repository) => void;
+  /** Opens the dialog of how a repository is installed. */
+  readonly changeInstallMode: (repository: Repository) => void;
 }
 
 /**
  * `enter` opens the files of the chosen repository; `s` scans it, once;
- * `t` changes its threshold, also while it is scanned.
+ * `t` changes its threshold and `i` how it is installed, also while it is
+ * scanned.
  */
 function chosenActions(
   { chosen, starting }: RepositoriesState,
@@ -71,9 +74,17 @@ function chosenActions(
     hint: { label: 'threshold' },
     command: { title: 'Set its threshold', target },
   };
+  // The footer has no room for one more hint, so the palette names it.
+  const install: ScreenAction = {
+    key: 'i',
+    run: () => {
+      ways.changeInstallMode(chosen.repository);
+    },
+    command: { title: 'Choose how it is installed', target },
+  };
   return isScanning(chosen, starting)
-    ? [open, threshold]
-    : [open, scan, threshold];
+    ? [open, threshold, install]
+    : [open, scan, threshold, install];
 }
 
 /**

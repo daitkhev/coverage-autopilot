@@ -5,7 +5,10 @@ import { answered } from '#tests/support/fake-service-api';
 import { KEYS, PATIENT, press } from '#tests/support/keys';
 import { askedOf, openedApp, type ShownApp } from '#tests/support/sample-app';
 import { IMPROVEMENT_BY_STATUS } from '#tests/support/sample-improvements';
-import { SCANNED_REPOSITORY } from '#tests/support/sample-repositories';
+import {
+  SCANNED_REPOSITORY,
+  TRUSTED_REPOSITORY,
+} from '#tests/support/sample-repositories';
 import { widestLine } from '#tests/support/terminal-text';
 import { frameOf } from '#tests/support/wide-terminal';
 import { DIALOG_WIDTH, SMALLEST_SIZE } from '#theme/widths';
@@ -52,11 +55,12 @@ describe('AppPalette', () => {
     const lines = paletteOf(app);
     expect(lines).toMatch(/Scan this repository +example\/payments +s/u);
     expect(lines).toMatch(/Open its files +example\/payments +enter/u);
+    expect(lines).toMatch(/Choose how it is installed +example\/payments +i/u);
     expect(lines).toMatch(/Connect a repository +a/u);
     expect(lines.indexOf('Connect a repository')).toBeLessThan(
       lines.indexOf('Go to Repositories'),
     );
-    expect(lines).toMatch(/Quit +q/u);
+    expect(lines).toMatch(/Go to Repositories +1/u);
   });
 
   it('should narrow the actions and the commands by what is typed', async () => {
@@ -80,6 +84,27 @@ describe('AppPalette', () => {
       SCANNED_REPOSITORY.id,
     );
     expect(frameOf(app.terminal)).not.toContain('Commands');
+  });
+
+  it('should run an action the footer has no room for, and its dialog', async () => {
+    const app = await openedApp({
+      scripted: {
+        changeInstallMode: () => Promise.resolve(answered(TRUSTED_REPOSITORY)),
+      },
+    });
+
+    await ran(app, 'i', 'n', 's', 't', 'a', 'l', 'l');
+    await showing(app, 'Install of example/payments');
+    expect(frameOf(app.terminal)).toContain(
+      'choose how example/payments is installed',
+    );
+    await press(app.terminal, '3', KEYS.enter);
+
+    await showing(app, 'example/payments is installed trusted, its own.');
+    expect(app.session.api.calls.at(-1)).toEqual({
+      method: 'changeInstallMode',
+      arguments: [SCANNED_REPOSITORY.id, { mode: 'trusted' }],
+    });
   });
 
   it('should leave out an action that cannot run now', async () => {

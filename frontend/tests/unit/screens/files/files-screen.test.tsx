@@ -21,6 +21,7 @@ import {
 import {
   NEVER_SCANNED_REPOSITORY,
   SCANNED_REPOSITORY,
+  TRUSTED_REPOSITORY,
 } from '#tests/support/sample-repositories';
 import { screenLog } from '#tests/support/sample-work-log';
 import { drawnWith, widestLine } from '#tests/support/terminal-text';
@@ -95,6 +96,17 @@ describe('FilesScreen', () => {
     const { terminal } = await loaded(SCANNED);
 
     expect(frameOf(terminal)).toMatchSnapshot();
+  });
+
+  describe('when the install of the repository runs its code', () => {
+    it('should mark it beside the commit of the snapshot', async () => {
+      const { terminal } = await loaded({
+        ...SCANNED,
+        getRepository: () => Promise.resolve(answered(TRUSTED_REPOSITORY)),
+      });
+
+      expect(frameOf(terminal)).toMatch(/scanned 2h ago · trusted install/u);
+    });
   });
 
   describe('when the service stops answering', () => {

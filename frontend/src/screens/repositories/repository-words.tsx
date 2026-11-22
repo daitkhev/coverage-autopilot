@@ -95,6 +95,13 @@ function stepWords(steps: readonly ProgressStep[]): string {
     : (STEP_WORDS.get(step.code) ?? step.code);
 }
 
+/** The install of the repository runs its code: marked wherever it shows. */
+const TRUSTED: Fact = { text: 'trusted install', role: 'warning' };
+
+function trustFacts(repository: Repository): Fact[] {
+  return repository.install.mode === 'trusted' ? [TRUSTED] : [];
+}
+
 /** Progress that has not moved for a while is marked, not hidden. */
 function freshnessFact(updatedAt: string, now: string): Fact {
   const text = `updated ${ageWords(updatedAt, now)} ago`;
@@ -148,13 +155,15 @@ export function detailFacts(
     ? [
         { text: repository.defaultBranch },
         { text: `connected ${ageWords(repository.connectedAt, now)} ago` },
+        ...trustFacts(repository),
       ]
     : rowFacts(row, { state, now });
 }
 
 /**
  * The second line of a row: the branch, then the scan that runs with
- * its step, the time passed and how fresh that is, or the snapshot.
+ * its step, the time passed and how fresh that is, or the snapshot, and
+ * last whether its install is trusted.
  */
 export function rowFacts(
   {
@@ -163,7 +172,9 @@ export function rowFacts(
   }: { readonly repository: Repository; readonly scan: Scan | undefined },
   { state, now }: { readonly state: RowState; readonly now: string },
 ): Fact[] {
-  return state === 'scanning'
-    ? [{ text: repository.defaultBranch }, ...scanFacts(scan, now)]
-    : snapshotFacts(repository, now);
+  const facts =
+    state === 'scanning'
+      ? [{ text: repository.defaultBranch }, ...scanFacts(scan, now)]
+      : snapshotFacts(repository, now);
+  return [...facts, ...trustFacts(repository)];
 }

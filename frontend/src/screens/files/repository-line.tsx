@@ -15,6 +15,9 @@ import { GAP, type Layout } from '#theme/widths';
 /** The branch moved since the scan: a warning, with its symbol. */
 const OUTDATED: Fact = warningFact('outdated');
 
+/** The install of the repository runs its code. */
+const TRUSTED: Fact = { text: 'trusted install', role: 'warning' };
+
 function Total({
   label,
   children,
@@ -71,9 +74,10 @@ function Totals({
 
 /**
  * What the screen is about: the repository, the commit of its latest
- * snapshot and its age, and the totals beside the threshold. Below the
- * wide layout the branches are left out. When tests failed in the
- * sandbox at the scan, a line below says how many.
+ * snapshot and its age, whether its install is trusted, and the totals
+ * beside the threshold. Below the wide layout the branches are left out.
+ * When tests failed in the sandbox at the scan, a line below says how
+ * many.
  */
 export function RepositoryLine({
   repository,
@@ -96,6 +100,7 @@ export function RepositoryLine({
             { text: shortHash(snapshot.commitSha), role: 'primary' },
             { text: `scanned ${ageWords(snapshot.capturedAt, now)} ago` },
             ...(repository.outdated ? [OUTDATED] : []),
+            ...(repository.install.mode === 'trusted' ? [TRUSTED] : []),
           ]}
         />
         <Totals repository={repository} snapshot={snapshot} layout={layout} />

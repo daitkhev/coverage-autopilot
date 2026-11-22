@@ -33,6 +33,11 @@ import {
   ThresholdDialog,
   type ThresholdDialogParts,
 } from '#screens/repositories/threshold-dialog';
+import {
+  TRUST_HINTS,
+  TrustDialog,
+  type TrustDialogParts,
+} from '#screens/repositories/trust-dialog';
 import { countWords } from '#theme/counts';
 import { repositoryName } from '#theme/names';
 import { BAR_CELLS, layoutOf, type TerminalSize } from '#theme/widths';
@@ -78,7 +83,10 @@ interface RepositoriesViewProps {
   readonly starting: ReadonlySet<string>;
   readonly notice: string | undefined;
   readonly connect: ConnectDialogParts | undefined;
-  readonly threshold: ThresholdDialogParts | undefined;
+  /** The dialog of a threshold, while it is open. */
+  readonly threshold?: ThresholdDialogParts | undefined;
+  /** The dialog of the install, while it is open. */
+  readonly trust?: TrustDialogParts | undefined;
   /** What the keys do while no dialog is open, as the footer names them. */
   readonly actions: readonly ScreenAction[];
 }
@@ -155,10 +163,14 @@ function DetailsPanel(props: RepositoriesViewProps): ReactNode {
 function dialogFooterOf(
   props: RepositoriesViewProps,
 ): { readonly fact: string; readonly hints: readonly KeyHint[] } | undefined {
-  const { connect, threshold } = props;
+  const { connect, threshold, trust } = props;
   if (threshold !== undefined) {
     const name = repositoryName(threshold.repository);
     return { fact: `type the threshold of ${name}`, hints: THRESHOLD_HINTS };
+  }
+  if (trust !== undefined) {
+    const name = repositoryName(trust.repository);
+    return { fact: `choose how ${name} is installed`, hints: TRUST_HINTS };
   }
   return connect === undefined
     ? undefined
@@ -207,13 +219,19 @@ function footerOf(props: RepositoriesViewProps): {
   };
 }
 
-/** The dialog that is open: the one of a threshold, or the one that connects. */
+/**
+ * The dialog that is open: the one of a threshold, the one of the
+ * install, or the one that connects.
+ */
 function dialogOf(props: RepositoriesViewProps): {
   readonly dialog?: ReactNode;
 } {
-  const { connect, threshold } = props;
+  const { connect, threshold, trust } = props;
   if (threshold !== undefined) {
     return { dialog: <ThresholdDialog {...threshold} /> };
+  }
+  if (trust !== undefined) {
+    return { dialog: <TrustDialog {...trust} /> };
   }
   return connect === undefined
     ? {}
@@ -223,7 +241,7 @@ function dialogOf(props: RepositoriesViewProps): {
 /**
  * Which repositories are connected and what is known of each: a list of
  * two lines a row, the selected one beside it, the dialog that connects
- * one more, and the one of a threshold.
+ * one more, the one of a threshold and the one of the install.
  */
 export function RepositoriesView(props: RepositoriesViewProps): ReactNode {
   const { frame, connect, threshold } = props;

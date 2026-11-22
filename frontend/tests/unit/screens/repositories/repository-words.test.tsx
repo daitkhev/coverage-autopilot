@@ -4,14 +4,18 @@ import type { ProgressStep } from '@coverage-autopilot/api-contracts/progress';
 import type { Scan } from '@coverage-autopilot/api-contracts/scans';
 
 import {
+  detailFacts,
   rowFacts,
   runnerWords,
   stepAt,
 } from '#screens/repositories/repository-words';
 import { SAMPLE_NOW } from '#tests/support/fake-service-api';
 import {
+  NEVER_SCANNED_REPOSITORY,
   SCAN_BY_STATUS,
+  SCANNED_REPOSITORY,
   SCANNING_REPOSITORY,
+  TRUSTED_REPOSITORY,
 } from '#tests/support/sample-repositories';
 
 function stepsOf(...statuses: ProgressStep['status'][]): ProgressStep[] {
@@ -63,6 +67,45 @@ describe('rowFacts', () => {
     );
 
     expect(time?.text).toBe('42s');
+  });
+});
+
+describe('detailFacts', () => {
+  const now = SAMPLE_NOW;
+  const trusted = { text: 'trusted install', role: 'warning' };
+
+  it.each([
+    ['scanned', { repository: TRUSTED_REPOSITORY, scan: undefined }],
+    [
+      'unscanned',
+      {
+        repository: {
+          ...NEVER_SCANNED_REPOSITORY,
+          install: TRUSTED_REPOSITORY.install,
+        },
+        scan: undefined,
+      },
+    ],
+    [
+      'scanning',
+      {
+        repository: {
+          ...SCANNING_REPOSITORY,
+          install: TRUSTED_REPOSITORY.install,
+        },
+        scan: SCAN_BY_STATUS.running,
+      },
+    ],
+  ] as const)('should mark a trusted install last when %s', (state, row) => {
+    expect(detailFacts(row, { state, now }).at(-1)).toEqual(trusted);
+  });
+
+  it('should leave a sandboxed install unmarked', () => {
+    const row = { repository: SCANNED_REPOSITORY, scan: undefined };
+
+    expect(detailFacts(row, { state: 'scanned', now })).not.toContainEqual(
+      trusted,
+    );
   });
 });
 

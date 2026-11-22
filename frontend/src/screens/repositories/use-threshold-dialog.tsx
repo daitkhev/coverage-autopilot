@@ -1,51 +1,30 @@
-import { useState } from 'react';
-
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
 
 import type { ClientSession } from '#api/client-session';
-import type { ThresholdDialogParts } from '#screens/repositories/threshold-dialog';
+import {
+  type RepositoryDialog,
+  useRepositoryDialog,
+} from '#screens/repositories/use-repository-dialog';
 
-/** The dialog of the threshold of a repository, and the key that opens it. */
-export interface ThresholdDialog {
-  /** Nothing while the dialog is closed. */
-  readonly parts: ThresholdDialogParts | undefined;
-  readonly open: (repository: Repository) => void;
-}
+/**
+ * The dialog of the threshold of a repository, and the key that opens it.
+ * A percentage of `null` gives the default back.
+ */
+export type ThresholdDialog = RepositoryDialog<number | null>;
 
 interface ThresholdDialogOptions {
   readonly session: ClientSession;
   readonly onChanged: (repository: Repository) => void;
 }
 
-/**
- * The repository whose threshold the dialog changes. The dialog closes
- * once the service took the change, and the list shows it on its next
- * request.
- */
+/** The repository whose threshold the dialog changes. */
 export function useThresholdDialog({
   session,
   onChanged,
 }: ThresholdDialogOptions): ThresholdDialog {
-  const [repository, setRepository] = useState<Repository | undefined>(
-    undefined,
-  );
-  const close = (): void => {
-    setRepository(undefined);
-  };
-  return {
-    parts:
-      repository === undefined
-        ? undefined
-        : {
-            repository,
-            change: async (percentage) =>
-              session.api.changeThreshold(repository.id, { percentage }),
-            onChanged: (changed) => {
-              close();
-              onChanged(changed);
-            },
-            onClose: close,
-          },
-    open: setRepository,
-  };
+  return useRepositoryDialog({
+    change: async (repository, percentage: number | null) =>
+      session.api.changeThreshold(repository.id, { percentage }),
+    onChanged,
+  });
 }

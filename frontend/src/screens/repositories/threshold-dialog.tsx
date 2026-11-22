@@ -13,18 +13,16 @@ import { RoleText } from '#components/role-text';
 import { TextField } from '#components/text-field';
 import type { Reply } from '#components/unanswered-body';
 import { useAction } from '#hooks/use-action';
+import type { RepositoryDialogParts } from '#screens/repositories/use-repository-dialog';
 import { percentWords } from '#theme/counts';
 import { repositoryName } from '#theme/names';
 import { DIALOG_WIDTH } from '#theme/widths';
 
-/** The open dialog of the threshold of one repository, and what it does. */
-export interface ThresholdDialogParts {
-  readonly repository: Repository;
-  /** One change for one confirmation. `null` gives the default back. */
-  readonly change: (percentage: number | null) => Promise<Reply<Repository>>;
-  readonly onChanged: (repository: Repository) => void;
-  readonly onClose: () => void;
-}
+/**
+ * The open dialog of the threshold of one repository, and what it does.
+ * A percentage of `null` gives the default back.
+ */
+export type ThresholdDialogParts = RepositoryDialogParts<number | null>;
 
 /** The keys of the dialog, also for the footer. */
 export const THRESHOLD_HINTS: readonly KeyHint[] = [
