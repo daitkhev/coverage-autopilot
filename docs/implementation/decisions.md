@@ -1654,3 +1654,46 @@ fails the improvement as an exposed credential and keeps its tokens.
 - Where: `backend/src/modules/coverage/infrastructure/detection/`,
   `backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile`,
   `backend/src/modules/verification/infrastructure/mutation/stryker-configuration.ts`.
+
+### What the first real fork and the first real installs showed
+
+- A whole improvement ran on a public repository the account may not
+  push to, with the real host, the real engine and the real generator.
+  One attempt took a file from 3 of 26 lines to 26 of 26 and killed 35 of
+  37 mutants. The service made the fork, pushed the base and the tests in
+  one push, and opened the pull request inside the fork: one commit, one
+  test file, against the branch of the scanned commit. Nothing reached
+  the repository itself, and the token was in no line of the log.
+- The access check first said that gh is not logged in. An old second
+  account with a broken login was in the keyring, and gh fails a status
+  that is not asked for the active account alone. The status is asked
+  with `--active` now.
+- An improvement of another file spent its three attempts on one cause.
+  The new test did not start, for a type error of the project that its
+  own tests never meet, and the gate told the generator only that the
+  tests fail. The generator cannot run a test, so it wrote the same test
+  three times. The failure itself must reach the next attempt: owed, and
+  in work.
+- A repository whose own tests need the network is scanned, with the
+  tests that fail, and an improvement of it ends after the analysis with
+  `mutation_unsupported`, because the mutation tool refuses a suite that
+  fails before it changes anything. No token was spent, but the reason
+  names the tool and not the cause. Owed: say that the tests of the
+  repository fail in the sandbox, at the scan and at the start of an
+  improvement.
+- A scan lists every source file, the scripts of an `examples` folder as
+  well, so they count as files below the threshold. Whether such folders
+  are left out is the owner's call.
+- The image of the commands was built anew with Corepack, and seven
+  public repositories were scanned on the real engine as they are: pnpm
+  10.33, 11.3 and 11.10, the last two with a settings file of pnpm and a
+  hash in the manifest; yarn 1.22.22 twice; yarn 4.5.0 twice, both with a
+  yarn of their own in the tree, which did not run. Each manager came at
+  the version the repository names, as a user that is not root, on a root
+  that is read-only.
+- Two refusals were right: a lockfile of yarn that takes a package from
+  a git repository, and a project of Vitest that declares no provider of
+  coverage.
+- The engine of this machine cannot mount a folder that was removed and
+  made again at the same path: it says that the source of the mount does
+  not exist. An instance folder is not made again where one was removed.
