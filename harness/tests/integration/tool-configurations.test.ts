@@ -112,6 +112,7 @@ describe('vitest.ts', () => {
         ],
         environment: 'node',
         testTimeout: 20_000,
+        hookTimeout: 20_000,
         coverage: {
           provider: 'v8',
           reporter: ['json', 'text-summary'],
