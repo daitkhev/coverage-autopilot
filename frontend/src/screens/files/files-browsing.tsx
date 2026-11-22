@@ -84,7 +84,11 @@ export function useBrowser({
   const chosen = FILE_LISTS[list] ?? FILE_LISTS[0];
   const rows = filesOf(files.items, { list: chosen, filter: filter.text });
   const visible = Math.max(1, frame.size.rows - CHROME_ROWS);
-  const selection = useSelection({ count: rows.length, visible });
+  const selection = useSelection({
+    count: rows.length,
+    visible,
+    keys: rows.map(({ path }) => path),
+  });
   const layout = layoutOf(frame.size);
   const selected = rows[selection.index];
   const state = { focused: ring.focused, layout, selected };

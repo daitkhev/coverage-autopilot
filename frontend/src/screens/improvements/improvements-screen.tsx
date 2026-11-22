@@ -120,7 +120,11 @@ export function ImprovementsScreen({
   const improvements =
     kept.answer?.outcome === 'answered' ? kept.answer.improvements : [];
   const visible = visibleRowsOf(frame.size, filters.path.line === null ? 0 : 1);
-  const selection = useSelection({ count: improvements.length, visible });
+  const selection = useSelection({
+    count: improvements.length,
+    visible,
+    keys: improvements.map(({ id }) => id),
+  });
   const focus = useFocusRing(IMPROVEMENTS_PANELS);
   const [asked, ask] = useState<Improvement>();
   useKeys(

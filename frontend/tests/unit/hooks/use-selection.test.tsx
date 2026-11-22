@@ -68,6 +68,36 @@ describe('positionOf', () => {
       positionOf({ index: 3, offset: 3 }, { count: 0, visible: 0 }),
     ).toEqual({ index: 0, offset: 0 });
   });
+
+  describe('when the rows have keys', () => {
+    const KEYS_NOW = ['a', 'c', 'd', 'b'];
+    const size = { count: KEYS_NOW.length, visible: 5, keys: KEYS_NOW };
+
+    it('should find the chosen row where the list moved it', () => {
+      expect(positionOf({ index: 1, offset: 0, key: 'b' }, size)).toEqual({
+        index: 3,
+        offset: 0,
+      });
+    });
+
+    it('should choose the row at its place when it is gone', () => {
+      expect(positionOf({ index: 1, offset: 0, key: 'x' }, size)).toEqual({
+        index: 1,
+        offset: 0,
+      });
+    });
+
+    it('should choose by place in a list without keys', () => {
+      expect(
+        positionOf({ index: 1, offset: 0, key: 'b' }, { count: 4, visible: 5 })
+          .index,
+      ).toBe(1);
+    });
+
+    it('should choose the nearest row when the list got shorter', () => {
+      expect(positionOf({ index: 7, offset: 0, key: 'x' }, size).index).toBe(3);
+    });
+  });
 });
 
 describe('useSelection', () => {
@@ -109,6 +139,24 @@ describe('useSelection', () => {
     await press(terminal, KEYS.up, KEYS.down, KEYS.down, KEYS.down);
 
     expect(screenOf(terminal)).toBe('row 2 from 0');
+  });
+
+  describe('when the list changes under the chosen row', () => {
+    it('should follow the row by its key, but not the first row', async () => {
+      const terminal = render(
+        <List count={3} visible={5} keys={['a', 'b', 'c']} />,
+      );
+      await press(terminal, KEYS.down);
+
+      terminal.rerender(<List count={3} visible={5} keys={['c', 'a', 'b']} />);
+      await press(terminal);
+      expect(screenOf(terminal)).toBe('row 2 from 0');
+
+      await press(terminal, 'g');
+      terminal.rerender(<List count={3} visible={5} keys={['b', 'c', 'a']} />);
+      await press(terminal);
+      expect(screenOf(terminal)).toBe('row 0 from 0');
+    });
   });
 
   describe('when fewer rows fit on the screen', () => {

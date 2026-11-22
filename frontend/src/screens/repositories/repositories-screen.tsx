@@ -151,7 +151,11 @@ export function RepositoriesScreen({
   const { asked, listing } = useNumberedListing(session);
   const rows = rowsOf(listing.answer);
   const visible = visibleRowsOf(frame.size);
-  const selection = useSelection({ count: rows.length, visible });
+  const selection = useSelection({
+    count: rows.length,
+    visible,
+    keys: rows.map(({ repository }) => repository.id),
+  });
   const focus = useFocusRing(REPOSITORIES_PANELS);
   const chosen = rows[selection.index];
   const work = useWork(session, chosen?.repository.id);
