@@ -80,6 +80,7 @@ export function fakeServiceApi(scripted: Partial<ServiceApi>): FakeServiceApi {
       take('listRepositories', args)(...args),
     getRepository: async (...args) => take('getRepository', args)(...args),
     checkAccess: async (...args) => take('checkAccess', args)(...args),
+    changeThreshold: async (...args) => take('changeThreshold', args)(...args),
     startScan: async (...args) => take('startScan', args)(...args),
     getScan: async (...args) => take('getScan', args)(...args),
     cancelScan: async (...args) => take('cancelScan', args)(...args),

@@ -9,6 +9,7 @@ import {
 import {
   ACCESS_PASSED,
   BUDGET_SETTINGS,
+  OWN_THRESHOLD_REPOSITORY,
   PAYMENTS_SNAPSHOT,
   PAYMENTS_SNAPSHOTS,
   REPOSITORY_LIST,
@@ -97,6 +98,15 @@ export const ROUTES: readonly RouteCase[] = [
     body: '',
     status: OK,
     value: ACCESS_PASSED,
+  },
+  {
+    name: 'changeThreshold',
+    call: async (api) => api.changeThreshold(REPOSITORY, { percentage: 90 }),
+    method: 'POST',
+    url: `/repositories/${REPOSITORY}/threshold`,
+    body: JSON.stringify({ percentage: 90 }),
+    status: OK,
+    value: OWN_THRESHOLD_REPOSITORY,
   },
   {
     name: 'startScan',

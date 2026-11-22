@@ -27,6 +27,9 @@ const PERCENT = /^\d+(?:\.\d+)?$/u;
 const WHOLE_NUMBER = /^\d+$/u;
 const BUDGET_KEYS = ['attempts', 'tokens', 'minutes'] as const;
 
+/** The word for no threshold of its own: the one of the service. */
+const DEFAULT_THRESHOLD = 'default';
+
 function repositoryProblem(repository: string): Problem | undefined {
   return REPOSITORY.test(repository)
     ? undefined
@@ -59,6 +62,33 @@ function metricOf(
   return metric === undefined
     ? `--metric takes one of ${coverageMetricSchema.options.join(', ')}.`
     : { metric };
+}
+
+/** A whole percent, checked by its shape only, as `belowOf` says. */
+function thresholdOf(
+  text: string,
+): { readonly percentage: number | null } | Problem {
+  if (text === DEFAULT_THRESHOLD) {
+    return { percentage: null };
+  }
+  return WHOLE_NUMBER.test(text)
+    ? { percentage: Number(text) }
+    : `A threshold is a whole percent such as 90, or ${DEFAULT_THRESHOLD}, ` +
+        `not ${text}.`;
+}
+
+function thresholdCommand(line: Line): Command<'repo threshold'> | Problem {
+  const threshold = thresholdOf(line.second);
+  if (typeof threshold === 'string') {
+    return threshold;
+  }
+  return (
+    repositoryProblem(line.first) ?? {
+      name: 'repo threshold',
+      repository: line.first,
+      ...threshold,
+    }
+  );
 }
 
 /** The limits a person set. The service fills the others with its defaults. */
@@ -129,6 +159,7 @@ const BUILDERS: {
       name: 'repo check',
       repository: line.first,
     },
+  'repo threshold': thresholdCommand,
   scan: (line) =>
     repositoryProblem(line.first) ?? {
       name: 'scan',

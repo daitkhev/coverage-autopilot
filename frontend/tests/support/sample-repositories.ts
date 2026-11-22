@@ -73,6 +73,20 @@ export const SCANNED_REPOSITORY: Repository = {
   threshold: { metric: 'lines', percentage: 80, isDefault: true },
 };
 
+/**
+ * `example/payments` once a person gave it 90% of lines of its own: more
+ * of its files are below.
+ */
+export const OWN_THRESHOLD_REPOSITORY: Repository = {
+  ...SCANNED_REPOSITORY,
+  latestSnapshot: {
+    ...PAYMENTS_SNAPSHOT,
+    threshold: { metric: 'lines', percentage: 90 },
+    files: { below: 20, above: 22, unmeasured: 2, noCode: 4 },
+  },
+  threshold: { metric: 'lines', percentage: 90, isDefault: false },
+};
+
 /** Connected a minute ago, and never scanned. */
 export const NEVER_SCANNED_REPOSITORY: Repository = {
   ...SCANNED_REPOSITORY,

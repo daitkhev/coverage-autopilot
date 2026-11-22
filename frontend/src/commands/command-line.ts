@@ -47,7 +47,7 @@ export type CommandLine =
 
 const HELP_WORDS = ['--help', '-h'];
 
-/** `repo add`, `repo list` and `repo check` are named by two words. */
+/** Every command of repositories is named by two words, as `repo add`. */
 const REPOSITORY_COMMAND_WORDS = 2;
 
 /** The value each flag takes, as the help writes it. A switch takes none. */

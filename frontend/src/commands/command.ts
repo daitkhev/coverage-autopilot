@@ -27,6 +27,10 @@ interface CommandArguments {
   readonly 'repo add': { readonly url: string };
   readonly 'repo list': NoArguments;
   readonly 'repo check': RepositoryArgument;
+  /** `null` gives the repository the threshold of the service back. */
+  readonly 'repo threshold': RepositoryArgument & {
+    readonly percentage: number | null;
+  };
   readonly scan: RepositoryArgument & WaitFlag;
   readonly files: RepositoryArgument & { readonly query: SnapshotFilesQuery };
   readonly improve: RepositoryArgument &

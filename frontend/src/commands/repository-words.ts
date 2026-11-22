@@ -3,6 +3,7 @@ import type { Repository } from '@coverage-autopilot/api-contracts/repositories'
 import type { Cells } from '#commands/columns';
 import type { CommandIo } from '#commands/command-io';
 import { percentText } from '#commands/words';
+import { percentWords } from '#theme/counts';
 import { ageWords } from '#theme/moments';
 import { repositoryName, shortHash } from '#theme/names';
 
@@ -47,5 +48,18 @@ export function repositoryCells(repository: Repository, io: CommandIo): Cells {
     shortHash(snapshot.commitSha),
     `scanned ${ageWords(snapshot.capturedAt, io.session.now())} ago`,
     notesOf(repository),
+  ];
+}
+
+/**
+ * The threshold the files of a repository are judged by, and whether it
+ * is its own or the default of the service.
+ */
+export function thresholdCells(repository: Repository): Cells {
+  const { metric, percentage, isDefault } = repository.threshold;
+  return [
+    repositoryName(repository),
+    `threshold ${percentWords(percentage)} of ${metric}`,
+    isDefault ? 'default' : 'own',
   ];
 }

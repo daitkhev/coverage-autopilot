@@ -14,6 +14,7 @@ import type {
 } from '@coverage-autopilot/api-contracts/improvements';
 import type {
   AccessCheck,
+  ChangeThresholdRequest,
   ConnectRepositoryRequest,
   Repository,
   RepositoryList,
@@ -77,6 +78,15 @@ export interface ServiceApi {
    * `passed: false`; 404.
    */
   checkAccess(repositoryId: string): Promise<ServiceAnswer<AccessCheck>>;
+  /**
+   * `POST /repositories/:id/threshold`: 200 with the repository as its
+   * files are judged from now on; 400 for a percent that is no whole
+   * number from 1 to 100, 404.
+   */
+  changeThreshold(
+    repositoryId: string,
+    request: ChangeThresholdRequest,
+  ): Promise<ServiceAnswer<Repository>>;
   /**
    * `POST /repositories/:id/scans` with the key in `Idempotency-Key`: 202
    * for a new scan, 200 for the scan the key queued before; 404, 409

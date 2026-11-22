@@ -78,6 +78,14 @@ describe('parseCommandLine', () => {
     ],
     [['repo', 'list'], { name: 'repo list' }],
     [['repo', 'check', REPO], { name: 'repo check', repository: REPO }],
+    [
+      ['repo', 'threshold', REPO, '90'],
+      { name: 'repo threshold', repository: REPO, percentage: 90 },
+    ],
+    [
+      ['repo', 'threshold', REPO, 'default'],
+      { name: 'repo threshold', repository: REPO, percentage: null },
+    ],
     [['scan', REPO], { name: 'scan', repository: REPO, wait: false }],
     [['scan', '--wait', REPO], { name: 'scan', repository: REPO, wait: true }],
     [['files', REPO], { name: 'files', repository: REPO, query: {} }],
@@ -189,6 +197,19 @@ describe('parseCommandLine', () => {
         '--minutes takes a whole number such as 3, not half.',
       ],
       [['approve', IMPROVEMENT], 'approve needs --hash <hash>.'],
+      [['repo', 'threshold', REPO], 'repo threshold needs <percent>.'],
+      [
+        ['repo', 'threshold', 'widgets', '90'],
+        'widgets is not a repository; name it as owner/name.',
+      ],
+      [
+        ['repo', 'threshold', REPO, '90%'],
+        'A threshold is a whole percent such as 90, or default, not 90%.',
+      ],
+      [
+        ['repo', 'threshold', REPO, '85.5'],
+        'A threshold is a whole percent such as 90, or default, not 85.5.',
+      ],
     ])('should refuse %j with one sentence', (argv, message) => {
       expect(parseCommandLine(argv)).toMatchObject({
         kind: 'wrong',

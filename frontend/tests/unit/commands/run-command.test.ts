@@ -22,6 +22,7 @@ const GONE: Partial<ServiceApi> = {
   listRepositories: () => Promise.resolve(answered(REPOSITORY_LIST)),
   connectRepository: unreachable,
   checkAccess: unreachable,
+  changeThreshold: unreachable,
   startScan: unreachable,
   listSnapshotFiles: unreachable,
   startImprovement: unreachable,
@@ -40,6 +41,10 @@ describe('runCommand', () => {
       'connectRepository',
     ],
     [{ name: 'repo check', repository: REPO }, 'checkAccess'],
+    [
+      { name: 'repo threshold', repository: REPO, percentage: 90 },
+      'changeThreshold',
+    ],
     [{ name: 'scan', repository: REPO, wait: false }, 'startScan'],
     [{ name: 'files', repository: REPO, query: {} }, 'listSnapshotFiles'],
     [

@@ -10,20 +10,23 @@ describe('HELP_TEXT', () => {
       Without a command it opens the screens.
 
       Commands:
-        repo add <url>              Connects a repository
-        repo list                   Lists repositories
-        repo check <repo>           Runs the access check
-        scan <repo>                 Queues a scan
-        files <repo>                Lists files of the latest snapshot
-        improve <repo> <file>       Requests an improvement
-        list                        Lists improvements
-        status <id>                 Shows one improvement
-        patch <id>                  Shows the test patch
-        approve <id> --hash <hash>  Approves publishing
-        cancel <id>                 Cancels a scan or an improvement
-        doctor                      Shows the state of the service
+        repo add <url>                   Connects a repository
+        repo list                        Lists repositories
+        repo check <repo>                Runs the access check
+        repo threshold <repo> <percent>  Sets the threshold of a repository
+        scan <repo>                      Queues a scan
+        files <repo>                     Lists files of the latest snapshot
+        improve <repo> <file>            Requests an improvement
+        list                             Lists improvements
+        status <id>                      Shows one improvement
+        patch <id>                       Shows the test patch
+        approve <id> --hash <hash>       Approves publishing
+        cancel <id>                      Cancels a scan or an improvement
+        doctor                           Shows the state of the service
 
       A repository is named as owner/name.
+      A threshold is a whole percent of lines, such as 90, or default to give
+      a repository the threshold of the service back.
 
       Flags:
         --wait                                   Block until the work is final

@@ -55,6 +55,11 @@ const GRAMMAR: Readonly<Record<CommandName, Grammar>> = {
     does: 'Runs the access check',
     flags: [],
   },
+  'repo threshold': {
+    synopsis: 'repo threshold <repo> <percent>',
+    does: 'Sets the threshold of a repository',
+    flags: [],
+  },
   scan: { synopsis: 'scan <repo>', does: 'Queues a scan', flags: ['--wait'] },
   files: {
     synopsis: 'files <repo>',
@@ -161,6 +166,8 @@ export const HELP_TEXT: string = [
   ...table(Object.values(GRAMMAR).map((rule) => [rule.synopsis, rule.does])),
   '',
   'A repository is named as owner/name.',
+  'A threshold is a whole percent of lines, such as 90, or default to give',
+  'a repository the threshold of the service back.',
   '',
   'Flags:',
   ...table(FLAG_HELP),

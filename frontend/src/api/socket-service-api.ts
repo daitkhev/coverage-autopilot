@@ -64,6 +64,7 @@ type RepositoryRoutes = Pick<
   | 'listRepositories'
   | 'getRepository'
   | 'checkAccess'
+  | 'changeThreshold'
   | 'startScan'
   | 'listSnapshots'
 >;
@@ -83,6 +84,11 @@ function repositoryRoutes(ask: Ask): RepositoryRoutes {
       ask(repositorySchema, getRequest(repository(id))),
     checkAccess: async (id) =>
       ask(accessCheckSchema, getRequest(repository(id, 'access'))),
+    changeThreshold: async (id, request) =>
+      ask(
+        repositorySchema,
+        postRequest(repository(id, 'threshold'), { body: request }),
+      ),
     startScan: async (id, key) =>
       ask(scanSchema, postRequest(repository(id, 'scans'), { key })),
     listSnapshots: async (id) =>
