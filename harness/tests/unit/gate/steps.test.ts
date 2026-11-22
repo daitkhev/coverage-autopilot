@@ -36,11 +36,12 @@ describe('planFor', () => {
     ]);
   });
 
-  it('should run everything full runs, the workflows, runners and mutation for ci', () => {
+  it('should run everything full runs, then the slow steps for ci', () => {
     expect(namesOf('ci')).toEqual([
       ...namesOf('full'),
       'workflows',
       'runners',
+      'stress',
       'mutation',
     ]);
   });

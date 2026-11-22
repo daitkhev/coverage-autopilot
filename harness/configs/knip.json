@@ -32,6 +32,7 @@
         "config": [
           "vitest.config.mjs",
           "vitest.e2e.config.mjs",
+          "vitest.stress.config.mjs",
           "vitest.runners.config.mjs"
         ]
       }

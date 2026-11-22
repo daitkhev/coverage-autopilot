@@ -32,7 +32,7 @@ node harness/bin/check.ts fast
 | --- | --- | --- |
 | `fast` | After each small group of edits | Format, lint, types and the architecture |
 | `full` | Before you say that the work is done | `fast`, then the comparison with the last commit, unused code, copy and paste, the build, the tests, coverage, the documents and the search for secrets |
-| `ci` | In CI. On a desk only when a person asks | `full`, then the workflows, the runners and the mutation tests, which take minutes |
+| `ci` | In CI. On a desk only when a person asks | `full`, then the workflows, the runners, the stress tests and the mutation tests, which take minutes |
 
 - A red step is fixed in the code. No check is switched off, no number is
   moved and no rule is edited to get a green gate.

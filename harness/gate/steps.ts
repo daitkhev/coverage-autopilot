@@ -78,6 +78,7 @@ export const STEPS: readonly Step[] = [
   tool('build', 'harness/bin/build.ts'),
   ...TEST_KINDS.map(tests),
   tool('e2e', 'harness/bin/e2e.ts'),
+  tool('stress', 'harness/bin/stress.ts'),
   tool('coverage', 'harness/bin/coverage.ts'),
   tool('documents', 'harness/bin/documents.ts'),
   tool('secrets', 'harness/bin/secrets.ts'),
@@ -110,7 +111,7 @@ const FULL = [
 export const PROFILES: Readonly<Record<string, readonly string[]>> = {
   fast: FAST,
   full: FULL,
-  ci: [...FULL, 'workflows', 'runners', 'mutation'],
+  ci: [...FULL, 'workflows', 'runners', 'stress', 'mutation'],
 };
 
 function stepNamed(name: string): Step {

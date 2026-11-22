@@ -3,7 +3,12 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { endToEndTests, runnerTests, treeTests } from '#harness/configs/vitest';
+import {
+  endToEndTests,
+  runnerTests,
+  stressTests,
+  treeTests,
+} from '#harness/configs/vitest';
 import { eslintConfig } from '#harness/eslint/config';
 import { FIXTURE_PACKAGES, TOOL_PLUGINS, TOOLS } from '#harness/gate/tools';
 import { isRecord, readJsonRecord, recordAt } from '#harness/shared/json';
@@ -141,9 +146,22 @@ describe('vitest.ts', () => {
     });
   });
 
+  it('should run the stress tests apart, one file at a time', () => {
+    expect(stressTests).toEqual({
+      test: {
+        include: ['*/tests/stress/**/*.test.ts'],
+        environment: 'node',
+        fileParallelism: false,
+        testTimeout: 300_000,
+        hookTimeout: 120_000,
+      },
+    });
+  });
+
   it.each([
     ['vitest.config.mjs', 'treeTests'],
     ['vitest.e2e.config.mjs', 'endToEndTests'],
+    ['vitest.stress.config.mjs', 'stressTests'],
     ['vitest.runners.config.mjs', 'runnerTests'],
   ])('should be what %s at the root points to', (pointer, name) => {
     const text = readFileSync(join(REPOSITORY_ROOT, pointer), 'utf8');

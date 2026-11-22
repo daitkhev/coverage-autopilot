@@ -20,7 +20,12 @@ import {
   runBuild,
   SERVICE_BUILD,
 } from '#harness/gate/run-build';
-import { END_TO_END_COMMAND, runEndToEnd } from '#harness/gate/run-end-to-end';
+import {
+  END_TO_END_COMMAND,
+  runEndToEnd,
+  runStress,
+  STRESS_COMMAND,
+} from '#harness/gate/run-built-tests';
 import { fakeHost } from '#harness/tests/support/fake-host';
 
 const MANIFEST = {
@@ -246,6 +251,40 @@ describe('runEndToEnd', () => {
       const host = fakeHost({ root });
 
       expect(await runEndToEnd(host)).toBe(1);
+      expect(host.started).toEqual([]);
+    });
+  });
+});
+
+describe('runStress', () => {
+  it('should build the service, then run the tests on the built file', async () => {
+    const host = fakeHost({ root });
+
+    expect(await runStress(host)).toBe(0);
+    expect(host.printed).toEqual(WRITTEN);
+    expect(host.started).toEqual([STRESS_COMMAND]);
+  });
+
+  it('should give the tests their own configuration and no kept frame', () => {
+    expect(STRESS_COMMAND.arguments.join(' ')).toBe(
+      'run --config vitest.stress.config.mjs --update=none',
+    );
+  });
+
+  describe('when a test fails', () => {
+    it('should fail', async () => {
+      const host = fakeHost({ root, passes: () => false });
+
+      expect(await runStress(host)).toBe(1);
+    });
+  });
+
+  describe('when the service does not build', () => {
+    it('should fail and run no test', async () => {
+      write(SERVICE_BUILD.entry, "import '#service/missing';\n");
+      const host = fakeHost({ root });
+
+      expect(await runStress(host)).toBe(1);
       expect(host.started).toEqual([]);
     });
   });

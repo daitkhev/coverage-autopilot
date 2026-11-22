@@ -57,3 +57,20 @@ export const endToEndTests = defineConfig({
     hookTimeout: 60_000,
   },
 });
+
+/**
+ * The tests that hold a guarantee of the design under load: real
+ * processes that share one instance and are stopped at random. The step
+ * that runs them builds the file first. One file runs at a time, so the
+ * load a test works under is its own, and a test may take five minutes.
+ * Coverage and mutation leave them out, as they do the end-to-end tests.
+ */
+export const stressTests = defineConfig({
+  test: {
+    include: ['*/tests/stress/**/*.test.ts'],
+    environment: 'node',
+    fileParallelism: false,
+    testTimeout: 300_000,
+    hookTimeout: 120_000,
+  },
+});
