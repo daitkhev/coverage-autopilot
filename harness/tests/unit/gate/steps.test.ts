@@ -29,6 +29,7 @@ describe('planFor', () => {
       'build',
       'unit',
       'integration',
+      'e2e',
       'coverage',
       'documents',
       'secrets',

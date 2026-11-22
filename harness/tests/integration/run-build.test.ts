@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { runBuild, SERVICE_BUILD } from '#harness/gate/run-build';
+import { END_TO_END_COMMAND, runEndToEnd } from '#harness/gate/run-end-to-end';
 import { fakeHost } from '#harness/tests/support/fake-host';
 
 const MANIFEST = {
@@ -34,27 +35,27 @@ import { greeting } from '#service/greeting';
 process.stdout.write(greeting(basename('/tree/acme')));
 `;
 
+let root: string;
+
+function write(file: string, text: string): void {
+  const path = join(root, file);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, text);
+}
+
+beforeEach(() => {
+  root = mkdtempSync(join(tmpdir(), 'build-'));
+  write('backend/package.json', JSON.stringify(MANIFEST));
+  write(SERVICE_BUILD.settings, JSON.stringify({ compilerOptions: {} }));
+  write('backend/src/greeting.ts', GREETING);
+  write(SERVICE_BUILD.entry, ENTRY);
+});
+
+afterEach(() => {
+  rmSync(root, { recursive: true, force: true });
+});
+
 describe('runBuild', () => {
-  let root: string;
-
-  function write(file: string, text: string): void {
-    const path = join(root, file);
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, text);
-  }
-
-  beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'build-'));
-    write('backend/package.json', JSON.stringify(MANIFEST));
-    write(SERVICE_BUILD.settings, JSON.stringify({ compilerOptions: {} }));
-    write('backend/src/greeting.ts', GREETING);
-    write(SERVICE_BUILD.entry, ENTRY);
-  });
-
-  afterEach(() => {
-    rmSync(root, { recursive: true, force: true });
-  });
-
   it('should write one file that plain Node runs', async () => {
     const host = fakeHost({ root });
 
@@ -99,6 +100,40 @@ describe('runBuild', () => {
       expect(host.printed.every((line) => line.startsWith('build: '))).toBe(
         true,
       );
+    });
+  });
+});
+
+describe('runEndToEnd', () => {
+  it('should build the service, then run the tests on the built file', async () => {
+    const host = fakeHost({ root });
+
+    expect(await runEndToEnd(host)).toBe(0);
+    expect(host.printed).toEqual([`build: ${SERVICE_BUILD.file} was written.`]);
+    expect(host.started).toEqual([END_TO_END_COMMAND]);
+  });
+
+  it('should give the tests their own configuration and no kept frame', () => {
+    expect(END_TO_END_COMMAND.arguments.join(' ')).toBe(
+      'run --config vitest.e2e.config.mjs --update=none',
+    );
+  });
+
+  describe('when a test fails', () => {
+    it('should fail', async () => {
+      const host = fakeHost({ root, passes: () => false });
+
+      expect(await runEndToEnd(host)).toBe(1);
+    });
+  });
+
+  describe('when the service does not build', () => {
+    it('should fail and run no test', async () => {
+      write(SERVICE_BUILD.entry, "import '#service/missing';\n");
+      const host = fakeHost({ root });
+
+      expect(await runEndToEnd(host)).toBe(1);
+      expect(host.started).toEqual([]);
     });
   });
 });

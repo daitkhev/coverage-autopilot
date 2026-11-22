@@ -41,3 +41,19 @@ export const runnerTests = defineConfig({
     environment: 'node',
   },
 });
+
+/**
+ * The tests that start the built service as a process of its own and
+ * reach it only through its socket. The step that runs them builds the
+ * file first. A test waits for a process to start, work and end, so it
+ * may take a minute. Coverage and mutation leave them out: the code runs
+ * in another process, from a file no report names.
+ */
+export const endToEndTests = defineConfig({
+  test: {
+    include: ['*/tests/e2e/**/*.test.{ts,tsx}'],
+    environment: 'node',
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
+  },
+});

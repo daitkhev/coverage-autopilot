@@ -31,3 +31,6 @@ export const TESTS_CONFIG = 'vitest.config.mjs';
 
 /** The tests that start the real runners on the fixture projects. */
 export const RUNNERS_CONFIG = 'vitest.runners.config.mjs';
+
+/** The tests that start the built service as a process of its own. */
+export const END_TO_END_CONFIG = 'vitest.e2e.config.mjs';

@@ -102,7 +102,7 @@ describe('ci.yml', () => {
   const text = fileOf(join(WORKFLOWS, 'ci.yml'));
 
   it('should run every step of the profile, one job a step', () => {
-    const matrix = [...text.matchAll(/^ {10}- ([a-z-]+)$/gm)].map(
+    const matrix = [...text.matchAll(/^ {10}- ([a-z0-9-]+)$/gm)].map(
       (match) => match[1],
     );
     const steps = (PROFILES['ci'] ?? []).filter(
