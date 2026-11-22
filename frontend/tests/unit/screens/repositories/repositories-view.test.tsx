@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
+import type { Problem } from '#components/problem-details';
 import type { DatedRequest } from '#hooks/use-dated-request';
 import type { ConnectState } from '#screens/repositories/connect-dialog-view';
 import type { ConnectPhase } from '#screens/repositories/connect-flow';
@@ -82,7 +83,7 @@ function dialogAt(phase: ConnectPhase): ConnectState {
 function view({
   listing = answered(),
   work = PAYMENTS_WORK,
-  fault,
+  problem,
   index = 0,
   size = USUAL_SIZE,
   focused = 'list',
@@ -92,7 +93,7 @@ function view({
 }: {
   readonly listing?: DatedRequest<RepositoryListing>;
   readonly work?: RepositoryWork;
-  readonly fault?: unknown;
+  readonly problem?: Problem;
   readonly index?: number;
   readonly size?: TerminalSize;
   readonly focused?: 'list' | 'details';
@@ -105,7 +106,7 @@ function view({
       frame={sampleFrame(size, REPOSITORIES)}
       listing={listing}
       work={work}
-      fault={fault}
+      problem={problem}
       now={SAMPLE_NOW}
       position={{ index, offset: 0 }}
       visible={visibleRowsOf(size)}
@@ -233,22 +234,26 @@ describe('RepositoriesView', () => {
     it('should show a fault that is not a service that is down', () => {
       const drawn = draw({
         listing: { ...answered(), stale: true },
-        fault: new TypeError('The answer does not match its schema.'),
+        problem: {
+          kind: 'fault',
+          fault: new TypeError('The answer does not match its schema.'),
+        },
       });
 
       expect(drawn).toContain('THE CLIENT SAID');
     });
 
     it('should show what the service refused the list with', () => {
+      const LOST = {
+        error: 'internal_error',
+        message: 'The list is lost.',
+      } as const;
       const drawn = draw({
         listing: {
           ...answered(),
-          answer: {
-            outcome: 'refused',
-            error: { error: 'internal_error', message: 'The list is lost.' },
-            asked: 1,
-          },
+          answer: { outcome: 'refused', error: LOST, asked: 1 },
         },
+        problem: { kind: 'refused', error: LOST },
       });
 
       expect(drawn).toContain('THE SERVICE ANSWERED');
@@ -324,7 +329,7 @@ describe('RepositoriesView', () => {
     const drawn = draw({
       size: { ...USUAL_SIZE, columns },
       listing: { ...answered(), stale: true },
-      fault: new Error('x'.repeat(300)),
+      problem: { kind: 'fault', fault: new Error('x'.repeat(300)) },
     });
 
     expect(widestLine(drawn)).toBeLessThanOrEqual(columns);

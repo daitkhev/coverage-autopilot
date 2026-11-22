@@ -6,7 +6,7 @@ import { AppShell, type ShellFrame } from '#components/app-shell';
 import { EmptyState } from '#components/empty-state';
 import { type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
-import { ProblemDetails } from '#components/problem-details';
+import { type Problem, ProblemDetails } from '#components/problem-details';
 import { SplitView } from '#components/split-view';
 import { StatusLine } from '#components/status-line';
 import type { DatedRequest } from '#hooks/use-dated-request';
@@ -26,8 +26,8 @@ type ImprovementsPanel = (typeof IMPROVEMENTS_PANELS)[number];
 interface ImprovementsViewProps {
   readonly frame: ShellFrame;
   readonly listing: DatedRequest<Listing>;
-  /** What the last request threw, other than a service that is down. */
-  readonly fault: unknown;
+  /** What went wrong with the last request, beside the list it keeps. */
+  readonly problem: Problem | undefined;
   readonly moment: { readonly now: string; readonly timeZone: string };
   readonly position: ListPosition;
   readonly visible: number;
@@ -90,8 +90,7 @@ function DetailsPanel(props: ImprovementsViewProps): ReactNode {
     <Panel title={title} focused={props.focused === 'details'}>
       <ProblemDetails
         headline="The list could not be read"
-        refusal={answer?.outcome === 'refused' ? answer.error : undefined}
-        fault={props.fault}
+        problem={props.problem}
         next="The screen asks again every second."
       />
       {chosen === undefined ? null : (

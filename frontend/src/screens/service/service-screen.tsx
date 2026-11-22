@@ -6,6 +6,7 @@ import type { ClientSession } from '#api/client-session';
 import type { ServiceAnswer } from '#api/service-api';
 import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
+import { faultOf } from '#components/problem-details';
 import { useAction } from '#hooks/use-action';
 import { useDatedRequest } from '#hooks/use-dated-request';
 import { useFocusRing } from '#hooks/use-focus-ring';
@@ -54,7 +55,7 @@ export function ServiceScreen({
     <ServiceView
       frame={frame}
       health={health}
-      fault={isServiceUnreachable(health.failure) ? undefined : health.failure}
+      problem={faultOf(health.failure, isServiceUnreachable)}
       moment={{ now: session.now(), timeZone: session.timeZone }}
       focused={focus.focused}
       restart={restart.state}

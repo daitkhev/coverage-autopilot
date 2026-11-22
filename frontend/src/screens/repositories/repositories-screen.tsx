@@ -9,6 +9,7 @@ import {
 import type { ClientSession } from '#api/client-session';
 import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
+import { problemOf } from '#components/problem-details';
 import { browseKeysOf } from '#hooks/list-keys';
 import { type DatedRequest, useDatedRequest } from '#hooks/use-dated-request';
 import { useFocusRing } from '#hooks/use-focus-ring';
@@ -175,9 +176,7 @@ export function RepositoriesScreen({
       frame={frame}
       listing={listing}
       work={work.answer}
-      fault={
-        isServiceUnreachable(listing.failure) ? undefined : listing.failure
-      }
+      problem={problemOf(listing, isServiceUnreachable)}
       now={session.now()}
       position={selection}
       visible={visible}

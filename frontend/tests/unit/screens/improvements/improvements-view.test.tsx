@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 
+import type { Problem } from '#components/problem-details';
 import type { DatedRequest } from '#hooks/use-dated-request';
 import { visibleRowsOf } from '#screens/improvements/improvement-list';
 import {
@@ -73,13 +74,13 @@ function answered(
 
 function view({
   listing = answered(),
-  fault,
+  problem,
   index = 0,
   size = USUAL_SIZE,
   focused = 'list',
 }: {
   readonly listing?: DatedRequest<Listing>;
-  readonly fault?: unknown;
+  readonly problem?: Problem;
   readonly index?: number;
   readonly size?: TerminalSize;
   readonly focused?: 'list' | 'details';
@@ -88,7 +89,7 @@ function view({
     <ImprovementsView
       frame={sampleFrame(size, IMPROVEMENTS)}
       listing={listing}
-      fault={fault}
+      problem={problem}
       moment={{ now: SAMPLE_NOW, timeZone: 'UTC' }}
       position={{ index, offset: 0 }}
       visible={visibleRowsOf(size)}
@@ -207,24 +208,26 @@ describe('ImprovementsView', () => {
     it('should show a fault that is not a service that is down', () => {
       const drawn = draw({
         listing: { ...answered(), stale: true },
-        fault: new TypeError('The answer does not match its schema.'),
+        problem: {
+          kind: 'fault',
+          fault: new TypeError('The answer does not match its schema.'),
+        },
       });
 
       expect(drawn).toContain('THE CLIENT SAID');
     });
 
     it('should show what the service refused the list with', () => {
+      const LOST = {
+        error: 'internal_error',
+        message: 'The list could not be read from the database.',
+      } as const;
       const drawn = draw({
         listing: {
           ...answered(),
-          answer: {
-            outcome: 'refused',
-            error: {
-              error: 'internal_error',
-              message: 'The list could not be read from the database.',
-            },
-          },
+          answer: { outcome: 'refused', error: LOST },
         },
+        problem: { kind: 'refused', error: LOST },
       });
 
       expect(drawn).toContain('THE SERVICE ANSWERED');
@@ -271,7 +274,7 @@ describe('ImprovementsView', () => {
     const drawn = draw({
       size: { ...USUAL_SIZE, columns },
       listing: { ...answered(), stale: true },
-      fault: new Error('x'.repeat(300)),
+      problem: { kind: 'fault', fault: new Error('x'.repeat(300)) },
     });
 
     expect(widestLine(drawn)).toBeLessThanOrEqual(columns);

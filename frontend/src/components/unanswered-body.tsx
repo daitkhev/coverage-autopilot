@@ -6,6 +6,7 @@ import type { ErrorBody } from '@coverage-autopilot/api-contracts/errors';
 import { ErrorDetails } from '#components/error-details';
 import { Glyph } from '#components/glyph';
 import { Panel } from '#components/panel';
+import { type Problem, problemOf } from '#components/problem-details';
 import { RoleText } from '#components/role-text';
 import type { RepeatedRequest } from '#hooks/use-repeated-request';
 import type { StatusLook } from '#theme/status';
@@ -14,10 +15,7 @@ import type { StatusLook } from '#theme/status';
  * What stands where the answer of a screen would be: nothing yet, the
  * refusal of the service, or a fault of the request.
  */
-export type Unanswered =
-  | { readonly kind: 'waiting' }
-  | { readonly kind: 'refused'; readonly error: ErrorBody }
-  | { readonly kind: 'fault'; readonly fault: unknown };
+export type Unanswered = { readonly kind: 'waiting' } | Problem;
 
 /** What a screen shows: the value it asked for, or what stands instead. */
 export type Shown<Value> =
@@ -29,23 +27,21 @@ type Reply<Value> =
   | { readonly outcome: 'refused'; readonly error: ErrorBody };
 
 /**
- * What a screen shows of a request it repeats. A service that does not
- * answer leaves the last answer standing, not fresh, so the screen says
- * which failure that is; any other fault is shown in place of the answer.
+ * What a screen shows of a request it repeats: what went wrong with it
+ * in place of the answer, else the answer, else that it is on its way.
  */
 export function shownOf<Value>(
-  { answer, failure }: RepeatedRequest<Reply<Value>>,
+  request: RepeatedRequest<Reply<Value>>,
   isUnreachable: (failure: unknown) => boolean,
 ): Shown<Value> {
-  if (failure !== undefined && !isUnreachable(failure)) {
-    return { kind: 'fault', fault: failure };
+  const problem = problemOf(request, isUnreachable);
+  if (problem !== undefined) {
+    return problem;
   }
-  if (answer === undefined) {
-    return { kind: 'waiting' };
-  }
-  return answer.outcome === 'refused'
-    ? { kind: 'refused', error: answer.error }
-    : { kind: 'answered', value: answer.value };
+  const { answer } = request;
+  return answer?.outcome === 'answered'
+    ? { kind: 'answered', value: answer.value }
+    : { kind: 'waiting' };
 }
 
 interface UnansweredBodyProps {

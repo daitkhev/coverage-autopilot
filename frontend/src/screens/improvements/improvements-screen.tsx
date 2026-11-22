@@ -3,6 +3,7 @@ import { type ReactNode, useCallback } from 'react';
 import type { ClientSession } from '#api/client-session';
 import { isServiceUnreachable } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
+import { problemOf } from '#components/problem-details';
 import { browseKeysOf } from '#hooks/list-keys';
 import { useDatedRequest } from '#hooks/use-dated-request';
 import { useFocusRing } from '#hooks/use-focus-ring';
@@ -62,9 +63,7 @@ export function ImprovementsScreen({
     <ImprovementsView
       frame={frame}
       listing={listing}
-      fault={
-        isServiceUnreachable(listing.failure) ? undefined : listing.failure
-      }
+      problem={problemOf(listing, isServiceUnreachable)}
       moment={{ now: session.now(), timeZone: session.timeZone }}
       position={selection}
       visible={visible}

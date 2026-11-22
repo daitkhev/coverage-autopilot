@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 
 import type { Health } from '@coverage-autopilot/api-contracts/health';
 
+import type { Problem } from '#components/problem-details';
 import type { DatedRequest } from '#hooks/use-dated-request';
 import type { Restart } from '#screens/service/restart';
 import { ServiceView } from '#screens/service/service-view';
@@ -42,13 +43,13 @@ function answered(health: Health): DatedRequest<Health> {
 
 function view({
   health = answered(IDLE_HEALTH),
-  fault,
+  problem,
   restart = { phase: 'idle' },
   columns = USUAL_COLUMNS,
   focused = 'status',
 }: {
   readonly health?: DatedRequest<Health>;
-  readonly fault?: unknown;
+  readonly problem?: Problem;
   readonly restart?: Restart;
   readonly columns?: number;
   readonly focused?: 'status' | 'storage';
@@ -57,7 +58,7 @@ function view({
     <ServiceView
       frame={sampleFrame({ ...USUAL_SIZE, columns }, SERVICE)}
       health={health}
-      fault={fault}
+      problem={problem}
       moment={{ now: SAMPLE_NOW, timeZone: 'UTC' }}
       focused={focused}
       restart={restart}
@@ -98,7 +99,10 @@ describe('ServiceView', () => {
     it('should show a fault that is not a service that is down', () => {
       const drawn = view({
         health: { ...answered(IDLE_HEALTH), stale: true },
-        fault: new TypeError('The answer does not match its schema.'),
+        problem: {
+          kind: 'fault',
+          fault: new TypeError('The answer does not match its schema.'),
+        },
       });
 
       expect(drawn).toContain('THE CLIENT SAID');
@@ -220,7 +224,7 @@ describe('ServiceView', () => {
           <ServiceView
             frame={sampleFrame(USUAL_SIZE, SERVICE)}
             health={answered(IDLE_HEALTH)}
-            fault={undefined}
+            problem={undefined}
             moment={{ now: SAMPLE_NOW, timeZone: 'UTC' }}
             focused="status"
             restart={{ phase: 'idle' }}
@@ -240,7 +244,7 @@ describe('ServiceView', () => {
     const drawn = view({
       columns,
       health: { ...answered(BUSY_HEALTH), stale: true },
-      fault: new Error('x'.repeat(300)),
+      problem: { kind: 'fault', fault: new Error('x'.repeat(300)) },
     });
 
     expect(widestLine(drawn)).toBeLessThanOrEqual(columns);

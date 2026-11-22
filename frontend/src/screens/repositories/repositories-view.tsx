@@ -5,7 +5,7 @@ import { DataList } from '#components/data-list';
 import { EmptyState } from '#components/empty-state';
 import { type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
-import { ProblemDetails } from '#components/problem-details';
+import { type Problem, ProblemDetails } from '#components/problem-details';
 import { SplitView } from '#components/split-view';
 import { StatusLine } from '#components/status-line';
 import type { DatedRequest } from '#hooks/use-dated-request';
@@ -57,8 +57,8 @@ interface RepositoriesViewProps {
   readonly frame: ShellFrame;
   readonly listing: DatedRequest<RepositoryListing>;
   readonly work: RepositoryWork | undefined;
-  /** What the last request threw, other than a service that is down. */
-  readonly fault: unknown;
+  /** What went wrong with the last request, beside the list it keeps. */
+  readonly problem: Problem | undefined;
   readonly now: string;
   readonly position: ListPosition;
   readonly visible: number;
@@ -118,8 +118,7 @@ function DetailsPanel(props: RepositoriesViewProps): ReactNode {
     >
       <ProblemDetails
         headline="The list could not be read"
-        refusal={answer?.outcome === 'refused' ? answer.error : undefined}
-        fault={props.fault}
+        problem={props.problem}
         next="The screen asks again every second."
       />
       {chosen === undefined ? null : (

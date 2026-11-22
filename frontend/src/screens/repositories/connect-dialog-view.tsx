@@ -163,19 +163,15 @@ function Refusal({ refusal }: { readonly refusal: ConnectRefusal }): ReactNode {
   if (refusal.kind === 'access') {
     return <AccessRefusal check={refusal.check} />;
   }
-  return refusal.kind === 'refused' ? (
+  return (
     <ProblemDetails
       headline="Not connected"
-      refusal={refusal.error}
-      fault={undefined}
-      next={NEXT_BY_STATUS.get(refusal.status) ?? TRY_AGAIN}
-    />
-  ) : (
-    <ProblemDetails
-      headline="Not connected"
-      refusal={undefined}
-      fault={refusal.fault}
-      next={TRY_AGAIN}
+      problem={refusal}
+      next={
+        refusal.kind === 'refused'
+          ? (NEXT_BY_STATUS.get(refusal.status) ?? TRY_AGAIN)
+          : TRY_AGAIN
+      }
     />
   );
 }

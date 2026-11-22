@@ -7,7 +7,7 @@ import { FactLine } from '#components/fact-line';
 import { FactRow } from '#components/fact-row';
 import { type KeyHint, KeyHints } from '#components/key-hints';
 import { Panel } from '#components/panel';
-import { ProblemDetails } from '#components/problem-details';
+import { type Problem, ProblemDetails } from '#components/problem-details';
 import { Section } from '#components/section';
 import { SplitView } from '#components/split-view';
 import { StatusIndicator } from '#components/status-indicator';
@@ -36,8 +36,8 @@ type ServicePanel = (typeof SERVICE_PANELS)[number];
 interface ServiceViewProps {
   readonly frame: ShellFrame;
   readonly health: DatedRequest<Health>;
-  /** What the last request threw, other than a service that is down. */
-  readonly fault: unknown;
+  /** What the last request threw, beside the health it keeps. */
+  readonly problem: Problem | undefined;
   readonly moment: Moment;
   readonly focused: ServicePanel;
   readonly restart: Restart;
@@ -97,8 +97,7 @@ function StoragePanel(props: ServiceViewProps): ReactNode {
     <Panel title="Storage and actions" focused={props.focused === 'storage'}>
       <ProblemDetails
         headline="The health could not be read"
-        refusal={undefined}
-        fault={props.fault}
+        problem={props.problem}
         next="The screen asks again every second. If this stays, the client and the service may be of different versions."
       />
       <Section title="STORAGE">
