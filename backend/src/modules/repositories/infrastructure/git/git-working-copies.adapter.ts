@@ -4,7 +4,9 @@ import { mkdir } from 'node:fs/promises';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { faultFieldsOf } from '#infrastructure/logging/fault-fields';
+import { ToolLog } from '#infrastructure/logging/tool-log';
 import { FilePath } from '#kernel/primitives/file-path';
+import { CLOCK, type Clock } from '#kernel/time/clock';
 import { LOGGER, type Logger } from '#ports/logger.port';
 import type {
   CopyApplyResult,
@@ -98,17 +100,21 @@ export class GitWorkingCopies implements WorkingCopies {
   public constructor(
     @Inject(REPOSITORIES_SETTINGS) settings: RepositoriesSettings,
     @Inject(LOGGER) logger: Logger,
+    @Inject(CLOCK) clock: Clock,
   ) {
     const secrets = secretValuesOf(settings);
+    const log = new ToolLog(logger, clock);
     this.local = new ToolRunner({
       name: 'git',
       settings: isolatedGit(settings.git),
       secrets,
+      log,
     });
     this.host = new ToolRunner({
       name: 'git',
       settings: hostGit(settings.git),
       secrets,
+      log,
     });
     this.mirror = new GitMirror(this.host, settings.workingCopiesRoot);
     this.folders = new WorkingCopyFolders(settings.workingCopiesRoot);

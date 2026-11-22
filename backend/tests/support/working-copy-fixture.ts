@@ -10,6 +10,7 @@ import { GitWorkingCopies } from '#repositories/infrastructure/git/git-working-c
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
 import { RecordingLogger } from '#tests/support/recording-logger';
 import { TemporaryCodeHost } from '#tests/support/temporary-code-host';
+import { TOOL_CLOCK } from '#tests/support/tool-lines';
 
 export const WIDGETS = 'acme/widgets';
 
@@ -52,7 +53,7 @@ export class WorkingCopyFixture {
 
   /** Copies with other settings, which log to the same logger. */
   public copiesWith(settings: RepositoriesSettings): GitWorkingCopies {
-    return new GitWorkingCopies(settings, this.logger);
+    return new GitWorkingCopies(settings, this.logger, TOOL_CLOCK);
   }
 
   /** A copy at the commit, the first one unless named, and its path. */

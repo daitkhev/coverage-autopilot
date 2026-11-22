@@ -2,7 +2,10 @@ import { mkdir } from 'node:fs/promises';
 
 import { Inject, Injectable } from '@nestjs/common';
 
+import { ToolLog } from '#infrastructure/logging/tool-log';
 import { CommitSha } from '#kernel/primitives/commit-sha';
+import { CLOCK, type Clock } from '#kernel/time/clock';
+import { LOGGER, type Logger } from '#ports/logger.port';
 import type {
   BranchHeadResult,
   BranchRequest,
@@ -52,11 +55,14 @@ export class GitCli implements Git {
 
   public constructor(
     @Inject(REPOSITORIES_SETTINGS) settings: RepositoriesSettings,
+    @Inject(LOGGER) logger: Logger,
+    @Inject(CLOCK) clock: Clock,
   ) {
     this.git = new ToolRunner({
       name: 'git',
       settings: hostGit(settings.git),
       secrets: secretValuesOf(settings),
+      log: new ToolLog(logger, clock),
     });
     this.root = settings.workingCopiesRoot;
     this.mirror = new GitMirror(this.git, this.root);

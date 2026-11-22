@@ -9,8 +9,11 @@ import { RepositoryId } from '#kernel/primitives/repository-id';
 import { BranchName } from '#repositories/domain/value-objects/branch-name.vo';
 import { RepositoryUrl } from '#repositories/domain/value-objects/repository-url.vo';
 import { GitCli } from '#repositories/infrastructure/git/git-cli.adapter';
+import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
 import { CONFIGURATION_PLACES, GitPlanter } from '#tests/support/git-planter';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import { TemporaryCodeHost } from '#tests/support/temporary-code-host';
+import { TOOL_CLOCK } from '#tests/support/tool-lines';
 
 const WIDGETS = 'acme/widgets';
 const NEVER = new AbortController().signal;
@@ -20,6 +23,11 @@ let planter: GitPlanter;
 let snapshot: string;
 
 /** The facts of the snapshot against the head, with git of these settings. */
+/** git with the settings, whose lines no test of this file reads. */
+function gitOf(settings: RepositoriesSettings): GitCli {
+  return new GitCli(settings, new RecordingLogger(), TOOL_CLOCK);
+}
+
 async function compared(git: GitCli): Promise<unknown> {
   return git.compareRevisions(
     {
@@ -51,7 +59,7 @@ describe('GitCli', () => {
     ({ place }) => {
       it('should start none of them as it compares revisions of a repository that selects them', async () => {
         const facts = await compared(
-          new GitCli(planter.configuredIn(place, host.settings)),
+          gitOf(planter.configuredIn(place, host.settings)),
         );
 
         expect(planter.ran()).toBe(false);
@@ -70,7 +78,7 @@ describe('GitCli', () => {
       const settings = host.settings;
 
       const facts = await compared(
-        new GitCli({
+        gitOf({
           ...settings,
           git: {
             ...settings.git,

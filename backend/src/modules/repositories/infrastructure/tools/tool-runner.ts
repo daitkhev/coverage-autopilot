@@ -1,6 +1,7 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { kill } from 'node:process';
 
+import type { ToolLog, ToolStart } from '#infrastructure/logging/tool-log';
 import { ToolFailedError } from '#repositories/infrastructure/errors/tool-failed.error';
 import { ToolMissingError } from '#repositories/infrastructure/errors/tool-missing.error';
 import { ToolOutputTooLargeError } from '#repositories/infrastructure/errors/tool-output-too-large.error';
@@ -45,8 +46,10 @@ export interface ToolRunnerOptions {
   /** The name of the tool in messages, such as `git`. */
   readonly name: string;
   readonly settings: ToolSettings;
-  /** Values that never leave the runner in an output or a message. */
+  /** Values that never leave the runner in an output, a message or a line. */
   readonly secrets: readonly string[];
+  /** Hears each call, with its arguments as `secrets` leave them. */
+  readonly log: ToolLog;
 }
 
 type StopReason = 'none' | 'timed_out' | 'stopped' | 'too_large';
@@ -157,11 +160,13 @@ export class ToolRunner {
   private readonly name: string;
   private readonly settings: ToolSettings;
   private readonly secrets: readonly string[];
+  private readonly log: ToolLog;
 
   public constructor(options: ToolRunnerOptions) {
     this.name = options.name;
     this.settings = options.settings;
     this.secrets = options.secrets;
+    this.log = options.log;
   }
 
   /** A program that ran and failed is a value: its exit code says so. */
@@ -169,18 +174,20 @@ export class ToolRunner {
     if (signal.aborted) {
       throw this.stoppedError(call);
     }
+    const ended = this.log.started(this.shown(call));
     const child = this.start(call);
     const watched = watch(child, signal, this.settings.timeoutMs);
     const streams = collect(child, this.outputLimitBytes(), () => {
       watched.end('too_large');
     });
-    let exitCode: number | null;
+    let exitCode: number | null = null;
     try {
       exitCode = await exitOf(child);
     } catch (error) {
       throw this.startError(error);
     } finally {
       watched.release();
+      ended(exitCode);
     }
     return this.finish(call, watched.reason(), { exitCode, streams });
   }
@@ -201,11 +208,21 @@ export class ToolRunner {
 
   /** The text with every secret hidden and the end alone kept. */
   public kept(text: string): string {
-    const hidden = this.secrets.reduce(
+    return this.hidden(text).trim().slice(-KEPT_CHARACTERS);
+  }
+
+  private hidden(text: string): string {
+    return this.secrets.reduce(
       (result, secret) => result.replaceAll(secret, HIDDEN),
       text,
     );
-    return hidden.trim().slice(-KEPT_CHARACTERS);
+  }
+
+  /** The call as its line shows it. Its input is never shown. */
+  private shown(call: ToolCall): ToolStart {
+    const [program = '', ...leading] = this.settings.command;
+    const all = [...leading, ...call.arguments];
+    return { program, arguments: all.map((part) => this.hidden(part)) };
   }
 
   private start(call: ToolCall): ChildProcessWithoutNullStreams {

@@ -11,6 +11,7 @@ import { ToolStoppedError } from '#repositories/infrastructure/errors/tool-stopp
 import { ToolTimedOutError } from '#repositories/infrastructure/errors/tool-timed-out.error';
 import type { ToolSettings } from '#repositories/infrastructure/repositories-settings';
 import { ToolRunner } from '#repositories/infrastructure/tools/tool-runner';
+import { toolLogOf } from '#tests/support/tool-lines';
 
 const SECRET = 'not-a-real-secret-4711';
 const LONG_ENOUGH_MS = 60_000;
@@ -35,6 +36,7 @@ function runnerOf(
       ...limits,
     },
     secrets: [SECRET],
+    log: toolLogOf(),
   });
 }
 
@@ -158,6 +160,7 @@ describe('ToolRunner', () => {
             timeoutMs: LONG_ENOUGH_MS,
           },
           secrets: [],
+          log: toolLogOf(),
         });
 
         await expect(
@@ -176,6 +179,7 @@ describe('ToolRunner', () => {
             timeoutMs: LONG_ENOUGH_MS,
           },
           secrets: [],
+          log: toolLogOf(),
         });
 
         await expect(

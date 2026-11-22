@@ -35,7 +35,8 @@ describe('GitWorkingCopies', () => {
       expect(existsSync(fixture.pathOf())).toBe(false);
       expect(existsSync(fixture.gitDirOf())).toBe(false);
       expect(readdirSync(outside)).toEqual(['kept.txt']);
-      expect(fixture.logger.lines).toEqual([]);
+      expect(fixture.logger.at('warn')).toEqual([]);
+      expect(fixture.logger.at('error')).toEqual([]);
     });
 
     describe('when the copy stays with the permissions in it given back', () => {

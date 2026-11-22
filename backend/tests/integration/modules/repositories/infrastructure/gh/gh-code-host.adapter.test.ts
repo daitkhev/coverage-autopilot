@@ -9,10 +9,12 @@ import { ToolTimedOutError } from '#repositories/infrastructure/errors/tool-time
 import { UnexpectedToolOutputError } from '#repositories/infrastructure/errors/unexpected-tool-output.error';
 import { GhCodeHost } from '#repositories/infrastructure/gh/gh-code-host.adapter';
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import {
   SECRET_TOKEN,
   TemporaryCodeHost,
 } from '#tests/support/temporary-code-host';
+import { TOOL_CLOCK } from '#tests/support/tool-lines';
 
 const URL_OF_WIDGETS = RepositoryUrl.parse('https://github.com/acme/widgets');
 const BRANCH = BranchName.create('coverage/src-a-ts');
@@ -22,8 +24,13 @@ const NEVER = new AbortController().signal;
 let host: TemporaryCodeHost;
 let gh: GhCodeHost;
 
+/** gh with the settings, whose lines no test of this file reads. */
+function ghOf(settings: RepositoriesSettings): GhCodeHost {
+  return new GhCodeHost(settings, new RecordingLogger(), TOOL_CLOCK);
+}
+
 function withGh(change: Partial<RepositoriesSettings['gh']>): GhCodeHost {
-  return new GhCodeHost({
+  return ghOf({
     ...host.settings,
     gh: { ...host.settings.gh, ...change },
   });
@@ -44,7 +51,7 @@ async function open(): Promise<unknown> {
 
 beforeEach(() => {
   host = new TemporaryCodeHost();
-  gh = new GhCodeHost(host.settings);
+  gh = ghOf(host.settings);
 });
 
 afterEach(() => {

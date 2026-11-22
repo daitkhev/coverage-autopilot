@@ -10,10 +10,12 @@ import { ToolFailedError } from '#repositories/infrastructure/errors/tool-failed
 import { UnexpectedToolOutputError } from '#repositories/infrastructure/errors/unexpected-tool-output.error';
 import { GitCli } from '#repositories/infrastructure/git/git-cli.adapter';
 import type { RepositoriesSettings } from '#repositories/infrastructure/repositories-settings';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import {
   SECRET_TOKEN,
   TemporaryCodeHost,
 } from '#tests/support/temporary-code-host';
+import { TOOL_CLOCK } from '#tests/support/tool-lines';
 
 const WIDGETS = 'acme/widgets';
 const URL_OF_WIDGETS = RepositoryUrl.parse(TemporaryCodeHost.urlOf(WIDGETS));
@@ -25,6 +27,11 @@ const NEVER = new AbortController().signal;
 
 let host: TemporaryCodeHost;
 let git: GitCli;
+
+/** git with the settings, whose lines no test of this file reads. */
+function gitOf(settings: RepositoriesSettings): GitCli {
+  return new GitCli(settings, new RecordingLogger(), TOOL_CLOCK);
+}
 
 /**
  * Settings whose git is Node running a script of the test. After `--`,
@@ -52,7 +59,7 @@ function revisionOf(snapshot: string, file = 'src/a.ts'): RevisionRequest {
 
 beforeEach(() => {
   host = new TemporaryCodeHost();
-  git = new GitCli(host.settings);
+  git = gitOf(host.settings);
 });
 
 afterEach(() => {
@@ -77,7 +84,7 @@ describe('GitCli', () => {
           git: { ...host.settings.git, command: ['no-such-git-of-the-test'] },
         };
 
-        expect(await new GitCli(settings).version(NEVER)).toEqual({
+        expect(await gitOf(settings).version(NEVER)).toEqual({
           outcome: 'missing',
         });
       });
@@ -86,7 +93,7 @@ describe('GitCli', () => {
     describe('when git fails', () => {
       it('should throw ToolFailedError', async () => {
         await expect(
-          new GitCli(withScript('process.exitCode = 2')).version(NEVER),
+          gitOf(withScript('process.exitCode = 2')).version(NEVER),
         ).rejects.toThrow(ToolFailedError);
       });
     });
@@ -129,7 +136,7 @@ describe('GitCli', () => {
 
     describe('when the repository names no branch', () => {
       it('should answer refused with the reason', async () => {
-        const read = await new GitCli(withScript('')).readDefaultBranch(
+        const read = await gitOf(withScript('')).readDefaultBranch(
           URL_OF_WIDGETS,
           NEVER,
         );
@@ -144,7 +151,7 @@ describe('GitCli', () => {
 
     describe('when git prints a secret of its environment', () => {
       it('should hide it in the answer it keeps', async () => {
-        const read = await new GitCli(
+        const read = await gitOf(
           withScript(
             'console.error(process.env.GH_TOKEN); process.exitCode = 128',
           ),
@@ -211,7 +218,7 @@ describe('GitCli', () => {
     describe('when git prints what is not a ref', () => {
       it('should throw UnexpectedToolOutputError', async () => {
         await expect(
-          new GitCli(
+          gitOf(
             withScript('process.stdout.write("zzz\\trefs/heads/main\\n")'),
           ).readBranchHead({ url: URL_OF_WIDGETS, branch: MAIN }, NEVER),
         ).rejects.toThrow(UnexpectedToolOutputError);

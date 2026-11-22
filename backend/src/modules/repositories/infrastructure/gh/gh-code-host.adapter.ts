@@ -2,6 +2,9 @@ import { mkdir } from 'node:fs/promises';
 
 import { Inject, Injectable } from '@nestjs/common';
 
+import { ToolLog } from '#infrastructure/logging/tool-log';
+import { CLOCK, type Clock } from '#kernel/time/clock';
+import { LOGGER, type Logger } from '#ports/logger.port';
 import type {
   CodeHost,
   LoginResult,
@@ -47,11 +50,14 @@ export class GhCodeHost implements CodeHost {
 
   public constructor(
     @Inject(REPOSITORIES_SETTINGS) settings: RepositoriesSettings,
+    @Inject(LOGGER) logger: Logger,
+    @Inject(CLOCK) clock: Clock,
   ) {
     this.gh = new ToolRunner({
       name: 'gh',
       settings: settings.gh,
       secrets: secretValuesOf(settings),
+      log: new ToolLog(logger, clock),
     });
     this.root = settings.workingCopiesRoot;
   }
