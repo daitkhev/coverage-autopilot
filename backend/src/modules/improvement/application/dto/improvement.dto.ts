@@ -88,3 +88,17 @@ export interface ImprovementDto {
   readonly updatedAt: Instant;
   readonly cancelledAt: Instant | null;
 }
+
+/** The improvements a query allows, the newest first. */
+export interface ImprovementListDto {
+  readonly items: readonly ImprovementDto[];
+}
+
+/** The patch of the accepted attempt, named by the hash an approval repeats. */
+export interface ImprovementPatchDto {
+  readonly improvementId: string;
+  readonly attemptNumber: number;
+  /** The full text of the diff, as it would be published. */
+  readonly patch: string;
+  readonly patchHash: string;
+}

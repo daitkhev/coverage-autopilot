@@ -23,10 +23,12 @@ describe('GetImprovementPatchHandler', () => {
           await world.getPatch.execute({ improvementId: IMPROVEMENT_ID }),
         ).toEqual({
           outcome: 'found',
-          improvementId: IMPROVEMENT_ID,
-          attemptNumber: 1,
-          patch: patchOf().text,
-          patchHash: patchOf().hash,
+          patch: {
+            improvementId: IMPROVEMENT_ID,
+            attemptNumber: 1,
+            patch: patchOf().text,
+            patchHash: patchOf().hash,
+          },
         });
       },
     );

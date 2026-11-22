@@ -19,10 +19,12 @@ function patchOf(improvement: Improvement): ImprovementPatchResult {
   }
   return {
     outcome: 'found',
-    improvementId: improvement.id.value,
-    attemptNumber: accepted.number,
-    patch: patch.text,
-    patchHash: patch.hash,
+    patch: {
+      improvementId: improvement.id.value,
+      attemptNumber: accepted.number,
+      patch: patch.text,
+      patchHash: patch.hash,
+    },
   };
 }
 

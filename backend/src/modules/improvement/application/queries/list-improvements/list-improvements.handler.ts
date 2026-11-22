@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import type { ImprovementDto } from '#improvement/application/dto/improvement.dto';
+import type { ImprovementListDto } from '#improvement/application/dto/improvement.dto';
 import { ImprovementViews } from '#improvement/application/dto/improvement-views';
 import type { ListImprovementsQuery } from '#improvement/application/queries/list-improvements/list-improvements.query';
 import {
@@ -41,10 +41,12 @@ export class ListImprovementsHandler {
 
   public async execute(
     query: ListImprovementsQuery,
-  ): Promise<ImprovementDto[]> {
+  ): Promise<ImprovementListDto> {
     const improvements = await this.improvements.list(filterOf(query));
-    return Promise.all(
-      improvements.map(async (improvement) => this.views.of(improvement)),
-    );
+    return {
+      items: await Promise.all(
+        improvements.map(async (improvement) => this.views.of(improvement)),
+      ),
+    };
   }
 }

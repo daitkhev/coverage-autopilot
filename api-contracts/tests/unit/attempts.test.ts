@@ -87,6 +87,21 @@ describe('attemptSchema', () => {
     expect(attemptSchema.safeParse(open).success).toBe(true);
   });
 
+  it('should accept a report of a gate that stopped before it measured the target', () => {
+    const refused = {
+      ...rejected,
+      report: {
+        ...rejected.report,
+        coverageBefore: null,
+        coverageAfter: null,
+        mutants: null,
+        survivingMutants: [],
+      },
+    };
+
+    expect(attemptSchema.safeParse(refused).success).toBe(true);
+  });
+
   it.each([
     ['an attempt number of zero', { ...rejected, number: 0 }],
     ['an unknown outcome', { ...rejected, generationOutcome: 'crashed' }],

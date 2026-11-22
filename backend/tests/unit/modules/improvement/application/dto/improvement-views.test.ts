@@ -77,16 +77,27 @@ describe('ImprovementViews', () => {
     );
 
     it.each([
-      ['awaiting_approval', 'approval'],
-      ['waiting_for_limit', 'limit'],
+      ['awaiting_approval', 'worker', 'approval'],
+      ['waiting_for_limit', 'moment', 'limit'],
+      ['waiting_for_limit', null, 'limit'],
     ] as const)(
-      'should show the wait of an improvement that is %s before that of its job',
-      async (status, shown) => {
-        queue.wait = 'repository';
+      'should show what an improvement that is %s waits for while its job waits for %s',
+      async (status, wait, shown) => {
+        queue.wait = wait;
 
         expect((await views.of(improvementIn(status))).waitingFor).toBe(shown);
       },
     );
+
+    describe('when the window opened and the job waits for its repository', () => {
+      it('should show the wait of the job, which holds the improvement now', async () => {
+        queue.wait = 'repository';
+
+        expect(
+          (await views.of(improvementIn('waiting_for_limit'))).waitingFor,
+        ).toBe('repository');
+      });
+    });
 
     it.each(['completed', 'skipped', 'failed', 'cancelled'] as const)(
       'should show no job of an improvement that is %s',

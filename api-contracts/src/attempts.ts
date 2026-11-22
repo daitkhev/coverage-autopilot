@@ -52,7 +52,8 @@ export const verificationReportSchema = z.strictObject({
   verdict: verdictSchema,
   reasons: z.array(textSchema),
   checks: z.array(checkResultSchema),
-  coverageBefore: coverageCountersSchema,
+  /** `null` when the gate stopped before it measured the target. */
+  coverageBefore: coverageCountersSchema.nullable(),
   coverageAfter: coverageCountersSchema.nullable(),
   mutants: mutantCountsSchema.nullable(),
   survivingMutants: z.array(survivingMutantSchema),

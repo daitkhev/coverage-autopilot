@@ -177,7 +177,10 @@ describe('ImprovementModule', () => {
       const patch = await module
         .get(GetImprovementPatchHandler)
         .execute({ improvementId: id });
-      expect(patch).toMatchObject({ outcome: 'found', patchHash: hashOf('a') });
+      expect(patch).toMatchObject({
+        outcome: 'found',
+        patch: { patchHash: hashOf('a') },
+      });
 
       await module
         .get(ApproveImprovementHandler)

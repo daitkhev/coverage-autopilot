@@ -13,7 +13,10 @@ import { isFinal } from '#improvement/domain/value-objects/improvement-status.vo
 import { CLOCK, type Clock } from '#kernel/time/clock';
 import { JOB_QUEUE, type JobQueue, type JobWait } from '#ports/job-queue.port';
 
-/** A job that waits for its moment waits for no one a person can name. */
+/**
+ * A job that waits for its moment waits for the window the improvement
+ * names itself, so only a worker and the repository are taken from it.
+ */
 function waitOfJob(wait: JobWait | null): WaitingFor | null {
   return wait === 'worker' || wait === 'repository' ? wait : null;
 }
@@ -42,22 +45,36 @@ export class ImprovementViews {
 
   /**
    * A final improvement has no job that runs or waits: what is left in a
-   * finished job is never shown. A wait the improvement knows, for a
-   * person or a window, comes before the wait of its job.
+   * finished job is never shown.
    */
   private async liveFactsOf(improvement: Improvement): Promise<LiveFacts> {
     const usage = improvement.usage(this.clock.now());
     if (isFinal(improvement.status)) {
       return { usage, progress: null, waitingFor: null };
     }
-    const id = improvement.id.value;
-    const job = await this.queue.getProgress(id);
+    const job = await this.queue.getProgress(improvement.id.value);
     return {
       usage,
       progress:
         job === null ? null : { steps: job.steps, updatedAt: job.updatedAt },
-      waitingFor:
-        improvement.waitingFor ?? waitOfJob(await this.queue.getWait(id)),
+      waitingFor: await this.waitingForOf(improvement),
     };
+  }
+
+  /**
+   * Nothing goes on before a person approves, and no job waits meanwhile.
+   * Else a job that waits for a worker or for its repository says what
+   * holds the improvement now: a window that opened still waits so until
+   * its job is taken. While the job waits for its moment, the improvement
+   * names the window itself.
+   */
+  private async waitingForOf(
+    improvement: Improvement,
+  ): Promise<WaitingFor | null> {
+    const own = improvement.waitingFor;
+    if (own === 'approval') {
+      return own;
+    }
+    return waitOfJob(await this.queue.getWait(improvement.id.value)) ?? own;
   }
 }

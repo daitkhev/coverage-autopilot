@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { ImprovementDto } from '#improvement/application/dto/improvement.dto';
+import type { ImprovementListDto } from '#improvement/application/dto/improvement.dto';
 import { InvalidFilePathError } from '#kernel/errors/invalid-file-path.error';
 import { InvalidRepositoryIdError } from '#kernel/errors/invalid-repository-id.error';
 import { improvementIn } from '#tests/support/improvement-journeys';
@@ -18,7 +18,7 @@ const TAX_FILE = 'src/tax.ts';
 
 let world: ImprovementRequestWorld;
 
-const idsOf = (shown: ImprovementDto[]) => shown.map(({ id }) => id);
+const idsOf = (shown: ImprovementListDto) => shown.items.map(({ id }) => id);
 
 /**
  * Three improvements made at the same moment, so the store lists the
@@ -55,7 +55,7 @@ describe('ListImprovementsHandler', () => {
     it('should show each with what its job adds', async () => {
       const shown = await world.listImprovements.execute({});
 
-      expect(shown.map(({ waitingFor }) => waitingFor)).toEqual([
+      expect(shown.items.map(({ waitingFor }) => waitingFor)).toEqual([
         null,
         'worker',
         null,
