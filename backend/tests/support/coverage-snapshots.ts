@@ -128,16 +128,18 @@ export function jestParameters(): ScanParameters {
 
 export interface SnapshotSpec {
   readonly id?: string;
+  readonly repositoryId?: string;
   readonly originKey?: string;
   readonly files?: readonly FileCoverage[];
   readonly unmeasured?: readonly UnmeasuredFile[];
+  readonly capturedAt?: string;
 }
 
 /** A snapshot of `acme/widgets` with the files a test names. */
 export function snapshotOf(spec: SnapshotSpec = {}): CoverageSnapshot {
   return CoverageSnapshot.create({
     id: SnapshotId.create(spec.id ?? SNAPSHOT_ID),
-    repositoryId: RepositoryId.create(REPOSITORY_ID),
+    repositoryId: RepositoryId.create(spec.repositoryId ?? REPOSITORY_ID),
     commit: CommitSha.create(SNAPSHOT_COMMIT),
     originKey: spec.originKey ?? 'scan:origin',
     project: jestProject(),
@@ -145,6 +147,6 @@ export function snapshotOf(spec: SnapshotSpec = {}): CoverageSnapshot {
     files: spec.files ?? [],
     unmeasured: spec.unmeasured ?? [],
     testRunOutput: null,
-    capturedAt: Instant.parse(CAPTURED_AT),
+    capturedAt: Instant.parse(spec.capturedAt ?? CAPTURED_AT),
   });
 }

@@ -4,6 +4,7 @@ import type { CoverageSnapshot } from '#coverage/domain/entities/coverage-snapsh
 import { SnapshotId } from '#coverage/domain/value-objects/snapshot-id.vo';
 import { SqliteCoverageSnapshotRepository } from '#coverage/infrastructure/persistence/sqlite-coverage-snapshot.repository';
 import { SqliteTransactionRunner } from '#infrastructure/database/sqlite-transaction-runner.adapter';
+import { RepositoryId } from '#kernel/primitives/repository-id';
 import {
   fixtureFiles,
   fixtureSnapshot,
@@ -18,6 +19,11 @@ import {
 } from '#tests/support/temporary-database';
 
 const OTHER_ID = '00000000-0000-4000-8000-0000000000cc';
+
+/** Captured at the same later moment, and listed first for its greater id. */
+const LATER_ID = '00000000-0000-4000-8000-0000000000d1';
+const TIED_ID = '00000000-0000-4000-8000-0000000000d2';
+const LATER = '2026-03-05T05:06:07.008Z';
 
 const { unused } = fixtureFiles();
 
@@ -101,6 +107,53 @@ describe('SqliteCoverageSnapshotRepository', () => {
           { id: SNAPSHOT_ID },
         ]);
         expect(rows('SELECT file_path FROM file_coverages')).toHaveLength(3);
+      });
+    });
+  });
+
+  describe('listByRepository', () => {
+    it('should list the snapshots of a repository with their files, the newest first', async () => {
+      const otherRepository = new SchemaRows(database.connection).repository({
+        name: 'gadgets',
+      });
+      await save(snapshot);
+      await save(
+        snapshotOf({
+          id: LATER_ID,
+          originKey: 'scan:later',
+          capturedAt: LATER,
+        }),
+      );
+      await save(
+        snapshotOf({ id: TIED_ID, originKey: 'scan:tied', capturedAt: LATER }),
+      );
+      await save(
+        snapshotOf({
+          id: OTHER_ID,
+          originKey: 'scan:elsewhere',
+          repositoryId: otherRepository,
+        }),
+      );
+
+      const listed = await repository.listByRepository(
+        RepositoryId.create(REPOSITORY_ID),
+      );
+
+      expect(listed.map(({ id }) => id.value)).toEqual([
+        TIED_ID,
+        LATER_ID,
+        SNAPSHOT_ID,
+      ]);
+      expect(listed.at(-1)).toEqual(snapshot);
+    });
+
+    describe('when the repository has no snapshot', () => {
+      it('should answer an empty list', async () => {
+        await save(snapshot);
+
+        await expect(
+          repository.listByRepository(RepositoryId.create(OTHER_ID)),
+        ).resolves.toEqual([]);
       });
     });
   });

@@ -50,6 +50,16 @@ export interface InMemorySnapshots extends CoverageSnapshotRepository {
   readonly saved: CoverageSnapshot[];
 }
 
+/** The later moment first, then the greater id, as SQLite orders them. */
+function newestFirst(left: CoverageSnapshot, right: CoverageSnapshot): number {
+  const byMoment =
+    right.capturedAt.epochMilliseconds - left.capturedAt.epochMilliseconds;
+  const [later, earlier] = [right.id.value, left.id.value];
+  return byMoment === 0
+    ? Number(later > earlier) - Number(later < earlier)
+    : byMoment;
+}
+
 /**
  * Snapshots in memory, with one snapshot per origin key as in SQLite. It
  * starts with the snapshots a test gives.
@@ -72,6 +82,12 @@ export function inMemorySnapshots(
     findById: async (id) =>
       Promise.resolve(saved.find((each) => each.id.equals(id)) ?? null),
     findByOriginKey: async (key) => Promise.resolve(byKey(key)),
+    listByRepository: async (repositoryId) =>
+      Promise.resolve(
+        saved
+          .filter((each) => each.repositoryId.equals(repositoryId))
+          .sort(newestFirst),
+      ),
   };
 }
 

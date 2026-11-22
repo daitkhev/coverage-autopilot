@@ -16,6 +16,7 @@ import {
 } from '#coverage/infrastructure/persistence/snapshot-rows';
 import { SQLITE_CONNECTION } from '#infrastructure/database/sqlite-connection';
 import { SqliteTransaction } from '#infrastructure/database/sqlite-transaction';
+import type { RepositoryId } from '#kernel/primitives/repository-id';
 import type { Transaction } from '#kernel/transaction/transaction';
 
 const SNAPSHOT_COLUMNS = [
@@ -107,6 +108,21 @@ export class SqliteCoverageSnapshotRepository implements CoverageSnapshotReposit
     return Promise.resolve(this.find(this.connection, 'origin_key', originKey));
   }
 
+  /** The index on the repository and the moment serves the order. */
+  public async listByRepository(
+    repositoryId: RepositoryId,
+  ): Promise<CoverageSnapshot[]> {
+    const found = this.connection
+      .prepare(
+        `${SELECT_SNAPSHOT} WHERE repository_id = ?
+         ORDER BY captured_at DESC, id DESC`,
+      )
+      .all(repositoryId.value);
+    return Promise.resolve(
+      found.map((row) => this.snapshotOf(this.connection, row)),
+    );
+  }
+
   private insert(connection: DatabaseSync, snapshot: CoverageSnapshot): void {
     connection.prepare(INSERT_SNAPSHOT).run(snapshotColumns(snapshot));
     const insertFile = connection.prepare(INSERT_FILE);
@@ -123,9 +139,14 @@ export class SqliteCoverageSnapshotRepository implements CoverageSnapshotReposit
     const found = connection
       .prepare(`${SELECT_SNAPSHOT} WHERE ${column} = ?`)
       .get(value);
-    if (found === undefined) {
-      return null;
-    }
+    return found === undefined ? null : this.snapshotOf(connection, found);
+  }
+
+  /** A stored row of a snapshot, read with the rows of its files. */
+  private snapshotOf(
+    connection: DatabaseSync,
+    found: unknown,
+  ): CoverageSnapshot {
     const row = snapshotRowSchema.parse(found);
     const files = connection
       .prepare(SELECT_FILES)

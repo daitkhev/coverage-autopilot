@@ -26,6 +26,7 @@ import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-c
 import { GetScanHandler } from '#coverage/application/queries/get-scan/get-scan.handler';
 import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
 import { ListFilesBelowThresholdHandler } from '#coverage/application/queries/list-files-below-threshold/list-files-below-threshold.handler';
+import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
 import { COVERAGE_PUBLIC_API } from '#coverage/contracts/coverage-public-api';
 import { COVERAGE_SNAPSHOT_REPOSITORY } from '#coverage/domain/repositories/coverage-snapshot.repository';
 import { TEST_RUNNER_NAMES } from '#coverage/domain/value-objects/detected-project.vo';
@@ -80,6 +81,7 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
     ScanViews,
     GetScanHandler,
     CancelScanHandler,
+    ListSnapshotsHandler,
     { provide: COVERAGE_PUBLIC_API, useClass: CoverageApi },
   ],
   exports: [
@@ -87,6 +89,7 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
     RunScanHandler,
     GetScanHandler,
     CancelScanHandler,
+    ListSnapshotsHandler,
   ],
 })
 export class CoverageModule implements OnModuleInit {
