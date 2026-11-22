@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { ProjectDetection } from '#coverage/application/ports/project-detector.port';
@@ -97,6 +100,29 @@ describe('NodeProjectDetector', () => {
         reason: 'no_lockfile',
         detail: 'yarn.lock locks no version of jest.',
       });
+    });
+  });
+
+  describe('when a copy of yarn 2 or later is detected again', () => {
+    it('should meet the settings it wrote the first time and write them anew', async () => {
+      const folder = createProjectFolder({
+        ...BERRY_FILES,
+        '.yarnrc.yml': 'nodeLinker: node-modules\nyarnPath: ./yarn.cjs\n',
+      });
+      folders.push(folder);
+      const detector = new NodeProjectDetector();
+
+      const first = await detector.detect(folder.root);
+      const second = await detector.detect(folder.root);
+
+      expect(first.outcome).toBe('supported');
+      expect(second).toEqual(first);
+      expect(
+        readFileSync(
+          join(folder.root, '.coverage-autopilot-yarnrc.yml'),
+          'utf8',
+        ),
+      ).toBe('nodeLinker: node-modules\n');
     });
   });
 });

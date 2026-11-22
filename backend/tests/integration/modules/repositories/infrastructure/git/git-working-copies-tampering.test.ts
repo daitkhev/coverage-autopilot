@@ -170,6 +170,25 @@ describe('GitWorkingCopies', () => {
     });
   });
 
+  describe('when the tree holds what an install of the packages left in it', () => {
+    it('should count none of it and apply a patch', async () => {
+      const text = await fixture.patchOf((tree) => {
+        writeFileSync(join(tree, 'src/a.ts'), 'export const a = 6;\n');
+      });
+      const tree = await fixture.created();
+      writeFileSync(join(tree, '.coverage-autopilot-yarnrc.yml'), 'x: 1\n');
+      mkdirSync(join(tree, '.yarn/cache'), { recursive: true });
+      writeFileSync(join(tree, '.yarn/cache/gadgets-npm-1.0.0.zip'), '');
+      mkdirSync(join(tree, 'node_modules/.cache/coverage-autopilot/install'), {
+        recursive: true,
+      });
+
+      const applied = await fixture.copies.applyPatch(COPY, text);
+
+      expect(applied.outcome).toBe('applied');
+    });
+  });
+
   describe('when a name in the tree is .git with a code point a file system may ignore', () => {
     it('should refuse extractPatch with WorkingCopyTamperedError', async () => {
       const tree = await fixture.created();
