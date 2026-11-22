@@ -235,7 +235,7 @@ export function ConnectDialogView({
       onClose={onClose}
     >
       <TextField
-        label="URL"
+        prompt="URL"
         value={state.url}
         active={isEditable(phase)}
         onChange={onChange}

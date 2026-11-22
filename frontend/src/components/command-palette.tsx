@@ -1,12 +1,12 @@
-import { Box, Text } from 'ink';
+import { Box } from 'ink';
 import type { ReactNode } from 'react';
 
 import { DataList } from '#components/data-list';
 import { Dialog } from '#components/dialog';
-import { Glyph } from '#components/glyph';
 import type { KeyHint } from '#components/key-hints';
 import { RoleText } from '#components/role-text';
 import { Rule } from '#components/rule';
+import { TextField } from '#components/text-field';
 import { type KeyHandlers, useKeys } from '#hooks/use-keys';
 import { type Selection, useSelection } from '#hooks/use-selection';
 import { COMMAND_TITLE_SHARE, DIALOG_WIDTH, GAP } from '#theme/widths';
@@ -51,11 +51,8 @@ function CommandRow({
   );
 }
 
-/** The arrows choose a command, and backspace takes a letter back. */
-function keysOf(
-  selection: Selection,
-  { query, onQuery }: CommandPaletteProps,
-): KeyHandlers {
+/** The arrows choose a command; the letters go to the query. */
+function keysOf(selection: Selection): KeyHandlers {
   return {
     up: () => {
       selection.moveBy(-1);
@@ -63,22 +60,7 @@ function keysOf(
     down: () => {
       selection.moveBy(1);
     },
-    backspace: () => {
-      onQuery(query.slice(0, -1));
-    },
   };
-}
-
-function QueryField({ query }: { readonly query: string }): ReactNode {
-  return (
-    <Box flexDirection="column" marginBottom={1}>
-      <Text>
-        <RoleText role="accent">:</RoleText> {query}
-        <Glyph name="cursor" />
-      </Text>
-      <Rule />
-    </Box>
-  );
 }
 
 /**
@@ -91,12 +73,7 @@ export function CommandPalette(props: CommandPaletteProps): ReactNode {
     count: commands.length,
     visible: props.visible,
   });
-  useKeys(keysOf(selection, props), {
-    active: true,
-    onText: (text) => {
-      props.onQuery(query + text);
-    },
-  });
+  useKeys(keysOf(selection), { active: true });
   const run = (): void => {
     const command = commands[selection.index];
     if (command !== undefined) {
@@ -111,7 +88,10 @@ export function CommandPalette(props: CommandPaletteProps): ReactNode {
       onConfirm={run}
       onClose={props.onClose}
     >
-      <QueryField query={query} />
+      <Box flexDirection="column" marginBottom={1}>
+        <TextField prompt=":" value={query} active onChange={props.onQuery} />
+        <Rule />
+      </Box>
       <DataList
         items={commands}
         selected={selection.index}

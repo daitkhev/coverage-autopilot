@@ -7,7 +7,7 @@ import type {
 } from '@coverage-autopilot/api-contracts/snapshots';
 
 import type { ShellFrame } from '#components/app-shell';
-import { TextField } from '#components/text-field-prompted';
+import { TextField } from '#components/text-field';
 import { useFocusRing } from '#hooks/use-focus-ring';
 import { useKeys } from '#hooks/use-keys';
 import { type Selection, useSelection } from '#hooks/use-selection';
@@ -71,9 +71,22 @@ function useStartChoice(): StartChoice {
   };
 }
 
+/** While the filter types, `enter` keeps its text and `esc` throws it away. */
 function useFilter(): Filter {
   const [text, setText] = useState('');
   const [typing, setTyping] = useState(false);
+  useKeys(
+    {
+      enter: () => {
+        setTyping(false);
+      },
+      esc: () => {
+        setText('');
+        setTyping(false);
+      },
+    },
+    { active: typing },
+  );
   const shown = typing || text !== '';
   return {
     text,
@@ -82,19 +95,7 @@ function useFilter(): Filter {
       setTyping(true);
     },
     line: shown ? (
-      <TextField
-        prompt="/"
-        value={text}
-        active={typing}
-        onChange={setText}
-        onAccept={() => {
-          setTyping(false);
-        }}
-        onDiscard={() => {
-          setText('');
-          setTyping(false);
-        }}
-      />
+      <TextField prompt="/" value={text} active={typing} onChange={setText} />
     ) : null,
   };
 }

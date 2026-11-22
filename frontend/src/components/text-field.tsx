@@ -4,10 +4,10 @@ import type { ReactNode } from 'react';
 import { Glyph } from '#components/glyph';
 import { RoleText } from '#components/role-text';
 import { useKeys } from '#hooks/use-keys';
-import { GAP } from '#theme/widths';
 
 interface TextFieldProps {
-  readonly label: string;
+  /** What stands before the text: `URL`, or `/` for a filter. */
+  readonly prompt: string;
   readonly value: string;
   /** Whether the field takes the letters, and shows its cursor. */
   readonly active: boolean;
@@ -15,12 +15,13 @@ interface TextFieldProps {
 }
 
 /**
- * A label and one line of text. Letters type and run no action, and
- * backspace takes the last one back. `enter` and `esc` belong to the
- * dialog the field is in. A text too long for its room keeps its end.
+ * A prompt and one line of text. Letters type and run no action, and
+ * backspace takes the last one back. `enter` and `esc` belong to what
+ * holds the field: the dialog, or the list it filters. A text too long
+ * for its room keeps its end, and the prompt is never cut.
  */
 export function TextField({
-  label,
+  prompt,
   value,
   active,
   onChange,
@@ -39,9 +40,9 @@ export function TextField({
     },
   );
   return (
-    <Box gap={GAP}>
+    <Box gap={1}>
       <Box flexShrink={0}>
-        <RoleText role="secondary">{label}</RoleText>
+        <RoleText role="accent">{prompt}</RoleText>
       </Box>
       <Text wrap="truncate-start">
         {value}

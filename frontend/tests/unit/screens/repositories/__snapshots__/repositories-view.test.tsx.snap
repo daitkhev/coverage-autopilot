@@ -89,7 +89,7 @@ exports[`RepositoriesView > when the connect dialog is open > should ask for the
  │                                                                │ │                                         │
  │                                                                │ │ FILES ───────────────────────────────── │
  │                  ╭─ Connect a repository ───────────────────────────────────────────────╮ or above         │
- │                  │ URL  https://github.com/example/notifier█                            │code              │
+ │                  │ URL https://github.com/example/notifier█                             │code              │
  │                  │                                                                      │                  │
  │                  │ The HTTPS address of the repository, such as                         │───────────────── │
  │                  │ https://github.com/acme/widgets.                                     │nd.ts         30s │
@@ -121,7 +121,7 @@ exports[`RepositoriesView > when the connect dialog is open > should keep what t
  │     main · running the tests · 40s · updated 1s ago            │ │ threshold 80.0% of lines                │
  │   ! example/billing-api          ━━━━━━━─┼─   71.4%   12 below │ │ Lines        ━━━━━━━━━━━──┼──   71.4%   │
  │     main · 91be03╭─ Connect a repository ───────────────────────────────────────────────╮━───┼──   61.3%   │
- │   ○ example/notif│ URL  https://github.com/example/notifier█                            │━━━━┼──   80.0%   │
+ │   ○ example/notif│ URL https://github.com/example/notifier█                             │━━━━┼──   80.0%   │
  │     main · press │                                                                      │━━──┼──   71.3%   │
  │                  │ ✓ git installed                                                      │                  │
  │                  │ ✕ gh signed in                                                       │───────────────── │

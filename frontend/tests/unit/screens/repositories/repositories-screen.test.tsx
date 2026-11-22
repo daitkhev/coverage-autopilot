@@ -185,7 +185,7 @@ describe('RepositoriesScreen', () => {
       const { terminal, opened } = await shown(sessionOf());
 
       await press(terminal, 'a', 's', 'j', KEYS.down, KEYS.enter);
-      expect(screenOf(terminal)).toContain('URL  sj█');
+      expect(screenOf(terminal)).toContain('URL sj█');
       expect(opened).toEqual([]);
 
       await press(terminal, KEYS.escape, KEYS.down);
@@ -228,7 +228,7 @@ describe('RepositoriesScreen', () => {
       await press(terminal, KEYS.enter, 'x');
 
       expect(callsOf(session, 'connectRepository')).toHaveLength(1);
-      expect(screenOf(terminal)).toContain(`URL  ${ADDRESS}`);
+      expect(screenOf(terminal)).toContain(`URL ${ADDRESS}`);
       expect(screenOf(terminal)).not.toContain('enter check');
     });
   });

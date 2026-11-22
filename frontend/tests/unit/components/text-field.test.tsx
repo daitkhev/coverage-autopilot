@@ -30,7 +30,7 @@ function Form({ active }: { readonly active: boolean }): ReactNode {
   return (
     <Box flexDirection="column">
       <TextField
-        label="URL"
+        prompt="URL"
         value={value}
         active={active}
         onChange={setValue}
@@ -40,43 +40,38 @@ function Form({ active }: { readonly active: boolean }): ReactNode {
   );
 }
 
+function drawn(
+  { value, active }: { readonly value: string; readonly active: boolean },
+  columns = USUAL_COLUMNS,
+): string {
+  return drawnAt(
+    <TextField
+      prompt="URL"
+      value={value}
+      active={active}
+      onChange={() => undefined}
+    />,
+    columns,
+  );
+}
+
 afterEach(cleanup);
 
 describe('TextField', () => {
-  it('should draw the label, the text and the cursor', () => {
-    expect(
-      drawnAt(
-        <TextField
-          label="URL"
-          value={ADDRESS}
-          active
-          onChange={() => undefined}
-        />,
-        USUAL_COLUMNS,
-      ),
-    ).toBe(`URL  ${ADDRESS}█`);
+  it('should draw the prompt, the text and the cursor', () => {
+    expect(drawn({ value: ADDRESS, active: true })).toBe(`URL ${ADDRESS}█`);
   });
 
   it('should draw no cursor while it does not take the keys', () => {
-    expect(
-      drawnAt(
-        <TextField
-          label="URL"
-          value={ADDRESS}
-          active={false}
-          onChange={() => undefined}
-        />,
-        USUAL_COLUMNS,
-      ),
-    ).toBe(`URL  ${ADDRESS}`);
+    expect(drawn({ value: ADDRESS, active: false })).toBe(`URL ${ADDRESS}`);
   });
 
-  it('should type letters and run no action', async () => {
+  it('should type letters, take one back on backspace, and run no action', async () => {
     const terminal = render(<Form active />);
 
     await press(terminal, 's', 'k', 'y', KEYS.backspace, 'i');
 
-    expect(screenOf(terminal)).toBe('URL  ski█\nno action');
+    expect(screenOf(terminal)).toBe('URL ski█\nno action');
   });
 
   it('should take a pasted text at once', async () => {
@@ -84,7 +79,15 @@ describe('TextField', () => {
 
     await press(terminal, ADDRESS);
 
-    expect(screenOf(terminal)).toContain(`URL  ${ADDRESS}█`);
+    expect(screenOf(terminal)).toContain(`URL ${ADDRESS}█`);
+  });
+
+  it('should leave enter and esc to what holds it', async () => {
+    const terminal = render(<Form active />);
+
+    await press(terminal, 'a', KEYS.enter, KEYS.escape);
+
+    expect(screenOf(terminal)).toBe('URL a█\nno action');
   });
 
   describe('when it does not take the keys', () => {
@@ -98,20 +101,15 @@ describe('TextField', () => {
   });
 
   it.each(WIDTHS)(
-    'should keep the end of a long text in %i columns',
+    'should keep the prompt and the end of a long text in %i columns',
     (columns) => {
-      const drawn = drawnAt(
-        <TextField
-          label="URL"
-          value={`${ADDRESS}/${'x'.repeat(columns)}/end`}
-          active
-          onChange={() => undefined}
-        />,
+      const text = drawn(
+        { value: `${ADDRESS}/${'x'.repeat(columns)}/end`, active: true },
         columns,
       );
 
-      expect(widestLine(drawn)).toBeLessThanOrEqual(columns);
-      expect(drawn).toContain('/end█');
+      expect(widestLine(text)).toBeLessThanOrEqual(columns);
+      expect(text).toMatch(/^URL .*\/end█$/u);
     },
   );
 });

@@ -203,7 +203,7 @@ describe('useConnectDialog', () => {
       checking.reject(new TypeError('Late.'));
       await press(terminal, 'x');
 
-      expect(screenOf(terminal)).toContain('URL  x█');
+      expect(screenOf(terminal)).toContain('URL x█');
       expect(screenOf(terminal)).not.toContain('THE CLIENT SAID');
       expect(connected).toEqual([]);
     });
