@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 
 import type {
   FileCoverage,
@@ -7,7 +7,7 @@ import type {
 } from '@coverage-autopilot/api-contracts/snapshots';
 
 import type { ShellFrame } from '#components/app-shell';
-import { TextField } from '#components/text-field';
+import { type ListFilter, useListFilter } from '#components/list-filter';
 import { useFocusRing } from '#hooks/use-focus-ring';
 import { useKeys } from '#hooks/use-keys';
 import { type Selection, useSelection } from '#hooks/use-selection';
@@ -32,15 +32,6 @@ const CHROME_ROWS = 13;
 
 const PANELS: readonly [FilesPanel, FilesPanel] = ['list', 'details'];
 
-/** The filter of the list: what it holds, and whether it has the keys. */
-interface Filter {
-  readonly text: string;
-  readonly typing: boolean;
-  readonly start: () => void;
-  /** The field while it types or holds a text, and nothing otherwise. */
-  readonly line: ReactNode;
-}
-
 /** The file the dialog that starts an improvement is open for, if any. */
 interface StartChoice {
   readonly file: MeasuredFile | undefined;
@@ -56,7 +47,7 @@ export interface Browser {
   readonly visible: number;
   readonly selection: Selection;
   readonly state: FilesKeysState;
-  readonly filter: Filter;
+  readonly filter: ListFilter;
   readonly dialog: StartChoice;
 }
 
@@ -68,35 +59,6 @@ function useStartChoice(): StartChoice {
     close: () => {
       setFile(undefined);
     },
-  };
-}
-
-/** While the filter types, `enter` keeps its text and `esc` throws it away. */
-function useFilter(): Filter {
-  const [text, setText] = useState('');
-  const [typing, setTyping] = useState(false);
-  useKeys(
-    {
-      enter: () => {
-        setTyping(false);
-      },
-      esc: () => {
-        setText('');
-        setTyping(false);
-      },
-    },
-    { active: typing },
-  );
-  const shown = typing || text !== '';
-  return {
-    text,
-    typing,
-    start: () => {
-      setTyping(true);
-    },
-    line: shown ? (
-      <TextField prompt="/" value={text} active={typing} onChange={setText} />
-    ) : null,
   };
 }
 
@@ -117,7 +79,7 @@ export function useBrowser({
 }): Browser {
   const [list, setList] = useState(0);
   const dialog = useStartChoice();
-  const filter = useFilter();
+  const filter = useListFilter();
   const ring = useFocusRing(PANELS);
   const chosen = FILE_LISTS[list] ?? FILE_LISTS[0];
   const rows = filesOf(files.items, { list: chosen, filter: filter.text });

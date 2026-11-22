@@ -5,6 +5,7 @@ import type {
 } from '@coverage-autopilot/api-contracts/snapshots';
 
 import type { ServiceAnswer, ServiceApi } from '#api/service-api';
+import { holdsFilter } from '#components/list-filter';
 
 /** The repository, and the files of its latest snapshot when it has one. */
 export interface FilesView {
@@ -94,8 +95,7 @@ export function filesOf(
   items: readonly FileCoverage[],
   { list, filter }: { readonly list: FileList; readonly filter: string },
 ): FileCoverage[] {
-  const part = filter.toLowerCase();
   return items.filter(
-    (file) => list.holds(file) && file.path.toLowerCase().includes(part),
+    (file) => list.holds(file) && holdsFilter(file.path, filter),
   );
 }
