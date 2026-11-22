@@ -1,3 +1,21 @@
+import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses';
+
+/** Every counter of coverage, in the order the mock-ups list them. */
+export const COUNTERS: readonly CoverageMetric[] = [
+  'lines',
+  'branches',
+  'functions',
+  'statements',
+];
+
+/** The name of a counter, as the label beside its numbers. */
+export const COUNTER_NAMES: Readonly<Record<CoverageMetric, string>> = {
+  lines: 'Lines',
+  branches: 'Branches',
+  functions: 'Functions',
+  statements: 'Statements',
+};
+
 /**
  * A percentage with one decimal, as `41.2%`. The service sends it, so it
  * is only written here, never computed.

@@ -10,6 +10,7 @@ import type {
   Improvement,
   ImprovementPatch,
 } from '@coverage-autopilot/api-contracts/improvements';
+import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses';
 
 import { Clipped } from '#components/clipped';
 import { CounterPercent } from '#components/coverage-change';
@@ -19,6 +20,7 @@ import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
 import { StatusIndicator } from '#components/status-indicator';
+import { COUNTER_NAMES } from '#theme/counts';
 import { durationWords } from '#theme/moments';
 import { shortHash } from '#theme/names';
 import { ATTEMPT_VERDICT } from '#theme/status';
@@ -27,11 +29,8 @@ import { GAP, PERCENT_CELLS } from '#theme/widths';
 /** The cells of the name of a counter, as "Branches". */
 const LABEL_CELLS = 10;
 
-/** The counters the evidence shows, as the mock-ups name them. */
-const COUNTERS = [
-  ['Lines', 'lines'],
-  ['Branches', 'branches'],
-] as const;
+/** The counters the evidence shows, as the mock-ups show them. */
+const CHANGED: readonly CoverageMetric[] = ['lines', 'branches'];
 
 function checkOf(check: CheckResult): GateCheck {
   return {
@@ -82,10 +81,10 @@ function Coverage({
   }
   return (
     <Section title="COVERAGE OF THE FILE">
-      {COUNTERS.map(([label, counter]) => (
+      {CHANGED.map((counter) => (
         <Change
           key={counter}
-          label={label}
+          label={COUNTER_NAMES[counter]}
           before={before[counter]}
           after={after[counter]}
           threshold={threshold}

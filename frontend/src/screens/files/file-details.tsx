@@ -9,7 +9,6 @@ import type {
   NoCodeFile,
   UnmeasuredFile,
 } from '@coverage-autopilot/api-contracts/snapshots';
-import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses';
 
 import { CoverageBar } from '#components/coverage-bar';
 import { counterCoverage, CounterPercent } from '#components/coverage-change';
@@ -20,21 +19,18 @@ import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
 import { Section } from '#components/section';
 import { StatusIndicator } from '#components/status-indicator';
-import { percentWords, ratioWords } from '#theme/counts';
+import {
+  COUNTER_NAMES,
+  COUNTERS,
+  percentWords,
+  ratioWords,
+} from '#theme/counts';
 import {
   FILE_STATE,
   IMPROVEMENT_STATUS,
   UNMEASURED_REASON,
 } from '#theme/status';
 import { BAR_CELLS, GAP } from '#theme/widths';
-
-/** The four counters, in the order the mock-ups list them. */
-const COUNTERS: readonly (readonly [CoverageMetric, string])[] = [
-  ['lines', 'Lines'],
-  ['branches', 'Branches'],
-  ['functions', 'Functions'],
-  ['statements', 'Statements'],
-];
 
 interface DetailsProps {
   readonly file: FileCoverage;
@@ -93,10 +89,10 @@ function Counters({
 }): ReactNode {
   return (
     <Section title={`COVERAGE threshold ${percentWords(threshold.percentage)}`}>
-      {COUNTERS.map(([metric, label]) => {
+      {COUNTERS.map((metric) => {
         const counter = file.coverage[metric];
         return (
-          <FactRow key={metric} label={label}>
+          <FactRow key={metric} label={COUNTER_NAMES[metric]}>
             <CoverageBar
               coverage={counterCoverage(counter)}
               threshold={threshold.percentage}

@@ -7,6 +7,7 @@ import type {
 } from '@coverage-autopilot/api-contracts/attempts';
 import type { CoverageCounters } from '@coverage-autopilot/api-contracts/coverage';
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
+import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses';
 
 import { AnswerList } from '#components/answer-list';
 import { Clipped } from '#components/clipped';
@@ -28,6 +29,7 @@ import {
   FAILURE_WORDS,
   SKIP_WORDS,
 } from '#screens/improvement/improvement-words';
+import { COUNTER_NAMES } from '#theme/counts';
 import { ageWords } from '#theme/moments';
 import {
   attemptLook,
@@ -45,12 +47,8 @@ export interface Choice {
 /** The cells of the name of a row, as "Mutants". */
 const LABEL_CELLS = 10;
 
-/** The counters a change is shown for, as the mock-ups name them. */
-const COUNTERS = [
-  ['Lines', 'lines'],
-  ['Branches', 'branches'],
-  ['Functions', 'functions'],
-] as const;
+/** The counters a change is shown for, as the mock-ups show them. */
+const CHANGED: readonly CoverageMetric[] = ['lines', 'branches', 'functions'];
 
 /** How the work ended: a sentence, its stable code, and the lines below. */
 interface Headline {
@@ -188,10 +186,10 @@ function Change({
   const { before, after, mutants } = measured;
   return (
     <Section title={`BEFORE AND AFTER ATTEMPT ${String(measured.number)}`}>
-      {COUNTERS.map(([label, counter]) => (
+      {CHANGED.map((counter) => (
         <CoverageChange
           key={counter}
-          label={label}
+          label={COUNTER_NAMES[counter]}
           before={before[counter]}
           after={after[counter]}
           threshold={threshold}

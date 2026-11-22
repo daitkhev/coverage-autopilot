@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
+import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses';
 
 import { Clipped } from '#components/clipped';
 import { CoverageBar } from '#components/coverage-bar';
@@ -15,7 +16,7 @@ import {
   acceptedOf,
   baselineOf,
 } from '#screens/improvement/improvement-answer';
-import { countWords } from '#theme/counts';
+import { COUNTER_NAMES, countWords } from '#theme/counts';
 import { shortHash } from '#theme/names';
 import { GENERATOR_WORDS } from '#theme/status';
 
@@ -29,11 +30,8 @@ const LABEL_CELLS = 10;
 const FACT_BAR_CELLS = 8;
 const SECONDS_PER_MINUTE = 60;
 
-/** The counters of the file before the work, as the mock-ups name them. */
-const BASELINE = [
-  ['Lines', 'lines'],
-  ['Branches', 'branches'],
-] as const;
+/** The counters of the file before the work, as the mock-ups show them. */
+const BASELINE: readonly CoverageMetric[] = ['lines', 'branches'];
 
 /** Tokens are many, so they are written short: `84k`. */
 const TOKENS = new Intl.NumberFormat('en', { notation: 'compact' });
@@ -122,8 +120,8 @@ function Baseline({
   const mutants = report?.mutants ?? null;
   return (
     <>
-      {BASELINE.map(([label, counter]) => (
-        <Fact key={label} label={label}>
+      {BASELINE.map((counter) => (
+        <Fact key={counter} label={COUNTER_NAMES[counter]}>
           <CoverageBar
             coverage={counterCoverage(before[counter])}
             threshold={threshold}

@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 import type { SnapshotSummary } from '@coverage-autopilot/api-contracts/snapshots';
-import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses';
 
 import { CoverageBar } from '#components/coverage-bar';
 import { counterCoverage } from '#components/coverage-change';
@@ -21,18 +20,10 @@ import {
   detailFacts,
   rowStateOf,
 } from '#screens/repositories/repository-words';
-import { percentWords } from '#theme/counts';
+import { COUNTER_NAMES, COUNTERS, percentWords } from '#theme/counts';
 import { ageWords } from '#theme/moments';
 import { IMPROVEMENT_STATUS } from '#theme/status';
 import { GAP } from '#theme/widths';
-
-/** The four counters, in the order the mock-ups list them. */
-const COUNTERS: readonly (readonly [CoverageMetric, string])[] = [
-  ['lines', 'Lines'],
-  ['branches', 'Branches'],
-  ['functions', 'Functions'],
-  ['statements', 'Statements'],
-];
 
 /** The latest work that fits beside the counters at the smallest size. */
 const WORK_ROWS = 3;
@@ -64,8 +55,8 @@ function Measured({
         <RoleText role="secondary">
           {`threshold ${percentWords(threshold.percentage)} of ${threshold.metric}`}
         </RoleText>
-        {COUNTERS.map(([metric, label]) => (
-          <FactRow key={metric} label={label}>
+        {COUNTERS.map((metric) => (
+          <FactRow key={metric} label={COUNTER_NAMES[metric]}>
             <CoverageBar
               coverage={counterCoverage(totals[metric])}
               threshold={threshold.percentage}

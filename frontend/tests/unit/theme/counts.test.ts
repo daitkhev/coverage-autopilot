@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
-import { countWords, percentWords, ratioWords } from '#theme/counts';
+import { coverageMetricSchema } from '@coverage-autopilot/api-contracts/statuses';
+
+import {
+  COUNTER_NAMES,
+  COUNTERS,
+  countWords,
+  percentWords,
+  ratioWords,
+} from '#theme/counts';
+
+describe('the counters and the contract', () => {
+  it('should name every counter of the contract and list each once', () => {
+    const metrics = [...coverageMetricSchema.options].sort();
+
+    expect(Object.keys(COUNTER_NAMES).sort()).toEqual(metrics);
+    expect([...COUNTERS].sort()).toEqual(metrics);
+  });
+});
 
 describe('percentWords', () => {
   it.each([
