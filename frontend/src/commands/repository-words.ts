@@ -11,11 +11,14 @@ import { repositoryName, shortHash } from '#theme/names';
 export { repositoryName };
 
 /**
- * What is worth knowing beside the numbers: the head moved, tests failed
- * in the sandbox at the scan, or a scan runs.
+ * What is worth knowing beside the numbers: its install runs its code, the
+ * head moved, tests failed in the sandbox at the scan, or a scan runs.
  */
 function notesOf(repository: Repository): string {
   const notes: string[] = [];
+  if (repository.install.mode === 'trusted') {
+    notes.push('trusted install');
+  }
   if (repository.outdated) {
     notes.push('outdated');
   }
@@ -67,6 +70,19 @@ export function thresholdCells(repository: Repository): Cells {
   return [
     repositoryName(repository),
     `threshold ${percentWords(percentage)} of ${metric}`,
+    isDefault ? 'default' : 'own',
+  ];
+}
+
+/**
+ * How the packages of a repository are installed, and whether that is its
+ * own choice or the default of the service.
+ */
+export function installCells(repository: Repository): Cells {
+  const { mode, isDefault } = repository.install;
+  return [
+    repositoryName(repository),
+    `install ${mode}`,
     isDefault ? 'default' : 'own',
   ];
 }

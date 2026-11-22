@@ -14,6 +14,7 @@ import type {
 } from '@coverage-autopilot/api-contracts/improvements';
 import type {
   AccessCheck,
+  ChangeInstallModeRequest,
   ChangeThresholdRequest,
   ConnectRepositoryRequest,
   Repository,
@@ -86,6 +87,14 @@ export interface ServiceApi {
   changeThreshold(
     repositoryId: string,
     request: ChangeThresholdRequest,
+  ): Promise<ServiceAnswer<Repository>>;
+  /**
+   * `POST /repositories/:id/install-mode`: 200 with the repository as its
+   * next copy is installed; 400 for a mode that is not one, 404.
+   */
+  changeInstallMode(
+    repositoryId: string,
+    request: ChangeInstallModeRequest,
   ): Promise<ServiceAnswer<Repository>>;
   /**
    * `POST /repositories/:id/scans` with the key in `Idempotency-Key`: 202

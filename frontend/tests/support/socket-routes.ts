@@ -15,6 +15,7 @@ import {
   REPOSITORY_LIST,
   SCAN_BY_STATUS,
   SCANNED_REPOSITORY,
+  TRUSTED_REPOSITORY,
 } from '#tests/support/sample-repositories';
 
 /** One route as the socket client sends it, and a value it answers with. */
@@ -107,6 +108,15 @@ export const ROUTES: readonly RouteCase[] = [
     body: JSON.stringify({ percentage: 90 }),
     status: OK,
     value: OWN_THRESHOLD_REPOSITORY,
+  },
+  {
+    name: 'changeInstallMode',
+    call: async (api) => api.changeInstallMode(REPOSITORY, { mode: 'trusted' }),
+    method: 'POST',
+    url: `/repositories/${REPOSITORY}/install-mode`,
+    body: JSON.stringify({ mode: 'trusted' }),
+    status: OK,
+    value: TRUSTED_REPOSITORY,
   },
   {
     name: 'startScan',

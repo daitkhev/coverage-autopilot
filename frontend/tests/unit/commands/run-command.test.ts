@@ -23,6 +23,7 @@ const GONE: Partial<ServiceApi> = {
   connectRepository: unreachable,
   checkAccess: unreachable,
   changeThreshold: unreachable,
+  changeInstallMode: unreachable,
   startScan: unreachable,
   listSnapshotFiles: unreachable,
   startImprovement: unreachable,
@@ -44,6 +45,10 @@ describe('runCommand', () => {
     [
       { name: 'repo threshold', repository: REPO, percentage: 90 },
       'changeThreshold',
+    ],
+    [
+      { name: 'repo trust', repository: REPO, mode: 'trusted' },
+      'changeInstallMode',
     ],
     [{ name: 'scan', repository: REPO, wait: false }, 'startScan'],
     [{ name: 'files', repository: REPO, query: {} }, 'listSnapshotFiles'],

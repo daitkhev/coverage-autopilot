@@ -1,4 +1,5 @@
 import type { StartImprovementRequest } from '@coverage-autopilot/api-contracts/improvements';
+import type { InstallMode } from '@coverage-autopilot/api-contracts/repositories';
 import type { SnapshotFilesQuery } from '@coverage-autopilot/api-contracts/snapshots';
 
 /** A command that takes nothing after its name: its name is all of it. */
@@ -30,6 +31,10 @@ interface CommandArguments {
   /** `null` gives the repository the threshold of the service back. */
   readonly 'repo threshold': RepositoryArgument & {
     readonly percentage: number | null;
+  };
+  /** `null` gives the repository the mode of install of the service back. */
+  readonly 'repo trust': RepositoryArgument & {
+    readonly mode: InstallMode | null;
   };
   readonly scan: RepositoryArgument & WaitFlag;
   readonly files: RepositoryArgument & { readonly query: SnapshotFilesQuery };

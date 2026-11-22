@@ -65,6 +65,7 @@ type RepositoryRoutes = Pick<
   | 'getRepository'
   | 'checkAccess'
   | 'changeThreshold'
+  | 'changeInstallMode'
   | 'startScan'
   | 'listSnapshots'
 >;
@@ -88,6 +89,11 @@ function repositoryRoutes(ask: Ask): RepositoryRoutes {
       ask(
         repositorySchema,
         postRequest(repository(id, 'threshold'), { body: request }),
+      ),
+    changeInstallMode: async (id, request) =>
+      ask(
+        repositorySchema,
+        postRequest(repository(id, 'install-mode'), { body: request }),
       ),
     startScan: async (id, key) =>
       ask(scanSchema, postRequest(repository(id, 'scans'), { key })),

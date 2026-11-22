@@ -60,6 +60,11 @@ const GRAMMAR: Readonly<Record<CommandName, Grammar>> = {
     does: 'Sets the threshold of a repository',
     flags: [],
   },
+  'repo trust': {
+    synopsis: 'repo trust <repo> <mode>',
+    does: 'Chooses how a repository is installed',
+    flags: [],
+  },
   scan: { synopsis: 'scan <repo>', does: 'Queues a scan', flags: ['--wait'] },
   files: {
     synopsis: 'files <repo>',
@@ -168,6 +173,10 @@ export const HELP_TEXT: string = [
   'A repository is named as owner/name.',
   'A threshold is a whole percent of lines, such as 90, or default to give',
   'a repository the threshold of the service back.',
+  'A mode of install is sandboxed, which runs no code of the repository or',
+  'its packages while the network is open, trusted, which installs it as its',
+  'developers do, scripts and all, or default to give a repository the mode',
+  'of the service back.',
   '',
   'Flags:',
   ...table(FLAG_HELP),

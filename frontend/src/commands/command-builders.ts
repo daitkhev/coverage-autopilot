@@ -1,5 +1,9 @@
 import type { Budget } from '@coverage-autopilot/api-contracts/improvements';
 import {
+  type InstallMode,
+  installModeSchema,
+} from '@coverage-autopilot/api-contracts/repositories';
+import {
   type CoverageMetric,
   coverageMetricSchema,
 } from '@coverage-autopilot/api-contracts/statuses';
@@ -27,8 +31,8 @@ const PERCENT = /^\d+(?:\.\d+)?$/u;
 const WHOLE_NUMBER = /^\d+$/u;
 const BUDGET_KEYS = ['attempts', 'tokens', 'minutes'] as const;
 
-/** The word for no threshold of its own: the one of the service. */
-const DEFAULT_THRESHOLD = 'default';
+/** The word for no threshold or mode of its own: the one of the service. */
+const DEFAULT_CHOICE = 'default';
 
 function repositoryProblem(repository: string): Problem | undefined {
   return REPOSITORY.test(repository)
@@ -68,12 +72,12 @@ function metricOf(
 function thresholdOf(
   text: string,
 ): { readonly percentage: number | null } | Problem {
-  if (text === DEFAULT_THRESHOLD) {
+  if (text === DEFAULT_CHOICE) {
     return { percentage: null };
   }
   return WHOLE_NUMBER.test(text)
     ? { percentage: Number(text) }
-    : `A threshold is a whole percent such as 90, or ${DEFAULT_THRESHOLD}, ` +
+    : `A threshold is a whole percent such as 90, or ${DEFAULT_CHOICE}, ` +
         `not ${text}.`;
 }
 
@@ -87,6 +91,34 @@ function thresholdCommand(line: Line): Command<'repo threshold'> | Problem {
       name: 'repo threshold',
       repository: line.first,
       ...threshold,
+    }
+  );
+}
+
+/** The modes are those of the contract, so a new one needs no change here. */
+function installModeOf(
+  text: string,
+): { readonly mode: InstallMode | null } | Problem {
+  if (text === DEFAULT_CHOICE) {
+    return { mode: null };
+  }
+  const mode = installModeSchema.options.find((each) => each === text);
+  return mode === undefined
+    ? `A mode of install is ${installModeSchema.options.join(' or ')}, or ` +
+        `${DEFAULT_CHOICE}, not ${text}.`
+    : { mode };
+}
+
+function trustCommand(line: Line): Command<'repo trust'> | Problem {
+  const mode = installModeOf(line.second);
+  if (typeof mode === 'string') {
+    return mode;
+  }
+  return (
+    repositoryProblem(line.first) ?? {
+      name: 'repo trust',
+      repository: line.first,
+      ...mode,
     }
   );
 }
@@ -160,6 +192,7 @@ const BUILDERS: {
       repository: line.first,
     },
   'repo threshold': thresholdCommand,
+  'repo trust': trustCommand,
   scan: (line) =>
     repositoryProblem(line.first) ?? {
       name: 'scan',

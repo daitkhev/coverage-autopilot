@@ -98,6 +98,15 @@ export const FAILING_TESTS_REPOSITORY: Repository = {
   latestSnapshot: { ...PAYMENTS_SNAPSHOT, tests: FAILING_TESTS },
 };
 
+/**
+ * `example/payments` once a person trusted it: its install runs the code
+ * of the repository and of its packages.
+ */
+export const TRUSTED_REPOSITORY: Repository = {
+  ...SCANNED_REPOSITORY,
+  install: { mode: 'trusted', isDefault: false },
+};
+
 /** Connected a minute ago, and never scanned. */
 export const NEVER_SCANNED_REPOSITORY: Repository = {
   ...SCANNED_REPOSITORY,

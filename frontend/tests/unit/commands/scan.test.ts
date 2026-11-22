@@ -211,6 +211,23 @@ describe('scan', () => {
       expect(io.printed).toEqual([]);
     });
 
+    it('should pass on how to trust a project it would not install', async () => {
+      const message =
+        'yarn.lock takes a package from a git repository. Trust the ' +
+        'repository to install it as its developers do: repo trust ' +
+        'example/payments trusted.';
+      const failure = { reason: 'unsupported_project', message } as const;
+      const io = scanIo([
+        answered({ ...later(SCAN_BY_STATUS.failed), failure }),
+      ]);
+
+      await expect(scan(WAIT, io)).resolves.toBe(1);
+
+      expect(io.said.at(-1)).toBe(
+        JSON.stringify({ error: 'unsupported_project', message }),
+      );
+    });
+
     it('should say the one word when the service gave no reason', async () => {
       const io = scanIo([
         answered({ ...later(SCAN_BY_STATUS.failed), failure: null }),

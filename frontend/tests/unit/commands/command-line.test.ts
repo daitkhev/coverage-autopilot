@@ -86,6 +86,18 @@ describe('parseCommandLine', () => {
       ['repo', 'threshold', REPO, 'default'],
       { name: 'repo threshold', repository: REPO, percentage: null },
     ],
+    [
+      ['repo', 'trust', REPO, 'trusted'],
+      { name: 'repo trust', repository: REPO, mode: 'trusted' },
+    ],
+    [
+      ['repo', 'trust', REPO, 'sandboxed'],
+      { name: 'repo trust', repository: REPO, mode: 'sandboxed' },
+    ],
+    [
+      ['repo', 'trust', REPO, 'default'],
+      { name: 'repo trust', repository: REPO, mode: null },
+    ],
     [['scan', REPO], { name: 'scan', repository: REPO, wait: false }],
     [['scan', '--wait', REPO], { name: 'scan', repository: REPO, wait: true }],
     [['files', REPO], { name: 'files', repository: REPO, query: {} }],
@@ -209,6 +221,15 @@ describe('parseCommandLine', () => {
       [
         ['repo', 'threshold', REPO, '85.5'],
         'A threshold is a whole percent such as 90, or default, not 85.5.',
+      ],
+      [['repo', 'trust', REPO], 'repo trust needs <mode>.'],
+      [
+        ['repo', 'trust', 'widgets', 'trusted'],
+        'widgets is not a repository; name it as owner/name.',
+      ],
+      [
+        ['repo', 'trust', REPO, 'open'],
+        'A mode of install is sandboxed or trusted, or default, not open.',
       ],
     ])('should refuse %j with one sentence', (argv, message) => {
       expect(parseCommandLine(argv)).toMatchObject({

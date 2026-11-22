@@ -14,6 +14,7 @@ describe('HELP_TEXT', () => {
         repo list                        Lists repositories
         repo check <repo>                Runs the access check
         repo threshold <repo> <percent>  Sets the threshold of a repository
+        repo trust <repo> <mode>         Chooses how a repository is installed
         scan <repo>                      Queues a scan
         files <repo>                     Lists files of the latest snapshot
         improve <repo> <file>            Requests an improvement
@@ -27,6 +28,10 @@ describe('HELP_TEXT', () => {
       A repository is named as owner/name.
       A threshold is a whole percent of lines, such as 90, or default to give
       a repository the threshold of the service back.
+      A mode of install is sandboxed, which runs no code of the repository or
+      its packages while the network is open, trusted, which installs it as its
+      developers do, scripts and all, or default to give a repository the mode
+      of the service back.
 
       Flags:
         --wait                                   Block until the work is final

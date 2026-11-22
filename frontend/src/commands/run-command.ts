@@ -13,6 +13,7 @@ import { repoAdd } from '#commands/repo-add';
 import { repoCheck } from '#commands/repo-check';
 import { repoList } from '#commands/repo-list';
 import { repoThreshold } from '#commands/repo-threshold';
+import { repoTrust } from '#commands/repo-trust';
 import { scan } from '#commands/scan';
 import { status } from '#commands/status';
 
@@ -27,6 +28,7 @@ const RUNNERS: {
   'repo list': repoList,
   'repo check': repoCheck,
   'repo threshold': repoThreshold,
+  'repo trust': repoTrust,
   scan,
   files,
   improve,
