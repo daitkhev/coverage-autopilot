@@ -1008,3 +1008,111 @@ Where this log and the plan differ, this log and the code are right.
 - One test of the client is not stable under load: the one that waits
   for an old service of another contract that does not go in time failed
   once in a run of the whole gate and passed alone.
+
+### What is owed, read against the code
+
+Every list of owed work above was read against the code on this day.
+This list replaces them: what is not named here was found done.
+
+A real run can fail, or lose work that was paid for:
+
+- Nothing in the repository builds the image of the generator. The
+  settings only name it, and the engine is not told to leave the
+  registry alone, so without an image built by hand it looks for one
+  there and every generation fails.
+- A working copy whose tree was left unreadable cannot be removed, and
+  the removal runs where a step ends. Its fault then takes the place of
+  the result of the step, so a call of the generator can go unrecorded,
+  and the folder that stays blocks the next copy of the same id.
+- Nothing clears what a crash left: no working copy and no container is
+  looked for when the service starts.
+- Three readings of the generator are guesses that no run has measured:
+  the status of a spent limit, the words of a failed login, and the
+  error of a key with no credit.
+- git gets no token for a push. Where the login of the code host lives
+  in the environment only, a publication may fail: to be proven on the
+  first real one.
+- A container is given thirty seconds to be removed, and a removal that
+  fails is not raised, so a run can return while its container lives.
+
+A person meets it in the first minutes of the client:
+
+- The screens need 24 rows, and the terminal of an editor has fewer, so
+  there they never appear.
+- The client draws below what the terminal already shows. The history
+  of the shell stays in view and can be scrolled into, and the header
+  can be scrolled away. A change of the size of the window leaves parts
+  of the frame before it on the screen. The screens should take the
+  whole screen and give it back, as a full-screen program does.
+- Going back draws the screen anew: the selected row, the chosen list
+  and the text of the filter are lost, and the data is asked for again.
+- The list of commands holds the five commands of the app and no action
+  of a screen, and a screen has no way to add one.
+- Built for no screen, though a route gives what it needs: asking again
+  with larger limits after a failure, opening a pull request in the
+  browser, the next file, the filters and the cancel in the list of
+  improvements, and the name of the test runner.
+- Ctrl+C on the screens ends them without the line that says the work
+  goes on.
+
+Rare, and severe when it happens:
+
+- A request has no time limit, so a service that takes a connection and
+  never answers holds the client for good.
+- A client with a service of its own that is ended by a signal, or by
+  Ctrl+C before the screens appear, leaves that service running with its
+  folder.
+- After it starts a service, the client takes whatever answers on the
+  socket for its own and does not compare the version, so a service of
+  another contract that starts in the same moment is used, or fails the
+  client with a mismatch.
+- An old service removes its socket a moment before it releases its
+  lock. A new one that tries the lock then leaves without a word, and
+  the client says the service did not start.
+
+It makes a fault hard to find, or a screen say less:
+
+- A journey writes four lines to the log. No step of a job, no tool
+  that was started and no call of the code host leaves one.
+- Health says nothing of the account of the code host, the tools, the
+  limits of the generator, the last sign of the worker and the paths of
+  the service, and its two signs of life only repeat that the service
+  is not stopping. The client knows the folder of the instance and the
+  log itself and does not show them.
+- The worker keeps the last of two handlers of one kind without a word.
+  Only the composition refuses them.
+- No route returns the last access check of a repository or who
+  cancelled an improvement.
+- The status of an answer is set in three places, and the two cancels
+  answer work that had ended with two statuses, 202 and 200.
+- A text right of a filler in a panel can stand one cell left, in six
+  places. A dot and the marks of added and removed lines are written in
+  five screens and not taken from the theme.
+- A start of a service of its own that failed keeps its folder, and
+  each new try makes another. `--json` without a command does nothing.
+
+Tests and the gate:
+
+- The policy lists stress tests and the plan runs them in CI, and no
+  test of that kind and no step of the gate exists.
+- The end-to-end tests prove one journey. Not proven from end to end:
+  review mode, a rejected patch and a second attempt, a generator that
+  fails or cannot log in, a publication the host refuses, a cancel, and
+  a restart in the middle of an improvement.
+- No test runs the screens in a real terminal or changes its size while
+  they run. Two faults were found by hand that way.
+- The bench of the client takes a socket file for a service that
+  listens, which it is not yet for a moment. That is the test that
+  failed once under load, and seven cases share the window.
+- Mutation tests cover the harness only, and the rule that keeps colour
+  and symbols in the theme is not written.
+
+Found done since they were written: the reason of a scan that ran out
+of time, the refusal of a monorepo and of another package manager, the
+patch taken after the sandbox ended, the refusal of a patch that holds
+more than tests, the variables of git and its oldest version, the
+bindings of the generator and of the worker, the wait for a limit, the
+budget asked for before an attempt, the answers of an improvement, the
+two refusals without a status, one deadline for every step, and one set
+of settings for the tests. A working copy that was tampered with now
+fails the improvement as an exposed credential and keeps its tokens.
