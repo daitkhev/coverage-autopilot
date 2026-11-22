@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { CancelScanHandler } from '#coverage/application/commands/cancel-scan/cancel-scan.handler';
 import { RunScanHandler } from '#coverage/application/commands/run-scan/run-scan.handler';
-import { ScanRepositoryHandler } from '#coverage/application/commands/scan-repository/scan-repository.handler';
 import { CoverageApi } from '#coverage/application/coverage-api';
 import { COVERAGE_SETTINGS } from '#coverage/application/coverage-settings';
 import { TestRunnerUnavailableError } from '#coverage/application/errors/test-runner-unavailable.error';
@@ -24,6 +23,8 @@ import {
 } from '#coverage/contracts/coverage-public-api';
 import { CoverageModule } from '#coverage/coverage.module';
 import { REPORT_FOLDER } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
+import { RepositoriesController } from '#coverage/presentation/http/repositories.controller';
+import { ScansController } from '#coverage/presentation/http/scans.controller';
 import { SQLITE_CONNECTION } from '#infrastructure/database/sqlite-connection';
 import { SqliteTransactionRunner } from '#infrastructure/database/sqlite-transaction-runner.adapter';
 import { ID_GENERATOR } from '#kernel/id/id-generator';
@@ -116,17 +117,6 @@ function servicesOf(database: TemporaryDatabase, folder: ProjectFolder) {
   ] satisfies Provider[];
 }
 
-/** What a module of the routes injects from this one. */
-const ROUTE_HANDLERS = Symbol('RouteHandlers');
-
-type RouteHandlers = readonly [
-  ScanRepositoryHandler,
-  GetScanHandler,
-  CancelScanHandler,
-  ListSnapshotsHandler,
-  ListSnapshotFilesHandler,
-];
-
 async function compile(providers: Provider[]): Promise<TestingModule> {
   return Test.createTestingModule({
     imports: [{ module: CoverageModule, providers }],
@@ -186,32 +176,25 @@ describe('CoverageModule', () => {
     expect(module.get(RunScanHandler).kind).toBe('scan');
   });
 
-  it('should export to the routes a handler for each, wired', async () => {
-    const module = await Test.createTestingModule({
-      imports: [{ module: CoverageModule, providers: services }],
-      providers: [
-        {
-          provide: ROUTE_HANDLERS,
-          useFactory: (...handlers: unknown[]) => handlers,
-          inject: [
-            ScanRepositoryHandler,
-            GetScanHandler,
-            CancelScanHandler,
-            ListSnapshotsHandler,
-            ListSnapshotFilesHandler,
-          ],
-        },
-      ],
-    }).compile();
-    const [, scans, cancel, snapshots, files] =
-      module.get<RouteHandlers>(ROUTE_HANDLERS);
+  it('should bind the routes of repositories and scans to wired handlers', async () => {
+    const module = await compile(services);
 
-    await expect(scans.execute({ scanId: 'job-1' })).resolves.toBeNull();
-    await expect(cancel.execute({ scanId: 'job-1' })).resolves.toBeNull();
+    expect(module.get(RepositoriesController)).toBeInstanceOf(
+      RepositoriesController,
+    );
+    expect(module.get(ScansController)).toBeInstanceOf(ScansController);
     await expect(
-      snapshots.execute({ repositoryId: REPOSITORY_ID }),
+      module.get(GetScanHandler).execute({ scanId: 'job-1' }),
+    ).resolves.toBeNull();
+    await expect(
+      module.get(CancelScanHandler).execute({ scanId: 'job-1' }),
+    ).resolves.toBeNull();
+    await expect(
+      module.get(ListSnapshotsHandler).execute({ repositoryId: REPOSITORY_ID }),
     ).resolves.toEqual([]);
-    await expect(files.execute({ snapshotId: FIRST_ID })).resolves.toBeNull();
+    await expect(
+      module.get(ListSnapshotFilesHandler).execute({ snapshotId: FIRST_ID }),
+    ).resolves.toBeNull();
   });
 
   it('should run Jest and Vitest through the sandbox', async () => {

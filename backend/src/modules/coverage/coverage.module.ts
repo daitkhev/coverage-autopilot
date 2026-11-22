@@ -41,20 +41,22 @@ import { IstanbulReportReader } from '#coverage/infrastructure/reports/istanbul-
 import { JEST_COMMAND } from '#coverage/infrastructure/runners/jest-command';
 import { SandboxedTestRunner } from '#coverage/infrastructure/runners/sandboxed-test-runner.adapter';
 import { VITEST_COMMAND } from '#coverage/infrastructure/runners/vitest-command';
+import { RepositoriesController } from '#coverage/presentation/http/repositories.controller';
 import { ScansController } from '#coverage/presentation/http/scans.controller';
 import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
 
 /**
  * Project detection, test runs with coverage, the reading of reports,
- * snapshots and thresholds, and the routes of scans.
+ * snapshots and thresholds, and the routes of repositories and scans: an
+ * answer about a repository holds what only this module knows of it.
  *
  * It takes from the modules around it: both contracts of `repositories`,
  * the sandbox, the store of tool output, the queue, the transaction
  * manager, the SQLite connection, the clock, the id generator and the
- * settings of this module.
+ * settings of this module. It gives the queue its handler of scans.
  */
 @Module({
-  controllers: [ScansController],
+  controllers: [RepositoriesController, ScansController],
   providers: [
     {
       provide: COVERAGE_SNAPSHOT_REPOSITORY,
@@ -94,15 +96,7 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
     ListRepositoriesHandler,
     { provide: COVERAGE_PUBLIC_API, useClass: CoverageApi },
   ],
-  exports: [
-    COVERAGE_PUBLIC_API,
-    RunScanHandler,
-    ScanRepositoryHandler,
-    GetScanHandler,
-    CancelScanHandler,
-    ListSnapshotsHandler,
-    ListSnapshotFilesHandler,
-  ],
+  exports: [COVERAGE_PUBLIC_API, RunScanHandler],
 })
 export class CoverageModule implements OnModuleInit {
   private readonly runners: readonly TestRunner[];
