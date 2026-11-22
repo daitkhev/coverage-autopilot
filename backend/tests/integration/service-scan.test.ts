@@ -9,6 +9,7 @@ import { snapshotFilesSchema } from '@coverage-autopilot/api-contracts/snapshots
 import {
   type HostedService,
   hostedService,
+  WORK_WAIT,
 } from '#tests/support/hosted-service';
 import { lockfileOf } from '#tests/support/project-folder';
 import { TemporaryCodeHost } from '#tests/support/temporary-code-host';
@@ -52,7 +53,7 @@ async function scanned(): Promise<Scan> {
     .poll(async () => {
       scan = scanSchema.parse((await hosted.send(path)).body);
       return ENDED.has(scan.status);
-    })
+    }, WORK_WAIT)
     .toBe(true);
   return scan;
 }

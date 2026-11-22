@@ -14,6 +14,7 @@ import type { RunningService } from '#service/running-service';
 import {
   type HostedService,
   hostedService,
+  WORK_WAIT,
 } from '#tests/support/hosted-service';
 import { lockfileOf } from '#tests/support/project-folder';
 import { SERVICE_VERSION } from '#tests/support/service-bench';
@@ -54,7 +55,7 @@ async function scanThatRuns(): Promise<void> {
     .poll(async () => {
       const health = healthSchema.parse((await hosted.send('/health')).body);
       return health.activeWork.scans;
-    })
+    }, WORK_WAIT)
     .toBe(1);
 }
 

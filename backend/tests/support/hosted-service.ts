@@ -25,6 +25,13 @@ const RUNNABLE = 0o755;
 /** A worker that looks for work often, so a test waits little. */
 const QUICK_POLL = { AUTOPILOT_QUEUE_POLL_MS: '20' };
 
+/**
+ * How long a test waits for the worker, and how often it looks. Under the
+ * load of a whole gate a scan takes seconds, though it takes a fraction of
+ * one alone.
+ */
+export const WORK_WAIT = { timeout: 15_000, interval: 50 };
+
 type Answer = Awaited<ReturnType<typeof askOver>>;
 
 /**
