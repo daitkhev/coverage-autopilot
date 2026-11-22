@@ -43,7 +43,7 @@ function answered(health: Health): DatedRequest<Health> {
 function view({
   health = answered(IDLE_HEALTH),
   fault,
-  restart = { step: 'idle' },
+  restart = { phase: 'idle' },
   columns = USUAL_COLUMNS,
   focused = 'status',
 }: {
@@ -158,12 +158,12 @@ describe('ServiceView', () => {
 
   describe('when the service is asked to stop', () => {
     it.each<readonly [string, Restart, string]>([
-      ['asked', { step: 'asking' }, 'Asking the service to stop.'],
+      ['asked', { phase: 'running' }, 'Asking the service to stop.'],
       [
         'stopping',
         {
-          step: 'answered',
-          answer: {
+          phase: 'ended',
+          outcome: {
             outcome: 'answered',
             status: 202,
             value: { stopping: true },
@@ -174,8 +174,8 @@ describe('ServiceView', () => {
       [
         'refused',
         {
-          step: 'answered',
-          answer: refused(409, {
+          phase: 'ended',
+          outcome: refused(409, {
             error: 'status_conflict',
             message: 'A scan runs, so the service does not stop.',
           }),
@@ -184,12 +184,12 @@ describe('ServiceView', () => {
       ],
       [
         'unreachable',
-        { step: 'failed', fault: new Error('Nothing answers.') },
+        { phase: 'failed', failure: new Error('Nothing answers.') },
         'The service was not stopped: Nothing answers.',
       ],
       [
         'failed with a text',
-        { step: 'failed', fault: 'socket closed' },
+        { phase: 'failed', failure: 'socket closed' },
         'The service was not stopped: socket closed',
       ],
     ])('should say what happened when %s', (_case, restart, notice) => {
@@ -197,7 +197,7 @@ describe('ServiceView', () => {
     });
 
     it('should offer no second restart while it is asked', () => {
-      expect(view({ restart: { step: 'asking' } })).toContain(
+      expect(view({ restart: { phase: 'running' } })).toContain(
         'r restart  it is being stopped',
       );
     });
@@ -223,7 +223,7 @@ describe('ServiceView', () => {
             fault={undefined}
             moment={{ now: SAMPLE_NOW, timeZone: 'UTC' }}
             focused="status"
-            restart={{ step: 'idle' }}
+            restart={{ phase: 'idle' }}
           />,
         ),
         USUAL_COLUMNS,

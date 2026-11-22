@@ -1,13 +1,16 @@
-import { type ReactNode, useCallback, useState } from 'react';
+import { type ReactNode, useCallback } from 'react';
+
+import type { StopServiceResult } from '@coverage-autopilot/api-contracts/health';
 
 import type { ClientSession } from '#api/client-session';
+import type { ServiceAnswer } from '#api/service-api';
 import { ServiceUnreachableError } from '#api/service-unreachable-error';
 import type { ShellFrame } from '#components/app-shell';
+import { useAction } from '#hooks/use-action';
 import { useDatedRequest } from '#hooks/use-dated-request';
 import { useFocusRing } from '#hooks/use-focus-ring';
 import { useKeys } from '#hooks/use-keys';
-import { useOneAtATime } from '#hooks/use-one-at-a-time';
-import { type Restart, restartBlockOf } from '#screens/service/restart';
+import { restartBlockOf } from '#screens/service/restart';
 import { SERVICE_PANELS, ServiceView } from '#screens/service/service-view';
 
 interface ServiceScreenProps {
@@ -32,17 +35,8 @@ export function ServiceScreen({
     everyMs: ASK_EVERY_MS,
   });
   const focus = useFocusRing(SERVICE_PANELS);
-  const stopping = useOneAtATime();
-  const [last, setLast] = useState<Restart>({ step: 'idle' });
-  const restart: Restart = stopping.running ? { step: 'asking' } : last;
-  const stop = async (): Promise<void> => {
-    try {
-      setLast({ step: 'answered', answer: await session.api.stopService() });
-    } catch (fault: unknown) {
-      setLast({ step: 'failed', fault });
-    }
-  };
-  const blocked = restartBlockOf(health.answer, restart) !== undefined;
+  const restart = useAction<ServiceAnswer<StopServiceResult>>();
+  const blocked = restartBlockOf(health.answer, restart.state) !== undefined;
   useKeys(
     {
       tab: focus.next,
@@ -50,7 +44,7 @@ export function ServiceScreen({
         ? {}
         : {
             r: () => {
-              stopping.run(stop);
+              restart.start(async () => session.api.stopService());
             },
           }),
     },
@@ -67,7 +61,7 @@ export function ServiceScreen({
       }
       moment={{ now: session.now(), timeZone: session.timeZone }}
       focused={focus.focused}
-      restart={restart}
+      restart={restart.state}
     />
   );
 }

@@ -4,16 +4,10 @@ import type {
 } from '@coverage-autopilot/api-contracts/health';
 
 import type { ServiceAnswer } from '#api/service-api';
+import type { ActionState } from '#hooks/use-action';
 
 /** Where the request to stop the service stands. */
-export type Restart =
-  | { readonly step: 'idle' }
-  | { readonly step: 'asking' }
-  | {
-      readonly step: 'answered';
-      readonly answer: ServiceAnswer<StopServiceResult>;
-    }
-  | { readonly step: 'failed'; readonly fault: unknown };
+export type Restart = ActionState<ServiceAnswer<StopServiceResult>>;
 
 /**
  * Why the service cannot be restarted now, or nothing when it can. The
@@ -23,7 +17,7 @@ export function restartBlockOf(
   health: Health | undefined,
   restart: Restart,
 ): string | undefined {
-  if (restart.step === 'asking') {
+  if (restart.phase === 'running') {
     return 'it is being stopped';
   }
   if (health === undefined) {
@@ -41,16 +35,16 @@ function faultWords(fault: unknown): string {
 
 /** What just happened to the request to stop, for the line of notices. */
 export function restartNoticeOf(restart: Restart): string | undefined {
-  switch (restart.step) {
+  switch (restart.phase) {
     case 'idle':
       return undefined;
-    case 'asking':
+    case 'running':
       return 'Asking the service to stop.';
     case 'failed':
-      return `The service was not stopped: ${faultWords(restart.fault)}`;
-    case 'answered':
-      return restart.answer.outcome === 'answered'
+      return `The service was not stopped: ${faultWords(restart.failure)}`;
+    case 'ended':
+      return restart.outcome.outcome === 'answered'
         ? 'The service stops, and starts again with the next request.'
-        : restart.answer.error.message;
+        : restart.outcome.error.message;
   }
 }

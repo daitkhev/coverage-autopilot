@@ -3,7 +3,7 @@ import { type Dispatch, type SetStateAction, useRef, useState } from 'react';
 import type { Repository } from '@coverage-autopilot/api-contracts/repositories';
 
 import type { ClientSession } from '#api/client-session';
-import { useOneAtATime } from '#hooks/use-one-at-a-time';
+import { useAction } from '#hooks/use-action';
 import type { ConnectState } from '#screens/repositories/connect-dialog-view';
 import {
   connectAndCheck,
@@ -37,12 +37,16 @@ interface CheckRun extends ConnectDialogOptions {
   readonly update: DialogUpdate;
 }
 
+/**
+ * Connects and checks the address of the dialog. The repository when it
+ * was connected; otherwise nothing, and the dialog says why.
+ */
 async function runCheck({
   session,
   onConnected,
   state,
   update,
-}: CheckRun): Promise<void> {
+}: CheckRun): Promise<Repository | undefined> {
   const report = (phase: ConnectPhase): void => {
     update((last) => ({ ...last, phase }));
   };
@@ -57,8 +61,10 @@ async function runCheck({
       update(() => undefined);
       onConnected(repository);
     }
+    return repository;
   } catch (fault: unknown) {
     report({ step: 'refused', refusal: { kind: 'fault', fault } });
+    return undefined;
   }
 }
 
@@ -79,7 +85,7 @@ function updateOf(
 export function useConnectDialog(options: ConnectDialogOptions): ConnectDialog {
   const [state, setState] = useState<ConnectState | undefined>(undefined);
   const opened = useRef(0);
-  const checks = useOneAtATime();
+  const checks = useAction<Repository | undefined>();
   return {
     state,
     open: () => {
@@ -99,7 +105,7 @@ export function useConnectDialog(options: ConnectDialogOptions): ConnectDialog {
     confirm: () => {
       if (state !== undefined && isEditable(state.phase) && state.url !== '') {
         const update = updateOf(setState, state.id);
-        checks.run(async () => runCheck({ ...options, state, update }));
+        checks.start(async () => runCheck({ ...options, state, update }));
       }
     },
   };
