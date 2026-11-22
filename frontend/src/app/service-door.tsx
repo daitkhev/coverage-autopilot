@@ -1,3 +1,4 @@
+import { openInBrowser } from '#api/browser';
 import type { ClientSession } from '#api/client-session';
 import { currentMoment, localTimeZone } from '#api/clock';
 import {
@@ -40,7 +41,7 @@ const WAIT: ServiceWait = { totalMs: 20_000, intervalMs: 100 };
 
 /** The session of a run over a service that answers. */
 export function sessionOf(api: ServiceApi): ClientSession {
-  return { api, now: currentMoment, timeZone: localTimeZone() };
+  return { api, now: currentMoment, timeZone: localTimeZone(), openInBrowser };
 }
 
 /** The service of the user: found, started, or replaced, and never stopped. */

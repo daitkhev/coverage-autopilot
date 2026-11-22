@@ -12,11 +12,13 @@ const KEYS: readonly (readonly [string, string])[] = [
   ['A list', 'up down or j k one row, pgup pgdn one page'],
   ['', 'g G first and last, enter open, / filter'],
   ['', 'tab details'],
+  ['', 'f status, r repository of the improvements'],
   ['Details', 'up down scroll, tab back to the list'],
   ['A question', 'up down choose, 1 to 9 pick, enter confirm'],
   ['', 'esc close'],
   ['A text field', 'letters type, enter accepts, esc discards'],
   ['Work that ends', 'c cancel, which always asks first'],
+  ['Ended work', 'n next file, o pull request, p patch'],
 ];
 
 /** The widest place of the table, and the gap after it. */
