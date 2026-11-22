@@ -116,6 +116,55 @@ describe('unknownFile', () => {
       ]);
     });
 
+    describe('in a folder the policy lists below another', () => {
+      const structure: Structure = {
+        ...structureOf(),
+        workspaceFiles: new Map([
+          [
+            'backend',
+            new Map([
+              ['src/', ['.ts']],
+              ['src/store/schema/', ['.sql']],
+              ['src/store/', ['.ts', '.txt']],
+            ]),
+          ],
+        ]),
+      };
+
+      it('should pass the kinds of the longest folder it is in', () => {
+        expect(
+          detailsWith(structure, [
+            'backend/src/store/schema/0001-first.sql',
+            'backend/src/store/notes.txt',
+            'backend/src/store/rows.ts',
+            'backend/src/main.ts',
+          ]),
+        ).toEqual([]);
+      });
+
+      it('should not add the kinds of the folder around it', () => {
+        expect(
+          detailsWith(structure, ['backend/src/store/schema/rows.ts']),
+        ).toEqual([
+          'A file of this kind does not belong in "src/store/schema/".',
+        ]);
+      });
+
+      it('should keep its kinds out of the folder around it', () => {
+        expect(
+          detailsWith(structure, [
+            'backend/src/store/0001-first.sql',
+            'backend/src/notes.txt',
+            'backend/src/store-notes/a.txt',
+          ]),
+        ).toEqual([
+          'A file of this kind does not belong in "src/".',
+          'A file of this kind does not belong in "src/".',
+          'A file of this kind does not belong in "src/store/".',
+        ]);
+      });
+    });
+
     it('should report a folder the workspace does not have', () => {
       expect(
         detailsOf('backend/scripts/seed.ts', 'frontend/tests/unit/a.test.tsx'),

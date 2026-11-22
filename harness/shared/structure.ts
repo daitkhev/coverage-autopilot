@@ -92,6 +92,8 @@ export interface Structure {
   /**
    * What each workspace may hold. Under the empty name are the files of
    * its root. Under each folder are the extensions a file there may have.
+   * The longest folder a file is in judges it, and its list stands alone:
+   * it does not add to the list of a folder around it.
    */
   readonly workspaceFiles: ReadonlyMap<
     string,

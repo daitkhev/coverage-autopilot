@@ -11,12 +11,28 @@ const ROOT = '';
 /** `package-manifest` judges this file wherever it is. */
 const MANIFEST = 'package.json';
 
+/**
+ * The folder of the list that judges a file: the longest one the policy
+ * lists that the file is in, so a folder deep in the tree may hold a kind
+ * of file the folders around it do not. A file in none of them is judged
+ * by its first folder, and a file with no folder by the root.
+ */
+function folderOf(
+  inside: string,
+  allowed: ReadonlyMap<string, readonly string[]>,
+): string {
+  const listed = [...allowed.keys()]
+    .filter((folder) => folder !== ROOT && inside.startsWith(folder))
+    .sort((one, other) => other.length - one.length);
+  return listed[0] ?? inside.slice(0, inside.indexOf('/') + 1);
+}
+
 /** What is wrong with a file at `inside`, a path within its workspace. */
 function placeProblem(
   inside: string,
   allowed: ReadonlyMap<string, readonly string[]>,
 ): string | undefined {
-  const folder = inside.slice(0, inside.indexOf('/') + 1);
+  const folder = folderOf(inside, allowed);
   const kinds = allowed.get(folder);
   if (folder === ROOT) {
     return kinds?.includes(inside) === true
