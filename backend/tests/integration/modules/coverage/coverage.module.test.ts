@@ -13,6 +13,7 @@ import {
   TEST_RUNNERS,
   type TestRunner,
 } from '#coverage/application/ports/test-runner.port';
+import { GetScanHandler } from '#coverage/application/queries/get-scan/get-scan.handler';
 import {
   COVERAGE_PUBLIC_API,
   type CoveragePublicApi,
@@ -162,6 +163,14 @@ describe('CoverageModule', () => {
     const module = await compile(services);
 
     expect(module.get(RunScanHandler).kind).toBe('scan');
+  });
+
+  it('should give the routes of scans and snapshots their handlers', async () => {
+    const module = await compile(services);
+
+    await expect(
+      module.get(GetScanHandler).execute({ scanId: 'job-1' }),
+    ).resolves.toBeNull();
   });
 
   it('should run Jest and Vitest through the sandbox', async () => {

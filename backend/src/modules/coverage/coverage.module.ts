@@ -12,6 +12,7 @@ import {
   COVERAGE_SETTINGS,
   type CoverageSettings,
 } from '#coverage/application/coverage-settings';
+import { ScanViews } from '#coverage/application/dto/scan-views';
 import { TestRunnerUnavailableError } from '#coverage/application/errors/test-runner-unavailable.error';
 import { COVERAGE_REPORT_READER } from '#coverage/application/ports/coverage-report-reader.port';
 import { PROJECT_DETECTOR } from '#coverage/application/ports/project-detector.port';
@@ -21,6 +22,7 @@ import {
   type TestRunner,
 } from '#coverage/application/ports/test-runner.port';
 import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
+import { GetScanHandler } from '#coverage/application/queries/get-scan/get-scan.handler';
 import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
 import { ListFilesBelowThresholdHandler } from '#coverage/application/queries/list-files-below-threshold/list-files-below-threshold.handler';
 import { COVERAGE_PUBLIC_API } from '#coverage/contracts/coverage-public-api';
@@ -74,9 +76,11 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
     GetSnapshotHandler,
     GetFileCoverageHandler,
     ListFilesBelowThresholdHandler,
+    ScanViews,
+    GetScanHandler,
     { provide: COVERAGE_PUBLIC_API, useClass: CoverageApi },
   ],
-  exports: [COVERAGE_PUBLIC_API, RunScanHandler],
+  exports: [COVERAGE_PUBLIC_API, RunScanHandler, GetScanHandler],
 })
 export class CoverageModule implements OnModuleInit {
   private readonly runners: readonly TestRunner[];
