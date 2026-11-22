@@ -1,25 +1,44 @@
+import { readFileSync } from 'node:fs';
 import type { Writable } from 'node:stream';
 
 import { runService } from '#composition/service-run';
 import type { Environment } from '#infrastructure/config/environment-values';
-import {
-  loadServiceConfig,
-  type ProcessUser,
-} from '#infrastructure/config/service-config';
+import { loadServiceConfig } from '#infrastructure/config/service-config';
 import type { RunningService } from '#infrastructure/service/running-service';
+
+/** A second signal finds no listener and ends the process at once. */
+const STOP_SIGNALS = ['SIGTERM', 'SIGINT'] as const;
+
+/** Where the signals of a process arrive. */
+interface SignalSource {
+  once(signal: (typeof STOP_SIGNALS)[number], listener: () => void): unknown;
+}
 
 /** What the entry file reads of its process and gives on as values. */
 export interface ServiceProcess {
   readonly environment: Environment;
-  readonly user: ProcessUser;
+  /** The ids of the user of the process. Some systems have none. */
+  readonly user: {
+    readonly uid: number | undefined;
+    readonly gid: number | undefined;
+  };
   /** Found from the place of the entry file, which a bundle moves. */
   readonly migrationsFolder: string;
-  /** The version of the package, read beside the entry file. */
-  readonly version: string;
+  /** The package of the service, found the same way. */
+  readonly packageFile: string;
   /** The standard error: the lines of the log, and that of a failure. */
   readonly errors: Writable;
-  /** Calls `stop` when the process is asked to stop, such as on a signal. */
-  readonly onStopRequest: (stop: () => void) => void;
+  readonly signals: SignalSource;
+}
+
+/** No id of a user, with which the configuration refuses to start. */
+const NO_ID = -1;
+
+/** The version of the package, which `GET /health` reports. */
+function versionIn(packageFile: string): string {
+  const text = readFileSync(packageFile, 'utf8');
+  const { version } = JSON.parse(text) as { readonly version: string };
+  return version;
 }
 
 /**
@@ -41,11 +60,14 @@ async function started(
   entry: ServiceProcess,
 ): Promise<RunningService | number> {
   try {
-    const config = loadServiceConfig(entry.environment, entry.user);
+    const config = loadServiceConfig(entry.environment, {
+      uid: entry.user.uid ?? NO_ID,
+      gid: entry.user.gid ?? NO_ID,
+    });
     const run = await runService(config, {
       migrationsFolder: entry.migrationsFolder,
       logStream: entry.errors,
-      version: entry.version,
+      version: versionIn(entry.packageFile),
     });
     return run.outcome === 'running' ? run.service : EXIT_WELL;
   } catch (error) {
@@ -58,9 +80,11 @@ async function untilStopped(
   service: RunningService,
   entry: ServiceProcess,
 ): Promise<number> {
-  entry.onStopRequest(() => {
-    void service.stop();
-  });
+  for (const signal of STOP_SIGNALS) {
+    entry.signals.once(signal, () => {
+      void service.stop();
+    });
+  }
   try {
     await service.stopped;
     return EXIT_WELL;
