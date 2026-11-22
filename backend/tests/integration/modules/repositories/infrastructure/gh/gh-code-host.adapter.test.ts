@@ -147,14 +147,26 @@ describe('GhCodeHost', () => {
       });
     });
 
-    describe('when gh cannot ask the host', () => {
+    describe('when the host does not answer', () => {
       it('should answer refused with what gh said', async () => {
+        const script =
+          'process.stderr.write("gh: Not Found (HTTP 404)\\n"); process.exitCode = 1';
+
+        expect(
+          await withGh({
+            command: [process.execPath, '--eval', script, '--'],
+          }).pushPermission(URL_OF_WIDGETS, NEVER),
+        ).toEqual({ outcome: 'refused', output: 'gh: Not Found (HTTP 404)' });
+      });
+    });
+
+    describe('when gh has no login', () => {
+      it('should throw GhNotAuthenticatedError', async () => {
         host.gh.answer({ loggedIn: false });
 
-        expect(await gh.pushPermission(URL_OF_WIDGETS, NEVER)).toEqual({
-          outcome: 'refused',
-          output: 'To get started with GitHub CLI, please run: gh auth login',
-        });
+        await expect(gh.pushPermission(URL_OF_WIDGETS, NEVER)).rejects.toThrow(
+          GhNotAuthenticatedError,
+        );
       });
     });
 

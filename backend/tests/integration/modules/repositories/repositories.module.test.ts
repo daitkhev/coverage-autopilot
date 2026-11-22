@@ -277,6 +277,20 @@ describe('RepositoriesModule', () => {
       });
     });
 
+    describe('when gh has no login', () => {
+      it('should fail at once with the fault of the login and push nothing', async () => {
+        const repositoryId = await connected();
+        const request = publication(repositoryId, await patchOf(repositoryId));
+        host.gh.answer({ loggedIn: false });
+
+        await expect(api.publishPatch(request, NEVER)).rejects.toMatchObject({
+          code: 'gh_not_authenticated',
+          retryable: false,
+        });
+        expect(branchOnHost()).toBe('');
+      });
+    });
+
     describe('when the patch does not apply to the base', () => {
       it('should answer refused and push nothing', async () => {
         const repositoryId = await connected();

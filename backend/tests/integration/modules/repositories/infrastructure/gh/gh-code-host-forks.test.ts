@@ -19,9 +19,8 @@ let host: TemporaryCodeHost;
 let gh: GhCodeHost;
 let first: string;
 
-/** gh that prints `text` and ends with 0, whatever it is asked. */
-function printing(text: string): GhCodeHost {
-  const script = `console.log(${JSON.stringify(text)})`;
+/** gh that runs the script of Node, whatever it is asked. */
+function running(script: string): GhCodeHost {
   return new GhCodeHost(
     {
       ...host.settings,
@@ -32,6 +31,18 @@ function printing(text: string): GhCodeHost {
     },
     new RecordingLogger(),
     TOOL_CLOCK,
+  );
+}
+
+/** gh that prints `text` and ends with 0. */
+function printing(text: string): GhCodeHost {
+  return running(`console.log(${JSON.stringify(text)})`);
+}
+
+/** gh that says `text` on its standard error and ends with 1. */
+function failing(text: string): GhCodeHost {
+  return running(
+    `process.stderr.write(${JSON.stringify(text)}); process.exitCode = 1`,
   );
 }
 
@@ -64,14 +75,24 @@ describe('GhCodeHost', () => {
       ]);
     });
 
-    describe('when gh cannot ask the host', () => {
+    describe('when the host does not answer', () => {
       it('should answer refused with what gh said', async () => {
+        expect(
+          await failing('gh: Bad gateway (HTTP 502)\n').account(
+            'github.com',
+            NEVER,
+          ),
+        ).toEqual({ outcome: 'refused', output: 'gh: Bad gateway (HTTP 502)' });
+      });
+    });
+
+    describe('when gh has no login', () => {
+      it('should throw GhNotAuthenticatedError', async () => {
         host.gh.answer({ loggedIn: false });
 
-        expect(await gh.account('github.com', NEVER)).toEqual({
-          outcome: 'refused',
-          output: 'To get started with GitHub CLI, please run: gh auth login',
-        });
+        await expect(gh.account('github.com', NEVER)).rejects.toThrow(
+          GhNotAuthenticatedError,
+        );
       });
     });
 

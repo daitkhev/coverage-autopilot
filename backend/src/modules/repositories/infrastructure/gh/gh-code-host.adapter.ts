@@ -90,10 +90,8 @@ export class GhCodeHost implements CodeHost {
     url: RepositoryUrl,
     signal: AbortSignal,
   ): Promise<PushPermissionResult> {
-    const run = await this.gh.run(
-      await this.call(['api', `repos/${url.fullName}`]),
-      signal,
-    );
+    const call = await this.call(['api', `repos/${url.fullName}`]);
+    const run = this.loggedIn(await this.gh.run(call, signal), url.host);
     if (run.exitCode !== 0) {
       return { outcome: 'refused', output: run.output };
     }
@@ -111,10 +109,8 @@ export class GhCodeHost implements CodeHost {
     host: string,
     signal: AbortSignal,
   ): Promise<AccountResult> {
-    const run = await this.gh.run(
-      await this.call(['api', `--hostname=${host}`, 'user']),
-      signal,
-    );
+    const call = await this.call(['api', `--hostname=${host}`, 'user']);
+    const run = this.loggedIn(await this.gh.run(call, signal), host);
     if (run.exitCode !== 0) {
       return { outcome: 'refused', output: run.output };
     }
@@ -132,7 +128,7 @@ export class GhCodeHost implements CodeHost {
       '--method=POST',
       `repos/${url.fullName}/forks`,
     ]);
-    const run = this.loggedIn(await this.gh.run(call, signal), url);
+    const run = this.loggedIn(await this.gh.run(call, signal), url.host);
     if (run.exitCode !== 0) {
       return { outcome: 'refused', output: run.output };
     }
@@ -153,7 +149,10 @@ export class GhCodeHost implements CodeHost {
       '--json=number,url',
       '--limit=1',
     ]);
-    const run = this.loggedIn(await this.gh.run(call, signal), request.url);
+    const run = this.loggedIn(
+      await this.gh.run(call, signal),
+      request.url.host,
+    );
     if (run.exitCode !== 0) {
       throw new ToolFailedError(`gh pr list failed. It said: ${run.output}`);
     }
@@ -180,7 +179,7 @@ export class GhCodeHost implements CodeHost {
     ]);
     const run = this.loggedIn(
       await this.gh.run({ ...call, input: request.body }, signal),
-      request.url,
+      request.url.host,
     );
     if (run.exitCode !== 0) {
       return { outcome: 'refused', output: run.output };
@@ -194,10 +193,10 @@ export class GhCodeHost implements CodeHost {
   }
 
   /** The run, unless `gh` said it has no login: then that is the fault. */
-  private loggedIn(run: ToolRun, url: RepositoryUrl): ToolRun {
+  private loggedIn(run: ToolRun, host: string): ToolRun {
     if (run.exitCode === NOT_AUTHENTICATED) {
       throw new GhNotAuthenticatedError(
-        `gh is not logged in to ${url.host}. It said: ${run.output}`,
+        `gh is not logged in to ${host}. It said: ${run.output}`,
       );
     }
     return run;

@@ -1494,7 +1494,11 @@ fails the improvement as an exposed credential and keeps its tokens.
   improvement fails with them, as before. Two faults may be tried again:
   a fork that git does not reach within 60 seconds (`fork_not_ready`),
   and a host that did not say whether the account may push
-  (`permission_not_read`).
+  (`permission_not_read`). A `gh` with no login is the fault
+  `gh_not_authenticated` of every call but the one that reads the login,
+  the new ones included, so publishing without one fails at once, as it
+  did. The access check asks for the right to push only once its step
+  before found the login.
 - Nothing new is stored, so no migration: the route is decided again at
   each publication.
 - The client says where a result goes before a run: `repo check` ends with
@@ -1514,10 +1518,6 @@ fails the improvement as an exposed credential and keeps its tokens.
   - The fork the host answers is trusted to be one of the repository: its
     parent is not compared.
   - The base branches stay in the fork once a pull request is closed.
-  - A `gh` with no login at publishing is now a fault tried again
-    (`permission_not_read`), where it failed at once before
-    (`gh_not_authenticated`): the question of the right to push comes
-    first now, and its refusal does not tell the two apart.
 - Not seen on the real host, only on the stand-in: the shape of the fork
   answer beyond `fork` and `clone_url`, the time a new fork takes, an
   atomic push to a fork, and the words of its refusals.

@@ -136,7 +136,8 @@ export class AccessProbe {
 
   /**
    * Asks the host where a result goes, then reads the head with git, which
-   * also pushes.
+   * also pushes. It runs only once the step before found the login, so a
+   * login missing here was lost meanwhile, and is the fault of the host.
    */
   private async pushAllowed(
     repository: Repository,
