@@ -7,6 +7,7 @@ import { GetImprovementHandler } from '#improvement/application/queries/get-impr
 import { GetImprovementPatchHandler } from '#improvement/application/queries/get-improvement-patch/get-improvement-patch.handler';
 import { ListImprovementsHandler } from '#improvement/application/queries/list-improvements/list-improvements.handler';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
+import { inMemoryArtifacts } from '#tests/support/coverage-stand-ins';
 import { FixedClock } from '#tests/support/fixed-clock';
 import {
   assessingRepositories,
@@ -24,9 +25,10 @@ const NOW_MINUTE = 10;
 
 /**
  * What a person asks of improvements, over stand-ins in memory: the
- * coverage and the repositories modules, a store, transactions, a queue
- * and a clock that stands still ten minutes after the journeys began. A
- * test sets their answers and reads what each was asked.
+ * coverage and the repositories modules, a store, transactions, a queue,
+ * the store of tool output and a clock that stands still ten minutes
+ * after the journeys began. A test sets their answers and reads what
+ * each was asked.
  */
 export class ImprovementRequestWorld {
   public readonly coverage = sourceCoverage();
@@ -37,7 +39,12 @@ export class ImprovementRequestWorld {
   public readonly queue = recordingQueue();
   public readonly clock = new FixedClock(minutesIn(NOW_MINUTE).toString());
   public readonly ids = new SequentialIdGenerator();
-  public readonly views = new ImprovementViews(this.queue, this.clock);
+  public readonly artifacts = inMemoryArtifacts();
+  public readonly views = new ImprovementViews(
+    this.queue,
+    this.clock,
+    this.artifacts,
+  );
   public readonly registration = new ImprovementRegistration(
     this.improvements,
     this.transactions,

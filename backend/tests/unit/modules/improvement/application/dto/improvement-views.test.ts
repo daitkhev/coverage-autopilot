@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { ImprovementViews } from '#improvement/application/dto/improvement-views';
+import {
+  IN_MEMORY_ARTIFACTS_FOLDER,
+  inMemoryArtifacts,
+} from '#tests/support/coverage-stand-ins';
 import { FixedClock } from '#tests/support/fixed-clock';
 import {
   improvementIn,
@@ -29,6 +33,7 @@ beforeEach(() => {
   views = new ImprovementViews(
     queue,
     new FixedClock(minutesIn(NOW_MINUTE).toString()),
+    inMemoryArtifacts(),
   );
 });
 
@@ -54,6 +59,15 @@ describe('ImprovementViews', () => {
         steps: RUNNING_JOB.steps,
         updatedAt: RUNNING_JOB.updatedAt,
       });
+    });
+
+    it('should show the raw output of an attempt where the store keeps it', async () => {
+      const shown = await views.of(improvementIn('completed'));
+
+      expect(shown.attempts[0]?.rawOutputPaths).toEqual([
+        `${IN_MEMORY_ARTIFACTS_FOLDER}/outputs/generator.json`,
+        `${IN_MEMORY_ARTIFACTS_FOLDER}/outputs/new-tests.txt`,
+      ]);
     });
 
     it('should show no steps when no worker runs it', async () => {

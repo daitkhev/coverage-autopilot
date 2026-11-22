@@ -1,4 +1,7 @@
-import { attemptDtoOf } from '#improvement/application/dto/attempt-dto-mapping';
+import {
+  attemptDtoOf,
+  type OutputPathOf,
+} from '#improvement/application/dto/attempt-dto-mapping';
 import type {
   BudgetDto,
   BudgetUsageDto,
@@ -78,10 +81,14 @@ function reasonDtoOf<Reason>(
     : { reason: ending.reason, message: ending.message };
 }
 
-/** The stored improvement with its live facts: values only. */
+/**
+ * The stored improvement with its live facts and the paths of its raw
+ * output: values only.
+ */
 export function improvementDtoOf(
   improvement: Improvement,
   live: LiveFacts,
+  outputPathOf: OutputPathOf,
 ): ImprovementDto {
   const { request } = improvement;
   return {
@@ -102,7 +109,9 @@ export function improvementDtoOf(
     limitWaits: improvement.limitWaits,
     qualityPolicy: policyDtoOf(request.policy),
     generator: generatorDtoOf(request.generator),
-    attempts: improvement.attempts.map(attemptDtoOf),
+    attempts: improvement.attempts.map((attempt) =>
+      attemptDtoOf(attempt, outputPathOf),
+    ),
     progress: live.progress,
     branch: improvement.branch?.value ?? null,
     pullRequest: pullRequestDtoOf(improvement.pullRequest),

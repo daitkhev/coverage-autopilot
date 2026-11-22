@@ -56,9 +56,9 @@ export interface AttemptDto {
   readonly patchHash: string | null;
   readonly report: VerificationReportDto | null;
   /**
-   * The stored references of the raw output of the generator and of the
-   * checks, in that order. They become paths where the instance keeps
-   * its files, which the application does not know.
+   * Where the instance keeps the raw output of the generator and of the
+   * checks, in that order, as absolute paths a person can open. A file
+   * that is gone keeps its path.
    */
-  readonly rawOutputReferences: readonly string[];
+  readonly rawOutputPaths: readonly string[];
 }

@@ -11,6 +11,7 @@ import {
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
 import { isFinal } from '#improvement/domain/value-objects/improvement-status.vo';
 import { CLOCK, type Clock } from '#kernel/time/clock';
+import { ARTIFACT_STORE, type ArtifactStore } from '#ports/artifact-store.port';
 import { JOB_QUEUE, type JobQueue, type JobWait } from '#ports/job-queue.port';
 
 /**
@@ -24,23 +25,31 @@ function waitOfJob(wait: JobWait | null): WaitingFor | null {
 /**
  * Turns an improvement into what a person sees of it. The stored state
  * says how far the work has come; the clock adds what it has spent until
- * now, and the queue what its job is doing or waits for.
+ * now, the queue what its job is doing or waits for, and the store of
+ * tool output where the files of its raw output are.
  */
 @Injectable()
 export class ImprovementViews {
   private readonly queue: JobQueue;
   private readonly clock: Clock;
+  private readonly artifacts: ArtifactStore;
 
   public constructor(
     @Inject(JOB_QUEUE) queue: JobQueue,
     @Inject(CLOCK) clock: Clock,
+    @Inject(ARTIFACT_STORE) artifacts: ArtifactStore,
   ) {
     this.queue = queue;
     this.clock = clock;
+    this.artifacts = artifacts;
   }
 
   public async of(improvement: Improvement): Promise<ImprovementDto> {
-    return improvementDtoOf(improvement, await this.liveFactsOf(improvement));
+    return improvementDtoOf(
+      improvement,
+      await this.liveFactsOf(improvement),
+      (reference) => this.artifacts.pathOf(reference),
+    );
   }
 
   /**

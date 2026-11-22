@@ -96,7 +96,7 @@ export interface InMemoryArtifacts extends ArtifactStore {
 }
 
 /** Where the stand-in says its files are. Nothing is written there. */
-const IN_MEMORY_ARTIFACTS_FOLDER = '/instance/artifacts';
+export const IN_MEMORY_ARTIFACTS_FOLDER = '/instance/artifacts';
 
 /** Keeps the n-th output under `artifact-<n>`. */
 export function inMemoryArtifacts(): InMemoryArtifacts {

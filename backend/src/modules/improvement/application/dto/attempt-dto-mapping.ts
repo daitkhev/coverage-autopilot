@@ -14,6 +14,12 @@ import type {
 
 const WHOLE = 100;
 
+/**
+ * Where the instance keeps the file of a stored reference of raw output.
+ * The store knows it, and a mapping of values does not.
+ */
+export type OutputPathOf = (reference: string) => string;
+
 /** The percentage travels with its counts, so the client computes nothing. */
 function counterDtoOf(count: TargetCoverage['lines']): CoverageCounterDto {
   const { covered, total } = count;
@@ -84,7 +90,10 @@ function rawOutputOf(attempt: Attempt): string[] {
 }
 
 /** An attempt as a person sees it: values only, the report included. */
-export function attemptDtoOf(attempt: Attempt): AttemptDto {
+export function attemptDtoOf(
+  attempt: Attempt,
+  outputPathOf: OutputPathOf,
+): AttemptDto {
   const { report } = attempt;
   return {
     number: attempt.number,
@@ -95,6 +104,6 @@ export function attemptDtoOf(attempt: Attempt): AttemptDto {
     tokensUsed: attempt.tokensUsed,
     patchHash: attempt.patch?.hash ?? null,
     report: report === null ? null : reportDtoOf(report),
-    rawOutputReferences: rawOutputOf(attempt),
+    rawOutputPaths: rawOutputOf(attempt).map(outputPathOf),
   };
 }

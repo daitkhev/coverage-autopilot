@@ -29,9 +29,14 @@ function generatedAttempt(): Attempt {
 
 const THREE_OF_FOUR = { covered: 3, total: 4, percentage: 75 };
 
+/** Where a test says the instance keeps the file of a reference. */
+function pathOf(reference: string): string {
+  return `/instance/artifacts/${reference}`;
+}
+
 describe('attemptDtoOf', () => {
   it('should show an open attempt that has no patch yet', () => {
-    expect(attemptDtoOf(Attempt.open(1, OPENED_AT))).toEqual({
+    expect(attemptDtoOf(Attempt.open(1, OPENED_AT), pathOf)).toEqual({
       number: 1,
       status: 'open',
       startedAt: OPENED_AT,
@@ -40,7 +45,7 @@ describe('attemptDtoOf', () => {
       tokensUsed: 0,
       patchHash: null,
       report: null,
-      rawOutputReferences: [],
+      rawOutputPaths: [],
     });
   });
 
@@ -50,7 +55,7 @@ describe('attemptDtoOf', () => {
       JUDGED_AT,
     );
 
-    expect(attemptDtoOf(attempt)).toEqual({
+    expect(attemptDtoOf(attempt, pathOf)).toEqual({
       number: 2,
       status: 'closed',
       startedAt: OPENED_AT,
@@ -89,7 +94,10 @@ describe('attemptDtoOf', () => {
           },
         ],
       },
-      rawOutputReferences: [GENERATOR_OUTPUT, 'outputs/new-tests.txt'],
+      rawOutputPaths: [
+        pathOf(GENERATOR_OUTPUT),
+        pathOf('outputs/new-tests.txt'),
+      ],
     });
   });
 
@@ -106,9 +114,9 @@ describe('attemptDtoOf', () => {
 
     const attempt = generatedAttempt().withReport(report, JUDGED_AT);
 
-    expect(attemptDtoOf(attempt).rawOutputReferences).toEqual([
-      GENERATOR_OUTPUT,
-      shared.outputReference,
+    expect(attemptDtoOf(attempt, pathOf).rawOutputPaths).toEqual([
+      pathOf(GENERATOR_OUTPUT),
+      pathOf(String(shared.outputReference)),
     ]);
   });
 
@@ -122,6 +130,7 @@ describe('attemptDtoOf', () => {
 
     const shown = attemptDtoOf(
       generatedAttempt().withReport(report, JUDGED_AT),
+      pathOf,
     );
 
     expect(shown.status).toBe('open');
@@ -143,6 +152,7 @@ describe('attemptDtoOf', () => {
 
     const shown = attemptDtoOf(
       generatedAttempt().withReport(report, JUDGED_AT),
+      pathOf,
     );
 
     expect(shown.report?.coverageAfter?.statements).toEqual({
@@ -159,7 +169,7 @@ describe('attemptDtoOf', () => {
       JUDGED_AT,
     );
 
-    expect(attemptDtoOf(attempt)).toEqual(
+    expect(attemptDtoOf(attempt, pathOf)).toEqual(
       expect.objectContaining({
         status: 'closed',
         generationOutcome: 'no_changes',

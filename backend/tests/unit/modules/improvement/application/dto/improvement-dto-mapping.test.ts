@@ -27,6 +27,11 @@ import {
   TARGET_FILE,
 } from '#tests/support/improvement-values';
 
+/** Where a test says the instance keeps the file of a reference. */
+function pathOf(reference: string): string {
+  return `/instance/artifacts/${reference}`;
+}
+
 const RESTING: LiveFacts = {
   usage: BudgetUsage.create({ attempts: 1, tokens: 1500, seconds: 300 }),
   progress: null,
@@ -37,7 +42,7 @@ describe('improvementDtoOf', () => {
   it('should show a completed improvement with its request, attempts and pull request', () => {
     const improvement = improvementIn('completed');
 
-    expect(improvementDtoOf(improvement, RESTING)).toEqual({
+    expect(improvementDtoOf(improvement, RESTING, pathOf)).toEqual({
       id: IMPROVEMENT_ID,
       repositoryId: RepositoryId.create(REPOSITORY_ID),
       sourceSnapshotId: SOURCE_SNAPSHOT_ID,
@@ -65,7 +70,14 @@ describe('improvementDtoOf', () => {
         billing: 'subscription',
       },
       attempts: [
-        expect.objectContaining({ number: 1, status: 'closed' }) as unknown,
+        expect.objectContaining({
+          number: 1,
+          status: 'closed',
+          rawOutputPaths: [
+            pathOf('outputs/generator.json'),
+            pathOf('outputs/new-tests.txt'),
+          ],
+        }) as unknown,
       ],
       progress: null,
       branch: `coverage-autopilot/${IMPROVEMENT_ID}`,
@@ -79,7 +91,7 @@ describe('improvementDtoOf', () => {
   });
 
   it('should show a new improvement with nothing of its work yet', () => {
-    expect(improvementDtoOf(improvementIn('created'), RESTING)).toEqual(
+    expect(improvementDtoOf(improvementIn('created'), RESTING, pathOf)).toEqual(
       expect.objectContaining({
         baselineSnapshotId: null,
         deadlineAt: null,
@@ -91,7 +103,7 @@ describe('improvementDtoOf', () => {
   });
 
   it('should say why an improvement failed', () => {
-    expect(improvementDtoOf(improvementIn('failed'), RESTING)).toEqual(
+    expect(improvementDtoOf(improvementIn('failed'), RESTING, pathOf)).toEqual(
       expect.objectContaining({
         failure: { reason: 'stale_snapshot', message: failureOf().message },
         skip: null,
@@ -100,7 +112,7 @@ describe('improvementDtoOf', () => {
   });
 
   it('should say why an improvement was skipped', () => {
-    expect(improvementDtoOf(improvementIn('skipped'), RESTING)).toEqual(
+    expect(improvementDtoOf(improvementIn('skipped'), RESTING, pathOf)).toEqual(
       expect.objectContaining({
         failure: null,
         skip: { reason: 'threshold_met', message: skipOf().message },
@@ -110,7 +122,7 @@ describe('improvementDtoOf', () => {
 
   it('should say when an improvement was cancelled', () => {
     expect(
-      improvementDtoOf(improvementIn('cancelled'), RESTING).cancelledAt,
+      improvementDtoOf(improvementIn('cancelled'), RESTING, pathOf).cancelledAt,
     ).toEqual(minutesIn(STEP_MINUTE.started));
   });
 
@@ -120,11 +132,11 @@ describe('improvementDtoOf', () => {
       updatedAt: minutesIn(9),
     } as const;
 
-    const shown = improvementDtoOf(improvementIn('verifying'), {
-      ...RESTING,
-      progress,
-      waitingFor: 'repository',
-    });
+    const shown = improvementDtoOf(
+      improvementIn('verifying'),
+      { ...RESTING, progress, waitingFor: 'repository' },
+      pathOf,
+    );
 
     expect(shown.progress).toBe(progress);
     expect(shown.waitingFor).toBe('repository');
