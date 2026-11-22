@@ -1708,3 +1708,60 @@ fails the improvement as an exposed credential and keeps its tokens.
 - The engine of this machine cannot mount a folder that was removed and
   made again at the same path: it says that the source of the mount does
   not exist. An instance folder is not made again where one was removed.
+
+### The generator hears how its tests failed
+
+- An improvement spent its three attempts and failed `budget_exhausted`.
+  The generator heard only that its tests fail, while the run said that
+  the test file did not compile, three times over.
+- Both runners write a JSON report beside what they print: Jest with
+  `--json --outputFile=<path>`, Vitest with `--reporter=default
+  --reporter=json --outputFile.json=<path>`. The path is absolute, in
+  the copy, at `node_modules/.coverage-autopilot-test-results.json`,
+  among the installed packages, which no patch takes a file from. The
+  file is removed before each run, so a stale report is never read.
+- The two reports share one shape, and the reader takes the first
+  failure from it: a file that failed with no failed test, which is a
+  file that failed to run, then the first failed test. At most 4 lines
+  of 200 characters, cut after a whole word so a secret hidden later is
+  never kept in part. Codes of the terminal and other control characters
+  go, the paths of the copy become `.`, and frames of `node_modules` and
+  of Node are dropped. A report that is missing, a link, or of another
+  shape gives no excerpt, never the raw text.
+- The excerpt is a field of its own, `testFailure`, never a longer
+  message, so text of the repository never mixes with the words of the
+  gate. It goes from the run of tests of coverage to the failed check of
+  verification, and is kept with the report of the attempt. The stored
+  report is version 2 of its document; a version 1 report reads as checks
+  with no failure.
+- Prompt version 2 is version 1 and two rules: the generator cannot run a
+  test, so it reads how the repository configures the runner and
+  TypeScript first; and, when a failure is shown, it removes its cause,
+  since tests that fail the same way are refused again. The failure is
+  in the data as quoted lines, `> ` first, so no line can end it: 4 lines
+  of 120 characters, names of 80, and backticks made `'`. The credential
+  of the generator is hidden before any text is cut. A new improvement
+  takes version 2; one that began before keeps version 1.
+- A check of the contract gained `testFailure`, the file, the test or
+  `null`, and the lines. A strict object gained a field, so a client of
+  the version before refuses the answer. `CONTRACT_VERSION` was not
+  raised here: owed. The history of the client shows where the run failed
+  first and its first two lines under the reasons of a rejection.
+- Known, and not handled:
+  - A reporter named on the command line of Vitest replaces those the
+    repository configures, so a run in a copy prints as the default
+    reporter does.
+  - The stored excerpt and the raw output of a run keep the credential if
+    a test printed it: coverage and verification do not know it. Only the
+    prompt hides it.
+  - The file of a failure is a path as git stores it and is shown as is;
+    the client removes no control character from it.
+- Not seen with a real run of ts-jest: the lines of a type error come
+  from a Jest run that failed on a missing module.
+- Where:
+  `backend/src/modules/coverage/infrastructure/reports/test-failure-excerpt.ts`,
+  `backend/src/modules/coverage/infrastructure/reports/json-test-report-reader.adapter.ts`,
+  `backend/src/modules/improvement/infrastructure/persistence/improvement-documents.schema.ts`,
+  `backend/src/modules/improvement/infrastructure/generator/generation-prompt.ts`,
+  `api-contracts/src/attempts.ts`,
+  `frontend/src/screens/improvement/attempt-words.tsx`.
