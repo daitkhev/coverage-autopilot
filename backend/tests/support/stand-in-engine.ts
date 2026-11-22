@@ -24,18 +24,26 @@ interface Chunk {
   readonly text: string;
 }
 
-/** What the stand-in does when it is asked to run a container. */
-export interface EnginePlay {
+/** How one call ends: what it writes, and its code, or never. */
+interface Ending {
   /** Written one after another, each to its stream. */
   readonly output?: readonly Chunk[];
   readonly exitCode?: number;
-  /** A run that never ends by itself, until it is killed. */
+  /** A call that never ends by itself, until it is killed. */
   readonly endless?: boolean;
+}
+
+/**
+ * What the stand-in does when it is asked to run a container, and, when
+ * a test says so, to remove one. Left out, a removal ends well.
+ */
+export interface EnginePlay extends Ending {
   /**
    * A run takes the write permission away from the folder that holds its
    * working copy, so the copy cannot be removed after it.
    */
   readonly locksCopies?: boolean;
+  readonly removal?: Ending;
 }
 
 const RECORD = 'STAND_IN_RECORD';
@@ -57,12 +65,12 @@ const READ_ONLY = 0o555;
  */
 const ADDED_BY_THE_SYSTEM = '__CF_USER_TEXT_ENCODING';
 
-/** The longest wait a timer holds: the run waits to be killed. */
+/** The longest wait a timer holds: the call waits to be killed. */
 const FOREVER_MS = 2_147_483_647;
 
 /**
  * Settings of an engine that is this file, started by Node. It records
- * each call in `record` and plays `play` when it is asked to run.
+ * each call in `record` and plays `play`.
  */
 export function standInEngine(
   record: string,
@@ -86,21 +94,33 @@ export function callsIn(record: string): EngineCall[] {
     .map((line) => JSON.parse(line) as EngineCall);
 }
 
+function end(ending: Ending): void {
+  for (const chunk of ending.output ?? []) {
+    const stream = chunk.stream === 'stdout' ? STANDARD_OUTPUT : STANDARD_ERROR;
+    writeSync(stream, chunk.text);
+  }
+  if (ending.endless === true) {
+    setInterval(() => undefined, FOREVER_MS);
+    return;
+  }
+  exit(ending.exitCode ?? 0);
+}
+
 function playRun(play: EnginePlay, args: readonly string[]): void {
   if (play.locksCopies === true) {
     const copy = args[args.indexOf('--workdir') + 1] ?? '';
     chmodSync(dirname(copy), READ_ONLY);
   }
-  for (const chunk of play.output ?? []) {
-    const stream = chunk.stream === 'stdout' ? STANDARD_OUTPUT : STANDARD_ERROR;
-    writeSync(stream, chunk.text);
-  }
-  if (play.endless === true) {
-    setInterval(() => undefined, FOREVER_MS);
-    return;
-  }
-  exit(play.exitCode ?? 0);
+  end(play);
 }
+
+function playRemoval(play: EnginePlay): void {
+  end(play.removal ?? {});
+}
+
+const PLAYS: Readonly<
+  Record<string, (play: EnginePlay, args: readonly string[]) => void>
+> = { run: playRun, rm: playRemoval };
 
 /** The stand-in records what it got before it does anything else. */
 function main(): void {
@@ -112,9 +132,8 @@ function main(): void {
     input: readFileSync(STANDARD_INPUT, 'utf8'),
   };
   appendFileSync(env[RECORD] ?? '', `${JSON.stringify(call)}\n`);
-  if (call.arguments[0] === 'run') {
-    playRun(JSON.parse(env[PLAY] ?? '{}') as EnginePlay, call.arguments);
-  }
+  const play = JSON.parse(env[PLAY] ?? '{}') as EnginePlay;
+  PLAYS[call.arguments[0] ?? '']?.(play, call.arguments);
 }
 
 if (import.meta.main) {

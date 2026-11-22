@@ -41,8 +41,10 @@ export interface SandboxCommandResult {
 
 /**
  * Runs a command of an untrusted repository apart from the host. A fault,
- * such as a sandbox that cannot start, is a typed error with a `code` and
- * a `retryable` flag. An aborted signal stops the command and throws.
+ * such as a sandbox that cannot start or one that may still run once its
+ * command ended, is a typed error with a `code` and a `retryable` flag,
+ * and the working copy is not to be read after it. An aborted signal
+ * stops the command and throws.
  */
 export interface Sandbox {
   run(

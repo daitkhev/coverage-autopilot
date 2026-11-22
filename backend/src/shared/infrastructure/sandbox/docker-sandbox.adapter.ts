@@ -1,13 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import {
-  removeArguments,
-  runArguments,
-} from '#infrastructure/sandbox/container-arguments';
+import { runArguments } from '#infrastructure/sandbox/container-arguments';
+import { removeContainer } from '#infrastructure/sandbox/container-removal';
 import {
   type EngineExit,
   EngineProcess,
 } from '#infrastructure/sandbox/engine-process';
+import { SandboxContainerLeftError } from '#infrastructure/sandbox/errors/sandbox-container-left.error';
 import { SandboxEngineNotRunningError } from '#infrastructure/sandbox/errors/sandbox-engine-not-running.error';
 import { SandboxStartFailedError } from '#infrastructure/sandbox/errors/sandbox-start-failed.error';
 import type { OutputTail } from '#infrastructure/sandbox/output-tail';
@@ -41,9 +40,6 @@ const ENGINE_FAILED = 125;
 const NOT_RUNNING =
   /cannot connect to the docker daemon|failed to connect to the docker api|is the docker daemon running|cannot connect to podman/i;
 
-/** A removal that takes longer means a stuck engine, and nothing waits on it. */
-const REMOVAL_TIMEOUT_MS = 30_000;
-
 type Ending = Omit<SandboxCommandResult, 'durationMs'>;
 
 function textOf(
@@ -69,7 +65,9 @@ function endingOf(exit: EngineExit, output: OutputTail): Ending {
 /**
  * Runs each command in a container of its own through the `docker`
  * program, or another with the same arguments. A container is removed on
- * every path: after an exit, a time limit, an abort and a fault.
+ * every path: after an exit, a time limit, an abort and a fault. A run
+ * whose container may still live after its command is a fault, since the
+ * container may still write into the copy the caller is about to read.
  */
 @Injectable()
 export class DockerSandbox implements Sandbox {
@@ -95,12 +93,27 @@ export class DockerSandbox implements Sandbox {
     checkRequest(request);
     const name = `${NAME_PREFIX}${this.ids.generate()}`;
     const started = this.clock.now().epochMilliseconds;
+    const ending = await this.attendOrRemove(name, request, signal);
+    const durationMs = this.clock.now().epochMilliseconds - started;
+    await this.removeAfter(name, request.workingCopyPath);
+    return { ...ending, durationMs };
+  }
+
+  /**
+   * A run that fails or is stopped removes its container all the same.
+   * Its own error says more than one of the removal, and the caller reads
+   * nothing from the copy after an error.
+   */
+  private async attendOrRemove(
+    name: string,
+    request: SandboxCommandRequest,
+    signal: AbortSignal,
+  ): Promise<Ending> {
     try {
-      const ending = await this.attend(name, request, signal);
-      const durationMs = this.clock.now().epochMilliseconds - started;
-      return { ...ending, durationMs };
-    } finally {
-      await this.remove(name);
+      return await this.attend(name, request, signal);
+    } catch (error) {
+      await removeContainer(this.settings, name);
+      throw error;
     }
   }
 
@@ -129,21 +142,14 @@ export class DockerSandbox implements Sandbox {
     }
   }
 
-  /** A removal that fails leaves nothing else to try, so it is not raised. */
-  private async remove(name: string): Promise<void> {
-    const removal = new EngineProcess(this.settings.engine, {
-      arguments: removeArguments(name),
-      input: '',
-      outputBytes: this.settings.limits.outputBytes,
-    });
-    const limit = limitRun(REMOVAL_TIMEOUT_MS, new AbortController().signal);
-    try {
-      await Promise.race([removal.exit, limit.reached]);
-    } catch {
-      // The engine could not be started, so there is nothing to remove.
-    } finally {
-      limit.release();
+  private async removeAfter(name: string, copy: string): Promise<void> {
+    const removal = await removeContainer(this.settings, name);
+    if (removal.outcome === 'left') {
+      throw new SandboxContainerLeftError(
+        `The container ${name} may still run once its command ended, and ` +
+          `write into ${copy}, so nothing of the run is to be read from it. ` +
+          removal.detail,
+      );
     }
-    await removal.stop();
   }
 }
