@@ -5,7 +5,7 @@ import type { Repository } from '@coverage-autopilot/api-contracts/repositories'
 import type { SnapshotSummary } from '@coverage-autopilot/api-contracts/snapshots';
 
 import { CounterPercent } from '#components/coverage-change';
-import { Glyph } from '#components/glyph';
+import { type Fact, FactLine } from '#components/fact-line';
 import { RoleText } from '#components/role-text';
 import { percentWords } from '#theme/counts';
 import { ageWords } from '#theme/moments';
@@ -14,14 +14,12 @@ import { GAP, type Layout } from '#theme/widths';
 /** A commit is named by its first seven characters, as git shows it. */
 const SHORT_SHA = 7;
 
-function Dot(): ReactNode {
-  return (
-    <Text>
-      {' '}
-      <Glyph name="separator" role="secondary" />{' '}
-    </Text>
-  );
-}
+/** The branch moved since the scan: a warning, with its symbol. */
+const OUTDATED: Fact = {
+  text: 'outdated',
+  role: 'warning',
+  glyph: { name: 'attention', role: 'warning' },
+};
 
 function Total({
   label,
@@ -90,20 +88,14 @@ export function RepositoryLine({
 }): ReactNode {
   return (
     <Box flexGrow={1} justifyContent="space-between" gap={GAP}>
-      <Text wrap="truncate-end">
-        <RoleText>{`${repository.owner}/${repository.name}`}</RoleText>
-        <Dot />
-        <RoleText>{snapshot.commitSha.slice(0, SHORT_SHA)}</RoleText>
-        <Dot />
-        <RoleText role="secondary">{`scanned ${ageWords(snapshot.capturedAt, now)} ago`}</RoleText>
-        {repository.outdated ? (
-          <Text>
-            <Dot />
-            <Glyph name="attention" role="warning" />{' '}
-            <RoleText role="warning">outdated</RoleText>
-          </Text>
-        ) : null}
-      </Text>
+      <FactLine
+        facts={[
+          { text: `${repository.owner}/${repository.name}`, role: 'primary' },
+          { text: snapshot.commitSha.slice(0, SHORT_SHA), role: 'primary' },
+          { text: `scanned ${ageWords(snapshot.capturedAt, now)} ago` },
+          ...(repository.outdated ? [OUTDATED] : []),
+        ]}
+      />
       <Totals snapshot={snapshot} layout={layout} />
     </Box>
   );
