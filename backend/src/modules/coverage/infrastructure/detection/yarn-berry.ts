@@ -25,12 +25,15 @@ import {
  * For a project whose manifest names no yarn: the yarn that writes each
  * format of the lockfile. An immutable install refuses a lockfile that
  * its yarn would write in another format, so the version must match.
+ * Corepack checks no signature of yarn 2 or later, so each carries the
+ * hash of its program, which the registry of npm and the site of yarn
+ * both served.
  */
 const BERRY_OF_FORMAT: Readonly<Record<string, string>> = {
-  '6': '3.8.7',
-  '8': '4.13.0',
-  '9': '4.14.1',
-  '10': '4.18.1',
+  '6': 'yarn@3.8.7+sha512.bbe7e310ff7fd20dc63b111110f96fe18192234bb0d4f10441fa6b85d2b644c8923db8fbe6d7886257ace948440ab1f83325ad02af457a1806cdc97f03d2508e',
+  '8': 'yarn@4.13.0+sha512.5c20ba010c99815433e5c8453112165e673f1c7948d8d2b267f4b5e52097538658388ebc9f9580656d9b75c5cc996f990f611f99304a2197d4c56d21eea370e7',
+  '9': 'yarn@4.14.1+sha512.64df448055b2d37ba269d7db535a469b8da93f8ef1140c25fd7a83c00a8fbaacb214ca0e02553b92a2c54cef78bb67d0b4817fab02001df0e24fac0faccc3b42',
+  '10': 'yarn@4.18.1+sha512.b2e1e7524f654f2749d32b4ebcb4622473cb5bcbc485df2007e12a154e50162a4d795526768bc5f5b8f81717bfd79deb2472813d86fb5ae2eb551fa9c872b08f',
 };
 
 /** The format is the `version` under this key. */
@@ -119,14 +122,14 @@ function programOf(
     return descriptor;
   }
   const format = formatOf(lockfile);
-  const fallback = BERRY_OF_FORMAT[format];
-  return fallback === undefined
-    ? unsupported(
-        'unsupported_package_manager',
-        `${YARN_LOCKFILE} has the format ${format}, which no yarn the ` +
-          'service knows writes, and package.json names no yarn.',
-      )
-    : `yarn@${fallback}`;
+  return (
+    BERRY_OF_FORMAT[format] ??
+    unsupported(
+      'unsupported_package_manager',
+      `${YARN_LOCKFILE} has the format ${format}, which no yarn the ` +
+        'service knows writes, and package.json names no yarn.',
+    )
+  );
 }
 
 /**

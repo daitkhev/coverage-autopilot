@@ -45,18 +45,18 @@ afterEach(() => {
 describe('berryChoice', () => {
   describe('when package.json names no yarn', () => {
     it.each([
-      ['6', 'yarn@3.8.7'],
-      ['8', 'yarn@4.13.0'],
-      ['9', 'yarn@4.14.1'],
-      ['10', 'yarn@4.18.1'],
+      ['6', /^yarn@3\.8\.7\+sha512\.[0-9a-f]{128}$/u],
+      ['8', /^yarn@4\.13\.0\+sha512\.[0-9a-f]{128}$/u],
+      ['9', /^yarn@4\.14\.1\+sha512\.[0-9a-f]{128}$/u],
+      ['10', /^yarn@4\.18\.1\+sha512\.[0-9a-f]{128}$/u],
     ])(
-      'should install a lockfile of the format %s with the yarn that writes it',
+      'should install a lockfile of the format %s with the yarn that writes it, and its hash',
       (format, program) => {
         const choice = choiceIn(berryLockfileOf({}, format));
 
         expect(
           choice.outcome === 'found' && choice.value.install.command[1],
-        ).toBe(program);
+        ).toMatch(program);
       },
     );
 
