@@ -1,5 +1,6 @@
 import { ImprovementViews } from '#improvement/application/dto/improvement-views';
 import { GetImprovementHandler } from '#improvement/application/queries/get-improvement/get-improvement.handler';
+import { GetImprovementPatchHandler } from '#improvement/application/queries/get-improvement-patch/get-improvement-patch.handler';
 import { ListImprovementsHandler } from '#improvement/application/queries/list-improvements/list-improvements.handler';
 import type { Improvement } from '#improvement/domain/entities/improvement.entity';
 import { FixedClock } from '#tests/support/fixed-clock';
@@ -32,6 +33,7 @@ export class ImprovementRequestWorld {
     this.improvements,
     this.views,
   );
+  public readonly getPatch = new GetImprovementPatchHandler(this.improvements);
 
   /** Stores improvements made before the test, and forgets the writes. */
   public async stored(...improvements: Improvement[]): Promise<void> {
