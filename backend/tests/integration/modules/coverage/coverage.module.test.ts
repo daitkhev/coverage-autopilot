@@ -15,6 +15,7 @@ import {
   type TestRunner,
 } from '#coverage/application/ports/test-runner.port';
 import { GetScanHandler } from '#coverage/application/queries/get-scan/get-scan.handler';
+import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
 import {
   COVERAGE_PUBLIC_API,
@@ -179,6 +180,9 @@ describe('CoverageModule', () => {
     await expect(
       module.get(ListSnapshotsHandler).execute({ repositoryId: REPOSITORY_ID }),
     ).resolves.toEqual([]);
+    await expect(
+      module.get(ListSnapshotFilesHandler).execute({ snapshotId: FIRST_ID }),
+    ).resolves.toBeNull();
   });
 
   it('should run Jest and Vitest through the sandbox', async () => {
