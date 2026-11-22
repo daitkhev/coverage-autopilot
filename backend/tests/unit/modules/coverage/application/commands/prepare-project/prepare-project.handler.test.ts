@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   coverageApplication,
-  INSTALL_COMMAND,
+  PACKAGE_INSTALL,
   supportedProject,
 } from '#tests/support/coverage-application';
 import {
@@ -15,7 +15,7 @@ const LOAN = { workingCopyPath: WORKING_COPY_PATH, owner: 'improvement:1' };
 
 describe('PrepareProjectHandler', () => {
   describe('execute', () => {
-    it('should install the locked packages with the network open', async () => {
+    it('should install the locked packages with the network open and the switches of the manager', async () => {
       const { preparation, sandbox } = coverageApplication();
 
       await preparation.execute(LOAN, new AbortController().signal);
@@ -23,8 +23,11 @@ describe('PrepareProjectHandler', () => {
       expect(sandbox.requests).toEqual([
         {
           workingCopyPath: WORKING_COPY_PATH,
-          command: INSTALL_COMMAND,
-          environment: COVERAGE_TEST_SETTINGS.commandEnvironment,
+          command: PACKAGE_INSTALL.command,
+          environment: {
+            ...COVERAGE_TEST_SETTINGS.commandEnvironment,
+            COREPACK_ENV_FILE: '0',
+          },
           network: 'open',
           timeoutMs: COVERAGE_TEST_SETTINGS.installTimeoutMs,
         },

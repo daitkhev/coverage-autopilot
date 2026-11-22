@@ -2,7 +2,10 @@ import { SnapshotCapture } from '#coverage/application/commands/capture-snapshot
 import { PrepareProjectHandler } from '#coverage/application/commands/prepare-project/prepare-project.handler';
 import { TestExecution } from '#coverage/application/commands/run-tests/test-execution';
 import type { CoverageReport } from '#coverage/application/ports/coverage-report-reader.port';
-import type { SupportedProject } from '#coverage/application/ports/project-detector.port';
+import type {
+  PackageInstall,
+  SupportedProject,
+} from '#coverage/application/ports/project-detector.port';
 import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import type { ReportedCoverage } from '#coverage/domain/services/file-state.service';
 import type { FileCoverage } from '#coverage/domain/value-objects/file-coverage.vo';
@@ -38,8 +41,11 @@ import {
   standInRepositories,
 } from '#tests/support/stand-in-repositories';
 
-/** The install command the stand-in detector names. */
-export const INSTALL_COMMAND = ['npm', 'ci', '--ignore-scripts'];
+/** The install the stand-in detector names, with a switch of its manager. */
+export const PACKAGE_INSTALL: PackageInstall = {
+  command: ['corepack', 'pnpm@10.34.9', 'install', '--ignore-scripts'],
+  environment: { COREPACK_ENV_FILE: '0' },
+};
 
 /** The first id the sequential generator gives. */
 export const FIRST_ID = '00000000-0000-4000-8000-000000000001';
@@ -51,7 +57,7 @@ export function supportedProject(): SupportedProject {
     outcome: 'supported',
     project: jestProject(),
     parameters: jestParameters(),
-    installCommand: INSTALL_COMMAND,
+    install: PACKAGE_INSTALL,
     eligibleFiles: [broken.path, types.path, unused.path, used.path],
   };
 }

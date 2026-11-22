@@ -8,6 +8,7 @@ import { DetectedProject } from '#coverage/domain/value-objects/detected-project
 import { ScanParameters } from '#coverage/domain/value-objects/scan-parameters.vo';
 import { NodeProjectDetector } from '#coverage/infrastructure/detection/node-project-detector.adapter';
 import { FilePath } from '#kernel/primitives/file-path';
+import { pnpmLockfileOf } from '#tests/support/pnpm-lockfiles';
 import {
   createProjectFolder,
   lockfileOf,
@@ -83,15 +84,18 @@ describe('NodeProjectDetector', () => {
             coverageProvider: 'babel',
             fileListRule: 'typescript-sources-v1',
           }),
-          installCommand: [
-            'npm',
-            'ci',
-            '--ignore-scripts',
-            '--no-audit',
-            '--no-fund',
-            '--cache',
-            'node_modules/.cache/coverage-autopilot/install',
-          ],
+          install: {
+            command: [
+              'npm',
+              'ci',
+              '--ignore-scripts',
+              '--no-audit',
+              '--no-fund',
+              '--cache',
+              'node_modules/.cache/coverage-autopilot/install',
+            ],
+            environment: {},
+          },
           eligibleFiles: [
             'src/broken.ts',
             'src/types.ts',
@@ -207,15 +211,15 @@ describe('NodeProjectDetector', () => {
         ],
         [
           'monorepo',
-          { 'package.json': jestManifest(), 'pnpm-workspace.yaml': '' },
+          {
+            'package.json': jestManifest(),
+            'pnpm-workspace.yaml': 'packages:\n  - packages/*\n',
+          },
         ],
+        ['monorepo', { 'package.json': jestManifest(), 'lerna.json': '{}' }],
         [
           'unsupported_package_manager',
-          { 'package.json': jestManifest(), 'yarn.lock': '' },
-        ],
-        [
-          'unsupported_package_manager',
-          { 'package.json': jestManifest({ packageManager: 'pnpm@9.1.0' }) },
+          { 'package.json': jestManifest(), 'bun.lock': '{}' },
         ],
         ['no_lockfile', { 'package.json': jestManifest() }],
         [
@@ -229,37 +233,58 @@ describe('NodeProjectDetector', () => {
           'no_lockfile',
           { 'package.json': jestManifest(), 'package-lock.json': '[' },
         ],
-        ['no_test_runner', { 'package.json': manifest({}) }],
+        [
+          'no_lockfile',
+          {
+            'package.json': jestManifest(),
+            'pnpm-lock.yaml': pnpmLockfileOf({ vitest: '4.1.12' }),
+          },
+        ],
+        [
+          'no_test_runner',
+          { 'package.json': manifest({}), 'package-lock.json': JEST_LOCK },
+        ],
         [
           'other_test_runner',
           {
             'package.json': manifest({ devDependencies: { mocha: '11.0.0' } }),
+            'package-lock.json': JEST_LOCK,
           },
         ],
       ])('should say %s', async (reason, files) => {
         await expect(reasonOf(files)).resolves.toBe(reason);
       });
-
-      it('should say what it found in words', async () => {
-        await expect(
-          detect({ 'package.json': jestManifest(), 'yarn.lock': '' }),
-        ).resolves.toEqual({
-          outcome: 'unsupported',
-          reason: 'unsupported_package_manager',
-          detail:
-            'The repository is installed with yarn.lock, and only npm is ' +
-            'supported.',
-        });
-      });
     });
 
-    it('should accept npm named by the field of Corepack', async () => {
-      await expect(
-        reasonOf({
-          'package.json': jestManifest({ packageManager: 'npm@10.9.2' }),
-          'npm-shrinkwrap.json': JEST_LOCK,
-        }),
-      ).resolves.toBe('supported');
+    describe('when the project is installed with pnpm', () => {
+      const pnpmFiles = {
+        'package.json': jestManifest({ packageManager: 'pnpm@10.34.9' }),
+        'pnpm-lock.yaml': pnpmLockfileOf({ jest: '30.5.2' }),
+      };
+
+      it('should give pnpm, the version its lockfile holds and its install', async () => {
+        const detection = await detect(pnpmFiles);
+
+        expect(detection).toMatchObject({
+          outcome: 'supported',
+          project: { packageManager: 'pnpm', testRunnerVersion: '30.5.2' },
+          parameters: { testRunnerVersion: '30.5.2' },
+          install: { environment: { COREPACK_ENV_FILE: '0' } },
+        });
+        expect(
+          detection.outcome === 'supported' &&
+            detection.install.command.slice(0, 3),
+        ).toEqual(['corepack', 'pnpm@10.34.9', 'install']);
+      });
+
+      it('should take a workspace file of settings alone for one package', async () => {
+        await expect(
+          reasonOf({
+            ...pnpmFiles,
+            'pnpm-workspace.yaml': 'onlyBuiltDependencies:\n  - esbuild\n',
+          }),
+        ).resolves.toBe('supported');
+      });
     });
   });
 

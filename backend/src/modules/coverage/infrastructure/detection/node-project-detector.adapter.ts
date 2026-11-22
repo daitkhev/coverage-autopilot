@@ -1,8 +1,4 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { Injectable } from '@nestjs/common';
-import type { z } from 'zod';
 
 import type {
   ProjectDetection,
@@ -15,10 +11,18 @@ import {
 } from '#coverage/domain/value-objects/detected-project.vo';
 import { ScanParameters } from '#coverage/domain/value-objects/scan-parameters.vo';
 import {
-  packageLockSchema,
+  hasFile,
+  readJson,
+  readText,
+} from '#coverage/infrastructure/detection/copy-text';
+import { topKeysOf } from '#coverage/infrastructure/detection/indented-keys';
+import type { ManagerChoice } from '#coverage/infrastructure/detection/manager-choice';
+import { chooseManager } from '#coverage/infrastructure/detection/package-managers';
+import {
   type PackageManifest,
   packageManifestSchema,
 } from '#coverage/infrastructure/detection/package-manifest.schema';
+import { PNPM_WORKSPACE } from '#coverage/infrastructure/detection/pnpm-manager';
 import {
   chooseRunner,
   coverageProviderOf,
@@ -30,48 +34,17 @@ import {
   FILE_LIST_RULE,
   listSourceFiles,
 } from '#coverage/infrastructure/detection/source-file-list';
-import { readCopyFile } from '#infrastructure/files/copy-file';
 import { FilePath } from '#kernel/primitives/file-path';
 
 const MANIFEST = 'package.json';
 
-/** npm 7 and later write either of them, with every package it installs. */
-const NPM_LOCKFILES = ['package-lock.json', 'npm-shrinkwrap.json'];
-
-/** The `packageManager` field of Corepack, such as `npm@10.9.2`. */
-const NPM = /^npm(?:@|$)/u;
-
-const WORKSPACE_FILES = ['pnpm-workspace.yaml', 'lerna.json'];
-
-const OTHER_LOCKFILES = [
-  'yarn.lock',
-  'pnpm-lock.yaml',
-  'bun.lock',
-  'bun.lockb',
-];
+const LERNA = 'lerna.json';
 
 /**
- * The cache of an install, inside the copy and so on the disk of the host
- * and gone with the copy. The home of a command is the folder in memory,
- * which the cache of a large project filled. Under `node_modules` no
- * runner, no compiler and no mutation tool looks into it.
+ * A pnpm workspace lists its packages under this key. A file without it
+ * holds the settings of pnpm for a project of one package.
  */
-const INSTALL_CACHE = 'node_modules/.cache/coverage-autopilot/install';
-
-/**
- * The lockfile decides every version, and no script of a package runs
- * while the network is open: the code of the repository runs only later,
- * in a sandbox with no network.
- */
-const INSTALL_COMMAND = [
-  'npm',
-  'ci',
-  '--ignore-scripts',
-  '--no-audit',
-  '--no-fund',
-  '--cache',
-  INSTALL_CACHE,
-];
+const WORKSPACE_PACKAGES = 'packages';
 
 const CONFIG_EXTENSIONS = ['ts', 'mts', 'cts', 'js', 'mjs', 'cjs'];
 
@@ -84,33 +57,16 @@ const CONFIG_FILES: Readonly<Record<TestRunnerName, readonly string[]>> = {
   ),
 };
 
-/** `null` for a file that is not JSON of this shape, or is not read at all. */
-function readJson<Schema extends z.ZodType>(
-  file: { readonly root: string; readonly path: string },
-  schema: Schema,
-): z.infer<Schema> | null {
-  const read = readCopyFile(file.root, file.path);
-  if (read.outcome !== 'read') {
-    return null;
-  }
-  try {
-    return schema.parse(JSON.parse(read.text));
-  } catch {
-    return null;
-  }
-}
-
 function readManifest(
   root: string,
 ): Found<PackageManifest> | UnsupportedProject {
-  const path = join(root, MANIFEST);
-  if (!existsSync(path)) {
+  if (!hasFile(root, MANIFEST)) {
     return unsupported(
       'no_package_manifest',
       'The repository has no package.json at its root.',
     );
   }
-  const manifest = readJson({ root, path }, packageManifestSchema);
+  const manifest = readJson(root, MANIFEST, packageManifestSchema);
   return manifest === null
     ? unsupported(
         'invalid_package_manifest',
@@ -119,48 +75,55 @@ function readManifest(
     : { outcome: 'found', value: manifest };
 }
 
-function layoutRefusal(
+/** A workspace file that cannot be read is taken for a workspace. */
+function pnpmWorkspaceOf(root: string): boolean {
+  const text = readText(root, PNPM_WORKSPACE);
+  return text === null
+    ? hasFile(root, PNPM_WORKSPACE)
+    : topKeysOf(text).has(WORKSPACE_PACKAGES);
+}
+
+function monorepoRefusal(
   root: string,
   manifest: PackageManifest,
 ): UnsupportedProject | null {
-  const workspaceFile = WORKSPACE_FILES.find((name) =>
-    existsSync(join(root, name)),
-  );
-  if (manifest.workspaces !== undefined || workspaceFile !== undefined) {
-    return unsupported(
-      'monorepo',
-      `The repository holds more than one package (${workspaceFile ?? 'workspaces in package.json'}).`,
-    );
-  }
-  const manager = manifest.packageManager ?? 'npm';
-  const otherLockfile = OTHER_LOCKFILES.find((name) =>
-    existsSync(join(root, name)),
-  );
-  if (!NPM.test(manager) || otherLockfile !== undefined) {
-    return unsupported(
-      'unsupported_package_manager',
-      `The repository is installed with ${otherLockfile ?? manager}, and only npm is supported.`,
-    );
-  }
-  return null;
+  const workspace = [
+    ...(manifest.workspaces === undefined
+      ? []
+      : ['workspaces in package.json']),
+    ...(pnpmWorkspaceOf(root) ? [PNPM_WORKSPACE] : []),
+    ...(hasFile(root, LERNA) ? [LERNA] : []),
+  ][0];
+  return workspace === undefined
+    ? null
+    : unsupported(
+        'monorepo',
+        `The repository holds more than one package (${workspace}).`,
+      );
 }
 
-function lockedVersion(
+/** The runner of the tests and the manager of the packages, as chosen. */
+interface Tools {
+  readonly runner: TestRunnerName;
+  readonly manager: ManagerChoice;
+}
+
+function lockedVersionOf(
   root: string,
-  runner: TestRunnerName,
+  manifest: PackageManifest,
+  { runner, manager }: Tools,
 ): Found<string> | UnsupportedProject {
-  const lockfile = NPM_LOCKFILES.map((name) => join(root, name)).find((path) =>
-    existsSync(path),
-  );
-  const lock =
-    lockfile === undefined
+  const lockfile = readText(root, manager.lockfile);
+  const range =
+    manifest.devDependencies?.[runner] ?? manifest.dependencies?.[runner] ?? '';
+  const version =
+    lockfile === null
       ? null
-      : readJson({ root, path: lockfile }, packageLockSchema);
-  const version = lock?.packages?.[`node_modules/${runner}`]?.version;
-  return version === undefined
+      : manager.lockedVersion(lockfile, { name: runner, range });
+  return version === null
     ? unsupported(
         'no_lockfile',
-        `No lockfile of npm locks the version of ${runner}.`,
+        `${manager.lockfile} locks no version of ${runner}.`,
       )
     : { outcome: 'found', value: version };
 }
@@ -170,9 +133,7 @@ function configFileOf(
   runner: TestRunnerName,
   manifest: PackageManifest,
 ): FilePath | null {
-  const file = CONFIG_FILES[runner].find((name) =>
-    existsSync(join(root, name)),
-  );
+  const file = CONFIG_FILES[runner].find((name) => hasFile(root, name));
   const inManifest = runner === 'jest' && manifest.jest !== undefined;
   const name = file ?? (inManifest ? MANIFEST : undefined);
   return name === undefined ? null : FilePath.create(name);
@@ -181,9 +142,10 @@ function configFileOf(
 function supportedProject(
   root: string,
   manifest: PackageManifest,
-  runner: TestRunnerName,
+  tools: Tools,
 ): ProjectDetection {
-  const version = lockedVersion(root, runner);
+  const { runner, manager } = tools;
+  const version = lockedVersionOf(root, manifest, tools);
   const provider = coverageProviderOf(runner, declaredPackages(manifest));
   if (version.outcome === 'unsupported') {
     return version;
@@ -196,7 +158,7 @@ function supportedProject(
     project: DetectedProject.create({
       testRunner: runner,
       testRunnerVersion: version.value,
-      packageManager: 'npm',
+      packageManager: manager.name,
       configFile: configFileOf(root, runner, manifest),
     }),
     parameters: ScanParameters.create({
@@ -205,15 +167,15 @@ function supportedProject(
       coverageProvider: provider.value,
       fileListRule: FILE_LIST_RULE,
     }),
-    installCommand: INSTALL_COMMAND,
+    install: manager.install,
     eligibleFiles: listSourceFiles(root),
   };
 }
 
 /**
- * Detects a project of one npm package tested with Jest or Vitest. It
- * reads files and runs nothing. Every other kind of repository is
- * reported as a value with the reason.
+ * Detects a project of one package, installed with npm or pnpm and tested
+ * with Jest or Vitest. It reads files and runs nothing. Every other kind
+ * of repository is reported as a value with the reason.
  */
 @Injectable()
 export class NodeProjectDetector implements ProjectDetector {
@@ -226,13 +188,20 @@ export class NodeProjectDetector implements ProjectDetector {
     if (manifest.outcome === 'unsupported') {
       return manifest;
     }
-    const refusal = layoutRefusal(root, manifest.value);
+    const refusal = monorepoRefusal(root, manifest.value);
     if (refusal !== null) {
       return refusal;
+    }
+    const manager = chooseManager(root, manifest.value);
+    if (manager.outcome === 'unsupported') {
+      return manager;
     }
     const runner = chooseRunner(manifest.value);
     return runner.outcome === 'unsupported'
       ? runner
-      : supportedProject(root, manifest.value, runner.value);
+      : supportedProject(root, manifest.value, {
+          runner: runner.value,
+          manager: manager.value,
+        });
   }
 }

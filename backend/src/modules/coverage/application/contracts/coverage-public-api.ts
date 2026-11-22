@@ -10,6 +10,8 @@ type TestRunnerName = 'jest' | 'vitest';
 /**
  * Why a repository cannot be measured, as a value: the service reports
  * such a project and never changes it into one it can measure.
+ * `install_runs_code`: the install would run code of the repository or of
+ * a package that no switch of its manager turns off, as the detail names.
  */
 export type UnsupportedProjectReason =
   | 'no_package_manifest'
@@ -17,6 +19,7 @@ export type UnsupportedProjectReason =
   | 'monorepo'
   | 'unsupported_package_manager'
   | 'no_lockfile'
+  | 'install_runs_code'
   | 'no_test_runner'
   | 'other_test_runner'
   | 'ambiguous_test_runner'
@@ -89,7 +92,7 @@ export type RunFileDto = MeasuredRunFileDto | NoCodeFileDto | UnmeasuredFileDto;
 export interface DetectedProjectDto {
   readonly testRunner: TestRunnerName;
   readonly testRunnerVersion: string;
-  readonly packageManager: 'npm';
+  readonly packageManager: 'npm' | 'pnpm';
   readonly configFile: FilePath | null;
 }
 

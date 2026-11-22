@@ -3,13 +3,24 @@ import type { DetectedProject } from '#coverage/domain/value-objects/detected-pr
 import type { ScanParameters } from '#coverage/domain/value-objects/scan-parameters.vo';
 import type { FilePath } from '#kernel/primitives/file-path';
 
+/** How the locked packages are installed: the one command with the network. */
+export interface PackageInstall {
+  /** The program and its arguments. */
+  readonly command: readonly string[];
+  /**
+   * The variables the command gets besides those of the settings, such as
+   * the switches of the manager that keep code of the repository from
+   * running.
+   */
+  readonly environment: Readonly<Record<string, string>>;
+}
+
 export interface SupportedProject {
   readonly outcome: 'supported';
   readonly project: DetectedProject;
   /** The tools a measurement of this project uses, decided before any runs. */
   readonly parameters: ScanParameters;
-  /** The program and its arguments that install the locked packages. */
-  readonly installCommand: readonly string[];
+  readonly install: PackageInstall;
   /** The source files a measurement covers, by the rule of the parameters. */
   readonly eligibleFiles: readonly FilePath[];
 }

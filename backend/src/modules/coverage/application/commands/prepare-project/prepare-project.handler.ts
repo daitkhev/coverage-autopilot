@@ -56,11 +56,15 @@ export class PrepareProjectHandler {
     if (detection.outcome === 'unsupported') {
       return detection;
     }
+    const { install } = detection;
     const result = await this.sandbox.run(
       {
         workingCopyPath: command.workingCopyPath,
-        command: detection.installCommand,
-        environment: this.settings.commandEnvironment,
+        command: install.command,
+        environment: {
+          ...this.settings.commandEnvironment,
+          ...install.environment,
+        },
         network: 'open',
         timeoutMs: this.settings.installTimeoutMs,
       },

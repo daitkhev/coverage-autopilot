@@ -7,10 +7,10 @@ export const TEST_RUNNER_NAMES = ['jest', 'vitest'] as const;
 
 export type TestRunnerName = (typeof TEST_RUNNER_NAMES)[number];
 
-/** The one package manager the service installs with. */
-export const PACKAGE_MANAGERS = ['npm'] as const;
+/** The package managers the service installs with. */
+export const PACKAGE_MANAGERS = ['npm', 'pnpm'] as const;
 
-type PackageManagerName = (typeof PACKAGE_MANAGERS)[number];
+export type PackageManagerName = (typeof PACKAGE_MANAGERS)[number];
 
 interface DetectedProjectProps {
   readonly testRunner: TestRunnerName;
