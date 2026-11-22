@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Instant } from '#kernel/time/instant';
-import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
+import { loanOf } from '#tests/support/stand-in-repositories';
 import {
   seenAtInstall,
   type VerificationApplication,
@@ -76,7 +76,7 @@ describe('BaselineMeasurement', () => {
 
     it('should lend the copy to every tool, with the limits of the settings', async () => {
       const application = verificationApplication();
-      const loan = { workingCopyPath: WORKING_COPY_PATH, owner: OWNER };
+      const loan = loanOf(OWNER);
 
       await measure(application);
 

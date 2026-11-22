@@ -1,7 +1,7 @@
 import { FilePath } from '#kernel/primitives/file-path';
 import { Instant } from '#kernel/time/instant';
 import { FixedClock } from '#tests/support/fixed-clock';
-import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
+import { loanOf } from '#tests/support/stand-in-repositories';
 import { mutationBaselineDto } from '#tests/support/verification-mutants';
 import {
   DEADLINE,
@@ -158,10 +158,7 @@ export function patchedCopyOf(
   overrides: Partial<PatchedCopy> = {},
 ): CopyBench {
   const heard: CheckProgress[] = [];
-  const loan = {
-    workingCopyPath: WORKING_COPY_PATH,
-    owner: 'improvement:7:attempt:1',
-  };
+  const loan = loanOf('improvement:7:attempt:1');
   const { coverage, clock } = application;
   const copy: PatchedCopy = {
     command: verifyRequestOf(),

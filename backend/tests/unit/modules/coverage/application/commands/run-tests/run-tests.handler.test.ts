@@ -16,19 +16,22 @@ import {
   RESULTS_PATH,
 } from '#tests/support/coverage-stand-ins';
 import { PASSED } from '#tests/support/recording-sandbox';
-import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
+import {
+  acmeWidgets,
+  loanOf,
+  WORKING_COPY_PATH,
+} from '#tests/support/stand-in-repositories';
 
 function handlerOf(application: CoverageApplication): RunTestsHandler {
   return new RunTestsHandler(
-    application.detector,
+    application.detection,
     application.tests,
     application.testReports,
   );
 }
 
 const MEASURED: RunTestsCommand = {
-  workingCopyPath: WORKING_COPY_PATH,
-  owner: 'improvement:1',
+  ...loanOf('improvement:1'),
   testFiles: [],
   withCoverage: true,
 };
@@ -94,7 +97,7 @@ describe('RunTestsHandler', () => {
         });
       });
 
-      it('should judge no file by a threshold, since no repository is named', async () => {
+      it('should judge no file by a threshold', async () => {
         const application = coverageApplication();
 
         const result = await handlerOf(application).execute(MEASURED, RUNNING);
@@ -219,6 +222,20 @@ describe('RunTestsHandler', () => {
         expect(application.reader.requests).toEqual([]);
         expect(application.testReports.requests).toEqual([]);
         expect(application.testReports.outcomeRequests).toEqual([]);
+      });
+    });
+
+    describe('when the repository is trusted', () => {
+      it('should detect the project as its repository is installed now', async () => {
+        const application = coverageApplication();
+        application.repositories.repository = {
+          ...acmeWidgets(),
+          install: { mode: 'trusted', isDefault: false },
+        };
+
+        await handlerOf(application).execute(UNMEASURED, RUNNING);
+
+        expect(application.detector.modes).toEqual(['trusted']);
       });
     });
 

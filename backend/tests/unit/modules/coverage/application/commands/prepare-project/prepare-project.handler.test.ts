@@ -9,9 +9,13 @@ import {
   COVERAGE_TEST_SETTINGS,
   PASSED,
 } from '#tests/support/recording-sandbox';
-import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
+import {
+  acmeWidgets,
+  loanOf,
+  WORKING_COPY_PATH,
+} from '#tests/support/stand-in-repositories';
 
-const LOAN = { workingCopyPath: WORKING_COPY_PATH, owner: 'improvement:1' };
+const LOAN = loanOf('improvement:1');
 
 describe('PrepareProjectHandler', () => {
   describe('execute', () => {
@@ -76,6 +80,20 @@ describe('PrepareProjectHandler', () => {
 
         expect(preparing).toEqual(detector.detection);
         expect(sandbox.requests).toEqual([]);
+      });
+    });
+
+    describe('when the repository is trusted', () => {
+      it('should detect the project as its repository is installed now', async () => {
+        const { preparation, detector, repositories } = coverageApplication();
+        repositories.repository = {
+          ...acmeWidgets(),
+          install: { mode: 'trusted', isDefault: false },
+        };
+
+        await preparation.execute(LOAN, new AbortController().signal);
+
+        expect(detector.modes).toEqual(['trusted']);
       });
     });
 

@@ -154,7 +154,11 @@ export class PatchVerification {
       this.refuse(book, policy);
       return;
     }
-    const loan = { workingCopyPath: copy.path, owner: command.owner };
+    const loan = {
+      workingCopyPath: copy.path,
+      repositoryId: copy.repositoryId,
+      owner: command.owner,
+    };
     const preparation = await this.coverage.prepareProject(loan, signal);
     if (preparation.outcome !== 'ready') {
       const resultOf = unpreparedResultOf(preparation);

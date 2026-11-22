@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
+import { loanOf } from '#tests/support/stand-in-repositories';
 import {
   patchedCopyOf,
   verificationApplication,
@@ -63,8 +63,7 @@ describe('CompilerCheck', () => {
       expect(result.outputReference).toBe('type-check');
       expect(application.typeChecker.requests).toEqual([
         {
-          workingCopyPath: WORKING_COPY_PATH,
-          owner: 'improvement:7:attempt:1',
+          ...loanOf('improvement:7:attempt:1'),
           timeoutMs: VERIFICATION_TEST_SETTINGS.typeCheckTimeoutMs,
         },
       ]);

@@ -18,14 +18,11 @@ import {
   runFileDtoOf,
 } from '#coverage/application/dto/coverage-dto-mapping';
 import {
-  PROJECT_DETECTOR,
-  type ProjectDetector,
-} from '#coverage/application/ports/project-detector.port';
-import {
   TEST_REPORT_READER,
   type TestReportReader,
   type TestReportRequest,
 } from '#coverage/application/ports/test-report-reader.port';
+import { RepositoryDetection } from '#coverage/application/repository-detection';
 
 function coverageDtoOf(
   record: TestRunRecord,
@@ -55,22 +52,24 @@ function statusOf(record: TestRunRecord): TestRunDto['status'] {
 
 /**
  * Runs tests in a working copy another module lends, for the gate of a
- * patch. Nothing is stored: the caller keeps what it needs. The files are
- * judged by no threshold, since the copy names no repository. A run that
- * failed tells its first failure, so the next attempt can learn from it.
+ * patch. Nothing is stored: the caller keeps what it needs. The project
+ * is detected as its repository is installed now. The files are judged
+ * by no threshold: the gate compares their numbers with a snapshot. A
+ * run that failed tells its first failure, so the next attempt can learn
+ * from it.
  */
 @Injectable()
 export class RunTestsHandler {
-  private readonly detector: ProjectDetector;
+  private readonly detection: RepositoryDetection;
   private readonly tests: TestExecution;
   private readonly reports: TestReportReader;
 
   public constructor(
-    @Inject(PROJECT_DETECTOR) detector: ProjectDetector,
+    @Inject(RepositoryDetection) detection: RepositoryDetection,
     @Inject(TestExecution) tests: TestExecution,
     @Inject(TEST_REPORT_READER) reports: TestReportReader,
   ) {
-    this.detector = detector;
+    this.detection = detection;
     this.tests = tests;
     this.reports = reports;
   }
@@ -79,10 +78,7 @@ export class RunTestsHandler {
     command: RunTestsCommand,
     signal: AbortSignal,
   ): Promise<RunTestsResult> {
-    const detection = await this.detector.detect(
-      command.workingCopyPath,
-      'sandboxed',
-    );
+    const detection = await this.detection.detect(command);
     if (detection.outcome === 'unsupported') {
       return detection;
     }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { FilePath } from '#kernel/primitives/file-path';
 import { Instant } from '#kernel/time/instant';
-import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
+import { loanOf } from '#tests/support/stand-in-repositories';
 import {
   seenAtInstall,
   type VerificationApplication,
@@ -106,11 +106,7 @@ describe('PatchVerification', () => {
 
         expect(seen).toEqual([{ prepared: 1, typeChecks: 0, testRuns: 0 }]);
         expect(application.mutationRunner.installs).toEqual([
-          {
-            workingCopyPath: WORKING_COPY_PATH,
-            owner: 'improvement:7:attempt:1',
-            testRunner: 'vitest',
-          },
+          { ...loanOf('improvement:7:attempt:1'), testRunner: 'vitest' },
         ]);
         expect(application.typeChecker.requests).toHaveLength(1);
         expect(statusesOf(book)).toEqual(ALL_CHECKS.map(() => 'passed'));

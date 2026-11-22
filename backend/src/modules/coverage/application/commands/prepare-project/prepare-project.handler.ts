@@ -5,12 +5,11 @@ import {
   COVERAGE_SETTINGS,
   type CoverageSettings,
 } from '#coverage/application/coverage-settings';
-import {
-  PROJECT_DETECTOR,
-  type ProjectDetector,
-  type SupportedProject,
-  type UnsupportedProject,
+import type {
+  SupportedProject,
+  UnsupportedProject,
 } from '#coverage/application/ports/project-detector.port';
+import { RepositoryDetection } from '#coverage/application/repository-detection';
 import { ARTIFACT_STORE, type ArtifactStore } from '#ports/artifact-store.port';
 import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
 
@@ -25,24 +24,26 @@ export type Preparation =
     };
 
 /**
- * Detects the project and installs its locked packages. The install is
- * the one command with the network open, and it runs no script of a
- * package, so no code of the repository runs while the network is open.
+ * Detects the project and installs its locked packages, as its repository
+ * is installed now. The install is the one command with the network open.
+ * Sandboxed, it runs no script of a package, so no code of the repository
+ * runs while the network is open; trusted, it runs them as the developers
+ * of the repository do.
  */
 @Injectable()
 export class PrepareProjectHandler {
-  private readonly detector: ProjectDetector;
+  private readonly detection: RepositoryDetection;
   private readonly sandbox: Sandbox;
   private readonly artifacts: ArtifactStore;
   private readonly settings: CoverageSettings;
 
   public constructor(
-    @Inject(PROJECT_DETECTOR) detector: ProjectDetector,
+    @Inject(RepositoryDetection) detection: RepositoryDetection,
     @Inject(SANDBOX) sandbox: Sandbox,
     @Inject(ARTIFACT_STORE) artifacts: ArtifactStore,
     @Inject(COVERAGE_SETTINGS) settings: CoverageSettings,
   ) {
-    this.detector = detector;
+    this.detection = detection;
     this.sandbox = sandbox;
     this.artifacts = artifacts;
     this.settings = settings;
@@ -52,10 +53,7 @@ export class PrepareProjectHandler {
     command: PrepareProjectCommand,
     signal: AbortSignal,
   ): Promise<Preparation> {
-    const detection = await this.detector.detect(
-      command.workingCopyPath,
-      'sandboxed',
-    );
+    const detection = await this.detection.detect(command);
     if (detection.outcome === 'unsupported') {
       return detection;
     }

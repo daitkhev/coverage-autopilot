@@ -13,15 +13,17 @@ import {
 import { fixtureFiles } from '#tests/support/coverage-snapshots';
 import { REPORT_PATH } from '#tests/support/coverage-stand-ins';
 import { PASSED } from '#tests/support/recording-sandbox';
-import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
+import {
+  loanOf,
+  WORKING_COPY_PATH,
+} from '#tests/support/stand-in-repositories';
 
 const { used, unused, types, broken } = fixtureFiles();
 
 const TEST_FILE = FilePath.create('tests/used.test.ts');
 
 const MEASURED: TestExecutionRequest = {
-  workingCopyPath: WORKING_COPY_PATH,
-  owner: 'scan:job-1',
+  ...loanOf('scan:job-1'),
   testFiles: [TEST_FILE],
   withCoverage: true,
   detection: supportedProject(),

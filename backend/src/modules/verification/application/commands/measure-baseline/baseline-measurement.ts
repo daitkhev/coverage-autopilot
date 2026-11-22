@@ -124,7 +124,11 @@ export class BaselineMeasurement {
       },
       signal,
     );
-    const loan = { workingCopyPath: copy.path, owner: command.owner };
+    const loan = {
+      workingCopyPath: copy.path,
+      repositoryId: copy.repositoryId,
+      owner: command.owner,
+    };
     try {
       return await this.measureIn({ ...measurement, loan }, signal);
     } finally {

@@ -139,12 +139,13 @@ export class SnapshotCapture {
     signal: AbortSignal,
   ): Promise<Capture> {
     const { command, workingCopyPath, steps } = measurement;
-    const owner = command.originKey;
+    const loan = {
+      workingCopyPath,
+      repositoryId: command.repositoryId,
+      owner: command.originKey,
+    };
     steps.begin('install');
-    const preparation = await this.preparation.execute(
-      { workingCopyPath, owner },
-      signal,
-    );
+    const preparation = await this.preparation.execute(loan, signal);
     if (preparation.outcome !== 'ready') {
       steps.fail();
       return refusalOf(preparation);
@@ -152,8 +153,7 @@ export class SnapshotCapture {
     steps.begin('test_run');
     const record = await this.tests.run(
       {
-        workingCopyPath,
-        owner,
+        ...loan,
         detection: preparation.detection,
         testFiles: [],
         withCoverage: true,

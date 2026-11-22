@@ -36,6 +36,7 @@ import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/g
 import { ListSnapshotFilesHandler } from '#coverage/application/queries/list-snapshot-files/list-snapshot-files.handler';
 import { ListSnapshotsHandler } from '#coverage/application/queries/list-snapshots/list-snapshots.handler';
 import { RepositoryCoverageApi } from '#coverage/application/repository-coverage-api';
+import { RepositoryDetection } from '#coverage/application/repository-detection';
 import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import { COVERAGE_SNAPSHOT_REPOSITORY } from '#coverage/domain/repositories/coverage-snapshot.repository';
 import { TEST_RUNNER_NAMES } from '#coverage/domain/value-objects/detected-project.vo';
@@ -109,6 +110,7 @@ import { SANDBOX, type Sandbox } from '#ports/sandbox.port';
     CancelScanHandler,
     ListSnapshotsHandler,
     RepositoryThresholds,
+    RepositoryDetection,
     { provide: COVERAGE_PUBLIC_API, useClass: CoverageApi },
     { provide: RepositoryCoverageApi.token, useClass: RepositoryCoverageApi },
   ],

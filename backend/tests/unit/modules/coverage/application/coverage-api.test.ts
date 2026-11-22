@@ -13,9 +13,9 @@ import {
   SNAPSHOT_COMMIT,
 } from '#tests/support/coverage-snapshots';
 import { PASSED } from '#tests/support/recording-sandbox';
-import { WORKING_COPY_PATH } from '#tests/support/stand-in-repositories';
+import { loanOf } from '#tests/support/stand-in-repositories';
 
-const LOAN = { workingCopyPath: WORKING_COPY_PATH, owner: 'improvement:1' };
+const LOAN = loanOf('improvement:1');
 
 const RUNNING = new AbortController().signal;
 

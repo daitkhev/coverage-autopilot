@@ -10,8 +10,10 @@ type TestRunnerName = 'jest' | 'vitest';
 /**
  * Why a repository cannot be measured, as a value: the service reports
  * such a project and never changes it into one it can measure.
- * `install_runs_code`: the install would run code of the repository or of
- * a package that no switch of its manager turns off, as the detail names.
+ * `install_runs_code`: a sandboxed install would run code of the
+ * repository or of a package that no switch of its manager turns off, as
+ * the detail names, and the detail ends with how to trust the repository.
+ * A trusted install never refuses for it.
  * `plug_and_play`: yarn would keep the packages out of `node_modules`.
  */
 export type UnsupportedProjectReason =
@@ -181,6 +183,8 @@ export interface WorkingCopyLoan {
    * The call may write into it, such as a report, and keeps no reference.
    */
   readonly workingCopyPath: string;
+  /** The repository it is a copy of, whose mode of install is asked. */
+  readonly repositoryId: RepositoryId;
   /** Whose output the raw text of a tool is, such as `improvement:<id>`. */
   readonly owner: string;
 }
@@ -261,8 +265,8 @@ export interface TestRunDto {
 }
 
 /**
- * A run is lent a working copy and knows no repository, so no threshold
- * judges its files: the gate compares their numbers with a snapshot.
+ * No threshold judges the files of a run: the gate compares their numbers
+ * with a snapshot.
  */
 export interface RunCoverageDto {
   readonly parameters: ScanParametersDto;

@@ -4,6 +4,7 @@ import type {
   CoverageReportRequest,
 } from '#coverage/application/ports/coverage-report-reader.port';
 import type {
+  InstallMode,
   ProjectDetection,
   ProjectDetector,
 } from '#coverage/application/ports/project-detector.port';
@@ -126,13 +127,19 @@ export function inMemoryArtifacts(): InMemoryArtifacts {
 
 export interface FixedDetector extends ProjectDetector {
   detection: ProjectDetection;
+  /** The mode of install of each detection asked, in order. */
+  readonly modes: InstallMode[];
 }
 
 /** Answers every working copy with the detection a test sets. */
 export function fixedDetector(detection: ProjectDetection): FixedDetector {
   const detector: FixedDetector = {
     detection,
-    detect: async () => Promise.resolve(detector.detection),
+    modes: [],
+    detect: async (_path, mode) => {
+      detector.modes.push(mode);
+      return Promise.resolve(detector.detection);
+    },
   };
   return detector;
 }

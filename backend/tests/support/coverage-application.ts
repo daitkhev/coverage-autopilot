@@ -11,6 +11,7 @@ import type {
 } from '#coverage/application/ports/project-detector.port';
 import { GetFileCoverageHandler } from '#coverage/application/queries/get-file-coverage/get-file-coverage.handler';
 import { GetSnapshotHandler } from '#coverage/application/queries/get-snapshot/get-snapshot.handler';
+import { RepositoryDetection } from '#coverage/application/repository-detection';
 import { RepositoryThresholds } from '#coverage/application/repository-thresholds';
 import type { ReportedCoverage } from '#coverage/domain/services/file-state.service';
 import type { FileCoverage } from '#coverage/domain/value-objects/file-coverage.vo';
@@ -91,6 +92,8 @@ export interface CoverageApplication {
   readonly artifacts: InMemoryArtifacts;
   readonly sandbox: RecordingSandbox;
   readonly detector: FixedDetector;
+  /** The detector, asked as the stand-in repository is installed. */
+  readonly detection: RepositoryDetection;
   readonly runner: RecordingRunner;
   readonly reader: FixedReportReader;
   readonly testReports: FixedTestReportReader;
@@ -111,6 +114,7 @@ export function coverageApplication(): CoverageApplication {
   const artifacts = inMemoryArtifacts();
   const sandbox = new RecordingSandbox();
   const detector = fixedDetector(supportedProject());
+  const detection = new RepositoryDetection(repositories, detector);
   const runner = recordingRunner();
   const reader = fixedReportReader(fixtureReport());
   const classifier = fixedClassifier({
@@ -119,7 +123,7 @@ export function coverageApplication(): CoverageApplication {
   });
   const settings = COVERAGE_TEST_SETTINGS;
   const preparation = new PrepareProjectHandler(
-    detector,
+    detection,
     sandbox,
     artifacts,
     settings,
@@ -141,6 +145,7 @@ export function coverageApplication(): CoverageApplication {
     artifacts,
     sandbox,
     detector,
+    detection,
     runner,
     reader,
     testReports,
@@ -153,12 +158,12 @@ export function coverageApplication(): CoverageApplication {
 
 /** The contract of the coverage module, answered by its application. */
 export function coverageApiOf(application: CoverageApplication): CoverageApi {
-  const { snapshots, capture, transactions, detector, tests, thresholds } =
+  const { snapshots, capture, transactions, detection, tests, thresholds } =
     application;
   return new CoverageApi(
     new CaptureSnapshotHandler(snapshots, capture, transactions, thresholds),
     application.preparation,
-    new RunTestsHandler(detector, tests, application.testReports),
+    new RunTestsHandler(detection, tests, application.testReports),
     new GetSnapshotHandler(snapshots, thresholds),
     new GetFileCoverageHandler(snapshots, thresholds),
   );

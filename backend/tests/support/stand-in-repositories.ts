@@ -1,3 +1,4 @@
+import type { WorkingCopyLoan } from '#coverage/application/contracts/coverage-public-api';
 import { CommitSha } from '#kernel/primitives/commit-sha';
 import { RepositoryId } from '#kernel/primitives/repository-id';
 import { Instant } from '#kernel/time/instant';
@@ -17,10 +18,22 @@ import {
 /** Where every stand-in working copy is. */
 export const WORKING_COPY_PATH = '/work/acme-widgets';
 
-/** `acme/widgets` as the repositories module answers it. */
-function acmeWidgets(): RepositoryDto {
+/** The repository every stand-in working copy is a copy of. */
+export const STAND_IN_REPOSITORY_ID = RepositoryId.create(REPOSITORY_ID);
+
+/** The stand-in working copy as it is lent to the tools of `owner`. */
+export function loanOf(owner: string): WorkingCopyLoan {
   return {
-    id: RepositoryId.create(REPOSITORY_ID),
+    workingCopyPath: WORKING_COPY_PATH,
+    repositoryId: STAND_IN_REPOSITORY_ID,
+    owner,
+  };
+}
+
+/** `acme/widgets` as the repositories module answers it. */
+export function acmeWidgets(): RepositoryDto {
+  return {
+    id: STAND_IN_REPOSITORY_ID,
     owner: 'acme',
     name: 'widgets',
     url: 'https://github.com/acme/widgets.git',
