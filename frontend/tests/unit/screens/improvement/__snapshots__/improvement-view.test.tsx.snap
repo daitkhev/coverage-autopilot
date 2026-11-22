@@ -1,0 +1,223 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ImprovementView > should show the history, the running checks and the facts 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ ✓ Analyze ━━ ✕ Attempt 1 ━━ ⠋ Attempt 2 ── ○ Attempt 3 ── ○ Publish                             ⠋ RUN  15m 00s
+ ╭─ Improvement improvement-invoice ──────────────────────────────╮ ╭─ src/billing/invoice.ts ────────────────╮
+ │ ✓ Analyzing                                                    │ │                                         │
+ │   └ lines 41.2% · branches 25.0% · 14 mutants no test detects  │ │ USED ────────────────────────────────── │
+ │ ✕ Attempt 1  rejected                                   4m 03s │ │ Attempts   ━━━━━━━───  2 of 3           │
+ │   └ The new tests detect 0 of 14 mutants.                      │ │ Tokens     93k used, no limit           │
+ │   └ the reasons went to the generator                          │ │ Time       ━━━━──────  11 of 30 min     │
+ │ ⠋ Attempt 2  verifying                                  8m 50s │ │                                         │
+ │   Checks  ━━━━━━━━━───────  4 of 7                             │ │ TARGET ──────────────────────────────── │
+ │   ✓ only test files changed                                    │ │ File       src/billing/invoice.ts       │
+ │   ✓ project type-checks                                        │ │ Commit     4f2a9c1 on main              │
+ │   ✓ new tests pass                                             │ │ Lines      ━━━━────┼─   41.2%           │
+ │   ✓ earlier tests still pass                                   │ │ Branches   ━━━─────┼─   25.0%           │
+ │   ⠋ new tests pass on repeated runs                 run 2 of 3 │ │ Mutants    14 undetected                │
+ │   ○ coverage of the file went up                               │ │                                         │
+ │   ○ mutants detected                                           │ │ SETTINGS ────────────────────────────── │
+ │ ○ Publishing  opens the pull request without asking            │ │ Publish    without asking               │
+ │                                                                │ │ Generator  Claude Code, example-model   │
+ │                                                                │ │ Gate       7 checks required            │
+ │                                                                │ │                                         │
+ │                                                                │ │ OUTPUT ──────────────────────────────── │
+ │                                                                │ │ /tmp/coverage-autopilot/output/attempt- │
+ │                                                                │ │ 1.jsonl                                 │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │ ⠋ Checking the patch: new tests pass on         updated 1s ago │ │                                         │
+ │ repeated runs                                                  │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Improvements › example/payments › src/billing/invoice.ts · updated 1s ago · closing this window stops nothing
+ c cancel    tab details    esc back                                                                     ? help"
+`;
+
+exports[`ImprovementView > when c is pressed > should ask first, with the answer that keeps the work chosen 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ ✓ Analyze ━━ ✕ Attempt 1 ━━ ⠋ Attempt 2 ── ○ Attempt 3 ── ○ Publish                             ⠋ RUN  15m 00s
+ ╭─ Improvement improvement-invoice ──────────────────────────────╮ ╭─ src/billing/invoice.ts ────────────────╮
+ │ ✓ Analyzing                                                    │ │                                         │
+ │   └ lines 41.2% · branches 25.0% · 14 mutants no test detects  │ │ USED ────────────────────────────────── │
+ │ ✕ Attempt 1  rejected                                   4m 03s │ │ Attempts   ━━━━━━━───  2 of 3           │
+ │   └ The new tests detect 0 of 14 mutants.                      │ │ Tokens     93k used, no limit           │
+ │   └ the reasons went to the generator                          │ │ Time       ━━━━──────  11 of 30 min     │
+ │ ⠋ Attempt 2  verifying                                  8m 50s │ │                                         │
+ │   Checks  ━━━━━━━━━───────  4 of 7                             │ │ TARGET ──────────────────────────────── │
+ │   ✓ only test files changed                                    │ │ File       src/billing/invoice.ts       │
+ │   ✓ project type-checks  ╭─ Cancel this improvement? ───────────────────────────╮a9c1 on main              │
+ │   ✓ new tests pass       │ 2 attempts and 93,000 tokens are already spent and   │━────┼─   41.2%           │
+ │   ✓ earlier tests still p│ will not come back. Nothing will be published.       │─────┼─   25.0%           │
+ │   ⠋ new tests pass on rep│                                                      │undetected                │
+ │   ○ coverage of the file │ › 1. Keep it running                                 │                          │
+ │   ○ mutants detected     │   2. Cancel the improvement                          │───────────────────────── │
+ │ ○ Publishing  opens the p│                                                      │hout asking               │
+ │                          │ ↑↓ choose · enter confirm · esc keep                 │ude Code, example-model   │
+ │                          ╰──────────────────────────────────────────────────────╯hecks required            │
+ │                                                                │ │                                         │
+ │                                                                │ │ OUTPUT ──────────────────────────────── │
+ │                                                                │ │ /tmp/coverage-autopilot/output/attempt- │
+ │                                                                │ │ 1.jsonl                                 │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │ ⠋ Checking the patch: new tests pass on         updated 1s ago │ │                                         │
+ │ repeated runs                                                  │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Improvements › example/payments › src/billing/invoice.ts · waiting for your answer
+ esc keep                                                                                                ? help"
+`;
+
+exports[`ImprovementView > when the improvement cancelled > should show how it ended 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ ✓ Analyze ━━ – Attempt 1 ━━ ○ Publish                                                        ■ CANCEL  11m 00s
+ ╭─ Improvement improvement-retry ────────────────────────────────╮ ╭─ src/core/retry.ts ─────────────────────╮
+ │ ■ Cancelled                                                    │ │                                         │
+ │   Cancelled 4m ago. Nothing was published.                     │ │ USED ────────────────────────────────── │
+ │                                                                │ │ Attempts   ━━━───────  1 of 3           │
+ │ ATTEMPTS ───────────────────────────────────────────────────── │ │ Tokens     41k used, no limit           │
+ │ – Attempt 1  no verdict      stopped before a test was written │ │ Time       ━━━━──────  11 of 30 min     │
+ │                                                                │ │                                         │
+ │                                                                │ │ TARGET ──────────────────────────────── │
+ │                                                                │ │ File       src/core/retry.ts            │
+ │                                                                │ │ Commit     4f2a9c1 on main              │
+ │                                                                │ │                                         │
+ │                                                                │ │ SETTINGS ────────────────────────────── │
+ │                                                                │ │ Publish    without asking               │
+ │                                                                │ │ Generator  Claude Code, example-model   │
+ │                                                                │ │ Gate       7 checks required            │
+ │                                                                │ │                                         │
+ │                                                                │ │ OUTPUT ──────────────────────────────── │
+ │                                                                │ │ nothing written yet                     │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Improvements › example/payments › src/core/retry.ts · cancelled 4m ago
+ tab details    esc back                                                                                 ? help"
+`;
+
+exports[`ImprovementView > when the improvement completed > should show how it ended 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ ✓ Analyze ━━ ✕ Attempt 1 ━━ ✓ Attempt 2 ━━ ✓ Published                                            ✓ DONE  0.0s
+ ╭─ Improvement improvement-currency ─────────────────────────────╮ ╭─ src/billing/currency.ts ───────────────╮
+ │ ✓ Pull request opened                                          │ │                                         │
+ │   https://github.com/example/payments/pull/131                 │ │ USED ────────────────────────────────── │
+ │   from the branch coverage/currency-4f2a9c1                    │ │ Attempts   ━━━───────  1 of 3           │
+ │                                                                │ │ Tokens     41k used, no limit           │
+ │ BEFORE AND AFTER ATTEMPT 2 ─────────────────────────────────── │ │ Time       ━━━━──────  11 of 30 min     │
+ │ Lines       41.2% → ━━━━━━━━━━━━━┼──   88.2%                   │ │                                         │
+ │ Branches    25.0% → ━━━━─────────┼──   25.0%                   │ │ PUBLISHED ───────────────────────────── │
+ │ Functions   50.0% → ━━━━━━━━─────┼──   50.0%                   │ │ Branch     coverage/currency-4f2a9c1    │
+ │ Mutants    11 of 14 detected by the new tests                  │ │ Base       main at 4f2a9c1              │
+ │                                                                │ │ Patch      9c1e7ab                      │
+ │ ATTEMPTS ───────────────────────────────────────────────────── │ │                                         │
+ │ ✕ Attempt 1  rejected    The new tests detect 0 of 14 mutants. │ │ SETTINGS ────────────────────────────── │
+ │ ✓ Attempt 2  accepted                     7 of 7 checks passed │ │ Publish    without asking               │
+ │                                                                │ │ Generator  Claude Code, example-model   │
+ │                                                                │ │ Gate       7 checks required            │
+ │                                                                │ │                                         │
+ │                                                                │ │ OUTPUT ──────────────────────────────── │
+ │                                                                │ │ /tmp/coverage-autopilot/output/attempt- │
+ │                                                                │ │ 1.jsonl                                 │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Improvements › example/payments › src/billing/currency.ts · completed 45m ago
+ p patch    tab details    esc back                                                                      ? help"
+`;
+
+exports[`ImprovementView > when the improvement failed > should show how it ended 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ ✓ Analyze ━━ ✕ Attempt 1 ━━ ✕ Attempt 2 ━━ ✕ Attempt 3 ━━ ○ Publish                            ✕ FAIL  14m 59s
+ ╭─ Improvement improvement-webhook ──────────────────────────────╮ ╭─ src/api/webhook.ts ────────────────────╮
+ │ ✕ The budget ran out  budget_exhausted                         │ │                                         │
+ │   3 attempts were rejected.                                    │ │ USED ────────────────────────────────── │
+ │                                                                │ │ Attempts   ━━━━━━━━━━  3 of 3           │
+ │ BEFORE AND AFTER ATTEMPT 3 ─────────────────────────────────── │ │ Tokens     120k used, no limit          │
+ │ Lines       41.2% → ━━━━━━━━━────┼──   58.8%                   │ │ Time       ━━━━━━━━━─  28 of 30 min     │
+ │ Branches    25.0% → ━━━━─────────┼──   25.0%                   │ │                                         │
+ │ Functions   50.0% → ━━━━━━━━─────┼──   50.0%                   │ │ TARGET ──────────────────────────────── │
+ │ Mutants    0 of 14 detected by the new tests                   │ │ File       src/api/webhook.ts           │
+ │                                                                │ │ Commit     4f2a9c1 on main              │
+ │ ATTEMPTS ───────────────────────────────────────────────────── │ │ Lines      ━━━━────┼─   41.2%           │
+ │ ✕ Attempt 1  rejected    The new tests detect 0 of 14 mutants. │ │ Branches   ━━━─────┼─   25.0%           │
+ │ ✕ Attempt 2  rejected    The new tests detect 0 of 14 mutants. │ │ Mutants    14 undetected                │
+ │ ✕ Attempt 3  rejected    The new tests detect 0 of 14 mutants. │ │                                         │
+ │                                                                │ │ SETTINGS ────────────────────────────── │
+ │ WHAT NOW ───────────────────────────────────────────────────── │ │ Publish    without asking               │
+ │ Start it again from the files with larger limits.              │ │ Generator  Claude Code, example-model   │
+ │                                                                │ │ Gate       7 checks required            │
+ │ › 1. Go back                                                   │ │                                         │
+ │                                                                │ │ OUTPUT ──────────────────────────────── │
+ │                                                                │ │ /tmp/coverage-autopilot/output/attempt- │
+ │                                                                │ │ 1.jsonl                                 │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Improvements › example/payments › src/api/webhook.ts · failed 1s ago
+ ↑↓ choose    enter confirm    tab details    esc back                                                   ? help"
+`;
+
+exports[`ImprovementView > when the improvement skipped > should show how it ended 1`] = `
+" coverage-autopilot   Repositories   Improvements   Service
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ – Analyze ── ○ Publish                                                                            – SKIP  0.0s
+ ╭─ Improvement improvement-ids ──────────────────────────────────╮ ╭─ src/ids.ts ────────────────────────────╮
+ │ – The file is already above the threshold  threshold_met       │ │                                         │
+ │   The fresh measurement is already above the threshold.        │ │ USED ────────────────────────────────── │
+ │                                                                │ │ Attempts   ──────────  0 of 3           │
+ │                                                                │ │ Tokens     0 used, no limit             │
+ │                                                                │ │ Time       ──────────  0 of 30 min      │
+ │                                                                │ │                                         │
+ │                                                                │ │ TARGET ──────────────────────────────── │
+ │                                                                │ │ File       src/ids.ts                   │
+ │                                                                │ │ Commit     4f2a9c1 on main              │
+ │                                                                │ │                                         │
+ │                                                                │ │ SETTINGS ────────────────────────────── │
+ │                                                                │ │ Publish    without asking               │
+ │                                                                │ │ Generator  Claude Code, example-model   │
+ │                                                                │ │ Gate       7 checks required            │
+ │                                                                │ │                                         │
+ │                                                                │ │ OUTPUT ──────────────────────────────── │
+ │                                                                │ │ nothing written yet                     │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Improvements › example/payments › src/ids.ts · skipped 30s ago
+ tab details    esc back                                                                                 ? help"
+`;
