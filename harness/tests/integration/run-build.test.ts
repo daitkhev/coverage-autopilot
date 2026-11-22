@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -11,7 +12,11 @@ import { dirname, join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { runBuild, SERVICE_BUILD } from '#harness/gate/run-build';
+import {
+  PACKAGE_BUILD,
+  runBuild,
+  SERVICE_BUILD,
+} from '#harness/gate/run-build';
 import { END_TO_END_COMMAND, runEndToEnd } from '#harness/gate/run-end-to-end';
 import { fakeHost } from '#harness/tests/support/fake-host';
 
@@ -19,7 +24,22 @@ const MANIFEST = {
   name: 'service',
   type: 'module',
   imports: { '#service/*': './src/*.ts' },
+  dependencies: { '@coverage-autopilot/api-contracts': '0.0.0', zod: '4.6.7' },
 };
+
+const ROOT_MANIFEST = {
+  name: 'acme-tool',
+  version: '1.2.3',
+  private: true,
+  engines: { node: '>=26' },
+  workspaces: ['backend', 'frontend'],
+};
+
+const CLIENT_MANIFEST = { name: 'client', dependencies: { ink: '8.0.0' } };
+
+const MIGRATION = 'CREATE TABLE things (id TEXT);\n';
+
+const WRITTEN = [`build: ${PACKAGE_BUILD.folder} was written.`];
 
 const GREETING = `
 export function greeting(name: string): string {
@@ -45,7 +65,10 @@ function write(file: string, text: string): void {
 
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'build-'));
+  write('package.json', JSON.stringify(ROOT_MANIFEST));
   write('backend/package.json', JSON.stringify(MANIFEST));
+  write('frontend/package.json', JSON.stringify(CLIENT_MANIFEST));
+  write(`${PACKAGE_BUILD.migrations.from}/0001-things.sql`, MIGRATION);
   write(SERVICE_BUILD.settings, JSON.stringify({ compilerOptions: {} }));
   write('backend/src/greeting.ts', GREETING);
   write(SERVICE_BUILD.entry, ENTRY);
@@ -65,7 +88,7 @@ describe('runBuild', () => {
     });
 
     expect(exitCode).toBe(0);
-    expect(host.printed).toEqual([`build: ${SERVICE_BUILD.file} was written.`]);
+    expect(host.printed).toEqual(WRITTEN);
     expect(run.stdout).toBe('covered, acme');
   });
 
@@ -77,6 +100,49 @@ describe('runBuild', () => {
     expect(built).toContain('covered, ');
     expect(built).toContain('from "node:path"');
     expect(built).not.toContain('#service/');
+  });
+
+  it('should put the migrations and one manifest beside the program', async () => {
+    await runBuild(fakeHost({ root }));
+
+    const read = (file: string): string =>
+      readFileSync(join(root, file), 'utf8');
+
+    expect(read(`${PACKAGE_BUILD.migrations.to}/0001-things.sql`)).toBe(
+      MIGRATION,
+    );
+    expect(JSON.parse(read(PACKAGE_BUILD.manifest))).toEqual({
+      name: 'acme-tool',
+      version: '1.2.3',
+      type: 'module',
+      engines: { node: '>=26' },
+      dependencies: { ink: '8.0.0', zod: '4.6.7' },
+    });
+  });
+
+  it('should leave nothing of an earlier build in the package', async () => {
+    write(`${PACKAGE_BUILD.folder}/bin/old.js`, '');
+
+    await runBuild(fakeHost({ root }));
+
+    expect(existsSync(join(root, PACKAGE_BUILD.folder, 'bin/old.js'))).toBe(
+      false,
+    );
+  });
+
+  describe('when two workspaces ask for one package at two versions', () => {
+    it('should fail and name the package and both versions', async () => {
+      write(
+        'frontend/package.json',
+        JSON.stringify({ dependencies: { zod: '5.0.0' } }),
+      );
+      const host = fakeHost({ root });
+
+      expect(await runBuild(host)).toBe(1);
+      expect(host.printed).toEqual([
+        'build: zod is asked for at 4.6.7 and at 5.0.0. The built package installs one version.',
+      ]);
+    });
   });
 
   describe('when an import of the tree leads nowhere', () => {
@@ -109,7 +175,7 @@ describe('runEndToEnd', () => {
     const host = fakeHost({ root });
 
     expect(await runEndToEnd(host)).toBe(0);
-    expect(host.printed).toEqual([`build: ${SERVICE_BUILD.file} was written.`]);
+    expect(host.printed).toEqual(WRITTEN);
     expect(host.started).toEqual([END_TO_END_COMMAND]);
   });
 

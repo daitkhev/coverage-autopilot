@@ -10,9 +10,9 @@ import type { InstancePaths } from '#infrastructure/config/instance-paths';
 import { createInstanceFolder } from '#tests/support/instance-folder';
 import { askOver } from '#tests/support/service-bench';
 
-/** The service as the gate builds it, beside the migrations it reads. */
+/** The service of the package the gate builds, at the root of the tree. */
 const BUILT_FILE = fileURLToPath(
-  new URL('../../dist/main.js', import.meta.url),
+  new URL('../../../dist/bin/service.js', import.meta.url),
 );
 
 /** Where git is found on a desk and in CI. Nothing else is on the path. */
