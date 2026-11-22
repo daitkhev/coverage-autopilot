@@ -8,9 +8,9 @@ import type {
 import type { CoverageCounters } from '@coverage-autopilot/api-contracts/coverage';
 import type { Improvement } from '@coverage-autopilot/api-contracts/improvements';
 
+import { AnswerList } from '#components/answer-list';
 import { Clipped } from '#components/clipped';
 import { CoverageChange } from '#components/coverage-change';
-import { DataList } from '#components/data-list';
 import { Glyph } from '#components/glyph';
 import { Panel } from '#components/panel';
 import { RoleText } from '#components/role-text';
@@ -242,19 +242,7 @@ function WhatNow({
     <Section title="WHAT NOW">
       <RoleText>{next}</RoleText>
       <Box marginTop={1}>
-        <DataList
-          items={choices}
-          selected={chosen}
-          offset={0}
-          visible={choices.length}
-          focused={focused}
-          keyOf={(choice) => choice.label}
-          renderRow={(choice, row) => (
-            <RoleText bold={row.bold}>
-              {`${String(choices.indexOf(choice) + 1)}. ${choice.label}`}
-            </RoleText>
-          )}
-        />
+        <AnswerList answers={choices} selected={chosen} focused={focused} />
       </Box>
     </Section>
   );
