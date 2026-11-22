@@ -138,6 +138,18 @@ describe('layerDirection', () => {
     });
   });
 
+  describe('from the entry of the service', () => {
+    it.each([
+      `${MODULES}/store/store.module.ts`,
+      `${MODULES}/store/application/find.ts`,
+      `${SHARED}/infrastructure/open.ts`,
+    ])('should report it importing %s', (to) => {
+      expect(detailsFor('backend/src/main.ts', to)).toEqual([
+        'The entry of the service imports the composition only.',
+      ]);
+    });
+  });
+
   describe('inside the shared code', () => {
     it('should report shared code that imports a module', () => {
       expect(

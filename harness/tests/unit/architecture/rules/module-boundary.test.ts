@@ -119,21 +119,6 @@ describe('moduleBoundary', () => {
         ),
       ).toEqual([BY_MODULE_FILE]);
     });
-
-    it('should pass a root file importing a module file', () => {
-      expect(
-        detailsFor('backend/src/main.ts', `${MODULES}/store/store.module.ts`),
-      ).toEqual([]);
-    });
-
-    it('should report a root file importing inside a module', () => {
-      expect(
-        detailsFor(
-          'backend/src/main.ts',
-          `${MODULES}/store/application/find.ts`,
-        ),
-      ).toEqual([BY_MODULE_FILE]);
-    });
   });
 
   it('should pass imports that stay in one module or go to shared code', () => {
@@ -144,7 +129,10 @@ describe('moduleBoundary', () => {
       ),
     ).toEqual([]);
     expect(
-      detailsFor('backend/src/main.ts', `${SHARED}/infrastructure/open.ts`),
+      detailsFor(
+        'backend/src/composition/app.module.ts',
+        `${SHARED}/infrastructure/open.ts`,
+      ),
     ).toEqual([]);
   });
 

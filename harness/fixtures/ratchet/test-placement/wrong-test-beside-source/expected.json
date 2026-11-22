@@ -1,7 +1,7 @@
 [
   {
     "rule": "test-placement",
-    "path": "backend/src/main.test.ts",
+    "path": "backend/src/shared/kernel/clock.test.ts",
     "line": 1
   }
 ]

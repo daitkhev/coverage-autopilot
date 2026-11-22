@@ -27,7 +27,6 @@
         "backend/src/modules/*/infrastructure/",
         "backend/src/modules/*/*.module.ts",
         "backend/src/shared/infrastructure/",
-        "backend/src/*.ts",
         "backend/src/composition/"
       ]
     },
@@ -50,7 +49,7 @@
       "in": [
         "backend/src/modules/*/infrastructure/",
         "backend/src/shared/infrastructure/",
-        "backend/src/*.ts",
+        "backend/src/main.ts",
         "backend/src/composition/",
         "frontend/src/api/",
         "frontend/src/main.tsx"
@@ -95,7 +94,7 @@
     },
     {
       "packages": ["@nestjs/platform-express", "reflect-metadata", "rxjs"],
-      "in": ["backend/src/*.ts", "backend/src/composition/"]
+      "in": ["backend/src/composition/"]
     },
     {
       "packages": ["node:*", "vitest"],

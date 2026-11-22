@@ -101,7 +101,8 @@
   },
   "frontend": {
     "source": "frontend/src/",
-    "root": ["app", "commands", "composition"],
+    "entry": "main.tsx",
+    "root": ["composition"],
     "folders": {
       "composition": ["app", "commands"],
       "app": ["screens", "components", "hooks", "theme", "api"],
@@ -121,6 +122,7 @@
   "backend": {
     "source": "backend/src/",
     "migrations": "backend/migrations/",
+    "entry": "main.ts",
     "composition": "composition/",
     "modules": {
       "repositories": [],

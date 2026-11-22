@@ -57,8 +57,9 @@ describe('clientDirection, for one import', () => {
   });
 
   it.each([
-    ['main.tsx', 'app/app.tsx'],
-    ['main.tsx', 'commands/list.ts'],
+    ['main.tsx', 'composition/client-process.ts'],
+    ['composition/client-process.ts', 'app/app.tsx'],
+    ['composition/client-process.ts', 'commands/list.ts'],
     ['app/app.tsx', 'screens/runs/runs.tsx'],
     ['app/app.tsx', 'components/badge.tsx'],
     ['app/app.tsx', 'hooks/use-keys.ts'],
@@ -106,11 +107,23 @@ describe('clientDirection, for one import', () => {
     ]);
   });
 
-  it('should let a file at the root import only what its row lists', () => {
-    expect(detailsFor('main.tsx', 'screens/runs/runs.tsx')).toEqual([
-      'A file at the root may not import screens/.',
+  it('should let the entry import only what its row lists', () => {
+    expect(detailsFor('main.tsx', 'app/app.tsx')).toEqual([
+      'A file at the root may not import app/.',
     ]);
-    expect(detailsFor('main.tsx', 'settings.ts')).toEqual([]);
+  });
+
+  it('should report a file at the root that is not the entry', () => {
+    const project = projectOf(sourceFile('frontend/src/settings.ts'));
+
+    expect(rule().check(project)).toEqual([
+      {
+        rule: 'client-direction',
+        path: 'frontend/src/settings.ts',
+        line: 1,
+        detail: 'The root of the client holds main.tsx only.',
+      },
+    ]);
   });
 
   it('should let nothing import a file at the root', () => {

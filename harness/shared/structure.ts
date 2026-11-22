@@ -23,6 +23,8 @@ export interface Backend {
   readonly source: string;
   /** Where the migrations are, with a slash at the end. */
   readonly migrations: string;
+  /** The one file at the root of the source, which starts the service. */
+  readonly entry: string;
   /**
    * The folder under the source where the service is put together from
    * its modules, with a slash at the end.
@@ -48,6 +50,8 @@ export interface Backend {
 export interface Frontend {
   /** Where the source of the client is, with a slash at the end. */
   readonly source: string;
+  /** The one file at the root of the source, which starts the client. */
+  readonly entry: string;
   /** The folders a file at the root of the source may import. */
   readonly root: readonly string[];
   /** Each folder, with the other folders it may import. */
@@ -126,6 +130,7 @@ function backendOf(file: JsonRecord): Backend {
   return {
     source: stringAt(backend, 'source'),
     migrations: stringAt(backend, 'migrations'),
+    entry: stringAt(backend, 'entry'),
     composition: stringAt(backend, 'composition'),
     modules: stringListsAt(backend, 'modules'),
     layers: layersOf(backend),
@@ -140,6 +145,7 @@ function frontendOf(file: JsonRecord): Frontend {
   const frontend = recordAt(file, 'frontend');
   return {
     source: stringAt(frontend, 'source'),
+    entry: stringAt(frontend, 'entry'),
     root: stringListAt(frontend, 'root'),
     folders: stringListsAt(frontend, 'folders'),
     apart: stringListAt(frontend, 'apart'),

@@ -61,6 +61,12 @@ describe('readStructure', () => {
     expect(readStructure().backend.composition).toBe('composition/');
   });
 
+  it('should leave one file at the root of the service and of the client', () => {
+    const { backend, frontend } = readStructure();
+
+    expect([backend.entry, frontend.entry]).toEqual(['main.ts', 'main.tsx']);
+  });
+
   it('should give the client the folders of the design, each importing one way', () => {
     const { folders, root, apart, noChain } = readStructure().frontend;
 
@@ -74,7 +80,7 @@ describe('readStructure', () => {
       api: [],
       theme: [],
     });
-    expect(root).toEqual(['app', 'commands', 'composition']);
+    expect(root).toEqual(['composition']);
     expect(apart).toEqual(['screens']);
     expect(Object.fromEntries(noChain)).toEqual({
       components: ['api'],

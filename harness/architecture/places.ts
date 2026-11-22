@@ -18,6 +18,7 @@ export type Place =
       readonly inside: string;
     }
   | { readonly kind: 'shared'; readonly part: string }
+  /** The entry of the service, the one file at the root of its source. */
   | { readonly kind: 'service-root' }
   /** Where the service is put together from its modules. */
   | { readonly kind: 'composition' }
@@ -29,6 +30,7 @@ export type Place =
 const OTHER: Place = { kind: 'other' };
 const UNKNOWN: Place = { kind: 'unknown' };
 const COMPOSITION: Place = { kind: 'composition' };
+const ENTRY: Place = { kind: 'service-root' };
 
 /** A part of a layer has a folder of its own and files in it. */
 const PART_DEPTH = 2;
@@ -80,7 +82,7 @@ export function placeOf(path: string, backend: Backend): Place {
   if (rest.startsWith(backend.composition)) {
     return COMPOSITION;
   }
-  return rest.includes('/') ? UNKNOWN : { kind: 'service-root' };
+  return rest === backend.entry ? ENTRY : UNKNOWN;
 }
 
 /** The module a place belongs to, when it belongs to one. */

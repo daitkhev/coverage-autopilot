@@ -120,9 +120,18 @@ function chainFindings(
     }));
 }
 
+/** A file at the root that is not the entry, which alone may be there. */
+function rootFindings(file: SourceFile, frontend: Frontend): Finding[] {
+  const spot = spotOf(file.path, frontend);
+  const stray = spot?.folder === '' && spot.part !== frontend.entry;
+  const detail = `The root of the client holds ${frontend.entry} only.`;
+  return stray ? [{ rule: ID, path: file.path, line: 1, detail }] : [];
+}
+
 function check(project: Project, frontend: Frontend): Finding[] {
   const byPath = new Map(project.files.map((file) => [file.path, file]));
   return project.files.flatMap((file) => [
+    ...rootFindings(file, frontend),
     ...importFindings(file, frontend),
     ...chainFindings(file, byPath, frontend),
   ]);

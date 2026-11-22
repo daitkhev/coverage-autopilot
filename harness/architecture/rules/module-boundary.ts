@@ -6,11 +6,7 @@ import type { Backend } from '#harness/shared/structure';
 const BY_MODULE_FILE = 'A module is wired in through its module file only.';
 
 /** The places that wire modules together, and never look inside one. */
-const WIRING: readonly Place['kind'][] = [
-  'module-file',
-  'service-root',
-  'composition',
-];
+const WIRING: readonly Place['kind'][] = ['module-file', 'composition'];
 
 function fromLayer(edge: Edge, layer: string, backend: Backend): string {
   const intoContracts =

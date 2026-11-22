@@ -34,6 +34,7 @@ describe('unknownLayer', () => {
 
   it.each([
     'backend/src/workers/queue-worker.ts',
+    'backend/src/app.module.ts',
     `${MODULES}/setup.ts`,
     `${SHARED}/clock.ts`,
   ])('should report %s as a place the service does not have', (path) => {

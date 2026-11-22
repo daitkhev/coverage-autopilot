@@ -1,6 +1,6 @@
 [
   {
-    "rule": "module-boundary",
+    "rule": "layer-direction",
     "path": "backend/src/main.ts",
     "line": 1
   }

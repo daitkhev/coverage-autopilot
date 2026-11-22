@@ -47,6 +47,11 @@ function problemOf(edge: Edge, backend: Backend): string {
       ? ''
       : 'Only the entry of the service imports the composition.';
   }
+  if (edge.from.kind === 'service-root') {
+    return edge.to.kind === 'other'
+      ? ''
+      : 'The entry of the service imports the composition only.';
+  }
   if (edge.from.kind === 'layer') {
     return fromLayer(edge.from, edge.to, backend);
   }

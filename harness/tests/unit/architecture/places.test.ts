@@ -75,6 +75,7 @@ describe('placeOf', () => {
 
   it.each([
     'backend/src/workers/queue-worker.ts',
+    'backend/src/app.module.ts',
     `${MODULES}/setup.ts`,
     `${SHARED}/clock.ts`,
   ])('should not know %s', (path) => {

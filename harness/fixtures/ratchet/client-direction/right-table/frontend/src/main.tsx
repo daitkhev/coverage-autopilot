@@ -1,4 +1,3 @@
-import { app } from '#app/app';
-import { list } from '#commands/list';
+import { client } from '#composition/client-process';
 
-export const main = [app, list];
+export const main = client;

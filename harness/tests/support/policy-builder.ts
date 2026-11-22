@@ -18,6 +18,7 @@ export function backendOf(): Backend {
   return {
     source: 'backend/src/',
     migrations: 'backend/migrations/',
+    entry: 'main.ts',
     composition: 'composition/',
     modules: new Map([
       ['store', []],
@@ -67,8 +68,10 @@ export function backendOf(): Backend {
 export function frontendOf(): Frontend {
   return {
     source: 'frontend/src/',
-    root: ['app', 'commands'],
+    entry: 'main.tsx',
+    root: ['composition'],
     folders: new Map([
+      ['composition', ['app', 'commands']],
       ['app', ['screens', 'components', 'hooks', 'theme', 'api']],
       ['screens', ['components', 'hooks', 'theme', 'api']],
       ['commands', ['api', 'theme']],
