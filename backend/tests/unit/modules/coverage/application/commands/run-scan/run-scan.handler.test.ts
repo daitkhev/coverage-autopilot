@@ -10,6 +10,7 @@ import {
   FIRST_ID,
 } from '#tests/support/coverage-application';
 import { REPOSITORY_ID } from '#tests/support/coverage-snapshots';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import { PASSED } from '#tests/support/recording-sandbox';
 
 /** A sandbox that could not start this time and may start the next. */
@@ -43,11 +44,15 @@ function contextOf(
   };
 }
 
-function handlerOf(application: CoverageApplication): RunScanHandler {
+function handlerOf(
+  application: CoverageApplication,
+  logger = new RecordingLogger(),
+): RunScanHandler {
   return new RunScanHandler(
     application.repositories,
     application.snapshots,
     application.capture,
+    logger,
   );
 }
 
@@ -88,6 +93,26 @@ describe('RunScanHandler', () => {
         'passed',
         'passed',
       ]);
+    });
+
+    it('should write each step with the ids of the scan', async () => {
+      const application = coverageApplication();
+      const logger = new RecordingLogger();
+
+      await handlerOf(application, logger).execute(contextOf(application));
+
+      expect(logger.lines).toHaveLength(8);
+      expect(logger.lines.at(-1)).toEqual({
+        level: 'info',
+        message: 'A step of a scan ended.',
+        fields: {
+          component: 'scan',
+          jobId: 'job-1',
+          repositoryId: REPOSITORY_ID,
+          step: 'read_report',
+          outcome: 'passed',
+        },
+      });
     });
 
     describe('when it runs again after a crash that followed the save', () => {

@@ -15,6 +15,7 @@ import { ID_GENERATOR } from '#kernel/id/id-generator';
 import { CLOCK } from '#kernel/time/clock';
 import { ARTIFACT_STORE } from '#ports/artifact-store.port';
 import { JOB_QUEUE } from '#ports/job-queue.port';
+import { LOGGER } from '#ports/logger.port';
 import { SANDBOX } from '#ports/sandbox.port';
 import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
 import { REPOSITORIES_PUBLIC_API } from '#repositories/application/contracts/repositories-public-api';
@@ -25,6 +26,7 @@ import {
   type HttpService,
   startHttpService,
 } from '#tests/support/http-service';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import {
   COVERAGE_TEST_SETTINGS,
   RecordingSandbox,
@@ -73,6 +75,7 @@ function providersOf(below: Below): Provider[] {
     { provide: TRANSACTION_MANAGER, useClass: SqliteTransactionRunner },
     { provide: CLOCK, useValue: below.clock },
     { provide: ID_GENERATOR, useValue: below.ids },
+    { provide: LOGGER, useValue: new RecordingLogger() },
     SqliteJobTable,
     { provide: JOB_QUEUE, useClass: SqliteJobQueue },
     { provide: SANDBOX, useValue: new RecordingSandbox() },

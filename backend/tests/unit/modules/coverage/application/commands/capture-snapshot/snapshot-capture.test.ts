@@ -16,6 +16,7 @@ import {
   REPOSITORY_ID,
   SNAPSHOT_COMMIT,
 } from '#tests/support/coverage-snapshots';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import { PASSED } from '#tests/support/recording-sandbox';
 
 const COMMAND: CaptureSnapshotCommand = {
@@ -77,8 +78,10 @@ describe('SnapshotCapture', () => {
       const { capture } = coverageApplication();
       const heard: JobProgress[] = [];
 
-      await capture.capture(COMMAND, RUNNING, (progress) => {
-        heard.push(progress);
+      await capture.capture(COMMAND, RUNNING, {
+        progress: (progress) => {
+          heard.push(progress);
+        },
       });
 
       expect(heard.map(({ steps }) => steps.at(-1)?.status)).toEqual([
@@ -155,8 +158,10 @@ describe('SnapshotCapture', () => {
         reader.report = null;
         const heard: JobProgress[] = [];
 
-        await capture.capture(COMMAND, RUNNING, (progress) => {
-          heard.push(progress);
+        await capture.capture(COMMAND, RUNNING, {
+          progress: (progress) => {
+            heard.push(progress);
+          },
         });
 
         expect(heard.at(-1)?.steps.at(-1)).toMatchObject({
@@ -164,6 +169,25 @@ describe('SnapshotCapture', () => {
           status: 'failed',
         });
       });
+    });
+
+    it('should write the start and the end of each step to its log', async () => {
+      const { capture } = coverageApplication();
+      const log = new RecordingLogger();
+
+      await capture.capture(COMMAND, RUNNING, { progress: () => 0, log });
+
+      expect(log.lines.map(({ fields }) => fields)).toEqual([
+        { step: 'clone' },
+        { step: 'clone', outcome: 'passed' },
+        { step: 'install' },
+        { step: 'install', outcome: 'passed' },
+        { step: 'test_run' },
+        { step: 'test_run', outcome: 'passed' },
+        { step: 'read_report' },
+        { step: 'read_report', outcome: 'passed' },
+      ]);
+      expect(log.at('info')).toHaveLength(8);
     });
 
     describe('when a step fails', () => {
@@ -177,6 +201,24 @@ describe('SnapshotCapture', () => {
           'The sandbox did not start.',
         );
         expect(repositories.disposed).toEqual(['copy-1']);
+      });
+
+      it('should write the step it was in as interrupted', async () => {
+        const { capture, sandbox } = coverageApplication();
+        const log = new RecordingLogger();
+        sandbox.onRun(() => {
+          throw new Error('The sandbox did not start.');
+        });
+
+        await expect(
+          capture.capture(COMMAND, RUNNING, { progress: () => 0, log }),
+        ).rejects.toThrow();
+
+        expect(log.lines.at(-1)).toEqual({
+          level: 'info',
+          message: 'A step of a scan ended.',
+          fields: { step: 'install', outcome: 'interrupted' },
+        });
       });
     });
 

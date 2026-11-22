@@ -25,6 +25,7 @@ import type {
   JobResult,
 } from '#ports/job-handler.port';
 import type { JobDocument } from '#ports/job-queue.port';
+import { LOGGER, type Logger } from '#ports/logger.port';
 import {
   REPOSITORIES_PUBLIC_API,
   type RepositoriesPublicApi,
@@ -108,15 +109,18 @@ export class RunScanHandler implements JobHandler {
   private readonly repositories: RepositoriesPublicApi;
   private readonly snapshots: CoverageSnapshotRepository;
   private readonly capture: SnapshotCapture;
+  private readonly logger: Logger;
 
   public constructor(
     @Inject(REPOSITORIES_PUBLIC_API) repositories: RepositoriesPublicApi,
     @Inject(COVERAGE_SNAPSHOT_REPOSITORY) snapshots: CoverageSnapshotRepository,
     @Inject(SnapshotCapture) capture: SnapshotCapture,
+    @Inject(LOGGER) logger: Logger,
   ) {
     this.repositories = repositories;
     this.snapshots = snapshots;
     this.capture = capture;
+    this.logger = logger.child({ component: 'scan' });
   }
 
   public async execute(context: JobContext): Promise<JobResult> {
@@ -156,8 +160,14 @@ export class RunScanHandler implements JobHandler {
     const capture = await this.capture.capture(
       { repositoryId, commit, originKey },
       context.signal,
-      (progress) => {
-        context.reportProgress(progress);
+      {
+        progress: (progress) => {
+          context.reportProgress(progress);
+        },
+        log: this.logger.child({
+          jobId: context.jobId,
+          repositoryId: repositoryId.value,
+        }),
       },
     );
     if (capture.outcome !== 'measured') {

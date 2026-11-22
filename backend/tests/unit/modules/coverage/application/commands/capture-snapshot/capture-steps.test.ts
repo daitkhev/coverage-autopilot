@@ -5,8 +5,10 @@ import type { JobProgress } from '#ports/job-queue.port';
 
 function watched(): { steps: CaptureSteps; heard: JobProgress[] } {
   const heard: JobProgress[] = [];
-  const steps = new CaptureSteps((progress) => {
-    heard.push(progress);
+  const steps = new CaptureSteps({
+    progress: (progress) => {
+      heard.push(progress);
+    },
   });
   return { steps, heard };
 }
@@ -54,6 +56,17 @@ describe('CaptureSteps', () => {
       steps.pass();
 
       expect(statusesOf(heard.at(-1))).toContain('read_report:passed');
+    });
+  });
+
+  describe('interrupt', () => {
+    it('should leave the progress as it is', () => {
+      const { steps, heard } = watched();
+      steps.begin('clone');
+
+      steps.interrupt();
+
+      expect(heard).toHaveLength(1);
     });
   });
 

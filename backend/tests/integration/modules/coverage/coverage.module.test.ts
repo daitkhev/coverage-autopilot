@@ -36,6 +36,7 @@ import { RepositoryId } from '#kernel/primitives/repository-id';
 import { CLOCK } from '#kernel/time/clock';
 import { ARTIFACT_STORE } from '#ports/artifact-store.port';
 import { JOB_QUEUE } from '#ports/job-queue.port';
+import { LOGGER } from '#ports/logger.port';
 import { SANDBOX } from '#ports/sandbox.port';
 import { TRANSACTION_MANAGER } from '#ports/transaction-manager.port';
 import { REPOSITORIES_PUBLIC_API } from '#repositories/application/contracts/repositories-public-api';
@@ -56,6 +57,7 @@ import {
   lockfileOf,
   type ProjectFolder,
 } from '#tests/support/project-folder';
+import { RecordingLogger } from '#tests/support/recording-logger';
 import { recordingQueue } from '#tests/support/recording-queue';
 import {
   COVERAGE_TEST_SETTINGS,
@@ -111,6 +113,7 @@ function servicesOf(database: TemporaryDatabase, folder: ProjectFolder) {
     { provide: JOB_QUEUE, useValue: recordingQueue() },
     { provide: CLOCK, useValue: new FixedClock(CAPTURED_AT) },
     { provide: ID_GENERATOR, useValue: new SequentialIdGenerator() },
+    { provide: LOGGER, useValue: new RecordingLogger() },
     {
       provide: REPOSITORIES_PUBLIC_API,
       useValue: standInRepositories(folder.root),

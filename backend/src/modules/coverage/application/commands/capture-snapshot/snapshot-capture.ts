@@ -3,7 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { CaptureSnapshotCommand } from '#coverage/application/commands/capture-snapshot/capture-snapshot.command';
 import {
   CaptureSteps,
-  type ProgressObserver,
+  type CaptureWatch,
 } from '#coverage/application/commands/capture-snapshot/capture-steps';
 import {
   type Preparation,
@@ -35,9 +35,10 @@ interface Measurement {
   readonly steps: CaptureSteps;
 }
 
-function ignore(): void {
-  // A caller that does not watch the steps gives no observer.
-}
+/** A caller that does not watch the steps gives no watch. */
+const UNWATCHED: CaptureWatch = {
+  progress: () => undefined,
+};
 
 function refusalOf(
   preparation: Exclude<Preparation, { outcome: 'ready' }>,
@@ -77,12 +78,26 @@ export class SnapshotCapture {
     this.ids = ids;
   }
 
+  /** A step a fault or a stop left is told to the watch as interrupted. */
   public async capture(
     command: CaptureSnapshotCommand,
     signal: AbortSignal,
-    observer: ProgressObserver = ignore,
+    watch: CaptureWatch = UNWATCHED,
   ): Promise<Capture> {
-    const steps = new CaptureSteps(observer);
+    const steps = new CaptureSteps(watch);
+    try {
+      return await this.cloneAndMeasure(command, signal, steps);
+    } catch (error) {
+      steps.interrupt();
+      throw error;
+    }
+  }
+
+  private async cloneAndMeasure(
+    command: CaptureSnapshotCommand,
+    signal: AbortSignal,
+    steps: CaptureSteps,
+  ): Promise<Capture> {
     steps.begin('clone');
     const copy = await this.repositories.createWorkingCopy(
       {
