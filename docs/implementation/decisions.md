@@ -942,3 +942,69 @@ Where this log and the plan differ, this log and the code are right.
   infrastructure.
 - Where: `harness/policy/structure.json`, `harness/architecture/places.ts`,
   `harness/architecture/rules/module-boundary.ts`.
+
+### A route belongs to the module of its resource
+
+- This overturns "A route belongs to the lowest module that knows its
+  whole answer". The routes of a repository are in the module
+  `repositories`, and the files of a snapshot are a route of `coverage`.
+  The scans and the snapshots of a repository stay in `coverage`: they
+  are its resources under the path of another.
+- What a module above knows comes in through a port. The module below
+  declares the port in its contracts and the module above implements it:
+  `coverage` says what it knows of a repository, and `improvement` names
+  the newest improvement of each file. So a module still imports nothing
+  of a module above it, and no use case only passes a call on.
+- A module file may not import the contracts of another module, so the
+  class that implements a port names its token, and the module file
+  binds the class to it. The modules are global, which lets the module
+  below inject what the module above exports. `improvement` became global
+  for this, and a test starts the whole application to hold the two
+  bindings.
+- Why not before: the first design let a route follow the knowledge, and
+  it left the module of repositories with one route and the module of
+  coverage with three use cases that did nothing of their own.
+- Where: `backend/src/modules/repositories/application/contracts/repository-coverage.ts`,
+  `backend/src/modules/coverage/application/contracts/file-improvements.ts`,
+  `backend/tests/integration/module-ports.test.ts`.
+
+### The root of the source holds one file
+
+- What puts the service together from its modules is in
+  `backend/src/composition/`: the root module, the settings of each
+  module, the run and the process. It may import module files and the
+  shared code, and only the entry imports it. It is no shared
+  infrastructure, because the shared code may not import a module. What
+  imported no module went there: the running service and the list of the
+  job handlers.
+- The client has the same folder for the two files that choose between
+  the screens and the commands.
+- `main.ts` holds two paths and one call. The paths stay there because
+  one step up from the entry finds the migrations and the package from
+  the source and from the bundle alike. Reading the version, the signals
+  that stop the service and the ids of the user are decisions, and they
+  are in the composition, where a test gives values. A package that
+  cannot be read is now one line on the standard error, not a stack.
+- The alias of the root stays for the entry alone: a test has to load
+  it, and a relative import is refused.
+- Where: `harness/policy/structure.json` (`entry`, `composition`),
+  `harness/architecture/places.ts`,
+  `backend/src/composition/service-process.ts`.
+
+### Owed after the look at the client in a terminal
+
+- The screens were run in a real terminal emulator for the first time.
+  Two faults showed that no test had caught. The top edge of a panel
+  ended one column early at four widths of five, because a share of the
+  width is a fraction and a text is moved left to a whole cell. And a
+  restart from the screens of a client with a service of its own left
+  it without a service for good. Both are fixed and held by a test.
+- A share of the width still gives a panel a width that is no whole
+  number, so a text right of a filler inside it can stand one cell left.
+- A client with a service of its own that is ended by a signal leaves
+  that service running, with its folder.
+- A start of a service of its own that failed keeps its folder for the
+  log, and each new try makes another folder.
+- One test of the client is not stable under load: the one that waits
+  for an old service of another contract that does not go in time failed
+  once in a run of the whole gate and passed alone.
