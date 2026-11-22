@@ -17,7 +17,7 @@ import {
   temporaryRepository,
 } from '#harness/tests/support/temporary-repository';
 
-const MIGRATIONS = 'backend/migrations';
+const MIGRATIONS = 'backend/src/shared/infrastructure/database/migrations';
 const NAME = '0001-first.sql';
 const MIGRATION = `${MIGRATIONS}/${NAME}`;
 const CONTRACT =

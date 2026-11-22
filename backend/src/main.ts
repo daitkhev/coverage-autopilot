@@ -4,14 +4,14 @@ import { fileURLToPath } from 'node:url';
 import { serveProcess } from '#composition/service-process';
 
 /**
- * Beside the folder of the sources, and beside the folder of the bundle
- * once the service is built, so the same step up finds it from both.
+ * In the folder of the code that applies them. The build puts them at the
+ * same path from the bundle, so one step finds them from both.
  */
 export const MIGRATIONS_FOLDER = fileURLToPath(
-  new URL('../migrations/', import.meta.url),
+  new URL('./shared/infrastructure/database/migrations/', import.meta.url),
 );
 
-/** The package of the service, which the same step up finds. */
+/** The package of the service, one step up from the sources and the bundle. */
 export const PACKAGE_FILE = fileURLToPath(
   new URL('../package.json', import.meta.url),
 );

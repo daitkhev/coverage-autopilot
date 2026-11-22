@@ -8,20 +8,21 @@ import { packageManifestOf } from '#harness/gate/package-manifest';
 
 /**
  * The package the build writes, from the root of the tree: what a person
- * installs. A program is in `bin/`, beside the migrations and the
- * manifest one step up, as the entry file of the service is in its
- * workspace, so it finds both by the same step from its own place, built
- * or not.
+ * installs. A program is in `bin/`, and what the service reads beside
+ * its code is at the path it has from the entry file of the service in
+ * its workspace: the manifest one step up, the migrations in the folder
+ * of the code that applies them, and the file of an image in the folder
+ * of the code that builds it. So the service finds each by the same step
+ * from its own place, built or not.
  */
 export const PACKAGE_BUILD = {
   folder: 'dist',
   manifest: 'dist/package.json',
-  migrations: { from: 'backend/migrations', to: 'dist/migrations' },
-  /**
-   * What the image of the generator is built from. It is at the path it
-   * has from the entry file of the service in its workspace, so the
-   * service finds it by one step from its own place, built or not.
-   */
+  migrations: {
+    from: 'backend/src/shared/infrastructure/database/migrations',
+    to: 'dist/bin/shared/infrastructure/database/migrations',
+  },
+  /** What the image of the generator is built from. */
   generatorImage: {
     from: 'backend/src/shared/infrastructure/sandbox/generator.Dockerfile',
     to: 'dist/bin/shared/infrastructure/sandbox/generator.Dockerfile',

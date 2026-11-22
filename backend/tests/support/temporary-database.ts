@@ -9,11 +9,14 @@ import { openSqliteConnection } from '#infrastructure/database/sqlite-connection
 import { migrateDatabase } from '#infrastructure/database/sqlite-migrator';
 
 /**
- * `backend/migrations/`, found from this file, as the entry file of the
- * service finds it from its own place.
+ * The migrations of the service, found from this file, as the entry file
+ * of the service finds them from its own place.
  */
 export const MIGRATIONS_FOLDER = fileURLToPath(
-  new URL('../../migrations/', import.meta.url),
+  new URL(
+    '../../src/shared/infrastructure/database/migrations/',
+    import.meta.url,
+  ),
 );
 
 /** A database file in a folder of its own, removed by `remove`. */

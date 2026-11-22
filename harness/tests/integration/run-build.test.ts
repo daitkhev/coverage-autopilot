@@ -147,7 +147,7 @@ describe('runBuild', () => {
     expect(built).not.toContain('#service/');
   });
 
-  it('should put the migrations and one manifest beside the program', async () => {
+  it('should put the migrations and one manifest where the program looks', async () => {
     await runBuild(fakeHost({ root }));
 
     const read = (file: string): string =>

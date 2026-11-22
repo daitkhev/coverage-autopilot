@@ -6,6 +6,11 @@
   },
   {
     "rule": "unknown-file",
+    "path": "backend/src/shared/infrastructure/database/0002-beside-the-folder.sql",
+    "line": 1
+  },
+  {
+    "rule": "unknown-file",
     "path": "backend/src/shared/infrastructure/generator.Dockerfile",
     "line": 1
   },
