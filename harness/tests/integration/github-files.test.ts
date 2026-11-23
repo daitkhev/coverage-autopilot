@@ -14,7 +14,7 @@ const FROZEN = 'frozen.yml';
 const PINNED = /^[\w.-]+\/[\w./-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+$/;
 
 /** The steps of `ci` that a job of their own runs. */
-const OWN_JOB = ['compare', 'mutation'];
+const OWN_JOB = ['compare', 'mutation', 'stress'];
 
 function fileOf(path: string): string {
   return readFileSync(join(REPOSITORY_ROOT, path), 'utf8');
