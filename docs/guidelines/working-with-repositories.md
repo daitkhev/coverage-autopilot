@@ -108,9 +108,9 @@ another cut without changing anything.
 
 ## The install mode
 
-The install is the one command that has the network. How it runs is the
-install mode, `sandboxed` by default (`AUTOPILOT_INSTALL`). To choose for
-one repository:
+The install of the packages is the one command of a repository that has
+the network. How it runs is the install mode, `sandboxed` by default
+(`AUTOPILOT_INSTALL`). To choose for one repository:
 
 ```sh
 npm start -- repo trust owner/name trusted
@@ -250,8 +250,6 @@ step above each earlier limit.
 
 The address of the pull request is on the Improvement screen, in the
 `DONE` row of `list`, and in `status <id>`. The raw output of every tool
-is kept under the instance folder, `~/.coverage-autopilot` by default, as
-`artifacts/<owner>/<label>-<sha256>.txt`. The owner is `scan:<id>` or
-`improvement:<id>`, sometimes with the attempt, and the label names the
-tool, such as `install`, `test-run`, `type-check` or `generator-output`.
-The `OUTPUT` section of the Improvement screen lists the full paths.
+is kept under `~/.coverage-autopilot/artifacts/`, and the `OUTPUT` section
+of the Improvement screen lists the files of an improvement. How to find
+and read them is in [Troubleshooting](troubleshooting.md).
