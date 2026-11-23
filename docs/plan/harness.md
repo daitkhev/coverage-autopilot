@@ -12,21 +12,16 @@ and the layout the rules hold is in
 
 ## Principles
 
-1. **A rule has a mechanism.** The few rules no tool can hold are listed
-   in `AGENTS.md`.
-2. **The same tree gives the same verdict.** `fast` and `full` use no
-   clock, random number or language model, and no network but the first
-   download of a tool. Tool versions are exact. The stress tests depend
-   on the scheduler and run in CI only.
-3. **Zero.** Every rule is an error, with no warnings and no list of known
-   findings. A new rule lands after the code already passes it.
-4. **Numbers move one way.** A floor can rise and a ceiling can fall.
-5. **One command.** `node harness/bin/check.ts <profile>` is what a hook,
-   an agent and CI start.
-6. **A change does not choose its judge.** A change of the policy and a
-   change of anything else never land together.
-7. **A check that did not run has failed.** A missing or partial report
-   is a failure.
+- **A rule has a mechanism.** The few rules no tool can hold are in
+  `AGENTS.md`. Every rule is an error, with no warnings and no list of
+  known findings.
+- **The same tree gives the same verdict.** `fast` and `full` use no
+  clock, random number or language model, and no network but the first
+  download of a tool. The stress tests depend on the scheduler and run in
+  CI only.
+- **Numbers move one way.** A floor can rise and a ceiling can fall.
+- **A check that did not run has failed.** A missing or partial report
+  is a failure.
 
 ## The folder
 
@@ -42,9 +37,6 @@ and the layout the rules hold is in
 | `agents/` | The hooks of any AI agent, and the settings of Claude Code and Codex |
 | `git/` | `pre-commit`, `commit-msg` and `pre-push` |
 | `fixtures/`, `tests/` | Small repositories that are wrong or right on purpose, and the tests of the harness |
-
-The harness obeys its own rules: formatting, lint, types, the coverage
-floor and mutation tests.
 
 ## The gate
 
@@ -74,20 +66,16 @@ floor and mutation tests.
 | `stress` | Vitest on the built service | A guarantee breaks under load or random kills |
 | `mutation` | StrykerJS, then `mutation.ts` | A kill rate is below its floor, or the report is incomplete |
 
-- A step can run alone by its name, as `check.ts lint`. A step never
+- A step can run alone by its name, as `check.ts lint`, and never
   repairs anything.
-- gitleaks, actionlint and zizmor are programs, not npm packages.
-  `tools.json` names one version of each and the checksum of its archive
-  for each kind of machine, and the step downloads it once into
-  `node_modules/.cache/`.
+- gitleaks, actionlint and zizmor are programs. `tools.json` names the
+  version and checksum of each, and the step downloads it once.
 
 ## The ratchet
 
-The ratchet is the project's own architecture linter. It reads every file
-git sees with the TypeScript parser, gives each a class from its path,
-follows every import through the aliases to the file it names, and builds
-two graphs: the design graph of every import, and the runtime graph
-without `import type`.
+The ratchet is the project's own architecture linter. It parses every
+file git sees, follows every import through the aliases to its file, and
+builds a graph of every import and one without `import type`.
 
 | Rule | Fails when |
 | --- | --- |
@@ -120,21 +108,18 @@ that moves one the wrong way.
 | Lines in a file | 300 | Down |
 
 ESLint starts from the strict, type-checked sets of typescript-eslint and
-adds what a file can break on its own: no `Date`, no read of the clock or
-the environment outside the files named for it, no `.then(`, no boolean
-parameter, no default export, no nested ternary, no `TODO`, one class per
-file, no class named like `Manager` or `Helper`, conditions that are
-booleans, and explicit types at module boundaries. A comment cannot turn
-a rule off. Each rule the policy adds has a wrong and a right fixture.
+adds what a file can break on its own, such as no `Date`, no read of the
+environment outside the files named for it, no `.then(`, no default
+export and one class per file. A comment cannot turn a rule off. Each
+rule the policy adds has a wrong and a right fixture.
 
 ## Tests of the harness and the product
 
 - Coverage is measured per area, the harness and each workspace by its
-  own unit and integration tests, at 95% of each counter.
+  own unit and integration tests.
 - The stress tests start the built service as processes: a storm of
-  requests while jobs run, a service killed at random as it works, and
-  services racing to start on one folder. Each passes when its guarantee
-  holds, whatever the order of events.
+  requests while jobs run, a service killed at random, and services
+  racing to start on one folder.
 - Mutation tests run on the harness only, and no floor is set yet for the
   product. A run takes its machine settings from the environment or a
   `.env` that is never committed: `HARNESS_MUTATION_WORKERS`,
@@ -159,8 +144,6 @@ $$
 | Agent, before an edit | A file of the policy waits for the owner. In a linked work tree it is refused |
 | Agent, when it is done | `full` on the tree it worked in. A red step sends it back once with the last 8,000 characters of the output |
 
-- Git keeps hooks outside a clone, so each clone runs
-  `git config core.hooksPath harness/git` once.
 - The agent hooks are written once and know no agent.
   `.claude/settings.json` and `.codex/hooks.json` are links to the
   settings in `harness/agents/`.
@@ -180,14 +163,13 @@ lockfile, every `tsconfig`, `.github/`, `.claude/` and `.codex/`.
 | Adds or updates a tool | One change of the policy, with the lockfile |
 | Adds a rule that existing code breaks | First the code is fixed, then the rule |
 
-- The `frozen` workflow runs on `pull_request_target`, so GitHub takes it
-  from the default branch. It runs `guard.ts` of that branch on the list
-  of changed files and never checks the change out. The promotion of
-  `dev` into `main` is not judged.
-- Install scripts are off for every package, and CI holds no secret.
-- CI runs every step of `ci` as its own job on pushes to `dev` and `main`
-  and on pull requests, with `compare`, the commit messages and the
-  branch name. The mutation step runs on pull requests into `main` and by
-  hand.
-- The settings of the repository on GitHub, such as the required checks
-  and the rule of `main`, are not files, and no check here holds them.
+- A change of the policy and a change of anything else never land
+  together. The `frozen` workflow runs on `pull_request_target`, so
+  GitHub takes it from the default branch, and it judges the list of
+  changed files without checking the change out. The promotion of `dev`
+  into `main` is not judged.
+- CI runs each step of `ci` as its own job, with `compare`, the commit
+  messages and the branch name, and holds no secret. The mutation step
+  runs on pull requests into `main` and by hand.
+- Install scripts are off for every package. The settings of the
+  repository on GitHub are not files, and no check here holds them.
