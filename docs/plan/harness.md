@@ -17,8 +17,9 @@ and the layout the rules hold is in
   known findings.
 - **The same tree gives the same verdict.** `fast` and `full` use no
   clock, random number or language model, and no network but the first
-  download of a tool. The stress tests depend on the scheduler and run in
-  CI only.
+  download of a tool. The stress tests depend on the scheduler, so they
+  and the mutation tests are in the `ci` profile only, and in CI a person
+  starts both by hand.
 - **Numbers move one way.** A floor can rise and a ceiling can fall.
 - **A check that did not run has failed.** A missing or partial report
   is a failure.

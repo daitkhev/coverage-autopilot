@@ -1030,6 +1030,16 @@ open and why it matters. Owed work that the code shows done was dropped.
 - Mutation tests cover the harness only, so a weak test of the product
   passes the gate. The rule that keeps colour and symbols in the theme
   is not written.
+- The stress and mutation jobs of CI start only by hand since 2026-11-23,
+  on the owner's word, so a push is not held by them. The storm of
+  requests failed there once with seed 682130240: a `git fetch` into a
+  mirror was killed by a cancel after 55 ms, and every later scan of that
+  repository failed at `git checkout` with code 128 until its job was
+  dead. The likely cause, not yet proven: the killed fetch left the
+  commit in the mirror without its trees, and the mirror takes a commit
+  it can name for one it holds whole, so it never fetches again. A fetch
+  that keeps its pack (`fetch.unpackLimit=1`) would arrive whole or not
+  at all.
 
 ### Thought of after the first real runs, and left for later by the owner
 
