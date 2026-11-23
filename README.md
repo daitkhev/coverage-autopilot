@@ -105,12 +105,15 @@ pull request in a repository of someone else by itself.
 | Repository | File | Lines | Mutants detected | Cost | Pull request |
 | --- | --- | --- | --- | --- | --- |
 | [pmndrs/zustand](https://github.com/pmndrs/zustand) | `src/middleware/ssrSafe.ts` | 0 % → 100 % | 6 of 8 | 1 attempt, 2.4k tokens, 6 min | [daitkhev/zustand#1](https://github.com/daitkhev/zustand/pull/1) |
+| the same repository | `src/middleware/persist.ts` | 94.3 % → 99.1 % | 17 of 22 | 2 attempts, 13.9k tokens, 22 min | [daitkhev/zustand#2](https://github.com/daitkhev/zustand/pull/2) |
 | [binance/binance-connector-typescript](https://github.com/binance/binance-connector-typescript) | `src/modules/restful/convert/convert.ts` | 11.5 % → 100 % | 35 of 37 | 1 attempt, 6.8k tokens, 13 min | [daitkhev/binance-connector-typescript#3](https://github.com/daitkhev/binance-connector-typescript/pull/3) |
 
 - The first is a project of pnpm and Vitest that is 95.6 % covered, so its
   threshold was raised to 100 % and its files were queued one after
-  another: the queue runs one job of a repository at a time.
-- The second is the run of the recording above.
+  another: the queue runs one job of a repository at a time. The first
+  attempt at `persist.ts` did not type-check; the gate told the generator
+  why, and the second attempt was accepted.
+- The last row is the run of the recording above.
 
 ## The problems it solves
 
