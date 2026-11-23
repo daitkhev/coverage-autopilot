@@ -7,47 +7,35 @@ number and every status comes from the service described in
 [System design](system-design.md).
 
 The pictures are mock-ups drawn before the code, not screenshots. Names,
-numbers and limits in them are examples, and the marks added later, such
-as an own threshold, a trusted install or tests that fail in the sandbox,
-are not drawn. The static page
-[mockups/terminal-ui.html](mockups/terminal-ui.html) holds the whole
-first set. Three of its screens no longer match the code: the two that
-connect a repository, where a missing right to push refused it, and the
-window that is too small, which asked for 24 rows.
+numbers and limits in them are examples, and marks added later, such as
+an own threshold or a trusted install, are not drawn. The page
+[mockups/terminal-ui.html](mockups/terminal-ui.html) holds the first
+set. Three of its screens no longer match: the two that connect a
+repository, which refused one without the right to push, and the window
+that is too small, which asked for 24 rows.
 
 ## Two ways in
 
-| Started as | What it is | For |
-| --- | --- | --- |
-| `coverage-autopilot` in a terminal | Interactive screens | A person |
-| `coverage-autopilot <command>` | One command, one result, an exit code | Scripts and CI |
+`coverage-autopilot` in a terminal opens the screens, for a person.
+`coverage-autopilot <command>` runs one command with one result and an
+exit code, for scripts and CI. Both call the same service. With no
+command and no terminal, the tool prints its help and exits with 2.
 
-Both are one client in one package and call the same service. Started
-with no command and no terminal, the tool prints its help and exits
-with 2.
-
-## Principles
-
-1. **The client keeps nothing.** Closing it stops no job, and opening it
-   again shows the same picture.
-2. **One screen answers one question.** A list on the left, the chosen
-   item on the right.
-3. **Unknown is shown as unknown.** A file with no numbers is `N/A` with
-   its reason, never 0%.
-4. **Colour is never the only sign.** Every status is a symbol and a word.
-   Red is kept for failed work and for answers that cannot be undone.
-5. **Nothing irreversible happens on one key.** A cancel asks first, and
-   the safe answer is chosen.
+- **The client keeps nothing.** Closing it stops no job.
+- **Unknown is shown as unknown.** A file with no numbers is `N/A` with
+  its reason, never 0%.
+- **Colour is never the only sign.** Every status is a symbol and a word.
+- **Nothing irreversible happens on one key.** A cancel asks first, with
+  the safe answer chosen.
 
 ## Layout
 
 ![Repositories](mockups/repositories.png)
 
-Every screen has a header with the three sections and the state of the
-service, an optional context line, a body of one or two panels, and a
-footer with the path, the position and the keys that work now. The
-screens take the whole terminal, as an editor does, and give it back on
-the way out.
+Every screen has a header with the sections and the state of the
+service, a body of one or two panels, and a footer with the path and the
+keys that work now. The screens take the whole terminal and give it back
+on the way out.
 
 | Size | Body |
 | --- | --- |
@@ -60,13 +48,10 @@ the way out.
 
 ![Files at 80 columns](mockups/files-narrow.png)
 
-- In a low window only the body gives way, and a panel cuts its end.
-- Colour goes with `NO_COLOR` or `--no-color`. Symbols become ASCII when
-  the locale does not name UTF-8.
-- The terminal's own sixteen colours are the theme: magenta for focus and
-  what waits for the person, green for passed, yellow for below the
-  threshold and rejected attempts, red for failures, cyan for running
-  work, grey for borders.
+- The terminal's own colours are the theme: magenta for focus, green for
+  passed, yellow for below the threshold and rejected attempts, red for
+  failures, cyan for running work. `NO_COLOR` or `--no-color` drops them,
+  and symbols become ASCII when the locale does not name UTF-8.
 
 ## Statuses
 
@@ -81,9 +66,7 @@ the way out.
 | `skipped` | `– SKIP` | The reason as a sentence |
 
 A scan uses the same words. An attempt is `accepted`, `rejected` in
-yellow, or `runs again` when its verdict was inconclusive. A check that
-could not finish is yellow as well. A step of the access check that
-refused is red, and one never reached is dim.
+yellow, or `runs again` when its verdict was inconclusive.
 
 ## Screens
 
@@ -102,20 +85,16 @@ The sections are `1` Repositories, `2` Improvements and `3` Service. Each
 section keeps its trail, and a screen comes back as it was left.
 
 **Repositories.** A row shows the line coverage of the latest snapshot,
-the files below the threshold, the branch, the commit and the age of the
-scan, or the step a running scan is at. A repository whose head moved
-since its snapshot is `outdated`. The details show the four counters,
-how the files divide, the latest work, the threshold and the install
-mode. `a` connects a repository by its address and runs the access check,
-`s` scans, `t` sets a threshold of its own and `i` trusts the install,
-after a dialog that says what trusted code can reach.
+the files below the threshold, the commit and the age of the scan, or
+the step a running scan is at, and `outdated` when the head moved. `a`
+connects a repository and runs the access check, `s` scans, `t` sets a
+threshold of its own and `i` trusts the install, after a dialog that
+says what trusted code can reach.
 
 **Files.** The latest snapshot of one repository, in four lists: below
-the threshold, all, not measured and no code, switched with `[` and `]`.
-The least covered file comes first. The details show the four counters,
-the lines, branches and functions not covered, and the history of the
-file. `i` improves the chosen file, and is inactive with its reason for a
-file that has no numbers.
+the threshold, all, not measured and no code, switched with `[` and `]`,
+the least covered file first. `i` improves the chosen file, and is
+inactive with its reason for a file that has no numbers.
 
 ![Files](mockups/files.png)
 
@@ -129,12 +108,10 @@ repository or a fork.
 ![Start an improvement](mockups/start-improvement.png)
 
 **Improvement.** How far the work has come, asked again about once a
-second. A step line shows the whole path. The history shows each attempt
-with its verdict and reasons, the seven checks of the running one with
-their times, and where a failed test run broke first. The details show
-the budget in use, the target and the settings. A final screen names the
-reason and offers the next step: the pull request with `o`, the next file
-with `n`, or the same file again with larger limits after a spent budget.
+second: each attempt with its verdict and reasons, the seven checks of
+the running one, and the budget in use. A final screen names the reason
+and offers the next step: the pull request with `o`, the next file with
+`n`, or the same file again with larger limits after a spent budget.
 
 ![Improvement in progress](mockups/improvement-running.png)
 
@@ -172,9 +149,8 @@ running work, versions, the account of the generator and its limits, and
 
 - `esc` never quits. `q` and `ctrl+c` quit and cancel nothing, and the
   client says which work keeps running.
-- A dialog takes every key, and what is behind it is dim.
-- `:` opens the list of every action the screen offers now, filtered as
-  the person types.
+- A dialog takes every key. `:` lists every action the screen offers
+  now, filtered as the person types.
 
 ![Command palette](mockups/command-palette.png)
 
@@ -213,17 +189,13 @@ one command, and `--no-color` drops colour. `files` takes `--below`,
 | 1 | The work failed or was cancelled, or the service could not be reached |
 | 2 | The command line was wrong |
 
-- Standard output holds the result, and only when the code is 0. With
-  `--wait`, `improve` prints the address of the pull request there, or
-  the `approve` command with the hash in review mode.
-- Progress goes to standard error, one line per change. A refusal or a
-  failed job goes there as one line of JSON in the shape of the service.
+Standard output holds the result, and only when the code is 0: with
+`--wait`, `improve` prints the pull request, or the `approve` command in
+review mode. Progress and refusals go to standard error.
 
 ## Left out
 
-- Mouse support, and editing settings other than a threshold and an
-  install mode from a screen.
-- Searching inside a patch. `patch <id>` prints it for any pager.
-- A live stream of tool output, and more than one theme.
-- A test that resizes a running client in a real pseudo-terminal.
-- Windows.
+Mouse support, settings other than a threshold and an install mode,
+search inside a patch, a live stream of tool output, more than one
+theme, a test that resizes a running client in a real terminal, and
+Windows.
