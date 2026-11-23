@@ -155,7 +155,7 @@ service share, so neither can drift.
 ### The domain
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph repositories
     Repo(["Repository"])
     Access(["Access<br/>check"])
@@ -276,7 +276,7 @@ in small ways and runs the existing tests. Then:
 $$
 \Delta K \ge 1
 \qquad\text{and}\qquad
-\frac{\Delta K}{R} \ge 50\%
+\frac{\Delta K}{R} \ge \frac{1}{2}
 $$
 
 The new tests must notice at least half of the changes of the code they
