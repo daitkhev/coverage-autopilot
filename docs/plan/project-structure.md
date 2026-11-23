@@ -2,477 +2,185 @@
 
 Author: Valentin Daitkhe
 
-This document fixes where code lives and which parts may depend on which. It
-follows from [Scope and requirements](scope-and-requirements.md). File names in
-the examples are illustrative. The domain model itself is defined in
-[System design](system-design.md).
+Where code lives and which part may import which, as the code stands. How
+the parts work together is in [System design](system-design.md). Every
+rule here is held by a tool, described in [Harness](harness.md).
 
 ## Repository layout
 
 ```text
 coverage-autopilot/
-├── backend/
-│   ├── src/
-│   │   ├── main.ts
-│   │   ├── worker.ts
-│   │   ├── app.module.ts
-│   │   ├── modules/
-│   │   │   ├── repositories/
-│   │   │   ├── coverage/
-│   │   │   ├── verification/
-│   │   │   └── improvement/
-│   │   └── shared/
-│   │       ├── kernel/
-│   │       ├── application/
-│   │       └── infrastructure/
-│   ├── migrations/
-│   ├── tests/
-│   │   ├── unit/
-│   │   ├── integration/
-│   │   ├── e2e/
-│   │   ├── stress/
-│   │   └── support/
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── frontend/
-│   ├── src/
-│   │   ├── main.tsx
-│   │   ├── app/
-│   │   ├── screens/
-│   │   │   ├── repositories/
-│   │   │   ├── files/
-│   │   │   └── improvements/
-│   │   ├── commands/
-│   │   ├── components/
-│   │   ├── theme/
-│   │   ├── hooks/
-│   │   └── api/
-│   ├── tests/
-│   │   ├── unit/
-│   │   ├── integration/
-│   │   ├── e2e/
-│   │   └── support/
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── api-contracts/
-│   ├── src/
-│   ├── tests/
-│   │   └── unit/
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── harness/
-│   ├── bin/
-│   ├── policy/
-│   ├── architecture/
-│   ├── eslint/
-│   ├── configs/
-│   ├── agents/
-│   ├── git/
-│   ├── fixtures/
-│   └── tests/
-│
-├── docs/
-│   └── plan/
-├── .github/
-│   ├── workflows/
-│   ├── CODEOWNERS
-│   └── dependabot.yml
-├── .claude/
-│   └── settings.json
-├── .codex/
-│   └── hooks.json
-├── .env.example
-├── AGENTS.md
-├── package.json
-└── README.md
+├── backend/            the NestJS service
+│   ├── src/            main.ts, composition/, modules/, shared/
+│   └── tests/          unit/, integration/, e2e/, stress/, support/
+├── frontend/           the terminal client, React and Ink
+│   ├── src/            main.tsx, composition/, app/, screens/,
+│   │                   commands/, components/, hooks/, theme/, api/
+│   └── tests/          unit/, integration/, e2e/, support/
+├── api-contracts/      Zod schemas of the HTTP API, tests/unit/
+├── harness/            the gate, the policy and the hooks
+├── docs/               plan/ and implementation/
+├── .github/            workflows, CODEOWNERS, dependabot.yml
+├── .claude/, .codex/   links to agent settings in harness/
+├── AGENTS.md           the rules for whoever changes the tree
+└── package.json        the workspaces and the tools
 ```
 
-- `backend/` is the NestJS service. `main.ts` starts the HTTP API on a local
-  socket and `worker.ts` starts the job worker. Both load the same modules.
-  Running them as one process or two is a deployment choice, because jobs are
-  claimed through the database. `migrations/` holds plain SQL files. The
-  service applies the missing ones in order every time it starts.
-- `frontend/` is the terminal client. `screens/` holds the interactive views and
-  `commands/` holds the non-interactive commands. It talks to the backend only
-  through `api/`. `theme/` is the only place that names a colour or a symbol:
-  it holds the colour roles, the symbols with their ASCII replacements, the
-  words for every status and the three widths of the layout. The screens and
-  the commands are described in [Terminal UI](terminal-ui.md).
-- `api-contracts/` holds the Zod schemas of the HTTP API. The backend validates
-  requests with them and the frontend validates responses with them, so each
-  DTO is described once and its type is inferred from the schema.
-- `harness/` holds the checks that decide whether a change may land: the
-  tools, their configuration, the policy as data, the hooks of git and
-  the hooks and settings of the AI agents. It is not a workspace. It
-  belongs to the root package and no product code imports it. It is
-  described in [Harness](harness.md).
-- `AGENTS.md` is the text for whoever changes the tree, an AI agent or
-  a person: how the hooks are switched on, the profiles of the gate and
-  the rules that no tool holds. `.claude/settings.json` and
-  `.codex/hooks.json` are links to the settings in `harness/`, because
-  each agent reads its settings from its own folder only. They are
-  described in [Harness](harness.md#the-ai-agent).
-- `.github/` holds the two workflows, the gate and the check of frozen
-  files, the owner of the policy files and the file of Dependabot.
-- `.env.example` lists the settings of one machine, such as how much
-  memory a mutation run may take. A person copies it to `.env`, which is
-  never committed. The settings are described in
-  [Harness](harness.md#settings-of-one-machine).
 - The root `package.json` declares `backend`, `frontend` and
-  `api-contracts` as workspaces.
+  `api-contracts` as workspaces. The build bundles them with rolldown into
+  one package in `dist/`: `bin/client.js` is the command a person runs
+  and `bin/service.js` the service it starts. Packages of npm stay
+  imports.
+- `harness/` is not a workspace. It belongs to the root, no product code
+  imports it, and Node runs it as TypeScript with no build.
+- The files at the root that configure ESLint, Prettier and Vitest are one
+  line each that points into `harness/`, and the root `tsconfig.json`
+  extends the base there.
 
-## Backend modules
-
-Each module is a bounded context with its own rules and its own lifecycle.
-
-| Module | Owns |
-| --- | --- |
-| `repositories` | Connected repositories, access checks, working copies, branches and pull requests. Everything that uses `git` and `gh` |
-| `coverage` | Project detection, test runs with coverage, report parsing, snapshots, thresholds |
-| `verification` | Quality gate, repeated runs, mutation testing. Stores nothing |
-| `improvement` | Improvement, its attempts and statuses, budget, test generation, the decision to publish |
-
-The job queue is not a module. It is technical code in
-`shared/infrastructure/queue`, and both `coverage` and `improvement` put jobs
-into it.
-
-Dependencies point one way and have no cycles:
-
-```mermaid
-flowchart TD
-    IMP["improvement"] --> VER["verification"]
-    IMP --> COV["coverage"]
-    IMP --> REPO["repositories"]
-    VER --> COV
-    VER --> REPO
-    COV --> REPO
-```
-
-- `coverage` asks `repositories` for a working copy.
-- `verification` asks `repositories` for a clean working copy, applies the
-  patch to it, and asks `coverage` to run tests and measure them.
-- `improvement` drives the whole job and uses the other three.
-
-A module calls another module only through that module's `contracts/` folder.
-Only values cross a module boundary. A working copy belongs to the module that
-asked for it. The contracts are listed in
-[System design](system-design.md#contracts-between-modules).
-
-## Inside a module
-
-Every module has the same layers. This is the `coverage` module as an example:
+## Backend
 
 ```text
-backend/src/modules/coverage/
-├── domain/
-│   ├── entities/
-│   │   └── coverage-snapshot.entity.ts
-│   ├── value-objects/
-│   │   ├── coverage-percentage.vo.ts
-│   │   └── coverage-threshold.vo.ts
-│   ├── services/
-│   ├── errors/
-│   │   └── invalid-coverage-percentage.error.ts
-│   └── repositories/
-│       └── coverage-snapshot.repository.ts
-│
-├── application/
-│   ├── commands/
-│   │   └── scan-repository/
-│   ├── queries/
-│   │   └── list-low-coverage-files/
-│   ├── ports/
-│   │   ├── project-detector.port.ts
-│   │   ├── test-runner.port.ts
-│   │   └── coverage-report-parser.port.ts
-│   └── dto/
-│
-├── infrastructure/
-│   ├── persistence/
-│   │   └── sqlite-coverage-snapshot.repository.ts
-│   ├── runners/
-│   │   ├── jest-runner.adapter.ts
-│   │   └── vitest-runner.adapter.ts
-│   └── reports/
-│       └── istanbul-report-parser.adapter.ts
-│
-├── presentation/
-│   └── http/
-│       └── coverage.controller.ts
-│
-├── contracts/
-│   └── coverage-public-api.ts
-│
+backend/src/
+├── main.ts           two paths and one call
+├── composition/      the root module, module settings, the process
+├── modules/
+│   ├── repositories/
+│   ├── coverage/
+│   ├── verification/
+│   └── improvement/
+└── shared/
+    ├── kernel/          errors, id, primitives, time, transaction
+    ├── application/     ports: queue, handler, sandbox, store, alarm
+    └── infrastructure/  database, queue, sandbox, config, http, ...
+```
+
+Every module has the same three layers and a module file:
+
+```text
+modules/coverage/
+├── domain/           entities/, value-objects/, services/,
+│                     errors/, repositories/
+├── application/      commands/, queries/, contracts/, ports/,
+│                     dto/, errors/
+├── infrastructure/   persistence/, http/, errors/, and one folder
+│                     per technology, such as runners/ or reports/
 └── coverage.module.ts
 ```
 
-| Layer | Contains | May use the framework |
+| Layer | Holds | May import |
 | --- | --- | --- |
-| `domain` | Entities, value objects, domain services, errors, repository interfaces | No |
-| `application` | Use cases as commands and queries, ports for everything outside | Only `@Injectable()` and `@Inject()` |
-| `infrastructure` | Implementations of repositories and ports: SQLite, test runners, CLIs | Yes |
-| `presentation` | HTTP controllers | Yes |
-| `contracts` | The only surface other modules may import | No |
+| `domain` | Entities, value objects, domain services, errors, repository interfaces | Its own domain and `shared/kernel`. No framework, no Zod, no package |
+| `application` | Use cases as commands and queries, ports, DTOs | Its domain, `shared/kernel`, `shared/application`, and the contracts of modules below it. From NestJS only `Injectable` and `Inject` |
+| `application/contracts` | The one surface another module may import | Nothing else of its module, and the kernel |
+| `infrastructure` | SQLite repositories, adapters of the ports | Its application and domain, and shared code |
+| `infrastructure/http` | NestJS controllers | Its application layer and the kernel. Only the module file imports a route |
 
-```mermaid
-flowchart TD
-    PRES["presentation"] --> APP["application"]
-    INFRA["infrastructure"] --> APP
-    INFRA --> DOM["domain"]
-    APP --> DOM
-    APP --> OTHER["contracts of<br/>other modules"]
-    APP --> PORTS["shared ports"]
-    DOM --> KERNEL["shared/kernel"]
-```
+- The modules depend one way: `improvement` uses the other three,
+  `verification` uses `coverage` and `repositories`, and `coverage` uses
+  `repositories`. A cycle is refused.
+- `composition/` builds the service from the module files and shared
+  code. Only `main.ts` imports it, and it imports no layer of a module.
+- `shared/kernel` imports nothing of the project. `shared/application`
+  imports the kernel. `shared/infrastructure` imports both and no module.
+- The migrations are SQL files in
+  `shared/infrastructure/database/migrations/`, beside the code that
+  applies them.
+- SQL is written only in `infrastructure/persistence/` of a module and in
+  `shared/infrastructure/`. There is no ORM and no query builder.
+- `Date`, `process.env` and `console` are refused in the service. Time is
+  `Temporal` behind a `Clock`, ids come from an `IdGenerator`, and the
+  environment is read in the entry file and handed on as values.
+- Every error is its own class that extends `DomainError`,
+  `ApplicationError` or `InfrastructureError`. An expected outcome is a
+  value, never an exception.
 
-Repository interfaces live in `domain/repositories/`. Every other outbound
-dependency is a port in `application/ports/`. A folder is created only when it
-has a file to hold: a module with no domain services has no `services/` folder.
+## Frontend
 
-Modules call each other synchronously. There is no event bus and no `events/`
-folder in the first version.
+| Folder | Holds | May import |
+| --- | --- | --- |
+| `main.tsx` | The entry: reads the process | `composition/` |
+| `composition/` | The choice between the screens and the commands, signals | `app/`, `commands/` |
+| `app/` | The app over the screens, navigation, keys that work everywhere | `screens/`, `components/`, `hooks/`, `theme/`, `api/` |
+| `screens/<name>/` | Six screens, each in its own folder | `components/`, `hooks/`, `theme/`, `api/` |
+| `commands/` | One file per command for scripts | `api/`, `theme/` |
+| `components/` | Panels, lists, bars, dialogs | `hooks/`, `theme/` |
+| `hooks/` | Keys, focus, selection, size, timers | `theme/` |
+| `api/` | The client of the socket, starting the service | Nothing |
+| `theme/` | Colour roles, symbols, words for statuses, widths | Nothing |
 
-## Shared code
-
-```text
-backend/src/shared/
-├── kernel/
-│   ├── primitives/
-│   ├── errors/
-│   ├── time/
-│   └── id/
-├── application/
-│   └── ports/
-└── infrastructure/
-    ├── database/
-    ├── queue/
-    ├── artifacts/
-    ├── config/
-    ├── logging/
-    ├── time/
-    ├── id/
-    └── sandbox/
-```
-
-- `kernel/` is plain TypeScript: base classes for entities and value objects,
-  the small types every module uses (`RepositoryId`, `CommitSha`, `FilePath`),
-  the three base errors (`DomainError`, `ApplicationError`,
-  `InfrastructureError`), the `Clock` and `IdGenerator` interfaces, and an
-  opaque `Transaction` handle. The domain may import it.
-- `application/ports/` holds the technical interfaces that only the
-  application layer needs: `TransactionManager`, `JobQueue` and `JobHandler`.
-  The domain may not import it, so a domain object cannot reach the queue.
-- `infrastructure/` is technical code used by more than one module: the SQLite
-  connection, the job queue, storage for raw tool output, configuration,
-  logging, the system clock, the id generator and the sandbox that runs
-  untrusted commands. The domain may not import it.
-
-Errors are exceptions. Every error is its own class that extends one of the
-three base errors, and one boundary per entry point turns them into an HTTP
-response or a job failure reason. An expected outcome, such as a rejected
-candidate, is a typed value and not an exception.
-
-The domain and the application never call `new Date()` or `randomUUID()`. They
-receive a `Clock` and an `IdGenerator`, which keeps leases, timeouts and ids
-deterministic in tests.
-
-There is no `utils/` folder. A helper belongs to the module that needs it.
-
-## Frontend folders
-
-The client has no layers of a domain. Its folders still import one way.
-
-| Folder | May import |
-| --- | --- |
-| `main.tsx` | `app/`, `commands/` |
-| `app/` | `screens/`, `components/`, `hooks/`, `theme/`, `api/` |
-| `screens/<name>/` | Its own folder, `components/`, `hooks/`, `theme/`, `api/` |
-| `commands/` | `api/`, `theme/` |
-| `components/` | `components/`, `hooks/`, `theme/` |
-| `hooks/` | `hooks/`, `theme/` |
-| `api/` | `api/` |
-| `theme/` | `theme/` |
-
-- The table lists what is allowed. Anything it does not list is refused,
-  whether or not it makes a cycle.
-- A screen never imports another screen. Moving between screens is the job
-  of `app/`.
-- `commands/` imports no screen, no component and no hook. Ink and React
-  are imported in `app/`, `screens/`, `components/` and `hooks/` only, so a
-  command, the client in `api/` and `theme/` work without the interactive
-  view.
-- `hooks/` holds hooks of the interface only: the keys, the focus, the
-  selection, the size of the terminal, a timer. None of them imports
-  `api/`. The hook that repeats a request takes the request as an
-  argument, and the screen passes it in. A hook that knows one request of
-  the service lives in the folder of its screen.
-- A component gets what it draws as props. No chain of imports leads from
-  `components/` or `hooks/` to `api/`. A part of one screen that knows an
-  improvement lives in the folder of that screen.
-- Any folder may import a type from `api-contracts`. Only `api/` imports
-  its schemas, and only `api/` opens the socket.
-
-## Dependency rules
-
-These rules are checked by a tool, not by review. The tool behind each one
-is named in [Harness](harness.md).
-
-1. `domain` imports only its own module's `domain` and `shared/kernel`.
-2. `application` imports its own `domain`, `shared/kernel`,
-   `shared/application` and the `contracts` of other modules.
-3. Only `infrastructure` and `presentation` import NestJS, the database driver
-   or any other library that does I/O. The one exception: `application` may
-   import the `@Injectable()` and `@Inject()` decorators, and nothing else from
-   NestJS.
-4. A module never imports from another module outside its `contracts/`.
-5. `shared/kernel` imports nothing from the project and no framework.
-   `shared/application` imports only `shared/kernel`.
-6. `frontend` imports nothing from `backend`, and `backend` imports nothing
-   from `frontend`. Both may import `api-contracts`, which imports neither.
-7. Zod is used where data enters the system: `api-contracts`, configuration and
-   adapters that parse the output of external tools. The domain does not import
-   it and checks its own invariants.
-8. No file uses a relative import. Every import goes through an alias from the
-   [Imports](#imports) section.
-9. SQL is written only in `infrastructure/persistence` of a module, in
-   `shared/infrastructure` and in `migrations/`. There is no ORM and no query
-   builder.
-10. A folder of `frontend` imports only what its row in
-    [Frontend folders](#frontend-folders) allows.
+- A folder may import itself and what its row names, and nothing else. A
+  screen never imports another screen.
+- No chain of imports leads from `components/` or `hooks/` to `api/`.
+- Any folder may import a type from `api-contracts`. Only `api/` opens the
+  socket. The service and the client never import each other.
 
 ## Imports
 
-Relative imports are not allowed anywhere, including `./` inside one folder.
-Every import starts with an alias, so a path reads the same from any file and
-does not change when the importing file moves.
+Every import starts with an alias. A relative import is refused, `./`
+included.
 
 | Alias | Points to |
 | --- | --- |
 | `#repositories/*`, `#coverage/*`, `#verification/*`, `#improvement/*` | `backend/src/modules/<module>/*` |
-| `#kernel/*` | `backend/src/shared/kernel/*` |
-| `#ports/*` | `backend/src/shared/application/ports/*` |
-| `#infrastructure/*` | `backend/src/shared/infrastructure/*` |
-| `#tests/*` | `tests/*` of the workspace the file is in |
-| `#app/*`, `#screens/*`, `#commands/*`, `#components/*`, `#theme/*`, `#hooks/*`, `#api/*` | `frontend/src/<folder>/*` |
-| `#api-contracts/*` | `api-contracts/src/*`, for the files of that workspace itself |
-| `#harness/*` | `harness/*` |
-| `@coverage-autopilot/api-contracts` | The `api-contracts` workspace |
+| `#kernel/*`, `#ports/*`, `#infrastructure/*` | `backend/src/shared/kernel`, `shared/application/ports`, `shared/infrastructure` |
+| `#composition/*`, `#service/*` | `backend/src/composition/` and the root of `backend/src/`, for the entry |
+| `#app/*`, `#screens/*`, `#commands/*`, `#components/*`, `#hooks/*`, `#theme/*`, `#api/*`, `#composition/*`, `#client/*` | The folders of `frontend/src/`, and its root for the entry |
+| `#tests/*` | `tests/` of the same workspace |
+| `#api-contracts/*` | `api-contracts/src/`, inside that workspace |
+| `@coverage-autopilot/api-contracts` | The contracts, from the other workspaces |
+| `#harness/*` | `harness/` |
 
-```ts
-import { DomainError } from '#kernel/errors/domain.error';
-import type { Clock } from '#kernel/time/clock';
-import type { WorkingCopy } from '#repositories/contracts/working-copy.dto';
-```
-
-An alias is only a name for a path. The dependency rules above still apply to
-the file it points to: `#coverage/contracts/...` may be imported from another
-module and `#coverage/domain/...` may not.
+An alias is only a name: the rules of layers and modules still apply to
+the file it reaches.
 
 ## Naming
 
-Files are kebab-case with the role as a suffix.
+Files are kebab-case. `index`, `utils`, `helpers`, `common` and `misc`
+are refused as names. A role is a suffix, and the suffix fixes the folder:
 
-| Suffix | Role |
-| --- | --- |
-| `.entity.ts` | Entity or aggregate root |
-| `.vo.ts` | Value object |
-| `.service.ts` | Domain service |
-| `.error.ts` | One error class |
-| `.schema.ts` | Zod schema and the DTO type inferred from it |
-| `.dto.ts` | DTO that needs no validation |
-| `.repository.ts` | Repository interface in `domain`, implementation in `infrastructure` |
-| `.port.ts` | Outbound port |
-| `.adapter.ts` | Implementation of a port |
-| `.command.ts`, `.query.ts` | Use case input |
-| `.handler.ts` | Use case |
-| `.controller.ts` | HTTP controller |
-| `.module.ts` | NestJS module |
-| `.test.ts` | Test of any kind. The folder tells which kind |
+| Suffix | Role | Folder |
+| --- | --- | --- |
+| `.entity.ts`, `.vo.ts`, `.service.ts` | Entity, value object, domain service | `domain/` |
+| `.repository.ts` | Repository interface, or its SQLite adapter | `domain/repositories/`, `infrastructure/persistence/` |
+| `.command.ts`, `.query.ts`, `.handler.ts` | Use case input and use case | `application/commands/`, `application/queries/` |
+| `.port.ts`, `.dto.ts` | Outbound port, DTO | `application/` |
+| `.adapter.ts`, `.schema.ts`, `.controller.ts` | Adapter, Zod schema of outside data, route | `infrastructure/` |
+| `.error.ts` | One error class | `errors/` of a layer |
+| `.module.ts` | NestJS module | The root of a module |
+| `.test.ts`, `.test.tsx` | A test of any kind | `tests/` |
 
-An implementation carries its technology as a prefix:
-`sqlite-coverage-snapshot.repository.ts`, `jest-runner.adapter.ts`.
+An implementation names its technology first, such as
+`sqlite-coverage-snapshot.repository.ts`.
 
 ## Tests
 
-Vitest runs every test of the project. Why it is not Jest is in
-[Known problems](#known-problems). Tests do not sit next to the code. Each
-workspace has a `tests/` folder with one subfolder per kind of test:
+Vitest runs every test. Tests live in the `tests/` folder of their
+workspace, one folder per kind:
 
 | Folder | Tests | May touch |
 | --- | --- | --- |
-| `tests/unit/` | One class or function on its own | Memory only: no database, file system, network or child process |
-| `tests/integration/` | An adapter against the real thing it wraps: SQLite, `git`, a test runner on a fixture project | Local resources, no network |
-| `tests/e2e/` | The running service through its HTTP API and the client | Everything a real run uses, with external services faked |
-| `tests/stress/` | A guarantee of the design under load: real processes that share one database and are stopped at random | The same as `tests/e2e/`. Only the backend has this folder |
+| `unit/` | One class or function, or a screen rendered to text | Memory only. No import chain reaches I/O |
+| `integration/` | An adapter against the real thing: SQLite, git, a runner on a fixture, a socket | Local resources |
+| `e2e/` | The built package as a process, through its socket | Everything, with the engine, the host and the generator faked |
+| `stress/` | The built service flooded with requests, killed at random as it works, or started twice at once | The same as `e2e/`. Only the backend has it |
 
-- The path under `tests/unit/` repeats the path under `src/`:
-  `src/modules/coverage/domain/value-objects/coverage-percentage.vo.ts` is
-  tested by
-  `tests/unit/modules/coverage/domain/value-objects/coverage-percentage.vo.test.ts`.
-- `tests/support/` holds test doubles and builders, such as a fixed clock and a
-  sequential id generator. It contains no tests.
-- A screen of the client rendered to text in memory is a unit test. A test
-  of `api/` against a socket is an integration test.
-- A unit test loads nothing that does I/O, through any chain of imports.
-  So a file of `infrastructure` has integration tests only, and a screen
-  is given the client of `api/` and imports the type of it alone.
-- A test in a folder that is not one of these kinds is refused: the gate
-  would never run it.
-- A stress test passes when the guarantee holds, whatever the order of
-  events was. It runs before a merge only. Which guarantees are tested this
-  way is listed in [Harness](harness.md#invariant-tests).
-- The outer `describe` names the class or function under test. A nested
-  `describe` names a method or a context that starts with `when`. Every `it`
-  starts with `should`.
+- A unit test repeats the path of its source file under `tests/unit/`.
+  A file of `infrastructure` has integration tests only.
+- `tests/support/` holds fakes and builders, such as a fixed clock, and no
+  test.
+- The outer `describe` names the unit, a nested one a method or a `when`,
+  and every `it` starts with `should`.
+- Each workspace and the harness hold 95% of statements, branches,
+  functions and lines. Rendered screens are kept as snapshot files.
 
-```ts
-describe('CoveragePercentage', () => {
-  describe('create', () => {
-    it('should keep a value between 0 and 100', () => {});
+## Known problems of the tools
 
-    describe('when the value is above 100', () => {
-      it('should throw InvalidCoveragePercentageError', () => {});
-    });
-  });
-});
-```
-
-The project's own code is held to 95% coverage on every counter: statements,
-branches, functions and lines. The build fails below that.
-
-## Known problems
-
-These are problems of the tools the project stands on, not of its own
-code. Each one changed a decision, and the reports are linked so that the
-decision can be looked at again when a report is closed.
-
-| Problem | Reported in | What the project does |
-| --- | --- | --- |
-| Jest keeps every module in memory when it runs tests as ES modules, the mode behind `--experimental-vm-modules`. One run of the tests of the harness left about 290 MB that no collection freed. The mutation engine runs the tests thousands of times in one process, and 15 such processes took more than 40 GB | [jestjs/jest#9959](https://github.com/jestjs/jest/issues/9959), [nodejs/node#33439](https://github.com/nodejs/node/issues/33439), [nodejs/node#44211](https://github.com/nodejs/node/issues/44211). [jestjs/jest#15215](https://github.com/jestjs/jest/pull/15215) makes it smaller and does not end it | The tests run on Vitest. The code is ES modules and Ink 8 has no other form, so compiling the tests to CommonJS would not have worked for the client |
-| StrykerJS with Jest and coverage per test keeps the environment of every test file reachable, so memory grows through a run | [stryker-mutator/stryker-js#6253](https://github.com/stryker-mutator/stryker-js/issues/6253). The fix, [#6254](https://github.com/stryker-mutator/stryker-js/pull/6254), is not merged | StrykerJS runs the tests through its Vitest runner |
-| StrykerJS starts one test runner for each processor but one, whatever memory the machine has. On 16 processors that was 15 | [Its configuration](https://stryker-mutator.io/docs/stryker-js/configuration/) | The mutation step always names the number. It comes from the settings of the machine and from the memory that is allowed |
-| A test runner of StrykerJS under Vitest that reaches the limit of its heap ends the whole run with `Worker exited unexpectedly`. It is not started again, as a Jest runner is | Seen here with a heap of 48 MB and of 96 MB. No report was found | The heap of a test runner is never set below 512 MB. Less memory gives fewer test runners and a longer run |
-| A mutant in code that runs while a file is loaded cannot be tied to a test, so every test that can reach the file runs for it | [Static mutants](https://stryker-mutator.io/docs/mutation-testing-elements/static-mutants/) | A test builds what it needs inside the test, and the harness reads no file while a module is loaded |
-| Vitest takes the configuration of a folder above when the project it is started in has none | Seen here: the fixture project ran with the configuration of the root | The fixture project has its own configuration. The product names the configuration when it starts Vitest in a repository |
-| Vitest 5 does not install on Node 25 | The `engines` field of the package | Vitest 4.1.12, until the desk moves to Node 26 |
-| NestJS reads the types of constructor parameters from metadata that only some compilers write. Vitest does not write it by default | Not tried here | To be tried with the first module of the service, with the SWC plugin for Vitest |
-
-Others measured the same thing with Jest before this project did:
-
-- [gbourgeat/ddd-ts-kit#495](https://github.com/gbourgeat/ddd-ts-kit/pull/495):
-  on 31 GB a mutation run under Jest did not finish, at about 2.5 GB for
-  each Jest process. Under Vitest the same 659 mutants took 1 minute and
-  46 seconds.
-- [NightMarketz/luminaristest#673](https://github.com/NightMarketz/luminaristest/pull/673):
-  12 test runners of 1 to 3.3 GB each filled 31 GB. The number of test
-  runners was then worked out from memory, and a test runner is started
-  again after 25 runs.
-- [bymaxone/nest-logger#292](https://github.com/bymaxone/nest-logger/pull/292):
-  a test runner is started again after 50 runs, and the run is cut into
-  eight parts in CI.
-
-What the harness measured on its own code, 2,400 mutants, is in
-[Harness](harness.md#order-of-work).
+| Problem | What the project does |
+| --- | --- |
+| Jest as ES modules keeps every module in memory, and a mutation run of many runners took over 40 GB | The project's own tests run on Vitest |
+| StrykerJS starts a runner per processor whatever the memory | The mutation step of the harness counts its runners from the memory it may use |
+| A Vitest runner that hits its heap ends the whole mutation run | The mutation step of the harness never gives a runner less than 512 MB |
+| Vitest takes the configuration of a folder above a project that has none | The service names the configuration it starts Vitest with |
+| A mutation runner only runs tests related to the mutated file, and a file nobody tested has none | The service tells both runners to run every test |
+| `jest --json` fails on a thrown value that holds a cycle | The service gives Jest a reporter of its own |
+| NestJS needs constructor types that Vitest does not emit | Every class names what it is given with `@Inject` |
