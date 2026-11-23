@@ -27,7 +27,7 @@ exports[`PatchView > should show the patch, its evidence and the question 1`] = 
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ╭─ Your decision ────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ? Approve the patch and open the pull request?                              to example/payments, base main │
+ │ ? Approve the patch and open the pull request?                                 on main of example/payments │
  │ › 1. Decide later                                                                                          │
  │   2. Approve and open the pull request                                                                     │
  │   3. Reject the patch and cancel the improvement                                                           │

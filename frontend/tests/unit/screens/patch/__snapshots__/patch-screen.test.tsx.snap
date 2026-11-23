@@ -64,7 +64,7 @@ exports[`PatchScreen > when the service stops answering > should keep the last p
  │                                                                │ │                                         │
  ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
  ╭─ Your decision ────────────────────────────────────────────────────────────────────────────────────────────╮
- │ ? Approve the patch and open the pull request?                              to example/payments, base main │
+ │ ? Approve the patch and open the pull request?                                 on main of example/payments │
  │ › 1. Decide later                                                                                          │
  │   2. Approve and open the pull request                                                                     │
  │   3. Reject the patch and cancel the improvement                                                           │

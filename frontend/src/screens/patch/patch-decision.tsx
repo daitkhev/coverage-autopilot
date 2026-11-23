@@ -119,7 +119,9 @@ interface DecisionPanelProps {
 
 /**
  * The question of review mode. It stays below the patch while the patch
- * scrolls, and says what approving does: it opens the pull request.
+ * scrolls, and says what approving does: it opens the pull request. The
+ * panel names the branch the patch is made on, never where the pull
+ * request opens: that may be a fork, which the start of the work told.
  */
 export function DecisionPanel({
   repository,
@@ -138,7 +140,7 @@ export function DecisionPanel({
             </RoleText>
           </Text>
           <RoleText role="secondary" truncate>
-            {`to ${repositoryName(repository)}, base ${defaultBranch}`}
+            {`on ${defaultBranch} of ${repositoryName(repository)}`}
           </RoleText>
         </Box>
         <AnswerList answers={ANSWERS} selected={chosen} focused />
