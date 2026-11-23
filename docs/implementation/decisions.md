@@ -839,6 +839,19 @@ Both modes of yarn 2 and later also set `YARN_ENABLE_GLOBAL_CACHE=0`,
 - Where: `.nvmrc`,
   `backend/src/shared/infrastructure/database/sqlite-connection.ts`.
 
+### A test waits for the lock of a killed service to be free
+
+- A stress test kills the one service and reads the instance lock. It
+  waits for the lock to be free instead of reading it once the process is
+  off the list of processes.
+- Why: on the Linux runner of CI the lock read as held with no service
+  left, once, at seed 1243311179. A killed process with several threads
+  leaves the list before its last threads have closed its files, and the
+  lock goes with the files. The product was right; the test looked too
+  early.
+- Where: `backend/tests/support/start-rounds.ts`,
+  `backend/tests/stress/service-start-race.test.ts`.
+
 ## What real runs showed
 
 ### The first real engine built the image and ran a scan
