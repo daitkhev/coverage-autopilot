@@ -14,7 +14,7 @@ import {
 } from '#tests/support/built-client';
 import type { BuiltService } from '#tests/support/built-service';
 import { servicesOf, signalEach } from '#tests/support/instance-services';
-import { clientLogLines, instanceStateOf } from '#tests/support/instance-state';
+import { clientLogLines } from '#tests/support/instance-state';
 import { drawnSeed, seededRandom } from '#tests/support/seeded-random';
 import {
   PROCESS_WAIT,
@@ -24,6 +24,7 @@ import {
 import {
   expectOneServes,
   healthOf,
+  lockFreed,
   reachedPoint,
   type Round,
   START_POINTS,
@@ -272,7 +273,7 @@ async function killWhileClientsStart(
     expect(serving, name).toHaveLength(Math.min(launched, 1));
   }, PROCESS_WAIT);
   if (launched === 0) {
-    expect(instanceStateOf(paths), name).toMatchObject({ lockHeld: false });
+    await lockFreed(paths, name);
   }
   expect(logCounts(paths), name).toEqual({
     left: before.log.left + Math.max(launched - 1, 0),

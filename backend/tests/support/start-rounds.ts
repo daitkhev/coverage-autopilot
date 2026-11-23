@@ -118,6 +118,20 @@ export async function expectOneServes(round: Round): Promise<Health> {
 }
 
 /**
+ * Waits until no process holds the lock of the instance. A killed process
+ * leaves the list of processes before its last threads have closed its
+ * files, so its lock is free a moment after it is gone, not at once.
+ */
+export async function lockFreed(
+  paths: InstancePaths,
+  name: string,
+): Promise<void> {
+  await vi.waitFor(() => {
+    expect(instanceStateOf(paths), name).toMatchObject({ lockHeld: false });
+  }, PROCESS_WAIT);
+}
+
+/**
  * Stops the one service of the instance and holds what it leaves once it
  * is gone: the lock free, so it was the one that held it, and its socket
  * file after a crash, on which nothing answers, and none after a clean
@@ -135,6 +149,7 @@ export async function stopTheOneServing(
     expect(servicesOf(paths.directory), name).toEqual([]);
   }, PROCESS_WAIT);
   const crashed = signal === 'SIGKILL';
+  await lockFreed(paths, name);
   expect(instanceStateOf(paths), name).toMatchObject({
     lockHeld: false,
     sockets: crashed ? [SOCKET] : [],
