@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "unresolved-import",
+    "path": "src/a.ts",
+    "line": 1
+  }
+]

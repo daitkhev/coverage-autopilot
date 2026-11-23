@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GateChecks > should draw every check with its symbol, words and time 1`] = `
+"✓ only test files changed                                                                                   0.2s
+! project type-checks  runs again
+⠋ new tests pass on repeated runs                                                                     run 2 of 3
+– coverage of the file went up  off
+○ mutants detected"
+`;

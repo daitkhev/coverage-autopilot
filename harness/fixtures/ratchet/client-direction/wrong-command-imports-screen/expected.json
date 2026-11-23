@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "client-direction",
+    "path": "frontend/src/commands/list.ts",
+    "line": 1
+  }
+]

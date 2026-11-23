@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "unknown-layer",
+    "path": "backend/src/app.module.ts",
+    "line": 1
+  }
+]

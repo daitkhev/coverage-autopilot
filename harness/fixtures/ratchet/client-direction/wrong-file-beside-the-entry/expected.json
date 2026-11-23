@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "client-direction",
+    "path": "frontend/src/client-process.tsx",
+    "line": 1
+  }
+]

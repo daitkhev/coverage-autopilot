@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "package-placement",
+    "path": "backend/src/modules/coverage/infrastructure/lcov/lcov.adapter.ts",
+    "line": 1
+  }
+]

@@ -1,0 +1,31 @@
+{
+  "name": "@coverage-autopilot/backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#repositories/*": "./src/modules/repositories/*.ts",
+    "#coverage/*": "./src/modules/coverage/*.ts",
+    "#verification/*": "./src/modules/verification/*.ts",
+    "#improvement/*": "./src/modules/improvement/*.ts",
+    "#kernel/*": "./src/shared/kernel/*.ts",
+    "#ports/*": "./src/shared/application/ports/*.ts",
+    "#infrastructure/*": "./src/shared/infrastructure/*.ts",
+    "#service/*": "./src/*.ts",
+    "#composition/*": "./src/composition/*.ts",
+    "#tests/*": "./tests/*.ts"
+  },
+  "dependencies": {
+    "@coverage-autopilot/api-contracts": "0.0.0",
+    "@nestjs/common": "12.6.0",
+    "@nestjs/core": "12.6.0",
+    "@nestjs/platform-express": "12.6.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "typescript": "6.0.3",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "12.6.0"
+  }
+}

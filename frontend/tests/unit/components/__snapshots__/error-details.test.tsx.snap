@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ErrorDetails > should say what happened, what the tool said and what to do 1`] = `
+"✕ Not connected  push_denied
+  The access check stopped at the third step.
+
+GITHUB ANSWERED ────────────────────────────────────────────
+Permission to example/notifier.git denied to octocat.
+
+WHAT TO DO ─────────────────────────────────────────────────
+Ask the owner for write access, or sign in as another
+account. Then check again."
+`;

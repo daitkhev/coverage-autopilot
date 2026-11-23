@@ -1,0 +1,18 @@
+{
+  "name": "@coverage-autopilot/frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#client/*": "./src/*.tsx",
+    "#composition/*": "./src/composition/*.ts",
+    "#app/*": "./src/app/*.tsx",
+    "#screens/*": "./src/screens/*.tsx",
+    "#components/*": "./src/components/*.tsx",
+    "#commands/*": "./src/commands/*.ts",
+    "#theme/*": "./src/theme/*.ts",
+    "#hooks/*": "./src/hooks/*.ts",
+    "#api/*": "./src/api/*.ts",
+    "#tests/*": "./tests/*.ts"
+  }
+}

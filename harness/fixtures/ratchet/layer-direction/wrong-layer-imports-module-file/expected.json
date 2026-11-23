@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "layer-direction",
+    "path": "backend/src/modules/coverage/application/queries/get-report.query.ts",
+    "line": 1
+  }
+]

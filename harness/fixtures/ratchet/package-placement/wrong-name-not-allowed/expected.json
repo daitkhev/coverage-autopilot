@@ -1,0 +1,12 @@
+[
+  {
+    "rule": "package-placement",
+    "path": "backend/src/modules/coverage/application/queries/get-report.handler.ts",
+    "line": 1
+  },
+  {
+    "rule": "package-placement",
+    "path": "backend/src/modules/coverage/application/queries/list-reports.handler.ts",
+    "line": 1
+  }
+]

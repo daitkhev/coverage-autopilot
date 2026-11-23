@@ -1,0 +1,56 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { InvalidMigrationFileError } from '#infrastructure/database/errors/invalid-migration-file.error';
+
+/** One numbered SQL file. Its number is the version it brings a database to. */
+export interface Migration {
+  readonly version: number;
+  readonly name: string;
+  readonly sql: string;
+}
+
+const FILE_NAME = /^(\d{4})-[a-z0-9]+(?:-[a-z0-9]+)*\.sql$/;
+
+/** Files of the system, such as `.DS_Store`, are not migrations. */
+const HIDDEN = '.';
+
+function versionOf(file: string, expected: number): number {
+  const digits = FILE_NAME.exec(file)?.[1];
+  if (digits === undefined) {
+    throw new InvalidMigrationFileError(
+      `${file} is not named <four digits>-<kebab-case words>.sql.`,
+    );
+  }
+  const version = Number(digits);
+  if (version !== expected) {
+    throw new InvalidMigrationFileError(
+      `${file} has version ${String(version)}, and the next version is ` +
+        `${String(expected)}. The versions start at 1 and have no gaps.`,
+    );
+  }
+  return version;
+}
+
+/**
+ * The migrations in a folder, in the order they are applied. The folder is
+ * given and never found from the place of this file: the service ships as
+ * one bundled file, so only its entry file knows where it was put. A
+ * folder with none is refused: a service would start on a database with
+ * no table, and fail at its first request instead of at its start.
+ */
+export function readMigrations(directory: string): Migration[] {
+  const files = readdirSync(directory)
+    .filter((file) => !file.startsWith(HIDDEN))
+    .sort();
+  if (files.length === 0) {
+    throw new InvalidMigrationFileError(
+      `${directory} holds no migration. The versions start at 1.`,
+    );
+  }
+  return files.map((file, index) => ({
+    version: versionOf(file, index + 1),
+    name: file,
+    sql: readFileSync(join(directory, file), 'utf8'),
+  }));
+}

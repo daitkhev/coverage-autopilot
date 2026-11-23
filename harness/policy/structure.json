@@ -1,0 +1,183 @@
+{
+  "schema": 1,
+  "source": {
+    "extensions": [".ts", ".tsx", ".mts", ".mjs"],
+    "excluded": ["harness/fixtures/"]
+  },
+  "names": {
+    "banned": ["index", "utils", "helpers", "common", "misc"]
+  },
+  "workspaces": {
+    "backend": {
+      "#repositories/*": "./src/modules/repositories/*.ts",
+      "#coverage/*": "./src/modules/coverage/*.ts",
+      "#verification/*": "./src/modules/verification/*.ts",
+      "#improvement/*": "./src/modules/improvement/*.ts",
+      "#kernel/*": "./src/shared/kernel/*.ts",
+      "#ports/*": "./src/shared/application/ports/*.ts",
+      "#infrastructure/*": "./src/shared/infrastructure/*.ts",
+      "#service/*": "./src/*.ts",
+      "#composition/*": "./src/composition/*.ts",
+      "#tests/*": "./tests/*.ts"
+    },
+    "frontend": {
+      "#client/*": "./src/*.tsx",
+      "#composition/*": "./src/composition/*.ts",
+      "#app/*": "./src/app/*.tsx",
+      "#screens/*": "./src/screens/*.tsx",
+      "#components/*": "./src/components/*.tsx",
+      "#commands/*": "./src/commands/*.ts",
+      "#theme/*": "./src/theme/*.ts",
+      "#hooks/*": "./src/hooks/*.ts",
+      "#api/*": "./src/api/*.ts",
+      "#tests/*": "./tests/*.ts"
+    },
+    "api-contracts": {
+      "#api-contracts/*": "./src/*.ts"
+    }
+  },
+  "manifest": {
+    "fields": [
+      "name",
+      "version",
+      "private",
+      "type",
+      "imports",
+      "exports",
+      "dependencies",
+      "devDependencies"
+    ]
+  },
+  "files": {
+    "backend": {
+      "": ["package.json", "tsconfig.json"],
+      "src/": [".ts"],
+      "src/shared/infrastructure/database/migrations/": [".sql"],
+      "src/shared/infrastructure/sandbox/": [".ts", ".Dockerfile"],
+      "tests/": [".ts"]
+    },
+    "frontend": {
+      "": ["package.json", "tsconfig.json"],
+      "src/": [".ts", ".tsx"],
+      "tests/": [".ts", ".tsx", ".snap"]
+    },
+    "api-contracts": {
+      "": ["package.json", "tsconfig.json"],
+      "src/": [".ts"],
+      "tests/": [".ts"]
+    }
+  },
+  "links": {
+    ".claude/settings.json": "../harness/agents/claude/settings.json",
+    ".codex/hooks.json": "../harness/agents/codex/hooks.json"
+  },
+  "packageAliases": {
+    "@jest/react-is-18": "react-is",
+    "@jest/react-is-19": "react-is",
+    "string-width-cjs": "string-width",
+    "strip-ansi-cjs": "strip-ansi",
+    "wrap-ansi-cjs": "wrap-ansi"
+  },
+  "tests": {
+    "suffixes": [".test.ts", ".test.tsx"],
+    "kinds": ["unit", "integration", "e2e", "stress"],
+    "mirrored": "unit",
+    "support": "support",
+    "ioLayers": ["infrastructure", "infrastructure/http"],
+    "ioModules": [
+      "child_process",
+      "cluster",
+      "dgram",
+      "dns",
+      "fs",
+      "http",
+      "http2",
+      "https",
+      "net",
+      "readline",
+      "sqlite",
+      "tls",
+      "worker_threads"
+    ]
+  },
+  "frontend": {
+    "source": "frontend/src/",
+    "entry": "main.tsx",
+    "root": ["composition"],
+    "folders": {
+      "composition": ["app", "commands"],
+      "app": ["screens", "components", "hooks", "theme", "api"],
+      "screens": ["components", "hooks", "theme", "api"],
+      "commands": ["api", "theme"],
+      "components": ["hooks", "theme"],
+      "hooks": ["theme"],
+      "api": [],
+      "theme": []
+    },
+    "apart": ["screens"],
+    "noChain": {
+      "components": ["api"],
+      "hooks": ["api"]
+    }
+  },
+  "backend": {
+    "source": "backend/src/",
+    "migrations": "backend/src/shared/infrastructure/database/migrations/",
+    "entry": "main.ts",
+    "composition": "composition/",
+    "modules": {
+      "repositories": [],
+      "coverage": ["repositories"],
+      "verification": ["coverage", "repositories"],
+      "improvement": ["verification", "coverage", "repositories"]
+    },
+    "layers": {
+      "domain": {
+        "layers": ["domain"],
+        "shared": ["kernel"]
+      },
+      "application": {
+        "layers": ["application", "application/contracts", "domain"],
+        "shared": ["application", "kernel"]
+      },
+      "application/contracts": {
+        "layers": ["application/contracts"],
+        "shared": ["kernel"]
+      },
+      "infrastructure": {
+        "layers": ["application", "domain", "infrastructure"],
+        "shared": ["application", "infrastructure", "kernel"]
+      },
+      "infrastructure/http": {
+        "layers": ["application", "infrastructure/http"],
+        "shared": ["kernel"]
+      }
+    },
+    "contracts": ["application/contracts"],
+    "reachOtherModules": ["application", "application/contracts"],
+    "shared": {
+      "kernel": [],
+      "application": ["kernel"],
+      "infrastructure": ["application", "kernel"]
+    },
+    "suffixes": {
+      ".entity.ts": ["domain/entities/"],
+      ".vo.ts": ["domain/value-objects/"],
+      ".service.ts": ["domain/services/"],
+      ".error.ts": [
+        "domain/errors/",
+        "application/errors/",
+        "infrastructure/errors/"
+      ],
+      ".repository.ts": ["domain/repositories/", "infrastructure/persistence/"],
+      ".port.ts": ["application/ports/"],
+      ".adapter.ts": ["infrastructure/"],
+      ".command.ts": ["application/commands/"],
+      ".query.ts": ["application/queries/"],
+      ".handler.ts": ["application/commands/", "application/queries/"],
+      ".dto.ts": ["application/dto/", "application/contracts/"],
+      ".schema.ts": ["infrastructure/"],
+      ".controller.ts": ["infrastructure/http/"]
+    }
+  }
+}

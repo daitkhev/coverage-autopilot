@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Timeline > should draw the history with the result of each step below it 1`] = `
+"✓ Analyzing                                           1m 12s
+  └ lines 41.2% · 14 mutants no test detects
+✕ Attempt 1  rejected                                 4m 03s
+  └ the new tests detect 0 of 14 mutants
+  └ the reasons went to the generator
+⠋ Attempt 2  verifying                                5m 41s
+  └ first run of the checks timed out, same patch runs again
+  ✓ only test files changed                             0.2s
+  ⠋ new tests pass on repeated runs               run 2 of 3
+  ○ mutants detected
+○ Publishing  waits for your approval"
+`;

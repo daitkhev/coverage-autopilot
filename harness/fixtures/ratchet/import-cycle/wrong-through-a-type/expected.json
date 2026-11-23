@@ -1,0 +1,17 @@
+[
+  {
+    "rule": "import-cycle",
+    "path": "src/a.ts",
+    "line": 1
+  },
+  {
+    "rule": "import-cycle",
+    "path": "src/b.ts",
+    "line": 1
+  },
+  {
+    "rule": "import-cycle",
+    "path": "src/c.ts",
+    "line": 1
+  }
+]

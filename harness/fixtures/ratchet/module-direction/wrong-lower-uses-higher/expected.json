@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "module-direction",
+    "path": "backend/src/modules/repositories/application/queries/list.handler.ts",
+    "line": 1
+  }
+]

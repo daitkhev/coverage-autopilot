@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "unknown-layer",
+    "path": "backend/src/modules/coverage/adapters/report-reader.ts",
+    "line": 1
+  }
+]

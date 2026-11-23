@@ -1,0 +1,75 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ImprovementScreen > should say that it asks the service before the first answer 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Improvement ──────────────────────────────────────────────────────────────────────────────────────────────╮
+ │ ⠋ Asking the service                                                                                       │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ │                                                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Improvements · ⠋ asking the service
+ esc back                                                                                                ? help"
+`;
+
+exports[`ImprovementScreen > when the service stops answering > should keep the last answer and say that it is not fresh 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+ ✓ Analyze ━━ ✕ Attempt 1 ━━ ⠋ Attempt 2 ── ○ Attempt 3 ── ○ Publish                             ⠋ RUN  15m 00s
+ ╭─ Improvement improvement-invoice ──────────────────────────────╮ ╭─ src/billing/invoice.ts ────────────────╮
+ │ ✓ Analyzing                                                    │ │                                         │
+ │   └ lines 41.2% · branches 25.0% · 14 mutants no test detects  │ │ USED ────────────────────────────────── │
+ │ ✕ Attempt 1  rejected                                   4m 03s │ │ Attempts  ━━━━━───  2 of 3              │
+ │   └ The new tests detect 0 of 14 mutants.                      │ │ Tokens    93k used, no limit            │
+ │   └ the reasons went to the generator                          │ │ Time      ━━━─────  11 of 30 min        │
+ │ ⠋ Attempt 2  verifying                                  8m 50s │ │                                         │
+ │   Checks  ━━━━━━━━━───────  4 of 7                             │ │ TARGET ──────────────────────────────── │
+ │   ✓ only test files changed                                    │ │ File      src/billing/invoice.ts        │
+ │   ✓ project type-checks                                        │ │ Commit    4f2a9c1 on main               │
+ │   ✓ new tests pass                                             │ │ Lines     ━━━───┼─   41.2%              │
+ │   ✓ earlier tests still pass                                   │ │ Branches  ━━────┼─   25.0%              │
+ │   ⠋ new tests pass on repeated runs                 run 2 of 3 │ │ Mutants   14 undetected                 │
+ │   ○ coverage of the file went up                               │ │                                         │
+ │   ○ mutants detected                                           │ │ SETTINGS ────────────────────────────── │
+ │ ○ Publishing  opens the pull request without asking            │ │ Publish   without asking                │
+ │                                                                │ │ Generator Claude Code, example-model    │
+ │                                                                │ │ Gate      7 checks required             │
+ │                                                                │ │                                         │
+ │                                                                │ │ OUTPUT ──────────────────────────────── │
+ │                                                                │ │ /tmp/coverage-autopilot/output/attempt- │
+ │                                                                │ │ 1.jsonl                                 │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │ ⠋ Checking the patch: new tests pass on         updated 1s ago │ │                                         │
+ │ repeated runs                                                  │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Improvements › example/payments › src/billing/invoice.ts · closing this window … · ! not fresh, updated 0s ago
+ c cancel    tab details    esc back                                                                     ? help"
+`;

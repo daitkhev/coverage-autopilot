@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "package-manifest",
+    "path": "api-contracts/package.json",
+    "line": 1
+  }
+]

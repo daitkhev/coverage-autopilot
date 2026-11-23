@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "file-name",
+    "path": "src/utils/format-path.ts",
+    "line": 1
+  }
+]

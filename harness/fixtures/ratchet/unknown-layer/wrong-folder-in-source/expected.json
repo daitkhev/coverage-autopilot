@@ -1,0 +1,17 @@
+[
+  {
+    "rule": "unknown-layer",
+    "path": "backend/src/modules/setup.ts",
+    "line": 1
+  },
+  {
+    "rule": "unknown-layer",
+    "path": "backend/src/shared/clock.ts",
+    "line": 1
+  },
+  {
+    "rule": "unknown-layer",
+    "path": "backend/src/workers/queue-worker.ts",
+    "line": 1
+  }
+]

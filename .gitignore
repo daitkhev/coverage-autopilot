@@ -1,7 +1,10 @@
 node_modules/
 dist/
 build/
-coverage/
+/coverage/
+/*/coverage/
+/reports/
+.stryker-tmp/
 .env
 .env.*
 !.env.example
@@ -11,3 +14,5 @@ coverage/
 .vscode/
 .DS_Store
 *.log
+.claude/settings.local.json
+.claude/worktrees/

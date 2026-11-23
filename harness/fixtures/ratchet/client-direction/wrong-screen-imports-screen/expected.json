@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "client-direction",
+    "path": "frontend/src/screens/overview/overview.tsx",
+    "line": 1
+  }
+]

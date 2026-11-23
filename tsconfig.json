@@ -1,0 +1,8 @@
+{
+  "extends": "./harness/configs/tsconfig.base.json",
+  "compilerOptions": {
+    "erasableSyntaxOnly": true
+  },
+  "include": ["harness/**/*.ts"],
+  "exclude": ["harness/fixtures"]
+}

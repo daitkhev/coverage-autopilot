@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "unit-test-reach",
+    "path": "backend/tests/unit/main.test.ts",
+    "line": 2
+  }
+]

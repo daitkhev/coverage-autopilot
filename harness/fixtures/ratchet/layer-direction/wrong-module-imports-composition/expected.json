@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "layer-direction",
+    "path": "backend/src/modules/coverage/coverage.module.ts",
+    "line": 1
+  }
+]

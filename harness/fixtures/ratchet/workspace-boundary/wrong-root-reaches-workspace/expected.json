@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "workspace-boundary",
+    "path": "harness/report.ts",
+    "line": 1
+  }
+]

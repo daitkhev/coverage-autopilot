@@ -1,0 +1,53 @@
+{
+  "workspaces": {
+    ".": {
+      "entry": [
+        "harness/bin/*.ts",
+        "harness/agents/hooks/*.ts",
+        "harness/tests/**/*.test.ts"
+      ],
+      "project": ["harness/**/*.ts"],
+      "ignore": ["harness/fixtures/**"],
+      "ignoreDependencies": [
+        "@commitlint/cli",
+        "@jest/globals",
+        "@stryker-mutator/core",
+        "@stryker-mutator/vitest-runner",
+        "@swc/core",
+        "@swc/jest",
+        "@vitest/coverage-v8",
+        "jest",
+        "jscpd",
+        "knip",
+        "markdownlint-cli2",
+        "vitest"
+      ],
+      "eslint": {
+        "config": ["eslint.config.mjs"]
+      },
+      "prettier": {
+        "config": ["prettier.config.mjs"]
+      },
+      "vitest": {
+        "config": [
+          "vitest.config.mjs",
+          "vitest.e2e.config.mjs",
+          "vitest.stress.config.mjs",
+          "vitest.runners.config.mjs"
+        ]
+      }
+    },
+    "backend": {
+      "entry": ["src/main.ts", "tests/**/*.test.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    },
+    "frontend": {
+      "entry": ["src/main.tsx", "tests/**/*.test.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"]
+    },
+    "api-contracts": {
+      "entry": ["src/*.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    }
+  }
+}

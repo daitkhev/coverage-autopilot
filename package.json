@@ -1,0 +1,49 @@
+{
+  "name": "coverage-autopilot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=26.1.0 <27"
+  },
+  "imports": {
+    "#harness/*": "./harness/*.ts"
+  },
+  "workspaces": [
+    "api-contracts",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "node harness/bin/check.ts build",
+    "start": "node dist/bin/client.js",
+    "check": "node harness/bin/check.ts",
+    "ratchet": "node harness/bin/ratchet.ts",
+    "ratchet:write": "node harness/bin/ratchet.ts --write",
+    "ratchet:compare": "node harness/bin/ratchet.ts --compare",
+    "format": "prettier --write . --config prettier.config.mjs"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@eslint/js": "10.0.1",
+    "@jest/globals": "30.5.2",
+    "@stryker-mutator/core": "10.1.1",
+    "@stryker-mutator/vitest-runner": "10.1.1",
+    "@swc/core": "1.16.22",
+    "@swc/jest": "0.2.39",
+    "@types/node": "26.6.6",
+    "@vitest/coverage-v8": "4.1.12",
+    "@vitest/eslint-plugin": "1.6.28",
+    "eslint": "10.15.0",
+    "eslint-plugin-simple-import-sort": "14.0.0",
+    "jest": "30.5.2",
+    "jscpd": "5.4.3",
+    "knip": "6.47.0",
+    "markdownlint-cli2": "0.24.2",
+    "prettier": "3.10.1",
+    "rolldown": "1.2.19",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.73.0",
+    "vitest": "4.1.12"
+  }
+}

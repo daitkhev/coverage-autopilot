@@ -1,0 +1,66 @@
+import type { TestCounts } from '@coverage-autopilot/api-contracts/snapshots';
+import type { CoverageMetric } from '@coverage-autopilot/api-contracts/statuses';
+
+/** Every counter of coverage, in the order the mock-ups list them. */
+export const COUNTERS: readonly CoverageMetric[] = [
+  'lines',
+  'branches',
+  'functions',
+  'statements',
+];
+
+/** The name of a counter, as the label beside its numbers. */
+export const COUNTER_NAMES: Readonly<Record<CoverageMetric, string>> = {
+  lines: 'Lines',
+  branches: 'Branches',
+  functions: 'Functions',
+  statements: 'Statements',
+};
+
+/**
+ * A percentage with one decimal, as `41.2%`. The service sends it, so it
+ * is only written here, never computed.
+ */
+export function percentWords(percentage: number): string {
+  return `${percentage.toFixed(1)}%`;
+}
+
+/**
+ * The words before the percent of a threshold. The one a person gave a
+ * repository is marked, so it is not taken for the default.
+ */
+export function thresholdLabel(threshold: {
+  readonly isDefault: boolean;
+}): string {
+  return threshold.isDefault ? 'threshold' : 'own threshold';
+}
+
+/** Covered of the total, as `12/30`. */
+export function ratioWords(covered: number, total: number): string {
+  return `${String(covered)}/${String(total)}`;
+}
+
+/**
+ * A count with its noun, as `1 file` and `3 files`. A noun whose plural
+ * is not its singular with an `s` names it: `5 repositories`.
+ */
+export function countWords(
+  count: number,
+  singular: string,
+  plural = `${singular}s`,
+): string {
+  return `${String(count)} ${count === 1 ? singular : plural}`;
+}
+
+/**
+ * How many tests of the repository failed in the sandbox at the scan, as
+ * `33 of 53 tests fail in the sandbox`. `null` when none did, or when the
+ * scan did not count them.
+ */
+export function failingTestsWords(tests: TestCounts | null): string | null {
+  if (tests === null || tests.failed === 0) {
+    return null;
+  }
+  const verb = tests.failed === 1 ? 'fails' : 'fail';
+  return `${String(tests.failed)} of ${countWords(tests.ran, 'test')} ${verb} in the sandbox`;
+}

@@ -1,0 +1,12 @@
+# The owner reviews every change of the policy. The places are the ones
+# of harness/policy/frozen.json, and a test holds the two lists together.
+# A line with no owner takes a file out of the policy again.
+/harness/ @daitkhev
+/.github/ @daitkhev
+/.claude/ @daitkhev
+/.codex/ @daitkhev
+/* @daitkhev
+tsconfig*.json @daitkhev
+/harness/baseline.json
+/README.md
+/package-lock.json

@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CommandPalette > should draw the query and the commands that match it 1`] = `
+"╭─ Commands ───────────────────────────────────────────────────────────╮
+│ : sca█                                                               │
+│ ──────────────────────────────────────────────────────────────────── │
+│                                                                      │
+│ › Scan this repository            example/payments                 s │
+│   Scan every repository           5 repositories                   S │
+│   Cancel the running scan         example/gateway                    │
+│                                                                      │
+│ ↑↓ choose · enter run · esc close                                    │
+╰──────────────────────────────────────────────────────────────────────╯"
+`;

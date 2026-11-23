@@ -1,0 +1,186 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RepositoriesView > should list the repositories with the first chosen 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Repositories 4 ───────────────────────────────────────────────╮ ╭─ example/payments ──────────────────────╮
+ │ › ● example/payments             ━━━━━━━─┼─   71.4%   12 below │ │ main · 4f2a9c1 · scanned 2h ago         │
+ │     main · 4f2a9c1 · scanned 2h ago                            │ │                                         │
+ │   ⠋ example/gateway                         ━━━━━━━━──  3 of 4 │ │ COVERAGE ────────────────────────────── │
+ │     main · running the tests · 40s · updated 1s ago            │ │ threshold 80.0% of lines                │
+ │   ! example/billing-api          ━━━━━━━─┼─   71.4%   12 below │ │ Lines        ━━━━━━━━━━━──┼──   71.4%   │
+ │     main · 91be03d · outdated: main moved since the scan       │ │ Branches     ━━━━━━━━━━───┼──   61.3%   │
+ │   ○ example/notifier                               not scanned │ │ Functions    ━━━━━━━━━━━━━┼──   80.0%   │
+ │     main · press s to scan                                     │ │ Statements   ━━━━━━━━━━━──┼──   71.3%   │
+ │                                                                │ │                                         │
+ │                                                                │ │ FILES ───────────────────────────────── │
+ │                                                                │ │ 12 below 80.0% · 30 at or above         │
+ │                                                                │ │ 2 not measured · 4 no code              │
+ │                                                                │ │                                         │
+ │                                                                │ │ WORK ────────────────────────────────── │
+ │                                                                │ │ ○ WAIT    src/api/refund.ts         30s │
+ │                                                                │ │ ⠋ RUN     src/ledger/entries.ts      1s │
+ │                                                                │ │ ⠋ RUN     src/billing/tax.ts         1s │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Repositories · 4 repositories · 1 scan running · updated 1s ago                                     row 1 of 4
+ ↑↓ move    enter open    s scan    t threshold    a add    tab details                                  ? help"
+`;
+
+exports[`RepositoriesView > when no answer came yet > should draw the panels empty and say it asks the service 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Repositories 0 ───────────────────────────────────────────────╮ ╭─ Repository ────────────────────────────╮
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Repositories · 0 repositories · 0 scans running · ⠋ asking the service
+ a add    tab details                                                                                    ? help"
+`;
+
+exports[`RepositoriesView > when the connect dialog is open > should ask for the address 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Repositories 4 ───────────────────────────────────────────────╮ ╭─ example/payments ──────────────────────╮
+ │ › ● example/payments             ━━━━━━━─┼─   71.4%   12 below │ │ main · 4f2a9c1 · scanned 2h ago         │
+ │     main · 4f2a9c1 · scanned 2h ago                            │ │                                         │
+ │   ⠋ example/gateway                         ━━━━━━━━──  3 of 4 │ │ COVERAGE ────────────────────────────── │
+ │     main · running the tests · 40s · updated 1s ago            │ │ threshold 80.0% of lines                │
+ │   ! example/billing-api          ━━━━━━━─┼─   71.4%   12 below │ │ Lines        ━━━━━━━━━━━──┼──   71.4%   │
+ │     main · 91be03d · outdated: main moved since the scan       │ │ Branches     ━━━━━━━━━━───┼──   61.3%   │
+ │   ○ example/notifier                               not scanned │ │ Functions    ━━━━━━━━━━━━━┼──   80.0%   │
+ │     main · press s to scan                                     │ │ Statements   ━━━━━━━━━━━──┼──   71.3%   │
+ │                                                                │ │                                         │
+ │                                                                │ │ FILES ───────────────────────────────── │
+ │                  ╭─ Connect a repository ───────────────────────────────────────────────╮ or above         │
+ │                  │ URL https://github.com/example/notifier█                             │code              │
+ │                  │                                                                      │                  │
+ │                  │ The HTTPS address of the repository, such as                         │───────────────── │
+ │                  │ https://github.com/acme/widgets.                                     │nd.ts         30s │
+ │                  │                                                                      │ntries.ts      1s │
+ │                  │ enter check · esc close                                              │tax.ts         1s │
+ │                  ╰──────────────────────────────────────────────────────────────────────╯                  │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Repositories · type the address of a repository · updated 1s ago
+ enter check    esc close                                                                                ? help"
+`;
+
+exports[`RepositoriesView > when the connect dialog is open > should keep what the tool said when access is refused 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Repositories 4 ───────────────────────────────────────────────╮ ╭─ example/payments ──────────────────────╮
+ │ › ● example/payments             ━━━━━━━─┼─   71.4%   12 below │ │ main · 4f2a9c1 · scanned 2h ago         │
+ │     main · 4f2a9c1 · scanned 2h ago                            │ │                                         │
+ │   ⠋ example/gateway                         ━━━━━━━━──  3 of 4 │ │ COVERAGE ────────────────────────────── │
+ │     main · running the tests · 40s · updated 1s ago            │ │ threshold 80.0% of lines                │
+ │   ! example/billing-api          ━━━━━━━─┼─   71.4%   12 below │ │ Lines        ━━━━━━━━━━━──┼──   71.4%   │
+ │     main · 91be03╭─ Connect a repository ───────────────────────────────────────────────╮━───┼──   61.3%   │
+ │   ○ example/notif│ URL https://github.com/example/notifier█                             │━━━━┼──   80.0%   │
+ │     main · press │                                                                      │━━──┼──   71.3%   │
+ │                  │ ✓ git installed                                                      │                  │
+ │                  │ ✕ gh signed in                                                       │───────────────── │
+ │                  │ – push access not checked                                            │ or above         │
+ │                  │                                                                      │code              │
+ │                  │ ✕ Access refused                                                     │                  │
+ │                  │   It is connected, and no work starts until every step passes.       │───────────────── │
+ │                  │                                                                      │nd.ts         30s │
+ │                  │ THE TOOL SAID ────────────────────────────────────────────────       │ntries.ts      1s │
+ │                  │ You are not logged into any hosts. Run: gh auth login                │tax.ts         1s │
+ │                  │                                                                      │                  │
+ │                  │ WHAT TO DO ───────────────────────────────────────────────────       │                  │
+ │                  │ gh is not logged in. Run gh auth login, then check again.            │                  │
+ │                  │                                                                      │                  │
+ │                  │ enter check again · esc close                                        │                  │
+ │                  ╰──────────────────────────────────────────────────────────────────────╯                  │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Repositories · access to example/notifier was refused · updated 1s ago
+ enter check again    esc close                                                                          ? help"
+`;
+
+exports[`RepositoriesView > when the last request failed > should keep the last list and say it is not fresh 1`] = `
+" coverage-autopilot    Repositories    Improvements    Service                                     ● service up
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Repositories 4 ───────────────────────────────────────────────╮ ╭─ example/payments ──────────────────────╮
+ │ › ● example/payments             ━━━━━━━─┼─   71.4%   12 below │ │ main · 4f2a9c1 · scanned 2h ago         │
+ │     main · 4f2a9c1 · scanned 2h ago                            │ │                                         │
+ │   ⠋ example/gateway                         ━━━━━━━━──  3 of 4 │ │ COVERAGE ────────────────────────────── │
+ │     main · running the tests · 40s · updated 1s ago            │ │ threshold 80.0% of lines                │
+ │   ! example/billing-api          ━━━━━━━─┼─   71.4%   12 below │ │ Lines        ━━━━━━━━━━━──┼──   71.4%   │
+ │     main · 91be03d · outdated: main moved since the scan       │ │ Branches     ━━━━━━━━━━───┼──   61.3%   │
+ │   ○ example/notifier                               not scanned │ │ Functions    ━━━━━━━━━━━━━┼──   80.0%   │
+ │     main · press s to scan                                     │ │ Statements   ━━━━━━━━━━━──┼──   71.3%   │
+ │                                                                │ │                                         │
+ │                                                                │ │ FILES ───────────────────────────────── │
+ │                                                                │ │ 12 below 80.0% · 30 at or above         │
+ │                                                                │ │ 2 not measured · 4 no code              │
+ │                                                                │ │                                         │
+ │                                                                │ │ WORK ────────────────────────────────── │
+ │                                                                │ │ ○ WAIT    src/api/refund.ts         30s │
+ │                                                                │ │ ⠋ RUN     src/ledger/entries.ts      1s │
+ │                                                                │ │ ⠋ RUN     src/billing/tax.ts         1s │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ │                                                                │ │                                         │
+ ╰────────────────────────────────────────────────────────────────╯ ╰─────────────────────────────────────────╯
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Repositories · 4 repositories · 1 scan running · ! not fresh, updated 1s ago                        row 1 of 4
+ ↑↓ move    enter open    s scan    t threshold    a add    tab details                                  ? help"
+`;

@@ -1,0 +1,25 @@
+import { z } from 'zod';
+
+import { INSTALL_MODES } from '#repositories/domain/value-objects/install-mode.vo';
+
+const columns = z.object({
+  id: z.string(),
+  owner: z.string(),
+  name: z.string(),
+  url: z.string(),
+  default_branch: z.string(),
+  connected_at: z.string(),
+  threshold_percentage: z.int().nullable(),
+  install_mode: z.enum(INSTALL_MODES).nullable(),
+});
+
+/**
+ * A row of `repositories` as SQLite gives it back. The head and the moment
+ * it was read are both there or both empty, as the table checks.
+ */
+export const repositoryRowSchema = z.union([
+  columns.extend({ head_commit: z.string(), head_checked_at: z.string() }),
+  columns.extend({ head_commit: z.null(), head_checked_at: z.null() }),
+]);
+
+export type RepositoryRow = z.infer<typeof repositoryRowSchema>;

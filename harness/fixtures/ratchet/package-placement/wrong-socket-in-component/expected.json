@@ -1,0 +1,12 @@
+[
+  {
+    "rule": "package-placement",
+    "path": "frontend/src/commands/login.ts",
+    "line": 1
+  },
+  {
+    "rule": "package-placement",
+    "path": "frontend/src/components/status-line.tsx",
+    "line": 1
+  }
+]

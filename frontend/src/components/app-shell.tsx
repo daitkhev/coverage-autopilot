@@ -1,0 +1,206 @@
+import { Box, Text } from 'ink';
+import type { ReactNode } from 'react';
+
+import { Glyph } from '#components/glyph';
+import { KeyHints } from '#components/key-hints';
+import { RoleText } from '#components/role-text';
+import { BackdropContext, useBackdrop } from '#hooks/use-backdrop';
+import { useBorder } from '#hooks/use-border';
+import { type KeyHandlers, useKeys } from '#hooks/use-keys';
+import { useTheme } from '#hooks/use-theme';
+import { frameOf } from '#theme/symbols';
+import { GAP, layoutOf, SMALLEST_SIZE, type TerminalSize } from '#theme/widths';
+
+interface AppShellProps {
+  readonly size: TerminalSize;
+  /** The name of the tool, for a window that is too small. */
+  readonly title: string;
+  /** Commands that work at any size, offered when the window is too small. */
+  readonly commands: readonly string[];
+  readonly header: ReactNode;
+  /** What the screen is about, on one row below the header. */
+  readonly context?: ReactNode;
+  readonly body: ReactNode;
+  /** A short message about something that just happened. */
+  readonly notice?: string;
+  /** The path to the screen, and the position in the list. */
+  readonly status: ReactNode;
+  readonly position?: string;
+  readonly keys: ReactNode;
+  readonly help: ReactNode;
+  /** A dialog drawn over the screen. Everything behind it is dim. */
+  readonly dialog?: ReactNode;
+  /**
+   * The keys that work on every screen, which the app owns: the sections,
+   * the commands, the help and quitting. A dialog takes them while it is
+   * open, as it takes every key.
+   */
+  readonly globalKeys?: KeyHandlers;
+  /** A text field has the keys: letters type and run no action. */
+  readonly typing?: boolean;
+}
+
+/**
+ * What the app hands every screen, which the screen passes on to its
+ * shell with the parts only the screen knows.
+ */
+export type ShellFrame = Pick<
+  AppShellProps,
+  'size' | 'title' | 'commands' | 'header' | 'help' | 'notice' | 'globalKeys'
+>;
+
+/** Takes the keys of the app. It draws nothing. */
+function GlobalKeys({
+  globalKeys,
+  typing = false,
+}: Pick<AppShellProps, 'globalKeys' | 'typing'>): ReactNode {
+  useKeys(globalKeys ?? {}, { active: globalKeys !== undefined && !typing });
+  return null;
+}
+
+function TooSmall(
+  props: Pick<
+    AppShellProps,
+    'size' | 'title' | 'commands' | 'globalKeys' | 'typing'
+  >,
+): ReactNode {
+  const { size, title, commands } = props;
+  const needed = `${String(SMALLEST_SIZE.columns)} x ${String(SMALLEST_SIZE.rows)}`;
+  return (
+    <Box flexDirection="column" padding={1} gap={1}>
+      <GlobalKeys {...props} />
+      <RoleText role="emphasis">{title}</RoleText>
+      <Box flexDirection="column">
+        <Text>
+          <Glyph name="attention" role="warning" />{' '}
+          <RoleText role="emphasis">
+            This window is too small for the screens.
+          </RoleText>
+        </Text>
+        <RoleText>{`  It is ${String(size.columns)} x ${String(size.rows)} and they need ${needed}.`}</RoleText>
+      </Box>
+      <RoleText role="secondary">
+        Make the window larger, or use a command. Commands work at any size:
+      </RoleText>
+      <Box flexDirection="column" paddingLeft={GAP}>
+        {commands.map((command) => (
+          <RoleText key={command}>{command}</RoleText>
+        ))}
+      </Box>
+      <KeyHints hints={[{ key: 'q', label: 'quit' }]} />
+    </Box>
+  );
+}
+
+function Ruled({
+  edge,
+  children,
+}: {
+  readonly edge: 'top' | 'bottom';
+  readonly children: ReactNode;
+}): ReactNode {
+  return (
+    <Box
+      flexDirection="column"
+      flexShrink={0}
+      borderStyle={frameOf(useTheme()).rule}
+      borderLeft={false}
+      borderRight={false}
+      borderTop={edge === 'top'}
+      borderBottom={edge === 'bottom'}
+      {...useBorder('border')}
+    >
+      {children}
+    </Box>
+  );
+}
+
+function Footer(
+  props: Pick<AppShellProps, 'status' | 'position' | 'keys' | 'help'>,
+): ReactNode {
+  return (
+    <Ruled edge="top">
+      <Box justifyContent="space-between" gap={1}>
+        {props.status}
+        {props.position === undefined ? null : (
+          // The status line gives way first, so the position is never cut.
+          <Box flexShrink={0}>
+            <RoleText role="secondary">{props.position}</RoleText>
+          </Box>
+        )}
+      </Box>
+      <Box justifyContent="space-between" gap={1}>
+        {props.keys}
+        {props.help}
+      </Box>
+    </Ruled>
+  );
+}
+
+/**
+ * A part drawn over the whole terminal, in its middle: a dialog of a
+ * screen, or one of the app over every screen.
+ */
+export function Overlay({
+  size,
+  children,
+}: {
+  readonly size: TerminalSize;
+  readonly children: ReactNode;
+}): ReactNode {
+  return (
+    <Box
+      position="absolute"
+      top={0}
+      left={0}
+      width={size.columns}
+      height={size.rows}
+      alignItems="center"
+      justifyContent="center"
+    >
+      {children}
+    </Box>
+  );
+}
+
+/**
+ * The four zones of every screen: the header, the context, the body and
+ * the footer. Below the smallest size it asks for more room instead. In
+ * a low window only the body gives way: the other zones keep their rows.
+ */
+export function AppShell(props: AppShellProps): ReactNode {
+  const { size, dialog } = props;
+  // A dialog of the app is over the whole screen, its own dialog included.
+  const behind = useBackdrop();
+  if (layoutOf(size) === 'too-small') {
+    return <TooSmall {...props} />;
+  }
+  return (
+    <Box
+      width={size.columns}
+      height={size.rows}
+      flexDirection="column"
+      paddingX={1}
+    >
+      <BackdropContext value={behind || dialog !== undefined}>
+        <GlobalKeys {...props} />
+        <Ruled edge="bottom">{props.header}</Ruled>
+        {props.context === undefined ? null : (
+          <Box marginTop={1} flexShrink={0}>
+            {props.context}
+          </Box>
+        )}
+        <Box flexGrow={1} flexDirection="column">
+          {props.body}
+        </Box>
+        {props.notice === undefined ? null : (
+          <Box justifyContent="flex-end" flexShrink={0}>
+            <RoleText>{props.notice}</RoleText>
+          </Box>
+        )}
+      </BackdropContext>
+      <Footer {...props} />
+      {dialog === undefined ? null : <Overlay size={size}>{dialog}</Overlay>}
+    </Box>
+  );
+}

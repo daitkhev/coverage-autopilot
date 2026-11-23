@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "lockfile-source",
+    "path": "package-lock.json",
+    "line": 1
+  }
+]

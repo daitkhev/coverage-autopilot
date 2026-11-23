@@ -1,0 +1,21 @@
+{
+  "name": "@coverage-autopilot/backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#repositories/*": "./src/modules/repositories/*.ts",
+    "#coverage/*": "./src/modules/coverage/*.ts",
+    "#verification/*": "./src/modules/verification/*.ts",
+    "#improvement/*": "./src/modules/improvement/*.ts",
+    "#kernel/*": "./src/shared/kernel/*.ts",
+    "#ports/*": "./src/shared/application/ports/*.ts",
+    "#infrastructure/*": "./src/shared/infrastructure/*.ts",
+    "#service/*": "./src/*.ts",
+    "#composition/*": "./src/composition/*.ts",
+    "#tests/*": "./tests/*.ts"
+  },
+  "scripts": {
+    "check": "true"
+  }
+}

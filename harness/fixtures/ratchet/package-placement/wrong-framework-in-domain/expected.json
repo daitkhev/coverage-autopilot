@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "package-placement",
+    "path": "backend/src/modules/coverage/domain/services/merge.service.ts",
+    "line": 1
+  }
+]

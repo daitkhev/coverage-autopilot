@@ -1,0 +1,158 @@
+import type { ReactNode } from 'react';
+
+import type { Health } from '@coverage-autopilot/api-contracts/health';
+
+import { AppShell, type ShellFrame } from '#components/app-shell';
+import { FactLine } from '#components/fact-line';
+import { FactRow } from '#components/fact-row';
+import { hintsOf, type KeyHint, KeyHints } from '#components/key-hints';
+import { Panel } from '#components/panel';
+import { type Problem, ProblemDetails } from '#components/problem-details';
+import { Section } from '#components/section';
+import { SplitView } from '#components/split-view';
+import { StatusIndicator } from '#components/status-indicator';
+import { StatusLine } from '#components/status-line';
+import type { DatedRequest } from '#hooks/use-dated-request';
+import type { ScreenAction } from '#hooks/use-screen-actions';
+import {
+  environmentRows,
+  headlineOf,
+  type HealthRow,
+  type Moment,
+  statusRows,
+  UNKNOWN,
+} from '#screens/service/health-words';
+import {
+  type Restart,
+  RESTART_HINT,
+  restartBlockOf,
+  restartNoticeOf,
+} from '#screens/service/restart';
+import { layoutOf } from '#theme/widths';
+
+/** The two panels of the screen, the first one with the focus. */
+export const SERVICE_PANELS = ['status', 'storage'] as const;
+
+type ServicePanel = (typeof SERVICE_PANELS)[number];
+
+interface ServiceViewProps {
+  readonly frame: ShellFrame;
+  readonly health: DatedRequest<Health>;
+  /** What the last request threw, beside the health it keeps. */
+  readonly problem: Problem | undefined;
+  readonly moment: Moment;
+  readonly focused: ServicePanel;
+  readonly restart: Restart;
+  /** What the keys do, as the footer names them. */
+  readonly actions: readonly ScreenAction[];
+}
+
+const PATH = ['Service'];
+
+/** Where the service keeps its files. The health does not say it yet. */
+const STORAGE_ROWS: readonly HealthRow[] = [
+  { label: 'Data', fact: UNKNOWN },
+  { label: 'Output', fact: UNKNOWN },
+  { label: 'Log', fact: UNKNOWN },
+];
+
+function Rows({ rows }: { readonly rows: readonly HealthRow[] }): ReactNode {
+  return rows.map((row) => (
+    <FactRow key={row.label} label={row.label}>
+      <FactLine facts={[row.fact]} />
+    </FactRow>
+  ));
+}
+
+function StatusPanel({
+  health,
+  moment,
+  focused,
+}: {
+  readonly health: Health | undefined;
+  readonly moment: Moment;
+  readonly focused: boolean;
+}): ReactNode {
+  return (
+    <Panel title="Service" focused={focused}>
+      {health === undefined ? null : (
+        <>
+          <StatusIndicator look={headlineOf(health)} />
+          <Section title="STATUS">
+            <Rows rows={statusRows(health, moment)} />
+          </Section>
+          <Section title="ENVIRONMENT">
+            <Rows rows={environmentRows(health, moment)} />
+          </Section>
+        </>
+      )}
+    </Panel>
+  );
+}
+
+/** The panel of actions names `r` also when it waits, and says until when. */
+function restartHintOf(props: ServiceViewProps): KeyHint {
+  const block = restartBlockOf(props.health.answer, props.restart);
+  return block === undefined
+    ? RESTART_HINT
+    : { ...RESTART_HINT, inactive: block };
+}
+
+function StoragePanel(props: ServiceViewProps): ReactNode {
+  return (
+    <Panel title="Storage and actions" focused={props.focused === 'storage'}>
+      <ProblemDetails
+        headline="The health could not be read"
+        problem={props.problem}
+        next="The screen asks again every second. If this stays, the client and the service may be of different versions."
+      />
+      <Section title="STORAGE">
+        <Rows rows={STORAGE_ROWS} />
+      </Section>
+      <Section title="ACTIONS">
+        <KeyHints hints={[restartHintOf(props)]} />
+      </Section>
+    </Panel>
+  );
+}
+
+/**
+ * Whether everything is in order: the state of the service, the tools it
+ * found, where it keeps its files and what can be done with it.
+ */
+export function ServiceView(props: ServiceViewProps): ReactNode {
+  const { frame, health, moment } = props;
+  const notice = frame.notice ?? restartNoticeOf(props.restart);
+  const facts =
+    health.answer === undefined
+      ? []
+      : [`service ${health.answer.serviceVersion}`];
+  return (
+    <AppShell
+      {...frame}
+      {...(notice === undefined ? {} : { notice })}
+      body={
+        <SplitView
+          layout={layoutOf(frame.size)}
+          shown={props.focused === 'status' ? 'left' : 'right'}
+          left={
+            <StatusPanel
+              health={health.answer}
+              moment={moment}
+              focused={props.focused === 'status'}
+            />
+          }
+          right={<StoragePanel {...props} />}
+        />
+      }
+      status={
+        <StatusLine
+          path={PATH}
+          facts={facts}
+          freshness={{ ...health, now: moment.now }}
+        />
+      }
+      keys={<KeyHints hints={hintsOf(props.actions)} />}
+    />
+  );
+}

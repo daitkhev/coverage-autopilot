@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node harness/bin/check.ts"
+  },
+  "workspaces": [
+    "api-contracts",
+    "backend",
+    "frontend"
+  ]
+}

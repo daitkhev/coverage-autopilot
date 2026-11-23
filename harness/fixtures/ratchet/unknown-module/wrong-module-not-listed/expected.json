@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "unknown-module",
+    "path": "backend/src/modules/billing/domain/entities/invoice.entity.ts",
+    "line": 1
+  }
+]

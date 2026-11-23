@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "rules": [
+    {
+      "packages": [
+        "node:*",
+        "@eslint/js",
+        "eslint",
+        "@vitest/eslint-plugin",
+        "eslint-plugin-simple-import-sort",
+        "prettier",
+        "rolldown",
+        "typescript",
+        "typescript-eslint",
+        "vitest"
+      ],
+      "in": ["harness/"]
+    },
+    {
+      "packages": ["@nestjs/common"],
+      "names": ["Inject", "Injectable"],
+      "in": ["backend/src/modules/*/application/"]
+    },
+    {
+      "packages": ["@nestjs/common", "@nestjs/core"],
+      "in": [
+        "backend/src/modules/*/infrastructure/",
+        "backend/src/modules/*/*.module.ts",
+        "backend/src/shared/infrastructure/",
+        "backend/src/composition/"
+      ]
+    },
+    {
+      "packages": [
+        "node:child_process",
+        "node:crypto",
+        "node:events",
+        "node:fs",
+        "node:http",
+        "node:net",
+        "node:os",
+        "node:path",
+        "node:process",
+        "node:stream",
+        "node:timers",
+        "node:url",
+        "node:util"
+      ],
+      "in": [
+        "backend/src/modules/*/infrastructure/",
+        "backend/src/shared/infrastructure/",
+        "backend/src/main.ts",
+        "backend/src/composition/",
+        "frontend/src/api/",
+        "frontend/src/main.tsx"
+      ]
+    },
+    {
+      "packages": ["node:sqlite"],
+      "in": [
+        "backend/src/modules/*/infrastructure/persistence/",
+        "backend/src/shared/infrastructure/database/"
+      ]
+    },
+    {
+      "packages": ["zod"],
+      "in": [
+        "api-contracts/src/",
+        "backend/src/modules/*/infrastructure/",
+        "backend/src/shared/infrastructure/"
+      ]
+    },
+    {
+      "packages": ["typescript"],
+      "in": ["backend/src/modules/coverage/infrastructure/"]
+    },
+    {
+      "packages": ["@coverage-autopilot/api-contracts"],
+      "in": [
+        "backend/src/modules/*/infrastructure/http/",
+        "backend/src/shared/infrastructure/http/",
+        "frontend/src/"
+      ]
+    },
+    {
+      "packages": ["ink", "react"],
+      "in": [
+        "frontend/src/main.tsx",
+        "frontend/src/app/",
+        "frontend/src/screens/",
+        "frontend/src/components/",
+        "frontend/src/hooks/"
+      ]
+    },
+    {
+      "packages": ["@nestjs/platform-express", "reflect-metadata", "rxjs"],
+      "in": ["backend/src/composition/"]
+    },
+    {
+      "packages": ["node:*", "vitest"],
+      "in": ["backend/tests/", "frontend/tests/", "api-contracts/tests/"]
+    },
+    {
+      "packages": ["@nestjs/common", "@nestjs/core", "@nestjs/testing"],
+      "in": ["backend/tests/"]
+    },
+    {
+      "packages": ["@coverage-autopilot/api-contracts"],
+      "in": ["backend/tests/", "frontend/tests/"]
+    },
+    {
+      "packages": ["ink", "ink-testing-library", "react"],
+      "in": ["frontend/tests/"]
+    },
+    {
+      "packages": ["@types/react"],
+      "in": ["frontend/src/", "frontend/tests/"]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@coverage-autopilot/frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#client/*": "./src/*.tsx",
+    "#composition/*": "./src/composition/*.ts",
+    "#app/*": "./src/app/*.tsx",
+    "#screens/*": "./src/screens/*.tsx",
+    "#components/*": "./src/components/*.tsx",
+    "#commands/*": "./src/commands/*.ts",
+    "#theme/*": "./src/theme/*.ts",
+    "#hooks/*": "./src/hooks/*.ts",
+    "#api/*": "./src/api/*.ts",
+    "#tests/*": "./tests/*.ts"
+  },
+  "dependencies": {
+    "@coverage-autopilot/api-contracts": "0.0.0",
+    "ink": "8.0.0",
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "ink-testing-library": "4.0.0"
+  }
+}

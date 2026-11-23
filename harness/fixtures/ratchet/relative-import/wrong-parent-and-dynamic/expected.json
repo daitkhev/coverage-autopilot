@@ -1,0 +1,12 @@
+[
+  {
+    "rule": "relative-import",
+    "path": "src/deep/a.ts",
+    "line": 1
+  },
+  {
+    "rule": "relative-import",
+    "path": "src/deep/a.ts",
+    "line": 4
+  }
+]

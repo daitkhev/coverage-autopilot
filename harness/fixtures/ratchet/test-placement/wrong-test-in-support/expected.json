@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "test-placement",
+    "path": "backend/tests/support/fixed-clock.test.ts",
+    "line": 1
+  }
+]

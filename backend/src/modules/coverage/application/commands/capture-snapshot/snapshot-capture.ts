@@ -1,0 +1,213 @@
+import { Inject, Injectable } from '@nestjs/common';
+
+import type { CaptureSnapshotCommand } from '#coverage/application/commands/capture-snapshot/capture-snapshot.command';
+import {
+  CaptureSteps,
+  type CaptureWatch,
+} from '#coverage/application/commands/capture-snapshot/capture-steps';
+import {
+  type Preparation,
+  PrepareProjectHandler,
+} from '#coverage/application/commands/prepare-project/prepare-project.handler';
+import {
+  type MeasuredFiles,
+  TestExecution,
+  type TestRunRecord,
+} from '#coverage/application/commands/run-tests/test-execution';
+import type { CaptureSnapshotResult } from '#coverage/application/contracts/coverage-public-api';
+import {
+  TEST_REPORT_READER,
+  type TestOutcomes,
+  type TestReportReader,
+} from '#coverage/application/ports/test-report-reader.port';
+import {
+  CoverageSnapshot,
+  type TestCounts,
+} from '#coverage/domain/entities/coverage-snapshot.entity';
+import { SnapshotId } from '#coverage/domain/value-objects/snapshot-id.vo';
+import { ID_GENERATOR, type IdGenerator } from '#kernel/id/id-generator';
+import { CLOCK, type Clock } from '#kernel/time/clock';
+import {
+  REPOSITORIES_PUBLIC_API,
+  type RepositoriesPublicApi,
+} from '#repositories/application/contracts/repositories-public-api';
+
+/** A snapshot built and not saved yet, or why there is none. */
+export type Capture =
+  | { readonly outcome: 'measured'; readonly snapshot: CoverageSnapshot }
+  | Exclude<CaptureSnapshotResult, { readonly outcome: 'captured' }>;
+
+interface Measurement {
+  readonly command: CaptureSnapshotCommand;
+  readonly workingCopyPath: string;
+  readonly steps: CaptureSteps;
+}
+
+/** A caller that does not watch the steps gives no watch. */
+const UNWATCHED: CaptureWatch = {
+  progress: () => undefined,
+};
+
+function countsOf(outcomes: TestOutcomes | null): TestCounts | null {
+  return outcomes === null
+    ? null
+    : { ran: outcomes.ran, failed: outcomes.failing.length };
+}
+
+function refusalOf(
+  preparation: Exclude<Preparation, { outcome: 'ready' }>,
+): Capture {
+  return preparation.outcome === 'unsupported'
+    ? preparation
+    : {
+        outcome: 'install_failed',
+        outputReference: preparation.outputReference,
+      };
+}
+
+/**
+ * Clones the commit, installs, runs every test with coverage and builds
+ * the snapshot. The working copy is its own and is disposed of on every
+ * path: a result, a refusal, a fault and a stop all release it.
+ */
+@Injectable()
+export class SnapshotCapture {
+  private readonly repositories: RepositoriesPublicApi;
+  private readonly preparation: PrepareProjectHandler;
+  private readonly tests: TestExecution;
+  private readonly reports: TestReportReader;
+  private readonly clock: Clock;
+  private readonly ids: IdGenerator;
+
+  public constructor(
+    @Inject(REPOSITORIES_PUBLIC_API) repositories: RepositoriesPublicApi,
+    @Inject(PrepareProjectHandler) preparation: PrepareProjectHandler,
+    @Inject(TestExecution) tests: TestExecution,
+    @Inject(TEST_REPORT_READER) reports: TestReportReader,
+    @Inject(CLOCK) clock: Clock,
+    @Inject(ID_GENERATOR) ids: IdGenerator,
+  ) {
+    this.repositories = repositories;
+    this.preparation = preparation;
+    this.tests = tests;
+    this.reports = reports;
+    this.clock = clock;
+    this.ids = ids;
+  }
+
+  /** A step a fault or a stop left is told to the watch as interrupted. */
+  public async capture(
+    command: CaptureSnapshotCommand,
+    signal: AbortSignal,
+    watch: CaptureWatch = UNWATCHED,
+  ): Promise<Capture> {
+    const steps = new CaptureSteps(watch);
+    try {
+      return await this.cloneAndMeasure(command, signal, steps);
+    } catch (error) {
+      steps.interrupt();
+      throw error;
+    }
+  }
+
+  private async cloneAndMeasure(
+    command: CaptureSnapshotCommand,
+    signal: AbortSignal,
+    steps: CaptureSteps,
+  ): Promise<Capture> {
+    steps.begin('clone');
+    const copy = await this.repositories.createWorkingCopy(
+      {
+        repositoryId: command.repositoryId,
+        commit: command.commit,
+        purpose: `snapshot:${command.originKey}`,
+      },
+      signal,
+    );
+    try {
+      return await this.measure(
+        { command, workingCopyPath: copy.path, steps },
+        signal,
+      );
+    } finally {
+      await this.repositories.disposeWorkingCopy({ workingCopyId: copy.id });
+    }
+  }
+
+  private async measure(
+    measurement: Measurement,
+    signal: AbortSignal,
+  ): Promise<Capture> {
+    const { command, workingCopyPath, steps } = measurement;
+    const loan = {
+      workingCopyPath,
+      repositoryId: command.repositoryId,
+      owner: command.originKey,
+    };
+    steps.begin('install');
+    const preparation = await this.preparation.execute(loan, signal);
+    if (preparation.outcome !== 'ready') {
+      steps.fail();
+      return refusalOf(preparation);
+    }
+    steps.begin('test_run');
+    const record = await this.tests.run(
+      {
+        ...loan,
+        detection: preparation.detection,
+        testFiles: [],
+        withCoverage: true,
+      },
+      signal,
+    );
+    if (record.output.result.outcome === 'timed_out') {
+      steps.fail();
+      return {
+        outcome: 'test_run_timed_out',
+        outputReference: record.outputReference,
+      };
+    }
+    steps.begin('read_report');
+    const files = await this.tests.readCoverage(record);
+    if (files.reportMissing) {
+      steps.fail();
+      return {
+        outcome: 'coverage_report_missing',
+        outputReference: record.outputReference,
+      };
+    }
+    steps.pass();
+    return {
+      outcome: 'measured',
+      snapshot: await this.snapshotOf(command, record, files),
+    };
+  }
+
+  /**
+   * A run with failing tests still measured what ran, so the snapshot
+   * counts them for a person to see, and never stops on them.
+   */
+  private async snapshotOf(
+    command: CaptureSnapshotCommand,
+    record: TestRunRecord,
+    measured: MeasuredFiles,
+  ): Promise<CoverageSnapshot> {
+    const outcomes = await this.reports.outcomes({
+      workingCopyPath: record.workingCopyPath,
+      reportPath: record.output.resultsPath,
+    });
+    return CoverageSnapshot.create({
+      id: SnapshotId.create(this.ids.generate()),
+      repositoryId: command.repositoryId,
+      commit: command.commit,
+      originKey: command.originKey,
+      project: record.detection.project,
+      parameters: record.detection.parameters,
+      files: measured.files,
+      unmeasured: measured.unmeasured,
+      testRunOutput: record.outputReference,
+      tests: countsOf(outcomes),
+      capturedAt: this.clock.now(),
+    });
+  }
+}

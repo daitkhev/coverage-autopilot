@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DiffViewer > should draw the added lines with their numbers 1`] = `
+"   1 + import { total, applyDiscount } from './invoice';
+   2 +
+   3 + describe('total', () => {
+   4 +   it('should add tax to the net amount', () => {
+   5 +     expect(total({ net: 100, taxRate: 0.2 })).toBe(120);
+   6 +   });
+   7 + });
+   8 +
+       4 more lines below"
+`;

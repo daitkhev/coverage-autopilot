@@ -1,0 +1,7 @@
+[
+  {
+    "rule": "test-placement",
+    "path": "backend/tests/smoke/main.test.ts",
+    "line": 1
+  }
+]
