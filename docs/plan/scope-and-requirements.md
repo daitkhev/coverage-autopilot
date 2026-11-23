@@ -3,12 +3,10 @@
 Author: Valentin Daitkhe
 
 What `coverage-autopilot` does, what it leaves out, and the requirements
-it is built to. The five documents of this folder describe the design as
-it is built. How it works inside is in [System design](system-design.md),
-where code lives is in [Project structure](project-structure.md), the
-screens are in [Terminal UI](terminal-ui.md) and the checks of the
-repository itself are in [Harness](harness.md). Why a decision changed
-after the first plan, and when, is in
+it is built to. The design as built goes on in
+[System design](system-design.md), [Project structure](project-structure.md),
+[Terminal UI](terminal-ui.md) and [Harness](harness.md). Why a decision
+changed after the first plan is in
 [the decision log](../implementation/decisions.md).
 
 ## What it does
@@ -27,23 +25,17 @@ SQLite owns the work, and a terminal client shows it and starts it.
 
 ## How the work is read
 
-- **A service and a client.** An improvement takes minutes to tens of
-  minutes and must survive a closed terminal. The client starts the
-  service when none answers, and the two talk HTTP over a Unix socket, so
-  no network port is opened.
-- **Unit tests only.** One source file goes in, one new `*.test.ts` file
-  comes out. Integration and end-to-end tests need infrastructure that a
-  foreign repository does not give.
+- **A service and a client.** An improvement takes minutes and survives
+  a closed terminal. The client starts the service when none answers,
+  and the two talk HTTP over a Unix socket, so no port is opened.
+- **Unit tests only.** One source file goes in, one new test file comes
+  out.
 - **Coverage is produced, not read.** The service clones the repository,
   installs its packages and runs its own test runner with coverage.
-- **One job per repository at a time.** Scans and improvements of one
-  repository run one after another. Different repositories run side by
-  side.
-- **Local.** It uses the `git` and `gh` logins of the machine and stores
-  no credential.
-- **The model proposes, the pipeline decides.** Generation is
-  probabilistic. Everything that decides whether a test is kept is
-  deterministic.
+- **One job per repository at a time.** Different repositories run side
+  by side.
+- **The model proposes, the pipeline decides.** Everything that decides
+  whether a test is kept is deterministic.
 
 ## The loop
 
@@ -59,18 +51,11 @@ flowchart TD
     AN -->|"nothing to do"| SKIP(["skipped"])
 ```
 
-- **Analyze** checks that the file did not change on the default branch,
-  measures the commit again in the sandbox, and finds the mutants of the
-  file that no existing test detects.
-- **Generate** runs the AI CLI in its own sandbox. It may read and write
-  files of a fresh copy and run nothing.
-- **Seven checks** run in the sandbox of the commands. A rejection sends
-  its reasons, and how the tests failed, to the next attempt.
-- **Publish** applies the stored patch to a clean copy on the host and
-  opens the pull request, in the repository or in a fork of it.
-
-Nothing is published unless every required check passed, and an
-improvement ends within its budget whatever the generator does.
+The AI CLI runs in its own sandbox and may only read and write files of
+a fresh copy. The checks run in the sandbox of the commands, and a
+rejection sends its reasons to the next attempt. Nothing is published
+unless every required check passed, and an improvement ends within its
+budget whatever the generator does.
 
 ## Requirements as built
 
@@ -125,16 +110,15 @@ with `install_runs_code` and the command that trusts it.
 
 ## Left out
 
-- Integration and end-to-end tests of the target repository.
-- Adding a test runner to a repository that has none.
+- Integration and end-to-end tests of the target repository, and adding
+  a test runner to a repository that has none.
 - A browser dashboard and a live stream of events: the client asks again
   about once a second.
-- Network for the tests of a repository, and tokens of a private
-  registry. Tests that need the network fail in the sandbox, and the
-  setting `AUTOPILOT_BASELINE_TESTS` decides whether that stops the work.
-- Path, sequence and MC/DC coverage, which TypeScript tools do not
-  measure.
-- Choosing the best of several candidate tests: an attempt writes one.
+- Network and tokens of a private registry for the tests of a
+  repository. Tests that need the network fail in the sandbox, and
+  `AUTOPILOT_BASELINE_TESTS` decides whether that stops the work.
+- Path, sequence and MC/DC coverage, and a choice between several
+  candidate tests: an attempt writes one.
 
 ## Trade-offs
 
