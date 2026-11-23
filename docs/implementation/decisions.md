@@ -1,1024 +1,872 @@
 # Decisions made during the implementation
 
-The documents in [the plan](../plan/system-design.md) describe the design
-as it was before the first line of the product. They are no longer added
-to. A decision made after that is written here: what was decided, why, and
-where it lives in the code.
-
-Where this log and the plan differ, this log and the code are right.
-
-## 2026-11-21
-
-### Time has one type and one text
-
-- A moment is an `Instant` of the kernel: the whole milliseconds since the
-  start of 1970 in UTC. It reads and writes one text,
-  `YYYY-MM-DDTHH:mm:ss.sssZ`, with its own calendar arithmetic.
-- The database and the contract carry that text and no other. The contract
-  refuses another offset and another precision. The client shows a moment
-  in the time zone of its user.
-- `Date` of the language is used nowhere, the clock adapter included. The
-  adapter adds the time the process has run to the moment it started.
-- Why: one type and one format mean that two moments from two places always
-  compare, and a test decides what the time is.
-- Known limit: on Linux the counter of running time stops while the
-  machine is suspended, so after a suspend the clock of the service is late
-  until the service starts again. Only the adapter would change to fix it.
-- Where: `backend/src/shared/kernel/time/`,
-  `backend/src/shared/infrastructure/time/system-clock.adapter.ts`,
-  `backend/tests/support/fixed-clock.ts`, `timestampSchema` in
-  `api-contracts/src/values.ts`.
-- Changed on 2026-11-22: the arithmetic and the clock are those of
-  `Temporal` now. See "Time is the Temporal of the platform".
-
-### The generator is paid by a subscription or by a key
-
-- Claude Code is the only generator of the first version and the default.
-  A key of a model router and Codex are later adapters behind the same
-  port.
-- The service knows who pays from its own settings, never from a request.
-  An improvement records it, and `GET /health` reports it.
-- Under a subscription the client shows a tag and the limits of the
-  subscription, and never money. `GET /health` carries what the generator
-  last said of the five-hour and the seven-day window: the share used and
-  the moment of the reset, with the moment it was seen.
-- Why: for a subscription a price of a call means nothing. The real limit
-  is the window.
-- Where: `billingSchema` in `api-contracts/src/statuses.ts`,
-  `generatorAccountSchema` in `api-contracts/src/health.ts`.
-
-### An improvement waits for the five-hour window and fails on the weekly one
-
-- When the five-hour window is spent, the improvement moves to
-  `waiting_for_limit` and keeps the moment the window opens. It goes on by
-  itself at that moment.
-- A wait spends no attempt and no minute of the budget: the deadline moves
-  later by the length of the wait.
-- While it waits, its file stays taken, its sandbox is given back, and it
-  can be cancelled.
-- An improvement waits at most twice. A third spent window fails it.
-- A spent weekly quota fails the improvement at once. Nobody waits for it.
-- Why: the short window often opens within the hour, and losing the work
-  done so far costs more than the wait.
-- Where: `improvementStatusSchema`, `generationOutcomeSchema`
-  (`window_exhausted` waits, `quota_exhausted` fails) and `waitingForSchema`
-  in `api-contracts/src/statuses.ts`; `resumesAt` and `limitWaits` in
-  `api-contracts/src/improvements.ts`;
-  `backend/migrations/0002-let-an-improvement-wait-for-a-limit.sql`.
-
-### The budget has defaults and maximums, and tokens only with a key
-
-- Attempts: 3 by default, 10 at most. Minutes: 30 by default, 120 at most.
-- A limit of tokens exists only with a key. Under a subscription it is
-  empty.
-- `GET /settings/budget` gives the defaults and the maximums, so the dialog
-  that starts an improvement holds no number of its own.
-- Where: `budgetSchema` and `budgetSettingsSchema` in
-  `api-contracts/src/improvements.ts`.
-
-### A repository is outdated when its head moved
-
-- The access check reads the head of the default branch and stores it. A
-  repository is `outdated` when that head is not the commit of its latest
-  snapshot.
-- Why: this costs no call to GitHub when the list is drawn, and the user
-  learns it before an improvement fails on a stale snapshot.
-- The number of commits behind, which one picture of the plan shows, is not
-  counted.
-- Where: `headCommit` and `outdated` in `api-contracts/src/repositories.ts`,
-  `backend/migrations/0003-record-the-head-of-a-repository.sql`.
-
-### The history of a file is a filter, not a route
-
-- `GET /improvements` takes a `filePath`. No separate route gives the
-  history of a file.
-- Where: `improvementListQuerySchema` in
-  `api-contracts/src/improvements.ts`.
-
-### An idle service can be asked to stop
-
-- `POST /service/stop` answers 202 and the service stops. A service with
-  running work answers 409 and changes nothing.
-- Why: a client of a newer contract replaces an idle service of an older
-  one.
-- Where: `stopServiceResultSchema` in `api-contracts/src/health.ts`.
-
-### The client takes its statuses from the contract
-
-- The keys of the status tables of the client are the types of the
-  contract, so a status the service adds or drops stops the build of the
-  client.
-- A scan is said in the words of an improvement. A refused step of the
-  access check is red, and a step never reached is dim.
-- A dialog writes spaces under itself. It has no background colour,
-  because the terminal has no colour that means "the default background".
-- Where: `frontend/src/theme/status.ts`,
-  `frontend/src/components/dialog.tsx`.
-
-### A scan starts from the head the repositories module reads
-
-- The contract of `repositories` has one operation the plan does not list:
-  `resolveHead`. It reads the head of the default branch from the host of
-  the code, stores it with the repository and returns it.
-- Why: a scan needs a commit to clone, and the plan did not say who finds
-  it. The same read keeps `outdated` true to the last look.
-- Where: `backend/src/modules/repositories/contracts/repositories-public-api.ts`.
-
-### The sandbox and the store of tool output are shared ports
-
-- `Sandbox` runs one command of an untrusted repository in a working copy,
-  with exactly the listed variables and no network unless the request opens
-  it for the install. A command that failed or ran out of time is a value.
-- `ArtifactStore` keeps the raw output of the tools in files named by the
-  hash of their content. A file that is gone reads as nothing.
-- Why here: more than one module runs commands and keeps output, and the
-  three files were written before the modules so the modules could be built
-  side by side.
-- Where: `backend/src/shared/application/ports/sandbox.port.ts`,
-  `backend/src/shared/application/ports/artifact-store.port.ts`.
-
-### A connection of the service may not edit the schema table
-
-- The connection is opened with the defensive flag of SQLite. Node 26 sets
-  it by default and Node 25 does not, so a test passed on a desk and failed
-  in CI.
-- Where: `backend/src/shared/infrastructure/database/sqlite-connection.ts`.
-
-### Two files read the environment, and one module parses TypeScript
-
-- `process.env` is read by the host of the gate and by the entry file of
-  the service, `backend/src/main.ts`, and by nothing else. The entry file
-  gives the variables to the loader of the configuration, which takes them
-  as an argument.
-- The `typescript` package may be imported in the adapters of the coverage
-  module and nowhere else in the service. It is there to parse source
-  files, not to compile them.
-- The desk and CI run the same Node, 26.13.1.
-- Where: `harness/eslint/config.ts`, `harness/policy/packages.json`,
-  `.nvmrc`.
-
-### Every way to read the environment is refused, and four files may
-
-- The lint ban holds the property by its name and by a text, on the global
-  and through `globalThis`, the object taken apart, and the process module
-  imported by a name, by its default or as a whole.
-- Four files may read it: the host of the gate, the entry file of the
-  service, the entry file of the client, and the stand-in of the container
-  engine in the tests, which is there to record what it was started with.
-- Where: `harness/eslint/restricted-syntax.ts`, `harness/eslint/config.ts`.
-
-### A sandboxed command runs as the user of the service
-
-- By default the user and the group of a container are those the service
-  runs as, so a command can write into a working copy the service made.
-  `AUTOPILOT_SANDBOX_UID` and `AUTOPILOT_SANDBOX_GID` each replace one of
-  them. A service that runs as root starts only when both are set.
-- The default image is `node:26-slim`, the Node the project itself uses.
-- Where: `backend/src/shared/infrastructure/config/`.
-
-### A working copy has one path, in the sandbox and on the host
-
-- The sandbox mounts a working copy at the path it has on the host. A
-  coverage report and a mutation report name files by absolute paths, and
-  the service reads them by the same paths with no translation.
-- The git directory of a working copy is kept outside it. A sandboxed
-  command can write anything into the copy, and the service runs `git` on
-  the copy afterwards, so nothing in the copy may be read as a setting of
-  git.
-- A source file is classified by the parser of the TypeScript compiler,
-  and a link in the place of a source is refused.
-- Where: `backend/src/shared/infrastructure/sandbox/container-arguments.ts`,
-  `backend/src/modules/repositories/infrastructure/git/`,
-  `backend/src/modules/coverage/infrastructure/classification/`.
-
-### The four counters of a file are columns
-
-- `file_coverages` has a column for each counter of statements, branches,
-  functions and lines. The document of a file holds what never ran and no
-  number.
-- Where: `backend/migrations/0004-count-the-statements-and-functions-of-a-file.sql`,
-  `backend/src/modules/coverage/infrastructure/persistence/`.
-
-### Owed to the wave that adds the routes
-
-- A scan that ended in `test_run_timed_out` is answered with the reason
-  of the same name, which the contract has since this day. The route of a
-  scan maps it, and its test shows the answer.
-- A monorepo and a package manager other than npm are refused as an
-  unsupported project, with the reason in words. That is a limit of the
-  first version, stated in the scope.
-
-### git on a working copy reads no setting but its own
-
-- A working copy is two folders: the tree a sandbox is lent, and a git
-  directory beside it that only the service writes. Every call of git
-  names both, so git never looks for a repository.
-- A tree that holds an entry named `.git`, at any depth and in any
-  spelling a file system may open as that name, is refused with
-  `working_copy_tampered` before git runs in it. It is a fault and not a
-  result: a caller does not plan for it.
-- The work on a copy reads no global, system or environment
-  configuration, and starts no hook and no monitor. A `.gitattributes` of
-  the tree can name any driver, so no driver may be defined anywhere git
-  reads. The mirror and the push keep the configuration of the operator,
-  which holds the credentials, and read no tree.
-- The author of a commit therefore comes only from the variables the
-  settings give git, never from a `~/.gitconfig`.
-- A call of a tool that writes more than 64 MiB is stopped and fails. No
-  part of a patch is used.
-- Where: `backend/src/modules/repositories/infrastructure/git/`,
-  `backend/src/modules/repositories/infrastructure/tools/tool-runner.ts`.
-
-### Owed to the waves that lend a working copy and start the service
-
-- The module that lends a copy to a sandbox takes its patch only after
-  the sandbox has ended: the check for a `.git` runs right before git,
-  and a process that is still alive could write one after it.
-- A patch is published only when every file of it is a test file of the
-  target and a plain file. A link, a workflow or a `.gitattributes` in a
-  patch is refused by the module that owns the improvement.
-- The start of the service gives git its `PATH`, its `HOME` and the four
-  variables of the author and the committer, and the access check
-  refuses a git older than 2.36.
-- A tree a sandbox left unreadable is still removed: the sweep that
-  clears what a crash left behind restores the permissions first.
-
-### A patch only adds new test files
-
-- A test patch may add new plain files whose names end like a test file,
-  and nothing else. It never changes or removes a file of the commit.
-- So the tests of the commit stay as they were, "the new tests" are the
-  files of the patch, and a patch cannot pass by weakening a test that
-  was there.
-- The endings come with the request, `.test.ts` and `.test.tsx` by
-  default. The generator is told the same endings.
-- Where: `VerifyPatchRequest.testFileSuffixes` in
-  `backend/src/modules/verification/contracts/verification-public-api.ts`,
-  `GenerationRequest.testFileSuffixes` in
-  `backend/src/modules/improvement/application/ports/test-generator.port.ts`.
-
-### The gate measures a commit once and is given the measure back
-
-- `measureBaseline` answers what the commit is like before any patch:
-  whether it type-checks, whether its tests pass, and which mutants of
-  the target nothing detects. The improvement keeps the answer and gives
-  it to every `verifyPatch`.
-- A check that has nothing to compare with is `not_applicable`: the type
-  check when the commit did not type-check, the existing tests when they
-  did not pass. A test run answers only whether it passed, not which
-  tests did, so a commit with a failing test cannot show what a patch
-  broke.
-- The mutation tool is installed into the working copy of the gate while
-  the network is open and no script runs. The copy of the gate is never
-  the source of a patch.
-- The generator runs in a second instance of the sandbox, with an image
-  of its own and an open network. The port of the sandbox is the same.
-
-### A job that cannot be read is dead at its first claim
-
-- A stored payload that is not a document with a version is never run and
-  never claimed again. The worker buries the job and tells its handler
-  with `payload: null`, so the object of the job is failed like any other
-  whose runs are spent.
-- The worker writes a line for the start and the end of every job, for a
-  handler that throws, for a claim the database refuses and for an end it
-  cannot write.
-- Where: `backend/src/shared/infrastructure/queue/job-worker.ts`,
-  `job-worker-log.ts`, `DeadJobContext` in
-  `backend/src/shared/application/ports/job-handler.port.ts`.
-
-### The mutation tool is installed before code of the repository runs
-
-- `installTool` is a call of its own on the port of the mutation runner.
-  The gate makes it right after the packages of the project are
-  installed, before a type check and before any test. A measure never
-  opens the network.
-- Why: the network is open only before code of the repository runs in a
-  working copy. Installed inside a measure, the tool came after the
-  tests, and code of the repository or of one of its packages could have
-  sent the source out while the network was open.
-- A run of the tool that is stopped at its time limit leaves no cache
-  yet: the sandbox stops a command with `SIGKILL`, and the tool saves a
-  partial cache only when it is asked to stop. The cache only saves
-  time. A stop in two steps is owed to the wave of the stress tests.
-- Where: `backend/src/modules/verification/application/ports/mutation-runner.port.ts`,
-  `backend/src/modules/verification/infrastructure/mutation/`.
-
-### The start of the generator is checked after its run
-
-- The port of the sandbox runs a command to its end, so the adapter of
-  the generator cannot stop a run before the first call of the model. It
-  reads the report of the start afterwards: other tools than the allowed
-  ones, or any tool server, is a fault, and what the run wrote is thrown
-  away.
-- A file the run wrote is searched for the credential before anything
-  of the run leaves the adapter, and the credential is replaced in the
-  output that is kept. A credential in a written file wins over every
-  other way the run ended.
-- A spent five-hour window waits and every other spent limit fails. How
-  the CLI reports a spent limit, a failed login and a missing program was
-  never seen: the adapter follows the types of the CLI and keeps each
-  guess in one table.
-- Where: `backend/src/modules/improvement/infrastructure/generator/`.
-
-### Owed to the first real run of the generator
-
-- The image of the generator sandbox with the CLI in it, an output limit
-  large enough for the report of the start to survive, and the binding of
-  the second sandbox, the settings and the port.
-- One run with the consent of the owner: the arguments, the report of
-  the start in a container, a home under `/tmp` with a read-only root,
-  and who pays as the CLI says it under each login.
-- The module that owns the improvement throws the working copy away
-  after every outcome but `generated`, and after a fault as well.
-
-### The gate reads a patch strictly
-
-- A patch passes the first check only as text git itself writes for new
-  plain files: one `new file mode 100644` and one hunk of added lines for
-  each file, and no line outside a file, because `git apply` also takes a
-  section with no header. A path among the installed packages is refused.
-- The files git says it wrote must be exactly the files the text names.
-  A difference means git read the text in another way than the gate did.
-- The coverage check compares the counters of the target alone. A counter
-  that fell fails the check, whatever the others did.
-- The deadline is looked at before every step and every check. A call
-  into the coverage module has no time limit of the gate inside it: only
-  the limits of that module and the signal stop it. A limit that travels
-  with the call is owed to the wave that drives an improvement.
-- The module refuses settings that cannot work when the service starts.
-- Where: `backend/src/modules/verification/domain/services/`,
-  `backend/src/modules/verification/application/commands/verify-patch/`,
-  `backend/src/modules/verification/verification.module.ts`.
-
-### An improvement counts work, not waiting
-
-- The limit of minutes becomes one deadline when work starts, so a
-  restart of the service cannot give the minutes back.
-- Two statuses are waits: `waiting_for_limit` and `awaiting_approval`.
-  Leaving either moves the deadline later by the length of the wait, so a
-  person who approves the next morning spends no minute of the budget.
-- A third spent window fails the improvement with the reason
-  `quota_exhausted`: the contract has no reason of its own for it, and to
-  a person it means the same, that the account has no usage for now.
-- What is spent counts every attempt that was opened. Whether a new one
-  may open counts only the attempts that are over, so the open attempt of
-  a run after a crash may finish.
-- A rejected patch closes its attempt. An inconclusive verdict keeps the
-  attempt open in `verifying`, because it says nothing about the patch:
-  the caller runs the gate again or fails the improvement.
-- A person approves a patch by its hash. Another hash is refused, so
-  nobody approves a patch they did not see.
-- The branch is `coverage-autopilot/<id>` and follows from the id alone,
-  so publishing that starts again finds the branch it made.
-- A limit of tokens is a number or nothing. The default and the maximum
-  of the service have it together or not at all, and the aggregate never
-  asks who pays.
-- Both baselines must name the commit of the improvement, and the
-  baseline of the gate its file as well. Generation starts with both.
-- A save checks the version the improvement was read with. One that
-  moved is `stale_improvement`, and nothing is written.
-- Where: `backend/src/modules/improvement/domain/`,
-  `backend/src/modules/improvement/infrastructure/persistence/`,
-  `backend/migrations/0005-keep-what-an-improvement-and-its-attempts-show.sql`.
-
-### Owed to the wave that drives an improvement
-
-- The generator may not say when the window opens, and the aggregate
-  takes only a definite moment. The application chooses one, such as the
-  end of the window the last report named, or a fixed wait.
-- After a rejected patch the improvement is `generating` whatever is left
-  of the budget, and opening an attempt with a spent budget is refused.
-  The step asks for the allowance first and fails the improvement with
-  `budget_exhausted`.
-- The id of a snapshot is a value object in two modules. It moves to the
-  kernel when a third place needs it.
-- The answer of a route reads `coverageBefore` that may be empty, the
-  paths of raw output from the stored references, and the wait for a
-  worker or a repository from the job, which the aggregate does not know.
-- The binding of the store, the generator, its sandbox and its settings
-  in the file of the module.
-
-### A job can wait for its moment
-
-- A job may carry a moment before which no worker takes it. An
-  improvement that waits for a window leaves such a job behind, in the
-  save that starts the wait, so it goes on by itself and no timer has to
-  outlive a restart of the service.
-- A job that waits holds nothing: another job of its repository runs
-  meanwhile.
-- The moment is no part of what makes two requests the same job.
-- The queue cancels every open job of an object by the id of the object.
-  A cancel of an improvement knows the improvement and not its jobs: the
-  first run, the one an approval adds, and one for each wait.
-- The queue tells what the pending job of an object waits for: its
-  moment, its repository, or a free worker. The screen groups the
-  improvements by it.
-- Where: `backend/migrations/0006-let-a-job-wait-for-its-moment.sql`,
-  `backend/src/shared/application/ports/job-queue.port.ts`,
-  `backend/src/shared/infrastructure/database/sqlite-job-leases.ts`.
-
-### One handler runs an improvement, one step for each status
-
-- Every job of an improvement has the same payload and differs in its
-  key alone: the handler reads the status and goes on from there.
-- A step saves its expected ends itself and throws a fault as it came.
-  The handler decides what a fault means: one that may pass is a
-  technical retry, and one that will not fails the improvement with the
-  reason the step names.
-- Two reasons were missing for that: `generator_unavailable`, for an AI
-  CLI that cannot be started at all, and `publish_failed`, for a branch
-  or a pull request the host of the code refused.
-- A step saves through the run, which applies a change to a copy and
-  stores it through the lease of the job, with what follows from the new
-  status in the same transaction.
-- The deadline of an improvement stops its work through an alarm, a port
-  beside the clock: a test decides when the moment comes, and the clock
-  decides whether a timer that fired is on time.
-- A fingerprint is a hash, and the application may not hash: the hash is
-  a port with one adapter.
-- Where: `backend/src/modules/improvement/application/commands/run-improvement/`,
-  `backend/src/modules/improvement/application/improvement-settings.ts`,
-  `backend/src/shared/application/ports/alarm.port.ts`,
-  `backend/src/shared/infrastructure/time/timer-alarm.adapter.ts`.
-
-### A request for an improvement is checked before it is stored
-
-- Every value of a request is built first, so a bad value or a budget
-  above the maximum costs no call to the host of the code.
-- The snapshot, the file and the head of the default branch are asked
-  outside the transaction, and only a request that is still good is
-  registered. A file above the threshold is not refused: the fresh
-  measurement of the run decides whether there is anything to improve.
-- The fingerprint is the SHA-256 of a text with a fixed order of keys:
-  the repository, the base commit, the file, the quality policy with its
-  checks in the order of the gate, and the generator without its
-  billing. The key, the budget and the mode are no part of the work.
-- A refusal is a value with a reason. A conflict with earlier work names
-  that improvement, also when it is the key that was used again.
-- An approval adds the job that publishes in the save that approves, and
-  a cancel ends every open job of the improvement in the save that
-  cancels. Both read inside their transaction.
-- What a person sees is the stored state, what the clock adds to the
-  usage, and what the queue knows of the job. A final improvement asks
-  the queue nothing.
-- Where: `backend/src/modules/improvement/application/commands/start-improvement/`,
-  `backend/src/modules/improvement/application/dto/`.
-
-### How each step of an improvement ends
-
-- `analyzing` fails with `stale_snapshot` for a file that changed, with
-  `mutation_unsupported` when the mutation tool cannot run, with
-  `budget_exhausted` when the gate ran out of time, and with
-  `verification_error` for a commit that cannot be measured. It skips
-  with `threshold_met`, and with `no_undetected_mutants` when the policy
-  requires the mutation check and no mutant is left to detect: that
-  check could never pass.
-- `generating` asks the allowance and opens the attempt in one save.
-  A spent window ends when the generator said, else when the window it
-  last reported opens, else after the wait of the settings, and the job
-  that goes on then is stored with the wait. A call is given no more
-  time than is left of the budget.
-- `verifying` retries only when every required check that could not
-  finish may finish on another run. One error that cannot pass fails the
-  improvement at once, with the report, in one save: a retry would end
-  in it again and hide the reason behind spent retries.
-- `publishing` asks the head once more, and keeps at most 2000
-  characters of what a tool said when it refused. The commit and the
-  title are `test: cover <file>`, and the body shows what the gate
-  measured and nothing it did not. It names the tool and no model.
-- The handler fails an improvement whose job another version of the
-  service wrote, and throws on a step that went on without saving, so
-  that a fault of the code cannot spin for ever.
-- Where: `backend/src/modules/improvement/application/commands/run-improvement/`,
-  `backend/src/modules/improvement/improvement.module.ts`.
-
-### Owed after the wave that drives an improvement
-
-- The routes: `snapshot_not_found` and `target_not_measured` have no
-  code of an HTTP answer yet, the report of the contract takes no empty
-  `coverageBefore`, and the references of raw output become paths.
-- The start of the service binds the handler into the worker, the alarm
-  to its timer, the sandbox of the generator and both sets of settings.
-- Two tests of the client wait for real time and failed once each while
-  four gates ran at once, and a hook of a git test passed its ten
-  seconds. The first is fixed in the tests, the second is a limit of the
-  policy.
-- A working copy that was tampered with fails the improvement as
-  `generator_unavailable`, and the tokens of that call are not recorded.
-- A working improvement with no deadline is answered in two ways: the
-  generating step falls back to the limit of the settings, the analyzing
-  step throws.
-- The tests of the requests and of the generation each keep settings of
-  their own.
-- The wait and its job share a transaction on the real database in the
-  test of the module alone, with stand-ins below it. A run with real
-  git, a real gate and a real generator is owed to the end-to-end wave.
-
-## 2026-11-22
-
-### The service is one package, built into files plain Node runs
-
-- The client and the service are one application and one package: one
-  build, one list of dependencies, one install.
-- The build bundles the code of this repository, with the contracts and
-  every `#` import resolved, and leaves the packages of npm as imports.
-  They come with the install of the package. A bundle with every package
-  inside started from an empty folder as well and stays a later option.
-- Why: an ordinary package first. The end-to-end tests start the built
-  file as a process, so they test what a person installs, and no loader
-  of TypeScript is needed to run the service from source.
-- The bundler is the one the test runner brings already, so the tree
-  gains no package.
-- A file of the service is never found from the place of another source
-  file, since a bundle moves them all. The entry file gives the folder of
-  the migrations from its own place.
-- Where: `backend/src/shared/infrastructure/database/migration-files.ts`.
-  The build step itself comes with the entry file.
+The documents of [the plan](../plan/system-design.md) describe the design
+as it was before the first line of the product. A decision made after
+that is written here, grouped by topic. Where this file and the plan
+differ, this file and the code are right.
+
+Every entry has one shape: a heading that states the decision, bullets
+that say what holds now, a `Why:` with the fact or the measurement
+behind it, and a `Where:` with the paths. What is still open is in the
+last section and nowhere else.
+
+## Contents
+
+- [The service and its start](#the-service-and-its-start)
+- [The queue and the jobs](#the-queue-and-the-jobs)
+- [Scans and coverage](#scans-and-coverage)
+- [Package managers and the install](#package-managers-and-the-install)
+- [The sandbox and the secrets](#the-sandbox-and-the-secrets)
+- [The improvement and its budget](#the-improvement-and-its-budget)
+- [The generator](#the-generator)
+- [Verification of a patch](#verification-of-a-patch)
+- [Publication: git, gh and forks](#publication-git-gh-and-forks)
+- [The contract between client and service](#the-contract-between-client-and-service)
+- [The client](#the-client)
+- [The harness and the tests](#the-harness-and-the-tests)
+- [What real runs showed](#what-real-runs-showed)
+- [Open debts and ideas left for later](#open-debts-and-ideas-left-for-later)
+
+## The service and its start
+
+### The client and the service are one package that plain Node runs
+
+- One package: one build, one list of dependencies, one install. The
+  build bundles the code of this repository with every `#` import
+  resolved, and leaves the npm packages as imports. The bundler is the
+  one the test runner already brings, and a warning fails the build.
+- `dist/` holds `bin/service.js`, the program of the client (the `bin`
+  of the manifest), the migrations and one `package.json` made from the
+  root manifest and the dependencies of every workspace. One package
+  asked for at two versions stops the build.
+- No file is found from the place of another source file. The entry
+  finds the migrations and the manifest one step up from its own place,
+  built or not, because the build keeps them at the same path from the
+  bundle. So the migrations live in the folder of the database code and
+  the image files in the folder of the sandbox, not where the plan put
+  them; the ratchet records a migration by its file name, so a moved
+  folder does not read as removed migrations.
+- Why: the end-to-end tests start the built file, so they test what a
+  person installs, and no TypeScript loader runs the service. A bundle
+  with every package inside also started, and stays a later option.
+- Where: `harness/gate/run-build.ts`, `backend/src/main.ts`,
+  `backend/src/shared/infrastructure/database/migration-files.ts`.
 
 ### A service starts in one order, under one lock
 
-- The instance directory is made and kept to its owner, then the lock is
-  taken, then the database is migrated and checked, and only then a
-  socket a crashed service left is removed.
-- The lock is an exclusive transaction on a SQLite file of its own, taken
-  with no wait: a second service is told at once and exits. Nothing but
-  `BEGIN EXCLUSIVE` is needed, and it holds between processes. The file
-  is never deleted.
-- The holder keeps a reference to the lock for its whole life: a lock the
-  garbage collector takes closes its connection and is released.
-- Removing the stale socket and narrowing the new one take the held lock
-  as an argument and check it, so the type and the code both say who may
-  touch the socket. A path that holds anything but a socket is refused
-  and left alone.
-- A step that fails gives back what the steps before it took, so the next
-  start begins from the same place.
+- The instance folder is made and kept to its owner, the lock is taken,
+  the database is migrated and checked, and only then a socket a crashed
+  service left is removed. A step that fails gives back what the steps
+  before it took. A folder with no migrations is refused.
+- The lock is `BEGIN EXCLUSIVE` on a SQLite file of its own, taken with
+  no wait, and held by a reference for the life of the service: a lock
+  the garbage collector takes is released. The socket is touched only
+  by functions that take the held lock as an argument, and a path that
+  holds anything but a socket is left alone.
+- A stopping service deletes its socket before it gives back the lock,
+  or its close could delete the socket of the next one. So a start that
+  finds the lock held and no socket looks again for up to five seconds,
+  and one that finds a socket leaves at once and says why.
+- Why: only a lock tells a stale socket from a live one, and an
+  exclusive transaction needs nothing else and holds between processes.
 - Where: `backend/src/shared/infrastructure/database/instance-lock.ts`,
-  `backend/src/shared/infrastructure/service/`.
+  `backend/src/shared/infrastructure/service/service-start.ts`.
 
-### git is told who commits, and an old git is refused
+### The composition binds the modules, and each module makes its values
 
-- git gets its `PATH`, its `HOME` and the four variables of the author
-  and the committer from the configuration, and nothing else of the
-  environment of the service.
-- The author is `Coverage Autopilot` with an address in the reserved
-  domain `.invalid`, unless two variables of the service name another.
-  Why: git would otherwise make an author up from the user and the
-  machine, and that would reach a public pull request. An address that
-  reaches no one credits no account of a code host with the commit.
-- The module refuses to start with settings that do not say who commits.
-- The access check fails, as a value, for a git older than 2.36: every
-  call passes `core.fsmonitor=false`, and an older git takes `false` for
-  the name of a program and starts it.
-- Where: `backend/src/shared/infrastructure/config/service-config.ts`,
-  `backend/src/modules/repositories/application/commands/check-access/git-version.ts`.
+- `backend/src/composition/` holds the root module, the settings of each
+  module, the run, the process, the start of the images and the sweep of
+  leftovers. Only the entry imports it. `main.ts` holds two paths and one
+  call; the client has the same folder.
+- Each module has `register(values)` and makes its own value objects.
+  The worker takes exactly one handler for each kind of job.
+- What the environment does not hold is a constant there: the metric
+  (lines), the seven checks of the gate and three repeated runs, the
+  version of the mutation tool, the tools the generator may use, a kill
+  rate of 50 and a limit of 10 surviving mutants.
+- Why: shared code may not import a module, so what binds the modules
+  cannot be shared infrastructure, and a test gives every value.
+- Where: `backend/src/composition/app.module.ts`,
+  `backend/src/composition/module-settings.ts`.
+
+### Only the entry files read the environment
+
+- `process.env` is read by the host of the gate, the two entry files and
+  the stand-in of the engine in the tests. Lint refuses every other way
+  to reach it, by name, by text, through `globalThis` or an import.
+- A wrong value stops the start and the message names every wrong
+  variable. `.env.example` lists each variable with its default.
+- Why: the loader of the configuration takes the variables as an
+  argument, so a test decides every setting.
+- Where: `harness/eslint/restricted-syntax.ts`,
+  `backend/src/shared/infrastructure/config/`, `.env.example`.
+
+### Time is one Instant over the Temporal of the platform
+
+- A moment is an `Instant`: whole milliseconds in UTC, read and written
+  as one text, `YYYY-MM-DDTHH:mm:ss.sssZ`, in the database and the
+  contract alike. The client shows it in the time zone of its user.
+- `Instant` asks `Temporal`, which Node has from 26.0, and still checks
+  the text by its shape. The clock is `Temporal.Now`, read in one file of
+  the service and one of the client; lint refuses it elsewhere, and
+  `Date` everywhere.
+- Why: the client needs the same arithmetic and cannot import the kernel,
+  so the platform type spares a second implementation. It replaced a
+  calendar of our own and a clock that was late after a suspend on Linux.
+  Its price: the clock steps when the system sets its time.
+- Where: `backend/src/shared/kernel/time/instant.ts`,
+  `frontend/src/api/clock.ts`, `backend/tests/support/fixed-clock.ts`.
+
+### An idle service can be asked to stop
+
+- `POST /service/stop` answers 202 and stops once the answer is written.
+  While a job runs it answers 409, since the job would go back to the
+  queue half done; a queued job waits for the next start.
+- `GET /health` and the stop live in the shared HTTP code and reach the
+  service through a port the composition binds.
+- Why: a client of a newer contract replaces an idle service.
+- Where: `backend/src/shared/infrastructure/http/service.controller.ts`.
+
+### A journey can be read in the log by one id
+
+- Every job leaves a line when it is taken, ends, fails, is put back or
+  is given up, and every step of a scan and of an improvement one at its
+  start and end, with the ids of the job, the repository and the
+  improvement. A scan or an improvement is about ten lines at info.
+- Every program the service starts leaves one line at debug with its
+  arguments, exit code and time, secrets hidden. A container run shows
+  the image and the program alone. No environment, input or output.
+- Why: a journey used to be four lines with no step, tool or host call.
+- Where: `backend/src/shared/infrastructure/queue/job-worker-log.ts`,
+  `backend/src/shared/infrastructure/logging/tool-log.ts`.
+
+## The queue and the jobs
+
+### A job that cannot be read is dead at its first claim
+
+- A payload that is not a document with a version is never run or
+  claimed again. The worker buries the job and calls its handler with
+  `payload: null`, so its object fails like one whose runs are spent.
+- Why: no run of the code can read it, so every retry would fail alike.
+- Where: `backend/src/shared/infrastructure/queue/job-worker.ts`.
+
+### A job can wait for its moment, and the queue answers for an object
+
+- A job may carry a moment before which no worker takes it. A wait for a
+  window leaves such a job in the save that starts the wait. A waiting
+  job holds nothing, and its moment is no part of its identity.
+- The queue cancels every open job of an object by the id of the object,
+  and tells what its pending job waits for: its moment, its repository
+  or a free worker. An index finds the open job of a subject.
+- A job keeps the moment of its first claim; its end is its last change.
+- Why: no timer has to outlive a restart, a cancel knows the improvement
+  and not its jobs, and the screens group work by what it waits for.
+- Where: `backend/src/shared/infrastructure/database/sqlite-job-leases.ts`,
+  migrations `0006` to `0008`.
+
+## Scans and coverage
 
 ### A scan is its job, read in the words of a scan
 
-- The id of a scan is the id of its job, and no table of scans exists.
-  The answer is made from the job: `pending` is `queued`, `leased` is
-  `running`, and a completed job is read by its outcome. The table is in
-  the code, and a record over the kinds of outcome makes every outcome
-  the scan writes have a reading.
-- The contract has no reason for a fault that ends a scan, so a fault
-  that is not retried, a removed repository and a dead job are all
-  `retries_exhausted`: to a person each means that nothing runs it again.
-- A job keeps the moment of its first claim, and a later claim keeps it.
-  The moment it ended is its last change, since no statement writes a job
-  that has ended.
-- The steps of a scan are shown only when they belong to this job: the
-  subject of a scan is its repository, and another scan of it may run.
-- Cancelling a scan that has ended answers it as it is, with no write.
-- The files of a snapshot are one query with three filters. `below` and
-  `metric` make the threshold the files are judged by, and `metric` alone
-  narrows nothing.
-- Where: `backend/migrations/0007-keep-the-moment-a-job-started.sql`,
-  `backend/src/modules/coverage/application/dto/scan-dto-mapping.ts`,
-  `backend/src/modules/coverage/application/queries/list-snapshot-files/`.
+- The id of a scan is the id of its job, and no table of scans exists:
+  `pending` reads `queued`, `leased` reads `running`, and a completed
+  job reads by its outcome.
+- A fault that is not retried, a removed repository and a dead job all
+  read `retries_exhausted`, which to a person means nothing runs it
+  again. A cancel of an ended scan answers it as it is, and the steps of
+  a scan are shown only while they belong to its job.
+- Why: the job already keeps everything a scan has.
+- Where: `backend/src/modules/coverage/application/dto/scan-dto-mapping.ts`.
 
-### What an improvement answers, and three of its rules
+### A scan starts from the head the repositories module reads
 
-- What the job of an improvement waits for wins over its own wait for a
-  limit: approval first, then a worker or the repository as the queue
-  says, and only then the limit. A window that has opened while the job
-  waits for its repository is shown as that.
-- A working improvement always has a deadline. Loading a stored one
-  without it is refused, and every step reads the same getter.
-- A call that wrote a `.git` into its working copy fails the improvement
-  as `credential_exposed`, and what the call spent is kept with the
-  attempt. Why this reason: the run started and ran well, so
-  `generator_unavailable` would send a person to the wrong place, and
-  only content of the repository can have told the run to do it while it
-  held the credential.
-- Nothing but the gate has to check the files of a patch before it is
-  published: the gate reads the text strictly, always requires the check
-  of test files, and the attempt keeps exactly that text with its hash.
-  Tests at the publishing step and of the module hold this.
-- Where: `backend/src/modules/improvement/application/dto/improvement-views.ts`,
-  `backend/src/modules/improvement/application/commands/run-improvement/generation-record.ts`,
-  `backend/src/modules/improvement/domain/services/stored-state.service.ts`.
+- `resolveHead` reads the head of the default branch, stores it with the
+  repository and returns it; the access check does the same. A
+  repository is `outdated` when that head is not the commit of its
+  newest snapshot. Commits behind are not counted.
+- Why: a scan needs a commit, and the plan did not say who finds it. A
+  stored head costs a list no call to the host, and shows a stale
+  snapshot before an improvement fails on it.
+- Where:
+  `backend/src/modules/repositories/application/contracts/repositories-public-api.ts`.
 
-### One way to read a request and one shape of a refusal
+### A scan lists its sources and measures exactly that list
+
+- A file is a source when the TypeScript parser finds code that runs in
+  it; a link in its place is refused. The `typescript` package may be
+  imported only in the adapters of the coverage module, to parse.
+- The runner measures the listed files alone (`--coverage.include`,
+  `--collectCoverageFrom`), and its report is read for them alone.
+- Folders of code that only calls the product are left out at any depth
+  and in any case: `examples`, `example`, `demos`, `demo`, `samples`,
+  `sample`, `benchmarks`, `benchmark`, `bench`, `fixtures` and
+  `__fixtures__`. `docs` and `scripts` stay. The rule is named
+  `typescript-sources-v2`, so a new list never compares with an old one.
+- Why: without a list both runners leave out every file no test imports.
+  A real scan counted the scripts of an `examples` folder and picked one
+  to improve. A product file left out is missed in silence, so the list
+  is short; its price is that `src/samples` of a product is left out.
+- Where: `backend/src/modules/coverage/infrastructure/detection/source-file-list.ts`,
+  `backend/src/modules/coverage/infrastructure/classification/`.
+
+### A file keeps its four counters as columns
+
+- `file_coverages` has a column for statements, branches, functions and
+  lines; the document of a file holds what never ran. The files of a
+  snapshot are one query with three filters.
+- Why: the files are filtered and sorted by their numbers.
+- Where: `backend/src/modules/coverage/infrastructure/persistence/`.
+
+### A test run that wrote no coverage report fails the scan
+
+- Such a run ends in `coverage_report_missing` with the output of the
+  tests. Vitest gets `--coverage.reportOnFailure=true`, and Jest reports
+  after a failure anyway, so a red test still measures.
+- Why: it used to be a snapshot of unmeasured files with no cause.
+- Where: `backend/src/modules/coverage/infrastructure/runners/vitest-command.ts`.
+
+### Both runners write one JSON report of the tests
+
+- Jest gets `--json --outputFile=<path>` and Vitest a second `json`
+  reporter, both to `node_modules/.coverage-autopilot-test-results.json`
+  in the copy, removed before each run. One reader gives the failure the
+  generator hears and the tests that failed before a patch.
+- Jest also gets a reporter the service writes into the copy, by an
+  absolute path, which keeps only names, states and messages. Whatever
+  is at its path is removed first, so no link is written through.
+- Why: Jest writes every thrown value whole, and a failed request of an
+  HTTP client holds a cycle, so on a real repository Jest wrote no report.
+- Where: `backend/src/modules/coverage/infrastructure/reports/`,
+  `backend/src/modules/coverage/infrastructure/runners/jest-results-reporter.ts`.
+
+### A repository keeps a threshold of its own
+
+- The default is `AUTOPILOT_COVERAGE_THRESHOLD`, a whole percent of lines
+  from 1 to 100, and 80 when unset. A repository may keep its own
+  (migration `0009`), set by `POST /repositories/:id/threshold` with a
+  `percentage` or `null`, by `repo threshold`, or by `t` on its screen.
+- The coverage module asks for it each time it judges a file, so a change
+  counts at once, for older snapshots too. A lent copy has none.
+- A change of the threshold, of the install mode and a look at the head
+  each read the repository again in their transaction and save it whole,
+  since the host may take seconds to answer.
+- Why: the owner chose a threshold for each repository with a default of
+  the environment, and asking each time needs no new scan.
+- Where: `backend/src/modules/repositories/application/commands/change-threshold/`,
+  `backend/src/modules/coverage/application/repository-thresholds.ts`.
+
+## Package managers and the install
+
+### The manager is the one the repository names, fetched by Corepack
+
+- The manager is the one the `packageManager` field names at an exact
+  version, else the one whose lockfile the copy has. npm is the npm of
+  the image. Refused: a range or an address, two lockfiles and no field,
+  a field without its lockfile, mixed yarn generations, bun and
+  monorepos.
+- Corepack 0.36.0 is in the image and fetches the exact program from
+  the npm registry (`COREPACK_NPM_REGISTRY`, `COREPACK_ENV_FILE=0`)
+  while the install has the network. Without a hash it checks pnpm and
+  yarn 1 only, so the service pins the hash of each yarn 2 or later. The
+  program lives in the memory home and goes with the container, so no
+  later command, which has no network, can start a manager.
+- Without a field the lockfile format picks: pnpm `5.4` is 7.33.7, `6.0`
+  is 8.15.9, `9.0` is 10.34.9; yarn 1 is 1.22.22; yarn by
+  `__metadata.version` 6, 8, 9 and 10 is 3.8.7, 4.13.0, 4.14.1, 4.18.1.
+- Why: repositories ask for pnpm 7 to 12 and yarn 1, 3 and 4, so a baked
+  manager would be wrong for most. A `.corepack.env` sent the download
+  elsewhere in the spike. An immutable install by a yarn of another
+  format failed with YN0028, and a wrong hash failed.
+- Where: `backend/src/modules/coverage/infrastructure/detection/manager-choice.ts`,
+  `backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile`.
+
+### A sandboxed install runs no code of the repository
+
+- Every install skips scripts and hooks; the commands are in the table
+  below. yarn 2 and later read a settings file the service writes: the
+  `.yarnrc.yml` of the repository without `yarnPath`, `plugins` and
+  `enableConstraintsChecks`, the rest kept, since package extensions
+  change how the lockfile resolves. A line the service cannot read is
+  refused, since a dropped setting could hide in it. The file is never
+  written through a link and reaches no patch and no publication.
+- yarn 1 gets `--ignore-engines`, so a package that asks for another
+  Node installs, as with npm.
+- Refused with `install_runs_code`: pnpm `configDependencies`, a package
+  from git, an `exec:` package, and a pnpm lockfile with
+  `pnpmfileChecksum`. Refused with `plug_and_play`: yarn without
+  `nodeLinker: node-modules`. The detail says how to trust the
+  repository instead.
+- The cache is on the disk of the copy, under `node_modules` (`.yarn/cache`
+  for yarn 2 and later), and the runner version comes from the lockfile.
+- Why, from a spike on fixtures that leave a mark: without the switches
+  pnpm ran `.pnpmfile.cjs` and `postinstall`, yarn 1 ran a `yarnPath`,
+  and yarn 4 ran `yarnPath`, a plugin, `postinstall` (even with
+  `YARN_ENABLE_SCRIPTS=0`, until `--mode=skip-build`) and
+  `yarn.config.cjs`. With them, pnpm 10.34.9 and yarn 1.22.22, 3.8.7 and
+  4.18.1 ran nothing and left the manifest and lockfile as they were.
+  Under `node_modules` yarn 2 and later removed their own cache.
+- Where: `backend/src/modules/coverage/infrastructure/detection/`.
+
+### A repository may be trusted to install as its developers do
+
+- Trusted, its code and the scripts of its packages run during the
+  install, with the network open. That code can send away anything in
+  the copy, but cannot read a credential of this computer: the container
+  holds no token, no key, no socket and no database. A person trusts a
+  repository only when they would run its install on their own machine.
+- The default is `AUTOPILOT_INSTALL` (`sandboxed` when unset). A
+  repository may keep its own mode (migration `0010`), set by
+  `POST /repositories/:id/install-mode`, `repo trust`, or `i` on its
+  screen, whose dialog says what trusted code can reach. The mode is
+  asked each time a copy is detected, so a mode taken back in the middle
+  of a run ends it with an honest refusal.
+- Trust changes the install alone. Every `install_runs_code` case
+  installs; monorepos, bun, Plug'n'Play, an unreadable `.yarnrc.yml` and
+  every refusal of a runner stay refused. The image has `git` and https
+  certificates and no ssh client, so a git package comes over https.
+- Why: the sandboxed install refuses every project whose install needs
+  code to run. In the spike pnpm 10.34.9, yarn 1.22.22 and yarn 4.18.1
+  ran the scripts and installed a git package only when trusted, and npm
+  11.20.0 ran a git package's `prepare` only when trusted.
+- Where: `backend/src/modules/repositories/application/commands/change-install-mode/`,
+  `backend/src/modules/coverage/application/repository-detection.ts`.
+
+| Manager | Sandboxed | Trusted |
+| --- | --- | --- |
+| npm | `npm ci --ignore-scripts --no-audit --no-fund --cache <cache>` | without `--ignore-scripts` |
+| pnpm | `corepack pnpm@<v> install --frozen-lockfile --ignore-scripts --ignore-pnpmfile --store-dir <cache> --config.manage-package-manager-versions=false --reporter=append-only` | without `--ignore-scripts` and `--ignore-pnpmfile` |
+| yarn 1 | `corepack yarn@<v> install --frozen-lockfile --ignore-scripts --ignore-engines --non-interactive --cache-folder <cache>` with `YARN_IGNORE_PATH=1` | without `--ignore-scripts` and `YARN_IGNORE_PATH` |
+| yarn 2 and later | `corepack yarn@<v> install --immutable --mode=skip-build` with `YARN_IGNORE_PATH=1`, `YARN_RC_FILENAME=.coverage-autopilot-yarnrc.yml`, `YARN_ENABLE_SCRIPTS=0` | `--immutable` alone, reading the `.yarnrc.yml` of the repository |
+
+Both modes of yarn 2 and later also set `YARN_ENABLE_GLOBAL_CACHE=0`,
+`YARN_ENABLE_MIRROR=0`, `YARN_CACHE_FOLDER=.yarn/cache`,
+`YARN_ENABLE_TELEMETRY=0`, `YARN_CHECKSUM_BEHAVIOR=throw` and
+`YARN_NODE_LINKER=node-modules`.
+
+## The sandbox and the secrets
+
+### A command runs in a sandbox with three variables and no network
+
+- `Sandbox` is a shared port: one command of an untrusted repository in
+  a working copy, with the listed variables and no network unless the
+  install opens it. A failed or timed-out command is a value.
+  `ArtifactStore` keeps raw output in files named by their hash, and a
+  file that is gone reads as nothing.
+- A command gets the `PATH` of the image, a home in the scratch folder
+  and `CI`. It runs as the user of the service (or
+  `AUTOPILOT_SANDBOX_UID` and `_GID`, never 0) on a read-only root.
+- The generator runs in a second instance of the same port, with its own
+  image and an open network.
+- Why: a command must write into the copy the service made, and must
+  find no secret of this computer.
+- Where: `backend/src/shared/application/ports/sandbox.port.ts`,
+  `backend/src/shared/infrastructure/sandbox/container-arguments.ts`.
+
+### A credential reaches only the program that needs it
+
+- The credential of the generator comes from the environment, is never
+  stored, and goes to the generator sandbox alone. `gh` gets the
+  variables of its login; git gets `PATH`, `HOME` and the four author
+  variables; the engine gets its own short list.
+- A mismatch with the contract names the place and the rule, never the
+  value, and a log line hides the secrets its runner knows.
+- Why: the generator and the tests run code a repository can steer.
+- Where: `backend/src/shared/infrastructure/config/service-config.ts`.
+
+### The service builds both images from files it ships
+
+- The image of the commands, `coverage-autopilot-sandbox:26`, is
+  `node:26-slim` with `procps`, `git`, https certificates and Corepack.
+  The image of the generator holds Node and the CLI at the measured
+  version, `coverage-autopilot-generator:2.1.329`.
+- An image the service makes is built when missing or built from another
+  file, which a label with the digest of the file tells. Any other name
+  is pulled when missing and never built. Every run says not to pull.
+- The preparation starts in the background once the service listens; a
+  command waits for it, and a stop cuts it short.
+- Why: the slim image has no `ps`, which the mutation tool ends its
+  runners with. No public image of the CLI comes from its maker, the
+  container holds the credential, and a public tag would move.
+- Where: `backend/src/shared/infrastructure/sandbox/image-preparation.ts`,
+  `backend/src/shared/infrastructure/config/shipped-images.ts`.
+
+### A working copy has one path, and git keeps out of it
+
+- A copy is mounted at its host path, so a report names files the
+  service reads as they are. Its git directory lives beside it, written
+  only by the service, and every git call names both.
+- A tree with a `.git` entry, at any depth and in any spelling, is
+  refused with `working_copy_tampered` before git runs. A patch is taken
+  only after the sandbox has ended.
+- git on a copy reads no global, system or environment configuration,
+  runs no hook, monitor or driver, and passes `core.fsmonitor=false`.
+  The mirror and the push keep the configuration of the operator, which
+  holds the credentials, and read no tree. A tool that writes more than
+  64 MiB fails, and no part of its output is used.
+- Why: a command can write anything into the copy, and the service runs
+  git on it afterwards.
+- Where: `backend/src/modules/repositories/infrastructure/git/`,
+  `backend/src/modules/repositories/infrastructure/tools/tool-runner.ts`.
+
+### A copy is removed whatever was done to it, and a start clears the rest
+
+- A refused removal gives the owner back each folder and tries again,
+  never through a link. Disposing never throws: a copy that stays is a
+  log line, removed by the next copy of the id or the next start.
+- A container that may still run after its command is a fault: no patch
+  is taken. A start removes, under the lock and before the worker, the
+  containers with its own label (made of the instance path), then every
+  working copy, never a mirror.
+- Why: code of a repository can leave folders the service may not empty,
+  and their fault used to replace the result of a step, losing the record
+  of a paid call. Two instances share one engine.
+- Where: `backend/src/shared/infrastructure/sandbox/leftover-containers.ts`,
+  `backend/src/composition/leftover-sweep.ts`.
+
+### A call of the engine is stopped with its process group, twice
+
+- The program of the engine leads its own process group, and a stop kills
+  the group, and again once its leader has ended.
+- Why: a hung credential helper kept the streams after its program was
+  killed, so a ten-minute limit ended after twelve. One kill of the group
+  missed a helper born during it in 35 of 1200 rounds under load; the
+  second kill reached it every time.
+- Where: `backend/src/shared/infrastructure/processes/kill-group.ts`.
+
+## The improvement and its budget
+
+### The budget has defaults and maximums, and tokens only with a key
+
+- Attempts: 3, at most 10. Minutes: 30, at most 120. Tokens exist only
+  with a key: 1,000,000, at most 5,000,000. `GET /settings/budget` gives
+  them, so the dialog holds no number of its own.
+- Why: under a subscription the windows are the limit.
+- Where: `api-contracts/src/improvements.ts`.
+
+### An improvement counts work, not waiting
+
+- The minutes become one deadline when work starts, so a restart gives
+  nothing back. Leaving `waiting_for_limit` or `awaiting_approval` moves
+  the deadline later by the wait.
+- The deadline stops the work through an alarm, a port beside the clock,
+  and reaches each step and each call as a signal.
+- Why: a person who approves the next morning spends no minute.
+- Where: `backend/src/modules/improvement/domain/`,
+  `backend/src/shared/application/ports/alarm.port.ts`.
+
+### Attempts count when opened, and a patch is approved by its hash
+
+- Every opened attempt is spent, but only ended ones decide whether a new
+  one may open, so the open attempt of a run after a crash may finish.
+  The allowance is asked and the attempt opened in one save.
+- A rejected patch closes its attempt; an inconclusive verdict keeps it
+  open in `verifying`. A save checks the version it read
+  (`stale_improvement`).
+- A person approves a patch by its hash, and another hash is refused.
+- Why: a crash must neither give an attempt back nor spend one twice, and
+  nobody approves a patch they did not see.
+- Where: `backend/src/modules/improvement/domain/`.
+
+### A request for an improvement is checked before it is stored
+
+- Every value is built first, so a bad one costs no call to the host. The
+  snapshot, the file and the head are asked outside the transaction. A
+  file above the threshold is not refused: the run measures again.
+- The fingerprint is a SHA-256 over the repository, the commit, the file,
+  the quality policy and the generator without its billing; the key, the
+  budget and the mode are no part of the work. A conflict names the
+  earlier improvement.
+- A quality policy without the check of test files is refused.
+- An approval adds the job that publishes in the save that approves, and
+  a cancel ends every open job of the improvement in the save that
+  cancels.
+- Why: a refusal costs nothing and stores nothing, and the check of test
+  files keeps a generator out of the source.
+- Where: `backend/src/modules/improvement/application/commands/start-improvement/`,
+  `backend/src/modules/improvement/application/request-values.ts`.
+
+### One handler runs an improvement, one step for each status
+
+- Every job of an improvement has the same payload; the handler reads
+  the status and goes on. A step saves its expected ends itself; a fault
+  that may pass is retried, and one that will not fails the improvement
+  with the reason the step names.
+- `analyzing` fails with `stale_snapshot`, `mutation_unsupported`,
+  `budget_exhausted`, `verification_error` or `existing_tests_fail`, and
+  skips with `threshold_met` or `no_undetected_mutants`. `verifying`
+  retries only when every unfinished check may finish on another run.
+  `publishing` asks the head again and keeps 2000 characters of a
+  refusal.
+- The handler fails an improvement whose job another version of the
+  service wrote, and throws on a step that went on without saving.
+- What a person sees puts the wait of the job first: approval, then a
+  worker or the repository, then the limit.
+- Why: one place reads the state after any restart, a fault of the code
+  cannot spin for ever, and a retry that ends in the same error would
+  hide its reason.
+- Where: `backend/src/modules/improvement/application/commands/run-improvement/`.
+
+## The generator
+
+### Claude Code is the generator, paid by a subscription or by a key
+
+- Claude Code is the default and only generator for now; a model router
+  and Codex are later adapters behind the same port. Who pays comes from
+  `AUTOPILOT_GENERATOR_BILLING`, never from a request.
+- Under a subscription the client shows the five-hour and seven-day
+  windows as the generator last reported them, and never money.
+- Why: for a subscription the price of a call means nothing.
+- Where: `api-contracts/src/health.ts`, `api-contracts/src/statuses.ts`.
+
+### An improvement waits for the five-hour window and fails on the weekly one
+
+- A spent five-hour window moves the improvement to `waiting_for_limit`
+  until the moment the generator said, else the end of the last window it
+  reported, else an hour. Its file stays taken, its sandbox is given back,
+  and it spends no attempt.
+- A third spent window fails it with `quota_exhausted`; a spent weekly
+  quota and every other spent limit fail at once.
+- Why: the short window often opens within the hour, and losing the work
+  done costs more than the wait.
+- Where: `backend/src/modules/improvement/infrastructure/generator/usage-limit.ts`.
+
+### The start of the generator is checked after its run
+
+- The adapter reads the report of the start after the run: a tool that
+  is not allowed, or any tool server, is a fault, and the output goes.
+- Every file the run wrote is searched for the credential first, and a
+  found one wins over every other ending. A run that wrote a `.git`
+  fails as `credential_exposed`, and its cost is kept with the attempt.
+- A service with no credential starts and scans, warns once, and refuses
+  an improvement with 409 `generator_unavailable`.
+- Why: the sandbox runs a command to its end, so a run cannot be stopped
+  before its first call. Only content of the repository can have told a
+  run to write a `.git` while it held the credential.
+- Where: `backend/src/modules/improvement/infrastructure/generator/`.
+
+### The generator hears how its tests failed
+
+- The first failure of a test run travels as its own field,
+  `testFailure`, never inside a message of the gate: a file that failed
+  to run, else the first failed test, at most 4 lines of 200 characters,
+  cut after a whole word, with control characters, copy paths and stack
+  frames of packages removed. A report that is missing or of another
+  shape gives no excerpt, never raw text. The attempt keeps it, and the
+  history of the client shows it under the reasons of a rejection.
+- Prompt version 2 tells the generator to read the runner and TypeScript
+  settings first, and to remove the cause of a shown failure. The
+  failure is quoted line by line after `>`, with the credential hidden
+  before any cut. An improvement keeps the prompt version it began with.
+- Why: a real improvement spent its three attempts on a test file that
+  did not compile, while the generator heard only that its tests fail.
+- Where: `backend/src/modules/coverage/infrastructure/reports/test-failure-excerpt.ts`,
+  `backend/src/modules/improvement/infrastructure/generator/generation-prompt.ts`.
+
+## Verification of a patch
+
+### A patch only adds new test files
+
+- A patch may add plain files whose names end like a test file
+  (`.test.ts` and `.test.tsx` by default) and nothing else. The gate
+  always requires this check, and the attempt keeps exactly the text it
+  read, with its hash, so nothing else checks a patch before publication.
+- A patch passes only as git writes new files: `new file mode 100644`,
+  one hunk of added lines each, nothing outside a file, no path among the
+  installed packages, and git must report exactly the files named.
+- Why: the tests of the commit stay as they were, and a patch cannot
+  pass by weakening one. `git apply` also takes a section with no header.
+- Where: `backend/src/modules/verification/domain/services/`,
+  `backend/src/modules/verification/application/commands/verify-patch/`.
+
+### The gate measures a commit once and is given the measure back
+
+- `measureBaseline` answers whether the commit type-checks, which tests
+  fail, and which mutants nothing detects; every `verifyPatch` gets it. A
+  check with nothing to compare with is `not_applicable`.
+- The coverage check compares the counters of the target alone, and one
+  that fell fails it.
+- Why: every attempt is judged against the same commit.
+- Where: `backend/src/modules/verification/application/commands/measure-baseline/`.
+
+### The mutation tool is installed before code of the repository runs
+
+- `installTool` runs right after the install of the packages, while the
+  network is open and before any test, into
+  `node_modules/.cache/coverage-autopilot/mutation` with no peer. A run
+  gets `NODE_PATH=<copy>/node_modules/.pnpm/node_modules`, and both
+  runners run every test.
+- Why: installed later, it came after code of the repository with the
+  network open. In the tree of the project it reshaped what pnpm or yarn
+  laid out, and without `NODE_PATH` Jest missed `jest-environment-node`.
+  A file no test imports has no related tests, so the tool ran none.
+  StrykerJS 10.1.1 with Jest 30.5.2 and Vitest 4.1.12 then killed every
+  mutant on pnpm, yarn 1 and yarn 4 projects.
+- Where: `backend/src/modules/verification/infrastructure/mutation/stryker-configuration.ts`.
+
+### The tests of a repository may fail in the sandbox
+
+- `AUTOPILOT_BASELINE_TESTS` is `may_fail` (default) or `must_pass`. The
+  baseline keeps the failing tests by file and full name.
+- `must_pass`: a failing test ends the analysis with
+  `existing_tests_fail`, saying how many fail and which first. A run that
+  failed and named no test ends so under either setting.
+- `may_fail`: a patch fails only on a test that fails with it and did not
+  before. The files of failing tests are ignored by StrykerJS. With no
+  test left, every mutant reads `no_coverage`.
+- A snapshot counts the tests that ran and failed, and the client says
+  `33 of 53 tests fail in the sandbox`.
+- Why: tests that need the network fail in the sandbox, and the mutation
+  tool stops when a test fails, so such a repository ended as
+  `mutation_unsupported`, the wrong cause.
+- Where: `backend/src/modules/verification/application/failing-tests.ts`,
+  `backend/src/modules/verification/application/commands/verify-patch/checks/existing-tests-check.ts`.
+
+## Publication: git, gh and forks
+
+### git is told who commits, and an old git is refused
+
+- The author is `Coverage Autopilot` at an address in the reserved
+  domain `.invalid`, unless `AUTOPILOT_GIT_AUTHOR_NAME` and
+  `AUTOPILOT_GIT_AUTHOR_EMAIL` say otherwise.
+- The access check fails, as a value, for a git older than 2.36.
+- Why: git would otherwise make up an author from the user and the
+  machine and put it in a public pull request. An older git takes the
+  `false` of `core.fsmonitor=false` for a program and starts it.
+- Where: `backend/src/modules/repositories/application/commands/check-access/git-version.ts`.
+
+### A mirror takes one fetch at a time
+
+- Every repository has one mirror, and each change of it waits for its
+  turn in one object shared by the adapters of git and of working
+  copies. A read takes no turn. The turns hold within one service.
+- Why: git moves a branch only from the commit it read first, so two
+  fetches after the branch moved made one fail, and a request got 500.
+- Where: `backend/src/modules/repositories/infrastructure/git/mirror-turns.ts`.
+
+### A pull request holds one test commit on a branch named by the id
+
+- The branch is `coverage-autopilot/<id>`; the commit and the title are
+  `test: cover <file>`. The body shows what the gate measured, names the
+  tool and no model. A push goes from a clean copy made for it.
+- Why: a publication that starts again finds its own branch.
+- Where: `backend/src/modules/improvement/application/commands/run-improvement/publishing.step.ts`.
+
+### A result goes to a fork when the account may not push
+
+- The access check says where a result goes: `repository`, or `fork`
+  with the account. Publishing asks again, and on a fork it:
+  1. asks `gh api --method=POST repos/<owner>/<name>/forks` and uses the
+     `clone_url` of the answer, since a fork may be named `<name>-1`;
+  2. waits up to 60 seconds, by `git ls-remote --symref`, for the fork to
+     name its default branch;
+  3. pushes the base commit to `coverage-autopilot/base-<full hash>` and
+     the test commit in one atomic push;
+  4. opens the pull request inside the fork, into that base.
+- Each step first finds what an earlier run made. A refusal of the host
+  is the outcome `refused` with its words; a fork not ready in time
+  (`fork_not_ready`) and an unread permission (`permission_not_read`)
+  may be tried again. `repo check`, `improve` and the start dialog say
+  where a result will go before a run.
+- The status of `gh` is asked with `--active`, and with no login every
+  call fails at once.
+- Why: the check used to fail for every repository the account does not
+  own. An end-to-end test kills the service while it publishes, and the
+  next start ends with one fork, one pull request and one commit. An old
+  second account with a broken login in the keyring failed a status not
+  asked for the active account alone.
+- Where: `backend/src/modules/repositories/application/commands/publish-patch/publication-targets.ts`,
+  `backend/src/modules/repositories/infrastructure/gh/gh-code-host.adapter.ts`.
+
+## The contract between client and service
+
+### One way to read a value and one shape of a refusal
 
 - A value that crosses the socket is read with `parseAs` and a schema of
-  the contracts. A mismatch is one error of the contracts package, for
-  the service and the client alike. It names the place and the rule and
-  never the value, which may be a secret.
-- One filter answers everything that is not a success: 400 for a
-  mismatch, the status and the body a route refused with, and 500 for a
-  fault. A route refuses with an exception of the framework that carries
-  the body of the contract.
-- The words of a fault and of a refusal of the framework never reach the
-  client: both can repeat a part of the request or a path. The log keeps
-  the fault with its route and its code.
+  the contracts package, by the service and the client alike.
+- One filter answers what is not a success: 400 for a mismatch, the
+  status of a refusal, 500 for a fault. The words of a fault never reach
+  the client; the log keeps them.
 - A route passes the signal of its request to a use case that starts a
-  tool. Node gives every request that signal from 26.1 on, and a test
-  holds the platform to it.
-- Why the reading lives in the contracts package: a presentation layer
-  may import the contracts and the kernel and nothing else that is
-  shared, and the client reads answers the same way.
+  tool.
+- Why: a presentation layer may import only the contracts and the kernel
+  of what is shared, and a fault can repeat a secret of the request.
 - Where: `api-contracts/src/parsing.ts`,
-  `backend/src/shared/infrastructure/http/`,
-  `backend/tests/support/http-service.ts`.
+  `backend/src/shared/infrastructure/http/`.
 
-### A route belongs to the lowest module that knows its whole answer
+### A route belongs to the module of its resource
 
-- The answer for a repository holds its newest snapshot, its scan that
-  has not ended and whether it is outdated, so the routes of a repository
-  are in the module `coverage`. The files of a snapshot name the newest
-  improvement of each file, so that route is in the module `improvement`.
-  Only the access check is a route of the module `repositories`.
-- Why: a presentation layer may not reach another module, and a module
-  may reach only the contracts of the modules below it. The alternative,
-  a client that joins the answers, would cost the list of repositories
-  one request for each row.
+- Repositories in `repositories`; scans, snapshots and their files in
+  `coverage`; improvements in `improvement`. What a module above knows
+  comes in through a port the module below declares in its contracts.
+  The class that implements a port names its token, the module file binds
+  it, and the modules are global, so the module below can inject it.
+- Why: routes placed by who knew the whole answer left modules that only
+  passed calls on. Joining answers in the client would cost a list one
+  request per row.
+- Where: `backend/src/modules/repositories/application/contracts/repository-coverage.ts`,
+  `backend/tests/integration/module-ports.test.ts`.
 
-### What a route answers, and how it refuses
+### A route answers with the stored work, and refuses with a reason
 
-- A route that starts work answers 202 with the work as it is stored, and
-  200 when the same key finds the work that is there already. A cancel
-  of work that had ended is no error and changes nothing: an improvement
-  then answers 200, and a scan 202 as for a cancel that took effect.
-- A refusal is an outcome of a use case, a value with a reason, and the
-  presentation layer maps each reason to a status and a body of the
-  contract. No route catches a domain error: a value of a request that
-  breaks a rule of the domain is made into a refusal in the application
-  layer (`request-values.ts`).
-- Connecting a repository answers 201, and 200 when it is connected
-  already. It has two refusals of its own: an address that is not one of
-  a repository on the code host is 400, and a repository the login cannot
-  see is 404, which does not say whether it exists.
-- A repository in an answer carries its newest snapshot, the scan that
-  has not ended, and `outdated`: the head the repository keeps is not the
-  commit of that snapshot. No host is asked to answer a list. The newest
-  snapshot is read alone, and the open job of a subject through an index
-  (`0008`), so a row of the list costs two small reads.
-- The defaults and the maximums of a budget are read at
-  `GET /settings/budget`, so the client shows the limits before a request
-  is refused for them.
-- A request may name a quality policy, and one without the check that a
-  patch only adds test files is refused: that check is what keeps a
-  generator out of the source.
+- Starting work answers 202, or 200 when the key finds it. Connecting a
+  repository answers 201 or 200; a repository the login cannot see is
+  404, which does not say whether it exists.
+- A refusal is an outcome of a use case, mapped to a status by the
+  presentation layer. `GET /improvements` takes a `filePath` for the
+  history of a file.
+- Why: an expected outcome is a value, and a status is presentation.
+- Where: the `infrastructure/http/` folder of each module.
 
-### The root binds the modules, and each module makes its own values
+### The version of the contract is raised with every change of a schema
 
-- Every module has `register(values)`, which takes plain values and makes
-  the value objects of its domain itself. The root file knows no layer of
-  a module: it imports the module files and nothing else, and takes the
-  handler of a job from a static field of the module file.
-- The worker gets exactly one handler for each kind of job. A kind with
-  none or with two stops the start.
-- What the environment does not hold is a constant in
-  `backend/src/module-settings.ts`: the threshold (lines, 80), the checks
-  of the gate (all seven, three repeated runs), the version of the
-  mutation tool and the tools the generator may use. A kill rate of 50
-  and a limit of 10 surviving mutants are placeholders until a real run
-  calibrates them.
-- A service with no credential of the generator starts and scans. It
-  warns once at the start and names the variable, never a value. A
-  request for an improvement is then refused at once with 409
-  `generator_unavailable` and nothing is stored, also for a key that was
-  used before. A job that was queued while the credential was set fails
-  with the same reason, before any container starts.
-- A command of a repository gets exactly three variables in its sandbox:
-  the `PATH` of the image, a home in the scratch folder and `CI`.
-- Where: `backend/src/app.module.ts`, `backend/src/module-settings.ts`,
-  `backend/src/job-handlers.ts`, the `*.module.ts` of each module.
+- `CONTRACT_VERSION` is 6. A client reads the version of a health first,
+  and replaces an idle service of another version.
+- Why: the objects are strict, so a new field makes the other side
+  refuse an answer.
+- Where: `api-contracts/src/health.ts`.
 
-### The service reports on itself and stops when it is idle
-
-- `GET /health` and `POST /service/stop` are routes of the shared HTTP
-  code, not of a module. They reach the running service through a port
-  the root binds, because shared code may not import a root file.
-- A stop is refused with 409 while a job runs: the job would go back to
-  the queue half done. A queued job does not block a stop; it waits for
-  the next start. The stop begins once the answer is written.
-- The version is read from the manifest beside the entry file, by the
-  same step up that finds the migrations, built or not.
-- A folder of migrations that holds none is refused: a build that lost
-  the folder would otherwise start on an empty database.
-- Health does not know yet what only a module knows: the account of the
-  code host, the limits a subscription last reported and the versions of
-  the tools. The contract allows the empty answer for each.
-
-### The build and the end-to-end tests are steps of the gate
-
-- `build` writes the package a person installs into `dist/`, with the
-  bundler the test runner already brings, and a warning fails it:
-  `bin/service.js`, the migrations and one `package.json`. The manifest
-  takes its name, version and Node from the root manifest, and its
-  dependencies are those of every workspace together; one package asked
-  for at two versions stops the build. A program is in `bin/`, so it
-  finds the migrations and the manifest one step up, as the entry file
-  does in its workspace. The program of the client joins `bin/` when the
-  client has its entry file.
-- `e2e` builds for itself and then runs the tests of `tests/e2e/`, which
-  start the built file as a process of its own with an explicit list of
-  variables and reach it only through its socket. Coverage does not count
-  them: the code runs in another process.
-- Why a step of its own: a unit or an integration test loads the source
-  through the test runner. Only this step proves that the file a person
-  installs starts, migrates, answers, stops and exits with a code.
-- The audit of the dependencies has no finding in what the package
-  installs. What is left is in tools of the harness and needs an older
-  major version of a direct dependency, so it stays until those tools
-  move.
-
-### A test run that wrote no report is a failed scan
-
-- A capture whose runner ended and wrote no report at all ends in
-  `coverage_report_missing` with the output of the tests, and a scan
-  fails with that reason. Before, it was a completed snapshot in which
-  every file was unmeasured: a table of no numbers and no cause.
-- Vitest writes no report once a test has failed unless it is told to,
-  so it is started with `--coverage.reportOnFailure=true`. Jest writes
-  one anyway. Both were tried on a project with one red test. A
-  repository with a red test is therefore measured, and what is left for
-  the new reason is a runner that stopped before it measured anything.
-- A report that is there and lacks a file still leaves only that file
-  unmeasured, and a project with no file that holds code needs no report.
-- A test run in a lent working copy, for the gate of a patch, answers as
-  before: the gate judges the target file, and an unmeasured target is
-  already an error of the check.
-- The scan has one reason more, so the version of the contract is 4.
-- Where: `backend/src/modules/coverage/application/commands/`
-  (`capture-snapshot/snapshot-capture.ts`, `run-tests/test-execution.ts`),
-  `backend/src/modules/coverage/infrastructure/runners/vitest-command.ts`.
-
-### Time is the Temporal of the platform
-
-- The client needs what the service needs, the age of a moment and its
-  one text, and also the time zone of its user. It cannot import the
-  kernel of the service, so a second arithmetic of time would have been
-  written beside the first. Instead both use `Temporal`, which Node has
-  from 26.0 on with no flag.
-- `Instant` of the kernel keeps its interface and its strict text. Inside
-  it asks `Temporal`, and the calendar arithmetic of our own is gone. The
-  text is still checked by its shape and by writing the moment back,
-  because `Temporal` reads more shapes than the one of the contract.
-- The clock of the service is `Temporal.Now`, cut to milliseconds. This
-  ends the limit of the first clock, which was late after a machine was
-  suspended. The price: the clock steps when the system sets its time.
-- The clock is read in two files, one of the service and one of the
-  client, and lint refuses `Temporal.Now` in every other file. `Date` of
-  the language stays banned everywhere.
-- Where: `backend/src/shared/kernel/time/instant.ts`,
-  `backend/src/shared/infrastructure/time/system-clock.adapter.ts`,
-  `frontend/src/api/clock.ts`, `harness/eslint/restricted-syntax.ts`,
-  `harness/configs/tsconfig.base.json`.
-
-### Owed after the wave that starts the service
-
-- The worker should record its last poll, so health can say when it was
-  last seen, and should itself refuse two handlers of one kind.
-- The end-to-end tests cover the start and the stop of the built file
-  and one journey from a repository to a pull request, with stand-ins
-  for the engine, the code host and the generator. They do not cover
-  yet: review mode, a rejected patch and a second attempt, a generator
-  that fails or cannot log in, a publication the host refuses, a cancel,
-  and a restart in the middle of an improvement.
-- The log of a whole journey is four lines, the start and the end of
-  each job, also at the level of debug. A step of a job, a tool that was
-  started and a call of the code host leave no line.
-- git gets `PATH` and `HOME` only. A push that goes through the
-  credential helper of `gh` may need the token of the environment: to be
-  proven on the first real publication.
-- The image of the generator is named in the settings and built by
-  nothing in the repository.
-- The status of an answer is set in two ways: the improvement module has
-  a helper for it and the coverage module sets it in the route. The two
-  cancels should also answer an ended one with the same status.
+## The client
 
 ### The client finds the service, and starts it when it must
 
-- One client of the socket serves the screens and the commands. Every
-  answer is read with the schema of its route. A refusal of the service
-  is a value with its status and its error. A socket nothing answers on
-  is an error of its own, which the callers catch in one place each.
-- Where nothing answers, the client starts the service once, as a
-  process of its own group that outlives the terminal. The service gets
-  the variables the client was started with, as it would from a person
-  who started it by hand, and the instance folder the client looks in.
-  The other choice, a list of the variables of the service kept in the
-  client, would be a second list to keep in step with the first.
-- The standard error of a started service goes to `service.log` in the
-  instance folder. When the service does not answer in time, or its
-  process ends, the client shows the last lines it wrote and the path of
-  the file.
-- A health of another contract may not match the schema of this client.
-  So the client reads the version and the running work first, and the
-  whole health only when the version is its own. An idle service of
-  another version is asked to stop and replaced. A busy one is left as it
-  is, and the client says which work it runs.
-- A client never ends a service of the user, also one it started and
-  that did not answer in time. With `--isolated` it makes an instance in
-  a new folder under `/tmp`, because the path of a socket is at most 104
-  bytes, and ends that service and removes the folder on the way out.
-- The client reads no clock to wait: a wait is counted in pauses.
-- Where: `frontend/src/api/socket-service-api.ts`,
-  `frontend/src/api/service-reach.ts`,
-  `frontend/src/api/isolated-service.ts`,
-  `frontend/src/app/service-door.tsx`.
+- Where nothing answers on the socket, the client starts the service
+  once, in a process group of its own with the variables the client got,
+  and its standard error goes to `service.log`. An idle service of
+  another version is replaced, and a busy one is named and left.
+- A client never ends a shared service. With `--isolated` it makes an
+  instance under `/tmp`, since a socket path has at most 104 bytes, and
+  removes it on the way out.
+- The client reads no clock to wait: a wait is counted in pauses. It
+  repeats the names of the instance folder and the socket, and an
+  end-to-end test of the built client holds them to the service.
+- Why: a list of the variables of the service kept in the client would
+  be a second list to keep in step.
+- Where: `frontend/src/api/service-reach.ts`,
+  `frontend/src/api/isolated-service.ts`.
+
+### A request has thirty seconds, and a signal leaves as q does
+
+- A request that runs out of time is a fault of its own: no second
+  service starts, a command ends with one line, a screen asks again.
+- A signal, a closed terminal among them, leaves as `q` does and ends
+  with the code of the signal. A refused write to the terminal is
+  ignored.
+- Why: a service that took a connection and never answered held the
+  client for good, and a closed terminal ended the client mid-leave.
+- Where: `frontend/src/api/socket-exchange.ts`,
+  `frontend/src/composition/process-signals.ts`.
 
 ### A command prints its result, and everything else beside it
 
-- Standard output holds the result and only when the exit code is 0. A
-  refusal of the service and a job that failed go to standard error as
-  one line of JSON in the shape of the service, so a script that captures
-  the output never takes a reason for a result.
-- `--wait` asks about once a second and writes one line to standard
-  error for each change. An improvement that waits for approval ends the
-  wait with 0 and prints the `approve` command with the hash.
-- `cancel <id>` tries the improvement first, and the scan when the
-  service knows no improvement of that id.
-- Three things the plan shows that no route returns: the baseline
-  numbers on the line of `analyzing`, who cancelled an improvement, and
-  the paths and the version of the client in `doctor`. A command prints
-  what the service answers and makes up nothing.
+- Standard output holds the result only when the exit code is 0. A
+  refusal or a failed job goes to standard error as one line of JSON.
+- `--wait` writes one line per change and ends at `awaiting_approval`
+  with the `approve` command and the hash. `cancel <id>` tries the
+  improvement first, then the scan. A command shows only what the
+  service answers.
+- Why: a script that captures the output never takes a reason for a
+  result.
 - Where: `frontend/src/commands/`.
 
 ### One app over six screens
 
-- A screen draws the whole shell and is handed two things: the session,
-  which is the service, the moment and the time zone, and the frame,
-  which is what the app owns of the shell. A screen knows no other
-  screen: it asks for a move through a callback.
-- The app owns the keys that work everywhere: the sections, the
-  commands, the keys and quitting. A dialog of the app is drawn over the
-  screen, and the screen with its own dialog is then behind it: dim, and
-  without keys.
-- The header counts the improvements that wait for approval and says
-  how the service is, from one question the app repeats for all screens.
-- When the service stops answering, the app reaches it again as it did
-  at the start, and the screens stay open over the same session. That is
-  also how the restart of the service screen works: it asks an idle
-  service to stop, and the next question starts it.
-- Quitting while work runs prints which work keeps running and the
-  command that shows it later.
+- `main.tsx` reads the process and `client-process.ts` takes it as
+  values, so a test runs the whole client. A screen gets the session and
+  the frame, and knows no other screen.
+- The keys of the status tables are the types of the contract, so a new
+  status stops the build of the client.
+- The header counts the improvements that wait for approval. Quitting
+  while work runs prints which work goes on and the command that shows
+  it.
 - Colour is off with `NO_COLOR` or `--no-color`. Unicode is on when the
-  first locale variable that is set names UTF-8, and every symbol is its
-  ASCII replacement otherwise. The plan named no way to tell.
-- Where: `frontend/src/app/`, `frontend/src/screens/`.
+  first locale variable that is set names UTF-8, else ASCII.
+- Why: one owner of the shell and the keys, statuses that cannot drift
+  from the service, and no way to tell Unicode in the plan.
+- Where: `frontend/src/app/`, `frontend/src/theme/status.ts`.
 
-### The root of the client reads the process, and nothing else does
+### The screens take the whole screen, from 80 by 16
 
-- Only a root file may import both the app and the commands, so the
-  choice between them is made there. `main.tsx` reads the process and
-  holds no decision. `client-process.tsx` is given the arguments, the
-  variables and the terminal as values, so a test runs the whole client
-  with a stand-in of the service and a terminal of its own.
-- The root files of the client have an alias, as those of the service
-  have, because a relative import is refused.
-- The package has two programs in `dist/bin/`. The client is the one a
-  person starts: its file names what runs it, may be run, and is the
-  `bin` of the manifest under the name of the package. It starts the
-  service from the file beside its own.
-- An end-to-end test runs the built client with a home of its own. The
-  client repeats the names of the instance folder and of the socket,
-  which it cannot import from the service, and this test holds the two
-  together: the service makes the files and the client finds them.
-- Where: `frontend/src/main.tsx`, `frontend/src/client-process.tsx`,
-  `harness/gate/run-build.ts`, `frontend/tests/e2e/built-client.test.ts`.
+- The screens draw on the other screen of the terminal and give it back.
+  Ctrl+C is a key and leaves as `q` does. The client says it draws for a
+  person, or the library draws nothing in CI.
+- The smallest window is 80 by 16, and only the body gives way.
+- Every action a route allows is on a screen, described once: its key,
+  its words and its line in the command palette. Hidden screens stay
+  mounted, so going back keeps the place, and a list follows its chosen
+  row by what it is.
+- Why: tests of frames of one size missed what a real terminal showed,
+  and the terminal of an editor has fewer than 24 rows.
+- Where: `frontend/src/app/interactive.tsx`,
+  `frontend/src/hooks/use-screen-actions.ts`.
 
-### Owed after the wave of the client
+## The harness and the tests
 
-- The list of commands holds the commands of the app only. The plan
-  wants every action of every screen in it.
-- Going back draws the screen anew, so the selected row is not kept.
-- No test runs the screens in a real pseudo-terminal, so a change of
-  width under a running client is not proven.
-- The screens leave out what no route returns: the last access check of
-  a repository, the name of its test runner, the paths of the service,
-  and who cancelled an improvement. They also leave out the filters and
-  the cancel of the list of improvements, opening a pull request in the
-  browser, the next file, and asking again with larger limits after a
-  failure.
-- A start removes what was left before it listens, and an engine that
-  does not answer is waited for thirty seconds, longer than the client
-  waits for a start.
-- The label of a container is made of the path of the instance, so the
-  containers of a folder that was moved are not found, and those started
-  before the label existed never are.
-- An old service removes its socket a moment before it releases its
-  lock. A new one that tried the lock in that moment would leave, and
-  the client would wait its whole wait and say the service did not
-  start.
-- A request has no time limit, so a service that takes a connection and
-  never answers holds the client.
+### A module has three layers: routes are infrastructure
 
-### The routes are infrastructure, and the contracts are application
-
-- The plan gave a module five folders: `domain`, `application`,
-  `infrastructure`, `presentation` and `contracts`. A controller is an
-  adapter of the framework as a repository of SQLite is, and the
-  contracts of a module are the face of its application layer, so a
-  module has three layers now. The routes are in `infrastructure/http/`
-  and the contracts in `application/contracts/`.
-- Each of the two keeps the rule it had as a layer. The routes import
-  the application layer of their module and nothing else of it, and
-  nothing but the module file imports them, so an adapter cannot call a
-  route. The contracts import nothing else of their module, and another
-  module enters a module through them only.
-- How: the policy may give a part of a layer a rule of its own. A layer
-  named with two folders, such as `application/contracts`, is that part,
-  and a file in it is judged by the rule of the part, not by the rule of
-  the layer around it. The policy also names which layers are the
-  contracts, so the rule of the boundary holds no name of a folder.
-- A unit test may not load a route, as it may not load any other
-  infrastructure.
-- Where: `harness/policy/structure.json`, `harness/architecture/places.ts`,
+- Routes are in `infrastructure/http/` and contracts in
+  `application/contracts/`. The routes import only the application layer
+  of their module, and the contracts are the only way in from another
+  module. The policy may give a part of a layer, named by two folders,
+  a rule of its own.
+- Why: a controller is an adapter of the framework, and the contracts are
+  the face of the application layer.
+- Where: `harness/policy/structure.json`,
   `harness/architecture/rules/module-boundary.ts`.
 
-### A route belongs to the module of its resource
+### The built package is tested by its own steps of the gate
 
-- This overturns "A route belongs to the lowest module that knows its
-  whole answer". The routes of a repository are in the module
-  `repositories`, and the files of a snapshot are a route of `coverage`.
-  The scans and the snapshots of a repository stay in `coverage`: they
-  are its resources under the path of another.
-- What a module above knows comes in through a port. The module below
-  declares the port in its contracts and the module above implements it:
-  `coverage` says what it knows of a repository, and `improvement` names
-  the newest improvement of each file. So a module still imports nothing
-  of a module above it, and no use case only passes a call on.
-- A module file may not import the contracts of another module, so the
-  class that implements a port names its token, and the module file
-  binds the class to it. The modules are global, which lets the module
-  below inject what the module above exports. `improvement` became global
-  for this, and a test starts the whole application to hold the two
-  bindings.
-- Why not before: the first design let a route follow the knowledge, and
-  it left the module of repositories with one route and the module of
-  coverage with three use cases that did nothing of their own.
-- Where: `backend/src/modules/repositories/application/contracts/repository-coverage.ts`,
-  `backend/src/modules/coverage/application/contracts/file-improvements.ts`,
-  `backend/tests/integration/module-ports.test.ts`.
+- `build` writes `dist/`. `e2e` starts the built files as processes and
+  reaches them only through the socket. The stress tests run in `ci`: a
+  storm of requests, many services and clients starting on one instance,
+  and a service stopped at random with cancels. Each run names its seed.
+- No whole service in a test starts the real engine.
+- Why: only the built file proves that what a person installs starts,
+  migrates, answers, stops and exits with a code.
+- Where: `harness/bin/e2e.ts`, `harness/bin/stress.ts`,
+  `backend/tests/stress/`.
 
-### The root of the source holds one file
+### The desk and CI run one Node
 
-- What puts the service together from its modules is in
-  `backend/src/composition/`: the root module, the settings of each
-  module, the run and the process. It may import module files and the
-  shared code, and only the entry imports it. It is no shared
-  infrastructure, because the shared code may not import a module. What
-  imported no module went there: the running service and the list of the
-  job handlers.
-- The client has the same folder for the two files that choose between
-  the screens and the commands.
-- `main.ts` holds two paths and one call. The paths stay there because
-  one step up from the entry finds the migrations and the package from
-  the source and from the bundle alike. Reading the version, the signals
-  that stop the service and the ids of the user are decisions, and they
-  are in the composition, where a test gives values. A package that
-  cannot be read is now one line on the standard error, not a stack.
-- The alias of the root stays for the entry alone: a test has to load
-  it, and a relative import is refused.
-- Where: `harness/policy/structure.json` (`entry`, `composition`),
-  `harness/architecture/places.ts`,
-  `backend/src/composition/service-process.ts`.
+- Both run Node 26.13.1 (`.nvmrc`). A connection opens SQLite with its
+  defensive flag.
+- The audit of the dependencies has no finding in what the package
+  installs; what is left sits in tools of the harness and stays until
+  those tools move.
+- Why: Node 26 sets that flag by default and Node 25 does not, so a test
+  passed on a desk and failed in CI.
+- Where: `.nvmrc`,
+  `backend/src/shared/infrastructure/database/sqlite-connection.ts`.
 
-### Owed after the look at the client in a terminal
+## What real runs showed
 
-- The screens were run in a real terminal emulator for the first time.
-  Two faults showed that no test had caught. The top edge of a panel
-  ended one column early at four widths of five, because a share of the
-  width is a fraction and a text is moved left to a whole cell. And a
-  restart from the screens of a client with a service of its own left
-  it without a service for good. Both are fixed and held by a test.
-- A share of the width still gives a panel a width that is no whole
-  number, so a text right of a filler inside it can stand one cell left.
-- A client with a service of its own that is ended by a signal leaves
-  that service running, with its folder.
-- A start of a service of its own that failed keeps its folder for the
-  log, and each new try makes another folder.
-- One test of the client is not stable under load: the one that waits
-  for an old service of another contract that does not go in time failed
-  once in a run of the whole gate and passed alone.
+### The first real engine built the image and ran a scan
 
-### What is owed, read against the code
+- The generator image: a pull of the base in 4 seconds, a build in 16,
+  932 MB. The CLI logged in with a subscription token and answered a turn
+  in under a second, as a user that is not root, on a read-only root,
+  with no network. A second start built nothing.
+- A scan: 97 packages in a second, Vitest with v8 in half a second, the
+  right numbers, and an unimported file listed with nothing covered.
+- The engine of this machine cannot mount a folder removed and made again
+  at the same path.
+- Where: `backend/src/shared/infrastructure/sandbox/`.
 
-Every list of owed work above was read against the code on this day.
-This list replaces them: what is not named here was found done.
+### The first real fork published one commit and reached no one upstream
+
+- One attempt took a file from 3 of 26 lines to 26 of 26 and killed 35
+  of 37 mutants. The fork got one push, and the pull request opened in
+  it held one commit with one test file. No token was in the log.
+- Seven public repositories installed as they are: pnpm 10.33, 11.3 and
+  11.10, yarn 1.22.22 twice, yarn 4.5.0 twice with a yarn of their own,
+  which did not run, each manager at the version its repository names.
+  Two refusals were right: a yarn lockfile with a package from git, and
+  a Vitest project with no coverage provider. A later trusted yarn 3
+  install with a git package completed.
+- Where: `backend/tests/e2e/fork-publication.test.ts`.
+
+## Open debts and ideas left for later
+
+The list read against the code on 2026-11-22, as written then.
 
 A real run can fail, or lose work that was paid for:
 
@@ -1147,375 +995,28 @@ two refusals without a status, one deadline for every step, and one set
 of settings for the tests. A working copy that was tampered with now
 fails the improvement as an exposed credential and keeps its tokens.
 
-### The screens take the whole screen, and sixteen rows are enough
+### Owed and known limits written in later entries
 
-- The screens are drawn on the other screen of the terminal, as an
-  editor is. What the shell showed is hidden while they run and is back
-  when they end, nothing above them can be scrolled into, and a change
-  of the size of the window draws the frame anew with nothing left of
-  the one before.
-- Ctrl+C is a key of the client, not a signal. It leaves as `q` does:
-  the line about work that goes on is printed, and a service of this run
-  alone is stopped. Before the screens appear it leaves as well.
-- The client says that it draws for a person. Without that, the library
-  of the screens draws nothing until the end where a variable names an
-  automated run, and so did the tests of the screens in CI.
-- The smallest window is 80 by 16, down from 24 rows, because the
-  terminal of an editor is low. In a low window only the body gives way:
-  the header, the context, the notice and the footer keep their rows,
-  and a panel cuts its content at its end.
-- A screen has the actions its routes allow: asking again with larger
-  limits after a spent budget, a pull request in the browser, the next
-  file below the threshold, the filters and the cancel in the list of
-  improvements, and the name of the test runner. The browser is given
-  to the screens with the session, so a test opens nothing.
-- Why not before: the screens were tested as frames of one size, and a
-  frame does not show what a terminal keeps around it. The look in a
-  real emulator showed it.
-- Where: `frontend/src/app/interactive.tsx`,
-  `frontend/src/theme/widths.ts`, `frontend/src/components/panel.tsx`,
-  `frontend/src/api/browser.ts`.
+- A run of the mutation tool stopped at its time limit leaves no
+  cache, since the sandbox stops a command with `SIGKILL`. A stop in
+  two steps is owed.
+- A kill rate of 50 and a limit of 10 surviving mutants are
+  placeholders until a real run calibrates them.
+- Owed: the service has not yet built the image of the commands on a
+  real engine, and `.env.example` still names `node:26-slim`.
+- Owed: `.env.example` does not name `AUTOPILOT_COVERAGE_THRESHOLD`.
+- Owed: `CONTRACT_VERSION` was not raised for the destination of a
+  result, for `testFailure`, for `tests` and `existing_tests_fail`,
+  and for the install mode.
+- Owed: the failure of a test run must reach the next attempt.
+- Owed: say that the tests of the repository fail in the sandbox, at
+  the scan and at the start of an improvement.
+- Whether folders of examples are left out of a scan is the call of
+  the owner.
+- Owed: `.env.example` does not name `AUTOPILOT_INSTALL`.
 
-### A copy is removed whatever was done to it, and a start clears the rest
+Publication through a fork:
 
-- Code of a repository can leave a tree with folders the service may
-  not list or empty. A removal that is refused gives the owner back each
-  folder of the tree and tries again. A link is never followed, so
-  nothing outside the tree is changed.
-- The result of a step counts for more than its folders. Disposing of a
-  copy never throws: a copy that stays is an error line in the log, and
-  the next copy of the id or the next start removes it. One place holds
-  this, behind the port of the working copies, so no step changed.
-- A container that may still run after its command is a fault of the
-  run, not an outcome: it may still write into the copy, so no patch is
-  taken and the copy is thrown away. A name the engine no longer knows
-  counts as removed.
-- A start removes what a service that was killed left: the containers
-  first, then every working copy, and never a mirror. It runs under the
-  lock and before the worker, so no job holds a copy, and a job taken
-  back after a crash makes its copy anew.
-- Two instances share one engine, so a container carries a label made
-  of the path of its instance, and a start removes only those with its
-  own label and a name the sandbox gave. A part of this that fails is a
-  line in the log, and the start goes on.
-- No whole service of a test starts the real engine any more: each runs
-  on a stand-in unless a test gives another.
-- Where: `backend/src/modules/repositories/infrastructure/git/working-copy-folders.ts`,
-  `backend/src/shared/infrastructure/sandbox/container-removal.ts`,
-  `backend/src/shared/infrastructure/sandbox/leftover-containers.ts`,
-  `backend/src/composition/leftover-sweep.ts`.
-
-### An action is described once, and a screen is kept as it was left
-
-- An action of a screen is one value: its key, its words in the footer
-  and its line in the list of commands. One hook takes the list of a
-  screen, runs the actions on their keys and offers them to a store the
-  app reads, so the list of commands runs the handler the key runs. The
-  lists of keys and of hints that each screen kept apart are gone.
-- An action that cannot run is not in the list: the screen leaves it
-  out, and a screen whose dialog or text field has the keys offers
-  nothing. The actions of the screen come first, the commands of the
-  app after them, and the typed text filters both.
-- Every screen of every trail stays mounted, and the ones that do not
-  show are hidden by the activity of the library. A hidden screen is
-  not drawn and its effects rest, so it takes no key, asks the service
-  nothing and offers no action, and it asks at once when it shows again.
-  The other way, a memory of each place in the trail, needed a part of
-  its own in every screen. This is one mechanism, and the last answer
-  stays, so a return shows no empty screen.
-- Each section keeps its trail. The key of a section shows it where it
-  was left, and the key of the section that shows goes to its first
-  screen.
-- A list follows its chosen row by what the row is, not by its number.
-  A row that moved is still chosen, and for a row that is gone the one
-  at its place is.
-- Where: `frontend/src/hooks/use-screen-actions.ts`,
-  `frontend/src/app/shown-screen.tsx`, `frontend/src/app/navigation.tsx`,
-  `frontend/src/hooks/use-selection.ts`.
-
-### What the service reads is beside the code that reads it
-
-- The migrations are in the folder of the database code,
-  `backend/src/shared/infrastructure/database/migrations/`, and the file
-  the image of the generator is built from is in the folder of the
-  sandbox. The workspace of the service holds its sources, its tests and
-  nothing beside them.
-- The entry file still finds each by one step from its own place, built
-  or not, because the build puts them at the same path from the bundle:
-  `bin/shared/infrastructure/database/migrations/` in the package. The
-  other way, short folders at the top of the package, needed an entry
-  file that knows whether it was built.
-- The table of the files of a workspace is read by the longest folder a
-  file is in, so a migration is allowed in its folder alone and not in
-  the whole of the sources.
-- The ratchet records a migration by the name of its file. It recorded
-  the whole path, and took a move of the folder for the removal of every
-  migration, in the tree and against any older commit. A migration still
-  may not change, go or get another name; the folder moves only with the
-  policy that names it. A baseline with whole paths is read as names, so
-  a tree is compared with a commit from before.
-- This overturns the place the plan gives the migrations, beside the
-  sources.
-- Where: `harness/policy/structure.json` (`files`, `backend.migrations`),
-  `harness/architecture/rules/unknown-file.ts`,
-  `harness/architecture/lists.ts`, `harness/gate/run-build.ts`,
-  `backend/src/main.ts`.
-
-### The client gives up on a request, and leaves on a signal as on a key
-
-- A request has thirty seconds from its connection to the last byte of
-  its answer. One that ran out is a fault of its own, not a service that
-  is not there: no second service is started for it, a command ends
-  with one line, and a screen shows it and asks again.
-- The signals that end a client, a closed terminal among them, make it
-  leave as `q` does: a service of this run alone is stopped and its
-  folder removed, the terminal is given back, and the process ends with
-  the code of the signal. A shared service is never stopped. The entry
-  file hands the process over as the place the signals arrive, as the
-  service does.
-- A closed terminal refuses the last write of the screens, and that
-  error ended the client in the middle of its leave. No test saw it: a
-  stand-in terminal refuses nothing. The entry file now ignores a
-  refused write.
-- What answers after a start is held to the contract as what was found
-  is. One reach replaces at most one service.
-- One run keeps at most one folder of a start that failed, and leaving
-  removes it.
-- Where: `frontend/src/api/socket-exchange.ts`,
-  `frontend/src/composition/process-signals.ts`,
-  `frontend/src/api/service-reach.ts`, `frontend/src/main.tsx`.
-
-### A journey can be read in the log, and a start waits for a lock
-
-- Every job leaves a line when it is taken, when it ends, when its
-  handler fails, when it is put back and when it is given up. Every
-  step of a scan and of an improvement leaves one at its start and one
-  at its end, with the ids of the job, the repository and the
-  improvement, so the lines of one journey are found by one id. At the
-  default level a scan and an improvement are ten lines each.
-- Every program the service starts leaves one line at debug: git, the
-  program of the code host and the container engine, with its
-  arguments, its exit code and its time. A runner hides the secrets it
-  knows in them, and a run of a container shows the image and the
-  program alone, since what follows may be a prompt. The environment,
-  the input and the output of a program are never written.
-- A service that stops deletes its socket as its server closes, before
-  the database and the lock are given back, and the order cannot be
-  turned: a lock given back first would let the close delete the socket
-  of the next service. So a start that finds the lock held and no socket
-  looks again for up to five seconds. One that finds a socket leaves at
-  once, as before, and now says why on the standard error.
-- The worker refuses a second handler of one kind when it is made.
-- Where: `backend/src/shared/infrastructure/queue/job-worker-log.ts`,
-  `backend/src/shared/infrastructure/logging/tool-log.ts`,
-  `backend/src/shared/infrastructure/service/service-start.ts`,
-  `backend/src/shared/infrastructure/queue/job-handlers.ts`.
-
-### The service makes the image of the generator, and never looks for one
-
-- The default image of the generator is built by the service from the
-  file it ships: Node and the CLI at the version the command line was
-  measured with. A public image was weighed and refused: none comes from
-  the maker of the CLI, the container is given the credential of the
-  generator, and the version would move with its publisher. A person who
-  names another image in the setting gets that image and no build.
-- Before the first command in an image the sandbox asks the engine for
-  it. An image the service builds is built when it is missing or was
-  built from another file, which a label with the digest of the file
-  tells. Any other image is pulled when it is missing. Every run then
-  tells the engine not to pull, so a name that exists nowhere fails with
-  words that say so. One mechanism serves both sandboxes.
-- The preparation starts in the background once the service listens, so
-  a build does not use the time of a generation. A command that comes
-  meanwhile waits for the same preparation, a failure is not kept, and a
-  service that stops cuts the build short.
-- The engine is given a new empty folder beside the file, since the file
-  copies nothing and its own folder holds the code of the service.
-- A test holds the version in the file to the tag of the default image.
-- Where: `backend/src/shared/infrastructure/sandbox/generator.Dockerfile`,
-  `backend/src/shared/infrastructure/sandbox/image-preparation.ts`,
-  `backend/src/shared/infrastructure/sandbox/sandbox-images.ts`,
-  `backend/src/composition/image-start.ts`.
-
-### What the first real engine showed
-
-- The service built the image of the generator on a real engine: a pull
-  of the base in 4 seconds, a build in 16, an image of 932 MB. The label
-  is read back, an image with no label at all answers with an empty
-  line and no error, a run of a name the engine does not have fails at
-  once, and the CLI answers as a user that is not root, on a root that
-  is read-only, with no network. A second start built nothing.
-- A scan of a real project ran in real containers: 97 packages from the
-  lockfile in a second, Vitest with the v8 provider in half a second.
-  The numbers were right, and a source file no test imports was listed
-  with nothing covered. The code host of that run was the stand-in.
-- The first build did not end. The helper of the engine that reads the
-  passwords of a registry hung. The time limit killed the program of the
-  engine alone, the helper kept its streams, and the call ended twelve
-  minutes after its start, when the helper was killed by hand, not ten.
-  The program of the engine leads a group of its own now, as a tool of
-  the host does, and a stop kills the group. A test plays a helper that
-  outlives its program.
-- One kill of the group is not enough. That test hung once in a full gate
-  beside other work: a helper its program was starting while the group
-  was killed was not yet in the group, outlived the kill and kept the
-  streams. Under load it happened in 35 of 1200 rounds. The group is
-  killed again once its leader ended, and that second kill reached the
-  helper in every round where one was left.
-- Why a test did not find it: the stand-in of the engine started no
-  program of its own.
-- The CLI logged in inside the container with a token of a subscription
-  and answered one turn in under a second. The token was in no line of
-  the log.
-- The first real improvement ended as `mutation_unsupported` before the
-  generator was called. Each runner of the mutation tool starts only the
-  tests related to the mutated file, and a file nobody tested has none,
-  so the tool ran no test and stopped. Seen with Vitest 4 and with
-  Jest 30. The configuration tells both runners to run every test now.
-- The mutation tool ends its test runners through `ps`, and the default
-  image of a sandbox had none. A run that got past its first test run
-  ended there with no report. An image with `ps` in it passed, and the
-  service now builds one, as the next entry says.
-- Where: `backend/src/shared/infrastructure/processes/kill-group.ts`,
-  `backend/src/shared/infrastructure/sandbox/engine-process.ts`,
-  `backend/src/modules/verification/infrastructure/mutation/stryker-configuration.ts`.
-
-### The service makes the image of the commands as well
-
-- The default image of the commands of a repository is
-  `coverage-autopilot-sandbox:26`: `node:26-slim` and the `procps`
-  package, which holds `ps`. The slim image of Node leaves `ps` out, and
-  the mutation tool cannot end its test runners without it. The service
-  builds the image from the file it ships, as it builds the image of the
-  generator. This replaces the default `node:26-slim` that "A sandboxed
-  command runs as the user of the service" names.
-- One function gives each sandbox the build of its image when the sandbox
-  names an image the service makes, from the file of that image. Any
-  other name is taken as the engine has it, or pulled. The preparation
-  after the start, the wait of a command, the limits and the errors are
-  the same code for both sandboxes.
-- The tag of the image is the version of Node of its base. A test holds
-  the file to that base, to the base of the file of the generator, and to
-  `procps`.
-- The stand-ins of the engine answer each image with the label of its
-  own file, so a test of the whole service builds nothing unless it says
-  so. The end-to-end journey checks that no image was built or pulled.
-- Owed: the service has not yet built this image on a real engine, and
-  `.env.example` still names `node:26-slim` as the default.
-- Where: `backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile`,
-  `backend/src/shared/infrastructure/config/shipped-images.ts`,
-  `backend/src/main.ts`.
-
-### A mirror takes one fetch at a time
-
-- Every repository has one mirror, and a request that asks for an
-  improvement fetches its branch into it, as a job does before it makes a
-  copy. git moves a branch under a lock and only from the commit it read
-  first, so two fetches into one mirror after the branch moved made one of
-  them fail, and the request answered 500.
-- Each change of a mirror now waits for its turn: the fetch of the branch,
-  and a fetch by hash with the checks around it. The turns live in one
-  object of the module, shared by the adapter of git and that of the
-  working copies, so a request and a job wait for each other too. A read
-  of a mirror takes no turn.
-- The turns hold within one service, which is all there is: a start takes
-  the lock of its instance, and no other process changes its mirrors.
-- Where: `backend/src/modules/repositories/infrastructure/git/mirror-turns.ts`,
-  `backend/src/modules/repositories/infrastructure/git/git-mirror.ts`.
-
-### A repository keeps a threshold of its own
-
-- The default of the service is `AUTOPILOT_COVERAGE_THRESHOLD`, a whole
-  percent of lines from 1 to 100, and 80 when it is not set. The 80 is
-  written once, as the fallback of the variable. The metric stays lines,
-  set where the service is composed. 0 is refused, since it would make
-  no file a target.
-- A repository may keep a whole percent of its own in
-  `repositories.threshold_percentage`, added by migration 0009. Empty
-  means the default of the service. The column holds the percent alone,
-  and the metric is the one of the service.
-- The repositories module owns the threshold. Its contract gives each
-  repository the threshold in effect with `isDefault`, and the answer of
-  a repository has it as `threshold`. `POST /repositories/:id/threshold`
-  with `{ "percentage": 90 }` sets it and `{ "percentage": null }` clears
-  it. The answer is the repository as its files are judged from then on.
-- The coverage module keeps no threshold in its settings. It asks the
-  repositories module each time it judges a file, so `belowThreshold`,
-  the split of a snapshot, the next file of the client and the ending
-  `threshold_met` of an improvement follow a change at once, for the
-  snapshots taken before it too. The port `REPOSITORY_COVERAGE` is given
-  the repository as it was read, so the split matches the threshold the
-  same answer shows.
-- A run of tests in a working copy names no repository, so its files
-  carry no `belowThreshold`. The gate compares their numbers with a
-  snapshot and never read it.
-- A look at the head reads the repository again in its transaction
-  before it saves, as the change of a threshold does: both save the
-  repository whole, and the host may take seconds to answer.
-- The client: `repo threshold <repo> <percent>`, with `default` in place
-  of the percent, and `t` on the screen of the repositories. The command
-  checks the shape alone and leaves the range to the service. `files`
-  prints the percent beside `below`, and the screens write
-  `own threshold` for a threshold of its own.
-- Owed: `.env.example` does not name the variable yet, since it is a
-  file of the policy.
-- Where: `backend/src/modules/repositories/application/commands/change-threshold/`,
-  `backend/src/modules/repositories/application/dto/repository-dtos.ts`,
-  `backend/src/modules/coverage/application/repository-thresholds.ts`,
-  `frontend/src/commands/repo-threshold.ts`,
-  `frontend/src/screens/repositories/threshold-dialog.tsx`.
-
-### A result goes to a fork when the account may not push
-
-- The access check no longer fails when the account may not push. It
-  passes and names the account a fork is in, which `gh api user` reads.
-  The check carries where a result goes: `repository`, or `fork` with the
-  account. It is known with the last step, as the head is, and is `null`
-  until then. A strict object of the contract gained a field, so a client
-  of the version before refuses the answer. `CONTRACT_VERSION` was not
-  raised here: owed.
-- Publishing asks the host again, since the right to push can change
-  between the check and the end of the work. Allowed, it publishes as
-  before. Denied, it takes the fork route, and never opens a pull request
-  in the repository:
-  1. `gh api --method=POST repos/<owner>/<name>/forks` answers the fork
-     the account has, or makes one. Its address is the `clone_url` of the
-     answer, read through `RepositoryUrl`, never a name made from the
-     login, since the host names a fork `<name>-1` when the account has a
-     repository of that name.
-  2. The host makes a new fork in the background. The service looks with
-     `git ls-remote --symref` every 2 seconds, for up to 60, until the
-     fork names its default branch. The waits go through the alarm and the
-     clock.
-  3. The fork may be far behind, and the base commit of the work on no
-     branch of it. So one atomic push from the clean copy made for
-     publishing sends the base commit to the branch
-     `coverage-autopilot/base-<full hash>` and the test commit to the
-     branch of the improvement. A full hash, so two bases never share a
-     name.
-  4. `gh pr create` in the fork, from the branch of the improvement into
-     that base, so the pull request holds the one commit.
-- Each step looks first for what an earlier run made: the fork request
-  answers the fork that exists, the push is skipped when the branch is
-  there, and the pull request is looked for in the fork before one is
-  opened. An end-to-end test kills the service as it opens the pull
-  request, and the next start ends with one fork, one pull request and
-  one commit.
-- A refusal of the host is the outcome `refused` with its words, and the
-  improvement fails with them, as before. Two faults may be tried again:
-  a fork that git does not reach within 60 seconds (`fork_not_ready`),
-  and a host that did not say whether the account may push
-  (`permission_not_read`). A `gh` with no login is the fault
-  `gh_not_authenticated` of every call but the one that reads the login,
-  the new ones included, so publishing without one fails at once, as it
-  did. The access check asks for the right to push only once its step
-  before found the login.
-- Nothing new is stored, so no migration: the route is decided again at
-  each publication.
-- The client says where a result goes before a run: `repo check` ends with
-  a `publishes` line, `improve` checks the access and says it on the
-  standard error before it starts, and starts nothing when the check did
-  not pass, and the start dialog says it under the choice of publishing.
 - Known, and not handled:
   - The host refuses a push that adds or changes a file under
     `.github/workflows/` when the login of `gh` lacks the `workflow`
@@ -1532,127 +1033,9 @@ fails the improvement as an exposed credential and keeps its tokens.
 - Not seen on the real host, only on the stand-in: the shape of the fork
   answer beyond `fork` and `clone_url`, the time a new fork takes, an
   atomic push to a fork, and the words of its refusals.
-- Where:
-  `backend/src/modules/repositories/application/commands/publish-patch/publication-targets.ts`,
-  `backend/src/modules/repositories/application/commands/check-access/access-probe.ts`,
-  `backend/src/modules/repositories/infrastructure/gh/gh-code-host.adapter.ts`,
-  `backend/src/modules/repositories/infrastructure/git/git-working-copies.adapter.ts`,
-  `api-contracts/src/repositories.ts`, `frontend/src/commands/start-access.ts`.
 
-### A project of pnpm or yarn is installed with the manager it names
+Installs of pnpm and yarn:
 
-- The manager is the one the `packageManager` field of package.json
-  names, or else the one whose lockfile the copy has. The field must name
-  an exact version, with or without a hash: a range or an address is
-  refused, since the program would not be the one the repository asks
-  for. npm stays lenient and is the npm of the image. Two lockfiles and
-  no field, a field without its lockfile, bun and workspaces are refused
-  as before.
-- Corepack, not managers baked into the image. A repository asks for any
-  of pnpm 7 to 12, yarn 1, 3 and 4, at an exact version, and a baked
-  manager would be the wrong one for most. Corepack 0.36.0 is installed
-  into the image at an exact version, since Node 26 ships none. It
-  fetches the exact program while the install has the network, and
-  checks the hash of the field. Without a hash, its source checks the
-  signature the registry gives pnpm and yarn 1, and nothing for yarn 2
-  and later, so a yarn 2 or later the service picks carries the hash of
-  its program. The program goes to the home folder in memory, a few
-  megabytes, and is gone with the container, so no later command can
-  start a manager: the network is closed then.
-- `COREPACK_NPM_REGISTRY` names the registry of npm, so every program
-  comes from it: yarn 2 and later as `@yarnpkg/cli-dist`, not from the
-  site of yarn. The hash of a field still holds for that program, seen
-  for 4.18.1 and 3.8.7, and a wrong hash failed. `COREPACK_ENV_FILE=0`:
-  a `.corepack.env` of the repository sent the download elsewhere in the
-  spike. Corepack refuses a manager other than the one the field names,
-  and the service never asks for one.
-- Without a field, the version comes from the format of the lockfile.
-  pnpm: `5.4` is 7.33.7, `6.0` is 8.15.9, `9.0` is 10.34.9. pnpm 9 to 12
-  all write `9.0`, 12 in two documents, which 9 refused and 10 read.
-  yarn 1 is 1.22.22. yarn 2 and later by `__metadata.version`: 6 is
-  3.8.7, 8 is 4.13.0, 9 is 4.14.1, 10 is 4.18.1. Seen: 3.2.4 writes 6,
-  4.0.2 to 4.13.0 write 8, 4.14.1 writes 9, 4.15.0 and later write 10,
-  and an immutable install by a yarn of another format failed with
-  YN0028. The registry of npm and the site of yarn served each of the
-  four programs with one hash, and an install with each pinned hash
-  passed. A field of yarn 1 with a lockfile of yarn 2 or later, or the
-  reverse, is refused.
-- The installs, each with the variables of the settings besides:
-  - npm: `npm ci --ignore-scripts --no-audit --no-fund --cache <cache>`.
-  - pnpm: `corepack pnpm@<v> install --frozen-lockfile --ignore-scripts
-    --ignore-pnpmfile --store-dir <cache>
-    --config.manage-package-manager-versions=false
-    --reporter=append-only`, with `COREPACK_ENV_FILE=0` and
-    `COREPACK_NPM_REGISTRY`.
-  - yarn 1: `corepack yarn@<v> install --frozen-lockfile
-    --ignore-scripts --ignore-engines --non-interactive --cache-folder
-    <cache>`, with `YARN_IGNORE_PATH=1` as well. `--ignore-engines`
-    installs a package that asks for another Node as npm does.
-  - yarn 2 and later: `corepack yarn@<v> install --immutable
-    --mode=skip-build`, with `YARN_IGNORE_PATH=1`,
-    `YARN_RC_FILENAME=.coverage-autopilot-yarnrc.yml`,
-    `YARN_ENABLE_SCRIPTS=0`, `YARN_ENABLE_GLOBAL_CACHE=0`,
-    `YARN_ENABLE_MIRROR=0`, `YARN_CACHE_FOLDER=.yarn/cache`,
-    `YARN_ENABLE_TELEMETRY=0`, `YARN_CHECKSUM_BEHAVIOR=throw` and
-    `YARN_NODE_LINKER=node-modules`.
-- yarn 2 and later read settings the service writes: `.yarnrc.yml`
-  without `yarnPath`, `plugins` and `enableConstraintsChecks`, the rest
-  kept, since package extensions and scopes change how the lockfile
-  resolves. An immutable install with a package extension passed with
-  the written file. A line the service does not read, such as a mapping
-  indented as a whole, a flow mapping or a merge, is refused, since a
-  dropped setting could hide in it. The file is written after whatever is
-  at its place is removed, and never through a link. A patch adds only
-  test files, the generator works in a fresh copy with no install, and a
-  publication pushes from a clean copy, so the file reaches none of them.
-- Refused with `install_runs_code`, naming what was found: pnpm
-  `configDependencies`, whose hooks pnpm runs as it starts; a package
-  from git for pnpm, yarn 1 and yarn 2 and later, which each prepares by
-  running its scripts; an `exec:` package of yarn, made by a script; a
-  `.yarnrc.yml` the service does not read. Refused with
-  `plug_and_play`: yarn 2 and later with no `nodeLinker: node-modules`.
-  `nodeLinker: pnpm` is refused as an unsupported manager.
-- The cache of an install is `node_modules/.cache/coverage-autopilot/install`
-  for npm, pnpm and yarn 1: on the disk of the copy, gone with it, never
-  shared, and under `node_modules`, where the generator's copy has
-  nothing. yarn 2 and later keep theirs in `.yarn/cache`: under
-  `node_modules` the linker removed what it had just fetched and failed
-  with ENOENT.
-- The version of the runner is read from the lockfile of the manager:
-  npm by `packages["node_modules/<runner>"]`, pnpm by the dependency of
-  the project without its peers, yarn 1 by the entry that lists
-  `<runner>@<range>`, yarn 2 and later by the one that lists
-  `<runner>@npm:<range>`, the range being the one of the manifest.
-- The mutation tool is installed by the npm of the image into a folder
-  of its own, `node_modules/.cache/coverage-autopilot/mutation`, with
-  its own cache and no peer, so the runner plugin loads the test runner
-  of the project. An install among the packages of the project would
-  reshape a tree pnpm or yarn laid out. A run gets
-  `NODE_PATH=<copy>/node_modules/.pnpm/node_modules`: without it the
-  runner of Jest did not find `jest-environment-node` on a project of
-  pnpm. The tool ignores `/.yarn/cache`, which it would copy into its
-  sandbox. Seen: StrykerJS 10.1.1 with Jest 30.5.2 and Vitest 4.1.12 on
-  projects of pnpm 10.34.9, yarn 1.22.22 and yarn 4.18.1 killed every
-  mutant, and both runners wrote their coverage reports.
-- Spike, on fixtures with a manifest, a lockfile and files that leave a
-  mark when they run:
-  - pnpm ran `.pnpmfile.cjs` and the root `postinstall` without the
-    switches, and nothing with them.
-  - yarn 1 ran the program of a `yarn-path` of `.yarnrc` and of a
-    `yarnPath` of `.yarnrc.yml` without `YARN_IGNORE_PATH`, and neither
-    with it. `ignore-scripts false` in `.yarnrc` or `.npmrc` did not turn
-    the scripts back on, and `--cache-folder` won over `.yarnrc`.
-  - yarn 4 ran `yarnPath`, a plugin and the root `postinstall`.
-    `YARN_ENABLE_SCRIPTS=0` alone still ran the root `postinstall`, and
-    `--mode=skip-build` stopped it. `enableConstraintsChecks: true` ran
-    `yarn.config.cjs` during the install. yarn 3.8.7 fails an install on
-    `YARN_ENABLE_CONSTRAINTS_CHECKS`, a setting it does not know, so the
-    setting is dropped from the file instead. A variable won over the
-    file for `nodeLinker`.
-  - The install the service code decides, run on such fixtures of
-    pnpm 10.34.9, yarn 1.22.22, 3.8.7 and 4.18.1, ran nothing of the
-    repository, left the manifest and the lockfile as they were, and
-    left packages that load.
 - Only a real container can show: the build of the image with Corepack,
   the fetch from the registry over the default network of the engine,
   and an install as a user that is not root, on a read-only root, with
@@ -1662,91 +1045,9 @@ fails the improvement as an exposed credential and keeps its tokens.
   the `.env.yarn` file yarn 4 reads. The spike installed no package from
   git and no `exec:` package: those refusals rest on how the managers
   describe them.
-- Where: `backend/src/modules/coverage/infrastructure/detection/`,
-  `backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile`,
-  `backend/src/modules/verification/infrastructure/mutation/stryker-configuration.ts`.
 
-### What the first real fork and the first real installs showed
+The failure the generator hears:
 
-- A whole improvement ran on a public repository the account may not
-  push to, with the real host, the real engine and the real generator.
-  One attempt took a file from 3 of 26 lines to 26 of 26 and killed 35 of
-  37 mutants. The service made the fork, pushed the base and the tests in
-  one push, and opened the pull request inside the fork: one commit, one
-  test file, against the branch of the scanned commit. Nothing reached
-  the repository itself, and the token was in no line of the log.
-- The access check first said that gh is not logged in. An old second
-  account with a broken login was in the keyring, and gh fails a status
-  that is not asked for the active account alone. The status is asked
-  with `--active` now.
-- An improvement of another file spent its three attempts on one cause.
-  The new test did not start, for a type error of the project that its
-  own tests never meet, and the gate told the generator only that the
-  tests fail. The generator cannot run a test, so it wrote the same test
-  three times. The failure itself must reach the next attempt: owed, and
-  in work.
-- A repository whose own tests need the network is scanned, with the
-  tests that fail, and an improvement of it ends after the analysis with
-  `mutation_unsupported`, because the mutation tool refuses a suite that
-  fails before it changes anything. No token was spent, but the reason
-  names the tool and not the cause. Owed: say that the tests of the
-  repository fail in the sandbox, at the scan and at the start of an
-  improvement.
-- A scan lists every source file, the scripts of an `examples` folder as
-  well, so they count as files below the threshold. Whether such folders
-  are left out is the owner's call.
-- The image of the commands was built anew with Corepack, and seven
-  public repositories were scanned on the real engine as they are: pnpm
-  10.33, 11.3 and 11.10, the last two with a settings file of pnpm and a
-  hash in the manifest; yarn 1.22.22 twice; yarn 4.5.0 twice, both with a
-  yarn of their own in the tree, which did not run. Each manager came at
-  the version the repository names, as a user that is not root, on a root
-  that is read-only.
-- Two refusals were right: a lockfile of yarn that takes a package from
-  a git repository, and a project of Vitest that declares no provider of
-  coverage.
-- The engine of this machine cannot mount a folder that was removed and
-  made again at the same path: it says that the source of the mount does
-  not exist. An instance folder is not made again where one was removed.
-
-### The generator hears how its tests failed
-
-- An improvement spent its three attempts and failed `budget_exhausted`.
-  The generator heard only that its tests fail, while the run said that
-  the test file did not compile, three times over.
-- Both runners write a JSON report beside what they print: Jest with
-  `--json --outputFile=<path>`, Vitest with `--reporter=default
-  --reporter=json --outputFile.json=<path>`. The path is absolute, in
-  the copy, at `node_modules/.coverage-autopilot-test-results.json`,
-  among the installed packages, which no patch takes a file from. The
-  file is removed before each run, so a stale report is never read.
-- The two reports share one shape, and the reader takes the first
-  failure from it: a file that failed with no failed test, which is a
-  file that failed to run, then the first failed test. At most 4 lines
-  of 200 characters, cut after a whole word so a secret hidden later is
-  never kept in part. Codes of the terminal and other control characters
-  go, the paths of the copy become `.`, and frames of `node_modules` and
-  of Node are dropped. A report that is missing, a link, or of another
-  shape gives no excerpt, never the raw text.
-- The excerpt is a field of its own, `testFailure`, never a longer
-  message, so text of the repository never mixes with the words of the
-  gate. It goes from the run of tests of coverage to the failed check of
-  verification, and is kept with the report of the attempt. The stored
-  report is version 2 of its document; a version 1 report reads as checks
-  with no failure.
-- Prompt version 2 is version 1 and two rules: the generator cannot run a
-  test, so it reads how the repository configures the runner and
-  TypeScript first; and, when a failure is shown, it removes its cause,
-  since tests that fail the same way are refused again. The failure is
-  in the data as quoted lines, each after a `>`, so no line can end it:
-  4 lines of 120 characters, names of 80, and backticks made `'`. The
-  credential of the generator is hidden before any text is cut. A new
-  improvement takes version 2; one that began before keeps version 1.
-- A check of the contract gained `testFailure`, the file, the test or
-  `null`, and the lines. A strict object gained a field, so a client of
-  the version before refuses the answer. `CONTRACT_VERSION` was not
-  raised here: owed. The history of the client shows where the run failed
-  first and its first two lines under the reasons of a rejection.
 - Known, and not handled:
   - A reporter named on the command line of Vitest replaces those the
     repository configures, so a run in a copy prints as the default
@@ -1758,111 +1059,9 @@ fails the improvement as an exposed credential and keeps its tokens.
     the client removes no control character from it.
 - Not seen with a real run of ts-jest: the lines of a type error come
   from a Jest run that failed on a missing module.
-- Where:
-  `backend/src/modules/coverage/infrastructure/reports/test-failure-excerpt.ts`,
-  `backend/src/modules/coverage/infrastructure/reports/json-test-report-reader.adapter.ts`,
-  `backend/src/modules/improvement/infrastructure/persistence/improvement-documents.schema.ts`,
-  `backend/src/modules/improvement/infrastructure/generator/generation-prompt.ts`,
-  `api-contracts/src/attempts.ts`,
-  `frontend/src/screens/improvement/attempt-words.tsx`.
 
-### A scan leaves out the code that only calls the product
+The tests of a repository that fail in the sandbox:
 
-- The owner decided that a scan leaves out folders of examples. A folder
-  is left out at any depth by its whole name, in any case: `examples`,
-  `example`, `demos`, `demo`, `samples` and `sample` show how the product
-  is called, `benchmarks`, `benchmark` and `bench` time it, and
-  `fixtures` and `__fixtures__` feed its tests. Such code calls the
-  product from outside and nobody tests it, so each of its files counted
-  below the threshold, and one was picked to be improved.
-- The case is ignored because a person names such a folder, and
-  `Examples` is the same folder to them. The folders of tools, such as
-  `dist` or `coverage`, are still matched as the tools write them: a
-  `Coverage` folder is named by a person and may hold the product.
-- `docs` and `scripts` stay listed. Either can hold the product itself,
-  such as a module that serves its documentation or the commands a
-  package ships. A file of the product left out is missed in silence,
-  and a file listed too many is seen.
-- The price of a list with no setting: a module of the product with one
-  of those names, such as `src/samples` of an app that keeps samples, is
-  left out as well.
-- The rule is named `typescript-sources-v2` now, so a snapshot of the new
-  list never compares with one of the old. A stored snapshot keeps the
-  name it was listed by and reads as before.
-- A snapshot taken before this change may still list such a file, below
-  the threshold, and an improvement of it starts. Its analysis takes a
-  fresh snapshot, which does not list the file, and fails it with
-  `verification_error` before any generation: read in the code, not run.
-  A new scan gives a list without it.
-- The runner is asked to measure the listed files alone, and its report
-  is read for them alone, so a left-out file reaches neither the files
-  of a snapshot nor its totals. An improvement of such a file is refused
-  with `target_not_measured`, as a file that is no source is.
-- Where: `backend/src/modules/coverage/infrastructure/detection/source-file-list.ts`,
-  `readCoverage` in
-  `backend/src/modules/coverage/application/commands/run-tests/test-execution.ts`.
-
-### The tests of a repository may fail in the sandbox
-
-- A repository whose tests fail in the sandbox, such as tests that need
-  the network, could not be improved. The mutation tool runs every test
-  before it mutates anything and stops when one fails, so the analysis
-  ended as `mutation_unsupported`, which named the wrong cause.
-- `AUTOPILOT_BASELINE_TESTS` is `may_fail`, the default, or `must_pass`.
-  The service refuses to start with any other word. It reaches the gate
-  as `gate.baselineTests`.
-- A failing test is named the same way for both runners, from the JSON
-  report they share and by the reader that finds the failure the
-  generator hears, from the same list of failures: its file, a path as
-  git stores it, and its full name, every `describe` and then the test,
-  as plain text without the path of the copy and not cut. A file that
-  failed with no failed test failed to run, and counts as one test with
-  no name. The baseline keeps them as `failingTests`: version 2 of its
-  stored document. A version 1 baseline reads as none when its tests
-  passed and as not known when they did not.
-- With `must_pass` one failing test ends the improvement at its
-  analysis with `existing_tests_fail`, and a message such as `33 of 53
-  tests of the repository fail in the sandbox. The first is "feed > reads
-  the feed" in tests/feed.test.ts.` A run that failed and named no test
-  ends the same way under either setting, since nothing can be left out.
-- With `may_fail` the checks of a patch are:
-  - `test_files_only`, `type_check`, `new_tests_pass`, `repeated_runs`
-    and `coverage_increase` as before. Both runners write coverage after
-    a failure, Vitest by `--coverage.reportOnFailure=true` and Jest on its
-    own, and the coverage check compares the numbers of a full run in
-    which a test failed.
-  - `existing_tests_pass` fails only on a test that fails with the patch
-    and did not fail before it. A file that failed to run before leaves
-    all its tests out. It passes with `Left out: 2 that failed before the
-    patch.` A run that failed and named no test fails it. The failure the
-    generator hears is kept only when it is about a test the patch broke.
-    A baseline whose tests passed is judged as before, and one that timed
-    out, or a version 1 baseline whose tests failed, makes the check
-    `not_applicable` as before.
-  - `mutation_gain` is skipped only when the full run fails beyond what
-    failed before. Each file with a failing test goes to StrykerJS as an
-    ignore pattern, `/` and the path written as a pattern of itself, so
-    it is not copied into the sandbox of the tool and no runner, Jest or
-    Vitest, finds it. The baseline run and the run with a patch leave out
-    the same files.
-  - With `allowEmpty` the tool ends well and writes no report when no
-    test is left. A second run then has the command runner of the tool
-    run `exit 0`, with no coverage analysis and no incremental file, and
-    lists every mutant as survived. They are read as `no_coverage`, with
-    the same set hash as a run with tests, the runner of the request as
-    the runner of the tool, and no cache.
-- A scan completes with failing tests, and its snapshot counts the tests
-  that ran and failed: `tests` of a snapshot, `null` in an older one. The
-  document of the unmeasured files is version 2 for it, and version 1
-  reads as `null`. The client says `33 of 53 tests fail in the sandbox`
-  in the details of a repository, on a line below the repository above
-  its files, in the notes of `repo list` and after the totals of `scan
-  --wait`.
-- No migration: what is new lives in the stored documents, which carry
-  their versions, and the reason of a failure is a column of text with no
-  check. The contract gained `tests` on the summary of a snapshot, a
-  strict object, and the reason `existing_tests_fail`. `CONTRACT_VERSION`
-  was not raised here: owed.
 - Not proven without a real container:
   - That the ignore pattern keeps a file away from the Jest runner of
     StrykerJS as it does from the Vitest one.
@@ -1871,164 +1070,12 @@ fails the improvement as an exposed credential and keeps its tokens.
     read.
   - That tests which need the network fail with a report that names
     them, and that coverage is written in the image after they fail.
-- Where:
-  `backend/src/modules/verification/application/commands/measure-baseline/baseline-tests.ts`,
-  `backend/src/modules/verification/application/failing-tests.ts`,
-  `backend/src/modules/verification/application/commands/verify-patch/checks/existing-tests-check.ts`,
-  `backend/src/modules/verification/infrastructure/mutation/stryker-configuration.ts`,
-  `backend/src/modules/verification/infrastructure/mutation/stryker-mutation-runner.adapter.ts`,
-  `backend/src/modules/coverage/infrastructure/reports/reported-failures.ts`,
-  `backend/src/modules/coverage/infrastructure/reports/test-outcomes.ts`,
-  `frontend/src/theme/counts.ts`.
 
-### A repository may be trusted to install as its developers do
+A trusted install:
 
-- What trust lets a repository do, in plain words: while its packages
-  are installed, its own code and the scripts of its packages run, and
-  the network of the container is open then. That code can send away
-  anything in the copy, its sources and its history, and can reach
-  whatever the network of the container reaches. It still cannot read a
-  credential of this computer: the container holds no token and no key,
-  and has no socket of the service and no database. A person trusts a
-  repository only when they would run its install on their own machine.
-- The default of the service is `AUTOPILOT_INSTALL`, `sandboxed` or
-  `trusted`, and `sandboxed` when it is not set. A repository may keep a
-  mode of its own in `repositories.install_mode`, added by migration
-  0010. Empty means the default of the service.
-- The repositories module owns the mode, as it owns the threshold. Its
-  contract gives each repository the mode in effect with `isDefault`, and
-  the answer of a repository has it as `install`.
-  `POST /repositories/:id/install-mode` with `{ "mode": "trusted" }` or
-  `{ "mode": "sandboxed" }` sets it and `{ "mode": null }` clears it. The
-  answer is the repository as its next copy is installed. The change of a
-  threshold and the change of a mode share one step that reads the
-  repository in a transaction, changes it and saves it.
-- The coverage module keeps no mode. A lent working copy names its
-  repository now, and the coverage module asks the repositories module
-  for the mode each time it detects a copy: when it prepares the copy and
-  again when it runs its tests. A change counts from the next copy
-  detected, and a scan or an improvement under way may meet the new mode
-  at its run of tests: a mode taken back is then an honest refusal. The
-  files of a lent copy are still judged by no threshold.
-- Trusted changes the install and nothing else. The lockfile still
-  decides every version and is never written, and the manager is still
-  the one the repository names, at its version:
-
-  | Manager | Sandboxed | Trusted |
-  | --- | --- | --- |
-  | npm | `npm ci --ignore-scripts --no-audit --no-fund --cache <cache>` | `npm ci --no-audit --no-fund --cache <cache>` |
-  | pnpm | `corepack pnpm@<v> install --frozen-lockfile --ignore-scripts --ignore-pnpmfile --store-dir <cache> --config.manage-package-manager-versions=false --reporter=append-only` | the same without `--ignore-scripts` and `--ignore-pnpmfile` |
-  | yarn 1 | `corepack yarn@<v> install --frozen-lockfile --ignore-scripts --ignore-engines --non-interactive --cache-folder <cache>`, with `YARN_IGNORE_PATH=1` | the same without `--ignore-scripts` and without `YARN_IGNORE_PATH` |
-  | yarn 2 and later | `corepack yarn@<v> install --immutable --mode=skip-build`, with `YARN_IGNORE_PATH=1`, `YARN_RC_FILENAME=.coverage-autopilot-yarnrc.yml` and `YARN_ENABLE_SCRIPTS=0` | `corepack yarn@<v> install --immutable`, with none of the three: the `.yarnrc.yml` of the repository is read as it is, with its `yarnPath`, plugins and constraints |
-
-  Every install of pnpm and yarn has `COREPACK_ENV_FILE=0` and
-  `COREPACK_NPM_REGISTRY` in both modes, and yarn 2 and later have
-  `YARN_ENABLE_GLOBAL_CACHE=0`, `YARN_ENABLE_MIRROR=0`,
-  `YARN_CACHE_FOLDER=.yarn/cache`, `YARN_ENABLE_TELEMETRY=0`,
-  `YARN_CHECKSUM_BEHAVIOR=throw` and `YARN_NODE_LINKER=node-modules` in
-  both.
-- `install_runs_code` is a refusal of a sandboxed install alone: pnpm
-  `configDependencies`, a package from git for pnpm, yarn 1 and yarn 2
-  and later and an `exec:` package of yarn are installed when the
-  repository is trusted. A `.yarnrc.yml` the service does not read is
-  refused when trusted too, but with `plug_and_play`: the service cannot
-  tell from it that yarn installs into `node_modules`. The detail of
-  `install_runs_code` ends with what to do, such as `Trust the repository
-  to install it as its developers do: repo trust acme/gadgets trusted.`,
-  so a scan, the ending of an improvement and the command line say it
-  where they say why a project is not supported.
-- A new sandboxed refusal: a `pnpm-lock.yaml` with `pnpmfileChecksum` was
-  written with the hooks of a `.pnpmfile.cjs`, and a frozen install that
-  skips them fails with `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`. It is
-  refused with `install_runs_code` and installed when trusted.
-- Still refused when trusted, since trust changes whose code runs and
-  not what the service can measure: workspaces and other monorepos, bun,
-  yarn Plug'n'Play and `nodeLinker: pnpm`, a `.yarnrc.yml` that is not a
-  plain file of keys, since the service then cannot tell that yarn
-  installs into `node_modules`, no lockfile, two lockfiles and no field,
-  a `packageManager` that names no exact version, a lockfile of yarn
-  whose format no yarn of the field writes, and every refusal of a
-  runner or a provider of coverage.
-- Trusted leaves the rest of the sandbox as it is: no credential, no
-  socket of the service, no database, a read-only root, a user that is
-  not root, the limits, and no network after the install. The tests, the
-  type check, the generator and the mutation tool run as before. A
-  publication still pushes from a clean copy on the host.
-- The image of the commands has `git` and the certificates of https, for
-  a package from a git repository, and no ssh client: the sandbox holds
-  no key, so such a package is fetched over https only.
-- The client: `repo trust <repo> <trusted|sandboxed|default>` prints the
-  mode in effect and whether it is the default. `i` on the screen of the
-  repositories opens a dialog that says what trusted code can and cannot
-  reach. The footer has no room for one more hint, so the command palette
-  names the key. A trusted install is written `trusted install` in the
-  notes of `repo list` and `repo add`, on the row and in the panel of the
-  repository, and on the screen of its files.
-- Spike, on fixtures of our own: one project per manager whose root
-  `postinstall` and `.pnpmfile.cjs` leave a mark, and one that takes a
-  package from a public git repository over https, each installed with
-  the command and the variables the code decides:
-  - pnpm 10.34.9: trusted ran `.pnpmfile.cjs` and the `postinstall` and
-    installed the package from git; sandboxed refused the package from
-    git, and failed the lockfile written with a `.pnpmfile.cjs`, as
-    above.
-  - yarn 1.22.22: trusted ran the `postinstall` and installed the
-    package from git; sandboxed ran nothing and refused the package from
-    git.
-  - yarn 4.18.1: trusted ran the `postinstall`, a `yarnPath` of the
-    repository and installed the package from git, and wrote no settings
-    of the service; sandboxed ran none of them. yarn 4.18.1 refuses to
-    fetch a git repository that no `approvedGitRepositories` pattern of
-    `.yarnrc.yml` names, with YN0080: a repository that takes one names
-    it already, since its own install needs it.
-  - npm 11.20.0, with a package from a git repository of our own on
-    disk: the sandboxed install installed it without running its
-    `prepare`, and the trusted one ran its `prepare` in a clone inside
-    the cache. npm is lenient as before and installs such a package in
-    both modes, which the image can do now that it has git.
-  - Each install left the manifest and the lockfile as they were, and the
-    package loaded afterwards.
 - Only a real container can show: the build of the image with git and the
   certificates, the clone of a package from git over https from the
   network of the engine, the scripts of a trusted install as a user that
   is not root on a read-only root, with the home folder in the 512 MB
   memory folder, a script that downloads more than that folder holds, and
   that nothing after the install has the network.
-- Owed: `.env.example` does not name `AUTOPILOT_INSTALL` yet, and the
-  version of the contract is not raised for the new field and the new
-  route. Both are the owner's.
-- Where: `backend/src/modules/repositories/application/commands/change-install-mode/`,
-  `backend/src/modules/repositories/application/repository-changes.ts`,
-  `backend/src/modules/coverage/application/repository-detection.ts`,
-  `backend/src/modules/coverage/infrastructure/detection/`,
-  `backend/src/shared/infrastructure/sandbox/sandbox.Dockerfile`,
-  `frontend/src/commands/repo-trust.ts`,
-  `frontend/src/screens/repositories/trust-dialog.tsx`.
-
-### The tests of Jest are reported by a reporter of the service
-
-- A real scan of a repository whose tests call the network gave coverage
-  and no count of tests. `--json` of Jest writes every thrown value whole
-  with `JSON.stringify`. The failed request of an HTTP client holds a
-  circle, so Jest ended with "Converting circular structure to JSON" and
-  wrote no report. With no report an improvement of that repository ends
-  with `existing_tests_fail`, however the failing tests are judged.
-- The service writes a reporter of its own into the copy before a run of
-  Jest, `node_modules/.coverage-autopilot-test-reporter.cjs`, and names it
-  beside the usual one. It writes the same file in the same shape with
-  only what is read: the name and the state of each file and each test,
-  and the messages, which are text already.
-- The reporter finds the report by its own folder, since a reporter named
-  on the command line takes no option. It is named by an absolute path,
-  since Jest looks for a relative one from its root folder.
-- What is at the path of the reporter is removed first and the file is
-  made new, so a link a package left there is not written through.
-- Vitest keeps its own JSON reporter: it writes messages, never the
-  thrown values.
-- Proven on the real engine: the same repository now shows 33 of 53 tests
-  failing in the sandbox. The image with git was built there too, and a
-  trusted install of a yarn 3 project with a package from git completed.
-  The two items "Owed" of the entry above are done.
-- Where: `backend/src/modules/coverage/infrastructure/runners/jest-results-reporter.ts`,
-  `backend/src/modules/coverage/infrastructure/runners/jest-command.ts`,
-  `backend/src/modules/coverage/infrastructure/runners/sandboxed-test-runner.adapter.ts`.
