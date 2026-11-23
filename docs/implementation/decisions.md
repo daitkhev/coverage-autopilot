@@ -878,115 +878,147 @@ Both modes of yarn 2 and later also set `YARN_ENABLE_GLOBAL_CACHE=0`,
 
 ## Open debts and ideas left for later
 
-The list read against the code on 2026-11-22, as written then.
+Every item was read against the code on 2026-11-23. Each says what is
+open and why it matters. Owed work that the code shows done was dropped.
 
-A real run can fail, or lose work that was paid for:
+### A real run can fail, or lose work that was paid for
 
 - The image of the generator was built by a real engine once, on one
-  machine. Not tried: `--pull=never` on an old engine, a build that is
-  cut short, and any engine but Docker.
-- A build or a pull that waits says nothing in the log until it ends,
-  which may be ten minutes later. The engine is given the home of the
-  user, so it asks the helper that keeps the passwords of that user even
-  for a public image, and a helper that hangs holds every pull.
-- A build that fails ends the improvement as a generator that is not
-  there, with the words of the engine. No call was paid for, but the
-  attempt was opened before the image was asked for, so it is counted.
-  An engine that is not running is tried three times, and the reason
-  that is then shown names no engine.
-- The base of the image is named by its tag, not by its digest, and an
-  image that was replaced stays in the engine without a name.
-- Three readings of the generator are guesses that no run has measured:
-  the status of a spent limit, the words of a failed login, and the
-  error of a key with no credit.
-- git gets no token for a push. Where the login of the code host lives
-  in the environment only, a publication may fail: to be proven on the
-  first real one.
-- A run whose container may still live fails its step, and a step of
-  the generator that fails so does not record the call that was paid
-  for. The fault can be tried again, and the new copy has the path of
-  the one the old container was lent.
-- Every reading of the engine was proven on a stand-in. Not tried on a
-  real one: the listing by a label, the words for a container that is
-  gone or is being removed, and a mount of a copy made anew at one path.
+  machine with Docker: an old engine with `--pull=never`, a build cut
+  short and other engines are untried, so a first run elsewhere may fail.
+- A build or a pull logs nothing until it ends, up to ten minutes, and
+  the engine asks the password helper of the user even for a public
+  image, so a hanging helper holds every pull in silence.
+- A failed build of the image ends the improvement as
+  `generator_unavailable` and counts an attempt, which opens before the
+  image is asked for; a stopped engine is tried three times and the
+  reason names no engine, so a person looks in the wrong place.
+- Both images name their base by tag, not by digest, and a replaced
+  image stays in the engine without a name: a build can change under the
+  same file, and the engine grows.
+- Three readings of the CLI are unmeasured guesses: a spent limit, a
+  failed login, and a key with no credit. A wrong one fails where it
+  should wait, or the reverse.
+- git gets no token for a push. The real publications used the login
+  `gh` keeps; where the login lives only in `GH_TOKEN`, a push may fail.
+- A run whose container may still live fails its step, and a generator
+  step that fails so does not record the call that was paid for.
+- The new copy of a retried step has the path of the copy the old
+  container was lent, and the engine of the desk refused to mount a
+  folder removed and made again at one path. Listing by a label and the
+  words for a container that is gone are proven on a stand-in only.
+- The kill rate of 50 and the limit of 10 surviving mutants are
+  placeholders. The one real attempt killed 35 of 37, so the gate may
+  pass weak tests or refuse good ones until a calibration.
+- A mutation run stopped at its time limit saves no partial cache: the
+  sandbox kills, and the tool saves only when asked to stop. It costs
+  time on the next run, nothing else.
 
-A person meets it in the first minutes of the client:
+### Not yet proven on a real container or a real host
 
-- The screens that are kept were looked at in a terminal with empty
-  lists only. That a row, a list and a filter come back is proven by
-  tests of the whole app, not by a look with data.
-- A panel that is cut in a low window does not say that more is below.
-- The list of the keys is sixteen lines, the whole of the smallest
-  window: one more line needs a list that scrolls.
-- The browser is started with a path and nothing else. On Linux the
-  program that opens an address needs the variables of the desktop, so
-  there a pull request probably does not open, and nothing says so. Not
-  tried on Linux.
+- The words of the host when it refuses a fork or a push to a fork; the
+  rest of the fork route ran once on the real host.
+- That an ignore pattern keeps a failing file from the Jest runner of
+  StrykerJS as it does from the Vitest one, and that the command runner
+  runs `exit 0` through the shell of the image. If either fails,
+  `may_fail` does not hold for a Jest repository, or for one with no test
+  left.
+- A yarn 1 offline mirror, which writes the archives it lacks into the
+  copy, the `.env.yarn` file yarn 4 reads, and an `exec:` package: never
+  tried, so their refusal or their safety rests on the documentation of
+  the managers.
+- A trusted install whose scripts download more than the 512 MB memory
+  home holds: it would fail with words a person may not read as a limit.
+- The lines of a type error from a real run of ts-jest; the excerpt was
+  seen only from a Jest run that failed on a missing module.
+
+### Known limits, not handled
+
+- A push under `.github/workflows/` needs the `workflow` scope of `gh`,
+  and an owner can forbid forks; the check asks neither, so both show
+  only as a refused publication.
+- When the right to push changes between a run cut short and the next,
+  a branch or a pull request may end up both upstream and in the fork.
+- The parent of the fork the host answers is not compared, and the base
+  branches stay in the fork after a pull request is closed.
+- The reporters named for Vitest replace those the repository
+  configures, so a run in a copy prints as the default reporter does.
+- A stored failure excerpt and the raw output keep the credential if a
+  test printed it, since only the prompt hides it; the file of a failure
+  is shown with its control characters.
+- A snapshot taken before folders of examples were left out may still
+  list such a file. Its improvement fails at the analysis with
+  `verification_error` (read in the code, not run).
+
+### A person meets it in the first minutes of the client
+
+- The screens were looked at in a terminal with empty lists only; rows,
+  lists and filters are proven by tests of the whole app, not by a look.
+- A panel cut in a low window does not say that more is below.
+- The list of the keys is sixteen lines, the whole smallest window, so
+  one more key needs a list that scrolls.
+- On Linux the browser is started with `xdg-open` and a path, and that
+  program needs the variables of the desktop: a pull request probably
+  does not open there, and nothing says so. Not tried on Linux.
 - The name of the test runner is in the details of a repository and not
   in a row of the list.
 
-Rare, and severe when it happens:
+### Rare, and severe when it happens
 
-- A start removes what was left before it listens, and an engine that
-  does not answer is waited for thirty seconds, longer than the client
+- A start sweeps leftovers before it listens, and waits up to thirty
+  seconds for an engine that does not answer, longer than the client
   waits for a start.
 - The label of a container is made of the path of the instance, so the
-  containers of a folder that was moved are not found, and those started
-  before the label existed never are.
-- A service that stops still gives its socket back a moment before its
-  lock. A start that comes then waits up to five seconds for the lock.
-  One that waited in vain leaves with a line and the code of a start
-  that gave way, so the client goes on asking for twenty seconds.
+  containers of a moved folder are not found, nor those started before
+  the label existed.
+- A stopping service gives its socket back a moment before its lock. A
+  start that comes then waits up to five seconds for the lock, and one
+  that waited in vain leaves, so the client asks for twenty seconds.
 - A signal that comes while the client leaves is not heard, so a leave
-  cannot be cut short. At worst it takes the wait for a start and the
-  wait for a stop, forty seconds.
-- A refused write to the terminal is ignored, for the terminal that was
-  closed. So is the one of a command whose reader went away: it runs to
-  its end and says nothing.
-- A request has thirty seconds. The connect and the access check of a
-  repository run tools while the client waits, and on a slow network
-  they can take longer than that.
+  cannot be cut short; at worst it takes forty seconds.
+- A command whose reader went away runs to its end and says nothing,
+  since a refused write is ignored for the sake of a closed terminal.
+- The connect and the access check of a repository run tools while the
+  client waits, and on a slow network they can pass the thirty seconds
+  of a request.
 
-It makes a fault hard to find, or a screen say less:
+### It makes a fault hard to find, or a screen say less
 
 - A line of a tool carries no id of its job, so it is tied to a journey
-  by its time alone. The steps of a baseline that an improvement
-  measures leave no lines of their own.
-- A command whose service of its own did not start prints where the log
-  is, and the leave then removes that folder.
-- The advice for a service that does not answer in time is the one for
-  a service of another version.
-- Health says nothing of the account of the code host, the tools, the
+  by its time alone. The steps of a baseline leave no lines of their own.
+- A command whose own service did not start prints where its log is, and
+  the leave then removes that folder.
+- The advice for a service that does not answer in time is the one for a
+  service of another version.
+- Health leaves empty the account of the code host, the tools, the
   limits of the generator, the last sign of the worker and the paths of
-  the service, and its two signs of life only repeat that the service
-  is not stopping. The client knows the folder of the instance and the
-  log itself and does not show them.
+  the service. The client knows the instance folder and the log and does
+  not show them.
 - No route returns the last access check of a repository or who
-  cancelled an improvement.
+  cancelled an improvement, so neither is shown.
 - The status of an answer is set in three places, and the two cancels
-  answer work that had ended with two statuses, 202 and 200.
+  answer ended work with two statuses, 200 and 202.
 - A text right of a filler in a panel can stand one cell left, in six
   places. A dot and the marks of added and removed lines are written in
   five screens and not taken from the theme.
-- `--json` without a command does nothing.
+- `--json` without a command does nothing, and says nothing.
 
-Tests and the gate:
+### Tests and the gate
 
-- The policy lists stress tests and the plan runs them in CI, and no
-  test of that kind and no step of the gate exists.
-- The end-to-end tests prove one journey. Not proven from end to end:
-  review mode, a rejected patch and a second attempt, a generator that
-  fails or cannot log in, a publication the host refuses, a cancel, and
-  a restart in the middle of an improvement.
+- The end-to-end tests prove one journey and a fork publication, and the
+  stress tests a cancel and a restart in the middle of work. Review mode,
+  a rejected patch and a second attempt, a generator that fails or cannot
+  log in, and a publication the host refuses are not proven from end to
+  end.
 - No test runs the screens in a real terminal or changes its size while
-  they run. Two faults were found by hand that way.
-- A signal that ends the client was proven with a stand-in for the
-  process and by hand in a terminal for two of the three. Ctrl+C during
-  a command was not tried in one.
-- Mutation tests cover the harness only, and the rule that keeps colour
-  and symbols in the theme is not written.
+  they run; two faults were found by hand that way.
+- A signal that ends the client was proven with a stand-in and by hand
+  for two of three. Ctrl+C during a command was not tried in a terminal.
+- Mutation tests cover the harness only, so a weak test of the product
+  passes the gate. The rule that keeps colour and symbols in the theme
+  is not written.
 
-Thought of after the first real runs, and left for later by the owner:
+### Thought of after the first real runs, and left for later by the owner
 
 - A hint to trust a repository the account may push to. It is offered
   and never set by itself: the right to push does not make code safe.
@@ -994,100 +1026,5 @@ Thought of after the first real runs, and left for later by the owner:
   real service would run then, but it is a real weakening, and such
   tests want keys as well.
 - A token of a private registry that an install alone can read. A
-  trusted install does not help a repository whose packages are private:
-  the sandbox holds no token.
-
-Found done since they were written: the reason of a scan that ran out
-of time, the refusal of a monorepo and of another package manager, the
-patch taken after the sandbox ended, the refusal of a patch that holds
-more than tests, the variables of git and its oldest version, the
-bindings of the generator and of the worker, the wait for a limit, the
-budget asked for before an attempt, the answers of an improvement, the
-two refusals without a status, one deadline for every step, and one set
-of settings for the tests. A working copy that was tampered with now
-fails the improvement as an exposed credential and keeps its tokens.
-
-### Owed and known limits written in later entries
-
-- A run of the mutation tool stopped at its time limit leaves no
-  cache, since the sandbox stops a command with `SIGKILL`. A stop in
-  two steps is owed.
-- A kill rate of 50 and a limit of 10 surviving mutants are
-  placeholders until a real run calibrates them.
-- Owed: the service has not yet built the image of the commands on a
-  real engine, and `.env.example` still names `node:26-slim`.
-- Owed: `.env.example` does not name `AUTOPILOT_COVERAGE_THRESHOLD`.
-- Owed: `CONTRACT_VERSION` was not raised for the destination of a
-  result, for `testFailure`, for `tests` and `existing_tests_fail`,
-  and for the install mode.
-- Owed: the failure of a test run must reach the next attempt.
-- Owed: say that the tests of the repository fail in the sandbox, at
-  the scan and at the start of an improvement.
-- Whether folders of examples are left out of a scan is the call of
-  the owner.
-- Owed: `.env.example` does not name `AUTOPILOT_INSTALL`.
-
-Publication through a fork:
-
-- Known, and not handled:
-  - The host refuses a push that adds or changes a file under
-    `.github/workflows/` when the login of `gh` lacks the `workflow`
-    scope. A test file is no workflow, so this shows only for a
-    repository that keeps its tests there, as a refused push.
-  - An owner can forbid forks. The check does not ask, and the refusal
-    shows when publishing, with the words of the host.
-  - When the right to push changes between a run cut short and the next,
-    the next run publishes to the other place, and a branch or a pull
-    request may then be in both.
-  - The fork the host answers is trusted to be one of the repository: its
-    parent is not compared.
-  - The base branches stay in the fork once a pull request is closed.
-- Not seen on the real host, only on the stand-in: the shape of the fork
-  answer beyond `fork` and `clone_url`, the time a new fork takes, an
-  atomic push to a fork, and the words of its refusals.
-
-Installs of pnpm and yarn:
-
-- Only a real container can show: the build of the image with Corepack,
-  the fetch from the registry over the default network of the engine,
-  and an install as a user that is not root, on a read-only root, with
-  the home folder in the 512 MB memory folder.
-- Not looked at: whether npm runs scripts of a package from git, a yarn 1
-  offline mirror, which writes the archives it lacks into the copy, and
-  the `.env.yarn` file yarn 4 reads. The spike installed no package from
-  git and no `exec:` package: those refusals rest on how the managers
-  describe them.
-
-The failure the generator hears:
-
-- Known, and not handled:
-  - A reporter named on the command line of Vitest replaces those the
-    repository configures, so a run in a copy prints as the default
-    reporter does.
-  - The stored excerpt and the raw output of a run keep the credential if
-    a test printed it: coverage and verification do not know it. Only the
-    prompt hides it.
-  - The file of a failure is a path as git stores it and is shown as is;
-    the client removes no control character from it.
-- Not seen with a real run of ts-jest: the lines of a type error come
-  from a Jest run that failed on a missing module.
-
-The tests of a repository that fail in the sandbox:
-
-- Not proven without a real container:
-  - That the ignore pattern keeps a file away from the Jest runner of
-    StrykerJS as it does from the Vitest one.
-  - That the command runner runs `exit 0` through the shell of the image,
-    and that its report files its one test under no file, which is not
-    read.
-  - That tests which need the network fail with a report that names
-    them, and that coverage is written in the image after they fail.
-
-A trusted install:
-
-- Only a real container can show: the build of the image with git and the
-  certificates, the clone of a package from git over https from the
-  network of the engine, the scripts of a trusted install as a user that
-  is not root on a read-only root, with the home folder in the 512 MB
-  memory folder, a script that downloads more than that folder holds, and
-  that nothing after the install has the network.
+  trusted install does not help a repository whose packages are
+  private: the sandbox holds no token.
