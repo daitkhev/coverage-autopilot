@@ -26,16 +26,13 @@ coverage-autopilot/
 └── package.json        the workspaces and the tools
 ```
 
-- The root `package.json` declares `backend`, `frontend` and
-  `api-contracts` as workspaces. The build bundles them with rolldown into
-  one package in `dist/`: `bin/client.js` is the command a person runs
-  and `bin/service.js` the service it starts. Packages of npm stay
-  imports.
-- `harness/` is not a workspace. It belongs to the root, no product code
-  imports it, and Node runs it as TypeScript with no build.
-- The files at the root that configure ESLint, Prettier and Vitest are one
-  line each that points into `harness/`, and the root `tsconfig.json`
-  extends the base there.
+- `backend`, `frontend` and `api-contracts` are workspaces. rolldown
+  bundles them into one package in `dist/`: `bin/client.js` is the
+  command a person runs and `bin/service.js` the service it starts.
+  Packages of npm stay imports.
+- `harness/` is not a workspace. No product code imports it, and Node
+  runs it as TypeScript with no build. The root files of ESLint, Prettier
+  and Vitest are one line each that points into it.
 
 ## Backend
 
@@ -43,11 +40,8 @@ coverage-autopilot/
 backend/src/
 ├── main.ts           two paths and one call
 ├── composition/      the root module, module settings, the process
-├── modules/
-│   ├── repositories/
-│   ├── coverage/
-│   ├── verification/
-│   └── improvement/
+├── modules/          repositories/, coverage/, verification/,
+│                     improvement/
 └── shared/
     ├── kernel/          errors, id, primitives, time, transaction
     ├── application/     ports: queue, handler, sandbox, store, alarm
@@ -82,11 +76,9 @@ modules/coverage/
   code. Only `main.ts` imports it, and it imports no layer of a module.
 - `shared/kernel` imports nothing of the project. `shared/application`
   imports the kernel. `shared/infrastructure` imports both and no module.
-- The migrations are SQL files in
-  `shared/infrastructure/database/migrations/`, beside the code that
-  applies them.
 - SQL is written only in `infrastructure/persistence/` of a module and in
-  `shared/infrastructure/`. There is no ORM and no query builder.
+  `shared/infrastructure/`, where the migrations are SQL files. There is
+  no ORM and no query builder.
 - `Date`, `process.env` and `console` are refused in the service. Time is
   `Temporal` behind a `Clock`, ids come from an `IdGenerator`, and the
   environment is read in the entry file and handed on as values.
@@ -108,16 +100,16 @@ modules/coverage/
 | `api/` | The client of the socket, starting the service | Nothing |
 | `theme/` | Colour roles, symbols, words for statuses, widths | Nothing |
 
-- A folder may import itself and what its row names, and nothing else. A
-  screen never imports another screen.
-- No chain of imports leads from `components/` or `hooks/` to `api/`.
-- Any folder may import a type from `api-contracts`. Only `api/` opens the
-  socket. The service and the client never import each other.
+- A folder may import itself and what its row names. A screen never
+  imports another screen, and no chain leads from `components/` or
+  `hooks/` to `api/`.
+- Any folder may import a type from `api-contracts`. The service and the
+  client never import each other.
 
 ## Imports
 
-Every import starts with an alias. A relative import is refused, `./`
-included.
+Every import starts with an alias, and the rules of layers and modules
+still apply to the file it reaches. A relative import is refused.
 
 | Alias | Points to |
 | --- | --- |
@@ -129,9 +121,6 @@ included.
 | `#api-contracts/*` | `api-contracts/src/`, inside that workspace |
 | `@coverage-autopilot/api-contracts` | The contracts, from the other workspaces |
 | `#harness/*` | `harness/` |
-
-An alias is only a name: the rules of layers and modules still apply to
-the file it reaches.
 
 ## Naming
 
@@ -165,13 +154,10 @@ workspace, one folder per kind:
 | `stress/` | The built service flooded with requests, killed at random as it works, or started twice at once | The same as `e2e/`. Only the backend has it |
 
 - A unit test repeats the path of its source file under `tests/unit/`.
-  A file of `infrastructure` has integration tests only.
-- `tests/support/` holds fakes and builders, such as a fixed clock, and no
-  test.
+  A file of `infrastructure` has integration tests only. `tests/support/`
+  holds fakes and builders, such as a fixed clock, and no test.
 - The outer `describe` names the unit, a nested one a method or a `when`,
   and every `it` starts with `should`.
-- Each workspace and the harness hold 95% of statements, branches,
-  functions and lines. Rendered screens are kept as snapshot files.
 
 ## Known problems of the tools
 
