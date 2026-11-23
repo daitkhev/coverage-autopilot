@@ -293,8 +293,8 @@ last section and nowhere else.
   Node installs, as with npm.
 - Refused with `install_runs_code`: pnpm `configDependencies`, a package
   from git, an `exec:` package, and a pnpm lockfile with
-  `pnpmfileChecksum`. Refused with `plug_and_play`: yarn without
-  `nodeLinker: node-modules`. The detail says how to trust the
+  `pnpmfileChecksum`. Refused with `plug_and_play`: yarn 2 and later
+  without `nodeLinker: node-modules`. The detail says how to trust the
   repository instead.
 - The cache is on the disk of the copy, under `node_modules` (`.yarn/cache`
   for yarn 2 and later), and the runner version comes from the lockfile.
@@ -779,7 +779,9 @@ Both modes of yarn 2 and later also set `YARN_ENABLE_GLOBAL_CACHE=0`,
   while work runs prints which work goes on and the command that shows
   it.
 - Colour is off with `NO_COLOR` or `--no-color`. Unicode is on when the
-  first locale variable that is set names UTF-8, else ASCII.
+  first locale variable that is set names UTF-8, else ASCII. A dialog
+  writes spaces under itself, since a terminal has no colour that means
+  its default background.
 - Why: one owner of the shell and the keys, statuses that cannot drift
   from the service, and no way to tell Unicode in the plan.
 - Where: `frontend/src/app/`, `frontend/src/theme/status.ts`.
@@ -849,19 +851,29 @@ Both modes of yarn 2 and later also set `YARN_ENABLE_GLOBAL_CACHE=0`,
   right numbers, and an unimported file listed with nothing covered.
 - The engine of this machine cannot mount a folder removed and made again
   at the same path.
-- Where: `backend/src/shared/infrastructure/sandbox/`.
+- Why: it showed what no stand-in could. A hung credential
+  helper led to the kill of the whole process group, and the first real
+  improvement stopped before the generator, which led to every test in a
+  mutation run and to `ps` in the image of the commands.
+- Where: `backend/src/shared/infrastructure/sandbox/`,
+  `backend/src/shared/infrastructure/processes/kill-group.ts`.
 
-### The first real fork published one commit and reached no one upstream
+### The first real fork and the first real installs worked as designed
 
 - One attempt took a file from 3 of 26 lines to 26 of 26 and killed 35
   of 37 mutants. The fork got one push, and the pull request opened in
-  it held one commit with one test file. No token was in the log.
+  it held one commit with one test file. Nothing reached the repository,
+  and no token was in the log.
 - Seven public repositories installed as they are: pnpm 10.33, 11.3 and
   11.10, yarn 1.22.22 twice, yarn 4.5.0 twice with a yarn of their own,
   which did not run, each manager at the version its repository names.
   Two refusals were right: a yarn lockfile with a package from git, and
   a Vitest project with no coverage provider. A later trusted yarn 3
   install with a git package completed.
+- Why: these runs and the scans after them led to the status of `gh`
+  read for the active account, the failure the generator hears, the
+  tests that may fail in the sandbox, the folders of examples left out
+  of a scan, and the reporter of the service for Jest.
 - Where: `backend/tests/e2e/fork-publication.test.ts`.
 
 ## Open debts and ideas left for later
