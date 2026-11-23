@@ -37,28 +37,25 @@ flowchart LR
 | `verification` | The gate: the baseline of a commit and the seven checks. It stores nothing |
 | `improvement` | Improvements, attempts, the budget, the generator and the decision to publish |
 
-- Each module uses only the modules below it in the table, through their
-  contracts in `application/contracts/`. Only values cross: ids, commits,
-  paths, patch text and DTOs. A module below that needs a fact of a
-  module above declares a port, and the module above implements it.
-- Each module has three layers, `domain`, `application` and
-  `infrastructure`. Routes are adapters in `infrastructure/http/`.
+- Each module uses only the modules above it in the table, through their
+  contracts in `application/contracts/`, and only values cross. A module
+  that needs a fact of a module below it declares a port, and the module
+  below implements it. The layers are in
+  [Project structure](project-structure.md).
 
 ## Life of a scan
 
-- A scan is a job of kind `scan` with the id of its job: `queued`,
-  `running`, `completed`, `failed` or `cancelled`. It reads the head of
-  the default branch, then runs `clone`, `install`, `test_run` and
-  `read_report`. Only the install has the network. Failing tests still
-  give coverage, and the snapshot counts them.
+- A scan is a job: `queued`, `running`, `completed`, `failed` or
+  `cancelled`. It reads the head of the default branch, then runs
+  `clone`, `install`, `test_run` and `read_report`. Only the install has
+  the network. Failing tests still give coverage.
 - It fails with `unsupported_project` and the reason in words,
   `install_failed`, `test_run_timed_out`, `coverage_report_missing` or
   `retries_exhausted`.
 - Eligible files are the `.ts`, `.tsx`, `.mts` and `.cts` files that are
-  no declaration, test or tool configuration, outside hidden folders,
-  `node_modules`, `dist`, `build`, `out`, `coverage`, test folders and
-  folders of examples, demos, samples, benchmarks and fixtures. The runner
-  gets this list, so a file no test imports is measured at 0%.
+  no declaration, test or tool configuration, outside hidden, build,
+  dependency, test and example folders. The runner gets this list, so a
+  file no test imports is measured at 0%.
 
 | The parser says | The report has | State |
 | --- | --- | --- |
@@ -159,9 +156,8 @@ flowchart TD
 | 7 | `mutation_gain` | Mutants are detected, as defined above |
 
 - A check ends `passed`, `failed`, `skipped`, `not_applicable` or `error`,
-  and a failure does not stop the checks after it. `not_applicable`
-  rejects nothing, such as a type check of a commit that did not
-  type-check before.
+  and a failure does not stop the checks after it. `not_applicable`, such
+  as a type check of a base that did not type-check, rejects nothing.
 - **accepted**: no required check failed or errored. **rejected**: one
   failed and none errored. **inconclusive**: one errored or is missing.
   It runs the attempt again when every error is retryable, and fails with
@@ -187,18 +183,16 @@ flowchart LR
   and whose moment has come. A unique index allows one leased job per
   repository.
 - A lease lasts 60 seconds, a heartbeat extends it every 20, a job has 3
-  runs, and two jobs run at once. All four are settings.
-- Every claim gives a new lease token. A save checks it, and the version
-  of the improvement, in its transaction, so a worker that lost its lease
-  saves nothing.
+  runs, and two jobs run at once. Every claim gives a new lease token,
+  and a save checks it in its transaction, so a worker that lost its
+  lease saves nothing.
 - A technical retry repeats the same step and spends no attempt. Each
-  step saves its status, so a run after a crash goes on from there with
-  the stored patch, and publication finds what it made before.
-- A request key repeated with the same request answers 200 with the
-  earlier improvement, and with another request 409. The fingerprint, a
-  SHA-256 of the repository, base commit, file, quality policy and
-  generator, answers 409 while earlier work is active, completed or
-  skipped, and lets a new request in after it failed or was cancelled.
+  step saves its status, so a run after a crash goes on from there, and
+  publication finds what it made before.
+- An `Idempotency-Key` repeated with the same request answers with the
+  earlier improvement, and with another request 409. A fingerprint of the
+  repository, base commit, file, quality policy and generator answers 409
+  while earlier work is active, completed or skipped.
 
 ## The sandbox and the secrets
 
@@ -209,13 +203,10 @@ flowchart LR
 - A working copy is mounted at its path on the host. Its git directory is
   kept outside it, git reads no setting, hook or driver of the tree, and a
   tree with an entry named `.git` is refused.
-- The service builds its default images from files it ships: Node 26 with
-  `ps`, `git` and Corepack for the commands, and Node with the AI CLI.
 - Claude Code runs with `--restricted`, the tools `Read`, `Write`, `Edit`,
-  `Glob` and `Grep` and no shell, no tool server, hooks and the
-  `CLAUDE.md` files of the repository off, and a limit of turns. Its
-  variables are its credential, `PATH` and a home in `/tmp`. A start
-  report that names other tools throws the run away.
+  `Glob` and `Grep`, no shell, no tool server, no hooks, no `CLAUDE.md`
+  of the repository and a limit of turns. A start report that names
+  other tools throws the run away.
 - A sandboxed install runs no script or hook of the repository. A trusted
   repository installs as its developers do, scripts included. Nothing
   after the install has the network in either mode.
@@ -240,15 +231,9 @@ flowchart TD
 
 ## Storage and the socket
 
-- SQLite through `node:sqlite`: six `STRICT` tables, `repositories`,
-  `coverage_snapshots`, `file_coverages`, `improvements`, `attempts` and
-  `jobs`, changed by numbered SQL migrations as the service starts.
-  Stored JSON documents carry a version and are read with Zod. Raw tool
-  output is kept in files named by their hash.
-- A start takes the instance lock, migrates and checks the database,
-  removes a stale socket and what a killed service left, then listens.
-- Twenty routes serve repositories, scans, snapshots, improvements,
-  budget settings, health and a stop. Every body is read with a Zod schema
-  of `api-contracts`, contract version 6. A request that starts work
-  carries an `Idempotency-Key`. A refusal is `{ "error", "message" }` with
-  status 400, 404 or 409, and a fault is 500.
+- SQLite through `node:sqlite`: six `STRICT` tables and numbered SQL
+  migrations. A start takes the instance lock, migrates, removes a stale
+  socket and what a killed service left, then listens.
+- Every body is read with a Zod schema of `api-contracts`, contract
+  version 6. A refusal is `{ "error", "message" }` with status 400, 404
+  or 409, and a fault is 500.
